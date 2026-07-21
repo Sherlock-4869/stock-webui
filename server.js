@@ -66,6 +66,15 @@ function proxyJson(url, res) {
   req.on('error', (e) => { res.writeHead(502); res.end('{}'); });
 }
 
+function oneYearAgoDate() {
+  const date = new Date();
+  date.setFullYear(date.getFullYear() - 1);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 const server = http.createServer((req, res) => {
   const urlObj = new URL(req.url, `http://localhost:${PORT}`);
   const pathname = urlObj.pathname;
@@ -82,14 +91,25 @@ const server = http.createServer((req, res) => {
   if (pathname === '/api/kline') {
     const sym = urlObj.searchParams.get('sym') || '';
     if (!/^[a-zA-Z0-9._]+$/.test(sym)) { res.writeHead(400); res.end('Invalid sym'); return; }
-    proxyJson(`https://web.ifzq.gtimg.cn/appstock/app/fqkline/get?param=${sym},day,,,30,qfq`, res);
+    // Fetch no more than one calendar year. The client keeps the default viewport
+    // at the latest 30 sessions and exposes the rest via zoom.
+    proxyJson(`https://ifzq.gtimg.cn/appstock/app/fqkline/get?param=${sym},day,${oneYearAgoDate()},,320,qfq`, res);
     return;
   }
 
   if (pathname === '/api/minute') {
     const sym = urlObj.searchParams.get('sym') || '';
     if (!/^[a-zA-Z0-9._]+$/.test(sym)) { res.writeHead(400); res.end('Invalid sym'); return; }
-    proxyJson(`https://web.ifzq.gtimg.cn/appstock/app/minute/query?code=${sym}`, res);
+    proxyJson(`https://ifzq.gtimg.cn/appstock/app/minute/query?code=${sym}`, res);
+    return;
+  }
+
+  if (pathname === '/api/minute-kline') {
+    const sym = urlObj.searchParams.get('sym') || '';
+    const period = urlObj.searchParams.get('period') || 'm5';
+    if (!/^[a-zA-Z0-9._]+$/.test(sym)) { res.writeHead(400); res.end('Invalid sym'); return; }
+    if (!/^m(?:1|5|15|30|60)$/.test(period)) { res.writeHead(400); res.end('Invalid period'); return; }
+    proxyJson(`https://ifzq.gtimg.cn/appstock/app/kline/mkline?param=${sym},${period},,80`, res);
     return;
   }
 

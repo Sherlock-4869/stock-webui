@@ -96,13 +96,33 @@ body.stock-sorting,body.stock-sorting *{cursor:grabbing!important;user-select:no
 .tab-bar{display:flex;gap:0;padding:12px 20px 0;border-bottom:1px solid #30363d}
 .tab{padding:6px 14px;font-size:13px;cursor:pointer;border-bottom:2px solid transparent;color:#8b949e;transition:color .15s}
 .tab.active{color:#58a6ff;border-bottom-color:#58a6ff}
-.chart-area{padding:12px 20px 16px;min-height:350px;position:relative}
+.chart-area{padding:12px 20px 16px;min-height:410px;position:relative}
+.period-bar{display:none;align-items:center;gap:6px;margin:-2px 0 8px;overflow-x:auto;scrollbar-width:none}
+.period-bar.visible{display:flex}
+.period-bar::-webkit-scrollbar{display:none}
+.period-btn{flex:none;background:#21262d;border:1px solid #30363d;border-radius:4px;color:#8b949e;padding:3px 9px;font-size:11px;cursor:pointer;transition:color .15s,border-color .15s,background .15s}
+.period-btn:hover{color:#e6edf3;border-color:#484f58}
+.period-btn.active{color:#58a6ff;border-color:#1f6feb;background:#1f3a5f}
 .chart-readout{min-height:38px;display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:6px}
 .chart-info{display:flex;flex-wrap:wrap;align-items:center;gap:4px 12px;min-width:0;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;color:#c9d1d9}
 .chart-info span{white-space:nowrap}
 .chart-info b{font-weight:500;color:#8b949e;margin-right:4px}
 .chart-guide{flex:none;color:#6e7681;font-size:11px;white-space:nowrap;padding-top:1px}
 #chart-canvas{display:block;width:100%;height:290px;border-radius:4px;cursor:crosshair;touch-action:none}
+#chart-canvas.panning{cursor:grabbing}
+.chart-window{display:none;margin-top:8px;user-select:none}
+.chart-window.ready{display:block}
+.chart-window-head{display:flex;align-items:center;gap:8px;min-height:22px;margin-bottom:4px;color:#6e7681;font-size:11px}
+.chart-range-label{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.chart-window-btn{background:none;border:1px solid #30363d;border-radius:4px;color:#8b949e;padding:2px 7px;font-size:11px;cursor:pointer}
+.chart-window-btn:hover{color:#e6edf3;border-color:#484f58}
+.chart-range{position:relative;height:24px;border-radius:4px;background:#161b22;border:1px solid #30363d;cursor:pointer;touch-action:none}
+.chart-range::before{content:"";position:absolute;left:0;right:0;top:10px;height:2px;background:#30363d}
+.chart-range-selection{position:absolute;top:4px;height:14px;min-width:4px;border:1px solid #58a6ff;background:#1f6feb55;cursor:grab}
+.chart-range-selection:active{cursor:grabbing}
+.chart-range-handle{position:absolute;top:-5px;width:14px;height:22px;border:1px solid #79c0ff;border-radius:3px;background:#1f6feb;cursor:ew-resize;z-index:1}
+.chart-range-handle.start{left:-7px}
+.chart-range-handle.end{right:-7px}
 .stats-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:#30363d;margin:0 20px 20px;border-radius:6px;overflow:hidden}
 .stat-item{background:#1c2128;padding:10px 14px}
 .stat-label{font-size:11px;color:#8b949e;margin-bottom:3px}
@@ -111,7 +131,8 @@ body.stock-sorting,body.stock-sorting *{cursor:grabbing!important;user-select:no
 @media (max-width:600px){
   .modal-header{padding:14px 14px 0}
   .tab-bar{padding-left:14px}
-  .chart-area{padding:10px 12px 14px;min-height:345px}
+  .tab{padding:6px 11px}
+  .chart-area{padding:10px 12px 14px;min-height:420px}
   .chart-readout{min-height:54px}
   .chart-guide{display:none}
   .stats-grid{margin:0 12px 14px}
@@ -166,15 +187,36 @@ body.stock-sorting,body.stock-sorting *{cursor:grabbing!important;user-select:no
     </div>
     <div class="tab-bar">
       <div class="tab active" data-tab="minute" onclick="switchTab(this)">分时</div>
+      <div class="tab" data-tab="minuteK" onclick="switchTab(this)">分时K</div>
       <div class="tab" data-tab="kline" onclick="switchTab(this)">K线</div>
     </div>
     <div class="chart-area">
+      <div class="period-bar" id="period-bar" aria-label="分时 K 线周期">
+        <button class="period-btn" data-period="m1" onclick="switchMinuteKPeriod('m1')">1分</button>
+        <button class="period-btn active" data-period="m5" onclick="switchMinuteKPeriod('m5')">5分</button>
+        <button class="period-btn" data-period="m15" onclick="switchMinuteKPeriod('m15')">15分</button>
+        <button class="period-btn" data-period="m30" onclick="switchMinuteKPeriod('m30')">30分</button>
+        <button class="period-btn" data-period="m60" onclick="switchMinuteKPeriod('m60')">60分</button>
+      </div>
       <div class="chart-readout">
         <div class="chart-info" id="chart-info"></div>
-        <div class="chart-guide">移动鼠标或触摸图表查看详情</div>
+        <div class="chart-guide">滚轮缩放 · 拖动平移</div>
       </div>
       <div class="chart-loading" id="chart-loading">加载中...</div>
       <canvas id="chart-canvas" height="290"></canvas>
+      <div class="chart-window" id="chart-window">
+        <div class="chart-window-head">
+          <span class="chart-range-label" id="chart-range-label"></span>
+          <button class="chart-window-btn" onclick="showAllChartData()">全部</button>
+          <button class="chart-window-btn" onclick="resetChartViewport()">重置</button>
+        </div>
+        <div class="chart-range" id="chart-range" aria-label="图表时间范围">
+          <div class="chart-range-selection" id="chart-range-selection">
+            <span class="chart-range-handle start" data-edge="start" aria-label="调整开始时间"></span>
+            <span class="chart-range-handle end" data-edge="end" aria-label="调整结束时间"></span>
+          </div>
+        </div>
+      </div>
     </div>
     <div class="stats-grid" id="stats-grid"></div>
   </div>
@@ -495,11 +537,13 @@ async function doSearch(q) {
 // ---- Modal ----
 let modalSym = null;
 let currentTab = 'minute';
+let currentMinuteKPeriod = 'm5';
 let lastQuoteData = {};
 
 function openModal(sym) {
   modalSym = sym;
   currentTab = 'minute';
+  currentMinuteKPeriod = 'm5';
   const q = lastQuoteData[sym];
   document.getElementById('m-name').textContent = q ? q.name : sym;
   document.getElementById('m-sub').textContent = sym.replace(/^(sh|sz|hk|us)/, '').toUpperCase();
@@ -512,6 +556,8 @@ function openModal(sym) {
     renderStats(q);
   }
   document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === 'minute'));
+  document.getElementById('period-bar').classList.remove('visible');
+  document.querySelectorAll('.period-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.period === 'm5'));
   document.getElementById('modal-mask').classList.add('open');
   loadChart('minute');
 }
@@ -527,7 +573,15 @@ function switchTab(el) {
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   el.classList.add('active');
   currentTab = el.dataset.tab;
+  document.getElementById('period-bar').classList.toggle('visible', currentTab === 'minuteK');
   loadChart(currentTab);
+}
+
+function switchMinuteKPeriod(period) {
+  if (!/^m(?:1|5|15|30|60)$/.test(period) || period === currentMinuteKPeriod) return;
+  currentMinuteKPeriod = period;
+  document.querySelectorAll('.period-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.period === period));
+  if (currentTab === 'minuteK') loadChart('minuteK');
 }
 
 function renderStats(q) {
@@ -543,10 +597,16 @@ function renderStats(q) {
 
 const chartCanvas = document.getElementById('chart-canvas');
 const chartInfo = document.getElementById('chart-info');
+const chartWindow = document.getElementById('chart-window');
+const chartRange = document.getElementById('chart-range');
+const chartRangeSelection = document.getElementById('chart-range-selection');
+const chartRangeLabel = document.getElementById('chart-range-label');
 let chartRequestId = 0;
 let chartResizeTimer = null;
 const chartState = {
-  type: '', data: [], prevClose: 0, date: '', ma5: [], ma10: [],
+  type: '', data: [], fullData: [], prevClose: 0, date: '',
+  ma5: [], ma10: [], fullMa5: [], fullMa10: [], period: '',
+  viewStart: 0, viewEnd: -1, defaultStart: 0, defaultEnd: -1,
   hoverIndex: null, pointerY: null, layout: null,
 };
 
@@ -557,6 +617,10 @@ async function loadChart(type) {
   loading.textContent = '加载中...';
   loading.style.display = 'flex';
   chartInfo.innerHTML = '';
+  chartWindow.classList.remove('ready');
+  chartState.fullData = [];
+  chartState.data = [];
+  chartState.layout = null;
   chartState.hoverIndex = null;
   try {
     if (type === 'minute') {
@@ -570,6 +634,15 @@ async function loadChart(type) {
       const date = stockData.data?.date || '';
       const prevClose = parseFloat(lastQuoteData[modalSym]?.prevClose || stockData.qt?.[symKey]?.[4] || 0);
       drawMinute(chartCanvas, rows, prevClose, date);
+    } else if (type === 'minuteK') {
+      if (!/^(sh|sz)/.test(modalSym)) throw new Error('minute K line is unavailable for this market');
+      const period = currentMinuteKPeriod;
+      const r = await fetch(`/api/minute-kline?sym=${modalSym}&period=${period}`);
+      if (!r.ok) throw new Error('minute K line request failed');
+      const d = await r.json();
+      if (requestId !== chartRequestId || currentTab !== type || currentMinuteKPeriod !== period) return;
+      const symKey = Object.keys(d.data || {})[0];
+      drawKline(chartCanvas, d.data?.[symKey]?.[period] || [], 'minuteK', period);
     } else {
       const r = await fetch(`/api/kline?sym=${modalSym}`);
       if (!r.ok) throw new Error('kline request failed');
@@ -577,7 +650,7 @@ async function loadChart(type) {
       if (requestId !== chartRequestId || currentTab !== type) return;
       const symKey = Object.keys(d.data || {})[0];
       const key = Object.keys(d.data?.[symKey] || {}).find(k => /day$/i.test(k));
-      drawKline(chartCanvas, d.data?.[symKey]?.[key] || []);
+      drawKline(chartCanvas, d.data?.[symKey]?.[key] || [], 'kline');
     }
     if (!chartState.data.length) throw new Error('empty chart data');
     loading.style.display = 'none';
@@ -585,7 +658,9 @@ async function loadChart(type) {
   } catch(e) {
     if (requestId !== chartRequestId) return;
     console.error('loadChart error:', e);
-    loading.textContent = '图表数据暂不可用';
+    loading.textContent = type === 'minuteK' && !/^(sh|sz)/.test(modalSym || '')
+      ? '该市场暂不支持分时 K 线'
+      : '图表数据暂不可用';
   }
 }
 
@@ -628,30 +703,71 @@ function movingAverage(data, period) {
   });
 }
 
-function drawMinute(canvas, rows, prevClose, date = '') {
-  chartState.type = 'minute';
-  chartState.data = parseMinuteRows(rows, date);
-  chartState.prevClose = prevClose;
-  chartState.date = date;
-  chartState.ma5 = [];
-  chartState.ma10 = [];
-  chartState.hoverIndex = null;
-  chartState.pointerY = null;
-  renderChart();
-  updateChartInfo(chartState.data.length - 1);
+function chartMinimumPoints() {
+  return chartState.type === 'minute' ? 10 : 5;
 }
 
-function drawKline(canvas, rows) {
-  chartState.type = 'kline';
-  chartState.data = parseKlineRows(rows);
-  chartState.prevClose = 0;
-  chartState.date = '';
-  chartState.ma5 = movingAverage(chartState.data, 5);
-  chartState.ma10 = movingAverage(chartState.data, 10);
+function initializeChartViewport(defaultSize) {
+  const total = chartState.fullData.length;
+  const size = Math.max(1, Math.min(total, defaultSize));
+  chartState.defaultStart = Math.max(0, total - size);
+  chartState.defaultEnd = total - 1;
+  setChartViewport(chartState.defaultStart, chartState.defaultEnd);
+}
+
+function setChartViewport(start, end, options = {}) {
+  const total = chartState.fullData.length;
+  if (!total) return;
+  const minPoints = Math.min(chartMinimumPoints(), total);
+  let nextStart = Math.max(0, Math.min(total - 1, Math.round(start)));
+  let nextEnd = Math.max(nextStart, Math.min(total - 1, Math.round(end)));
+  if (nextEnd - nextStart + 1 < minPoints) {
+    nextEnd = Math.min(total - 1, nextStart + minPoints - 1);
+    nextStart = Math.max(0, nextEnd - minPoints + 1);
+  }
+  chartState.viewStart = nextStart;
+  chartState.viewEnd = nextEnd;
+  chartState.data = chartState.fullData.slice(nextStart, nextEnd + 1);
+  chartState.ma5 = chartState.fullMa5.slice(nextStart, nextEnd + 1);
+  chartState.ma10 = chartState.fullMa10.slice(nextStart, nextEnd + 1);
   chartState.hoverIndex = null;
   chartState.pointerY = null;
-  renderChart();
-  updateChartInfo(chartState.data.length - 1);
+  updateChartWindow();
+  if (options.render !== false) {
+    renderChart();
+    updateChartInfo(chartState.data.length - 1);
+  }
+}
+
+function resetChartViewport() {
+  setChartViewport(chartState.defaultStart, chartState.defaultEnd);
+}
+
+function showAllChartData() {
+  if (!chartState.fullData.length) return;
+  setChartViewport(0, chartState.fullData.length - 1);
+}
+
+function drawMinute(canvas, rows, prevClose, date = '') {
+  chartState.type = 'minute';
+  chartState.fullData = parseMinuteRows(rows, date);
+  chartState.prevClose = prevClose;
+  chartState.date = date;
+  chartState.period = '';
+  chartState.fullMa5 = [];
+  chartState.fullMa10 = [];
+  initializeChartViewport(chartState.fullData.length);
+}
+
+function drawKline(canvas, rows, type = 'kline', period = '') {
+  chartState.type = type;
+  chartState.fullData = parseKlineRows(rows);
+  chartState.prevClose = 0;
+  chartState.date = '';
+  chartState.period = period;
+  chartState.fullMa5 = movingAverage(chartState.fullData, 5);
+  chartState.fullMa10 = movingAverage(chartState.fullData, 10);
+  initializeChartViewport(type === 'kline' ? 30 : chartState.fullData.length);
 }
 
 function prepareChartCanvas() {
@@ -828,7 +944,7 @@ function drawKlineChart(ctx, W, H) {
     drawGridLine(ctx, x, priceTop, x, volTop + volH);
     ctx.fillStyle = '#8b949e';
     ctx.textAlign = tickIndex === 0 ? 'left' : tickIndex === xIndexes.length - 1 ? 'right' : 'center';
-    ctx.fillText(data[index].date.slice(5), x, H - 8);
+    ctx.fillText(klineAxisLabel(data[index].date), x, H - 8);
   });
 
   const barW = Math.max(2, Math.min(13, step * .62));
@@ -913,8 +1029,10 @@ function drawCrosshair(ctx) {
   ctx.beginPath();
   ctx.arc(x, markerY, 3, 0, Math.PI * 2);
   ctx.fill();
-  const xText = chartState.type === 'minute' ? formatTime(point.time) : point.date;
-  drawBadge(ctx, xText, x, layout.volTop + layout.volH + 3, chartState.type === 'minute' ? 58 : 82);
+  const xText = chartState.type === 'minute'
+    ? formatTime(point.time)
+    : chartState.type === 'minuteK' ? formatKlineTimestamp(point.date) : point.date;
+  drawBadge(ctx, xText, x, layout.volTop + layout.volH + 3, chartState.type === 'minute' ? 58 : 106);
   ctx.restore();
 }
 
@@ -931,6 +1049,119 @@ function formatTradeDate(value) {
   const str = String(value || '');
   return /^\d{8}$/.test(str) ? `${str.slice(0,4)}-${str.slice(4,6)}-${str.slice(6,8)}` : str;
 }
+
+function formatKlineTimestamp(value) {
+  const str = String(value || '');
+  if (!/^\d{12}$/.test(str)) return str;
+  return `${str.slice(4,6)}-${str.slice(6,8)} ${str.slice(8,10)}:${str.slice(10,12)}`;
+}
+
+function klineAxisLabel(value) {
+  return chartState.type === 'minuteK' ? formatKlineTimestamp(value).slice(6) : String(value || '').slice(5);
+}
+
+function chartPointTime(point) {
+  if (!point) return '';
+  if (chartState.type === 'minute') return `${formatTradeDate(point.date)} ${formatTime(point.time)}`.trim();
+  if (chartState.type === 'minuteK') return formatKlineTimestamp(point.date);
+  return point.date;
+}
+
+function updateChartWindow() {
+  const total = chartState.fullData.length;
+  if (!total || chartState.viewEnd < chartState.viewStart) {
+    chartWindow.classList.remove('ready');
+    return;
+  }
+  chartWindow.classList.add('ready');
+  const denominator = Math.max(1, total - 1);
+  const left = chartState.viewStart / denominator * 100;
+  const right = chartState.viewEnd / denominator * 100;
+  chartRangeSelection.style.left = `${left}%`;
+  chartRangeSelection.style.width = `${Math.max(0, right - left)}%`;
+  const first = chartState.fullData[chartState.viewStart];
+  const last = chartState.fullData[chartState.viewEnd];
+  chartRangeLabel.textContent = `${chartPointTime(first)} — ${chartPointTime(last)} · ${chartState.viewEnd - chartState.viewStart + 1}/${total}`;
+}
+
+function zoomChartToCount(targetCount, anchorRatio = .5) {
+  const total = chartState.fullData.length;
+  if (!total) return;
+  const currentCount = chartState.viewEnd - chartState.viewStart + 1;
+  const ratio = Math.max(0, Math.min(1, anchorRatio));
+  const anchor = chartState.viewStart + ratio * Math.max(0, currentCount - 1);
+  zoomChartAround(targetCount, anchor, ratio);
+}
+
+function zoomChartAround(targetCount, anchor, anchorRatio = .5) {
+  const total = chartState.fullData.length;
+  if (!total) return;
+  const minPoints = Math.min(chartMinimumPoints(), total);
+  const count = Math.max(minPoints, Math.min(total, Math.round(targetCount)));
+  const ratio = Math.max(0, Math.min(1, anchorRatio));
+  let start = Math.round(anchor - ratio * Math.max(0, count - 1));
+  start = Math.max(0, Math.min(total - count, start));
+  setChartViewport(start, start + count - 1);
+}
+
+function panChartBy(offset) {
+  const total = chartState.fullData.length;
+  const count = chartState.viewEnd - chartState.viewStart + 1;
+  if (!total || count >= total) return;
+  const start = Math.max(0, Math.min(total - count, chartState.viewStart + Math.round(offset)));
+  setChartViewport(start, start + count - 1);
+}
+
+let rangeDrag = null;
+
+chartRange.addEventListener('pointerdown', event => {
+  if (!chartState.fullData.length || event.button > 0) return;
+  event.preventDefault();
+  const total = chartState.fullData.length;
+  const rect = chartRange.getBoundingClientRect();
+  const edge = event.target.closest('.chart-range-handle')?.dataset.edge;
+  const mode = edge || 'move';
+  if (!event.target.closest('.chart-range-selection')) {
+    const count = chartState.viewEnd - chartState.viewStart + 1;
+    const center = (event.clientX - rect.left) / rect.width * Math.max(0, total - 1);
+    let start = Math.round(center - (count - 1) / 2);
+    start = Math.max(0, Math.min(total - count, start));
+    setChartViewport(start, start + count - 1);
+  }
+  rangeDrag = {
+    mode, pointerId: event.pointerId, startX: event.clientX,
+    start: chartState.viewStart, end: chartState.viewEnd, width: rect.width,
+  };
+  try { chartRange.setPointerCapture(event.pointerId); } catch (_) {}
+});
+
+chartRange.addEventListener('pointermove', event => {
+  if (!rangeDrag || event.pointerId !== rangeDrag.pointerId) return;
+  event.preventDefault();
+  const total = chartState.fullData.length;
+  const minPoints = Math.min(chartMinimumPoints(), total);
+  const delta = Math.round((event.clientX - rangeDrag.startX) / Math.max(1, rangeDrag.width) * Math.max(0, total - 1));
+  if (rangeDrag.mode === 'start') {
+    const start = Math.max(0, Math.min(rangeDrag.end - minPoints + 1, rangeDrag.start + delta));
+    setChartViewport(start, rangeDrag.end);
+  } else if (rangeDrag.mode === 'end') {
+    const end = Math.min(total - 1, Math.max(rangeDrag.start + minPoints - 1, rangeDrag.end + delta));
+    setChartViewport(rangeDrag.start, end);
+  } else {
+    const count = rangeDrag.end - rangeDrag.start + 1;
+    const start = Math.max(0, Math.min(total - count, rangeDrag.start + delta));
+    setChartViewport(start, start + count - 1);
+  }
+});
+
+function endRangeDrag(event) {
+  if (!rangeDrag || event.pointerId !== rangeDrag.pointerId) return;
+  try { chartRange.releasePointerCapture(event.pointerId); } catch (_) {}
+  rangeDrag = null;
+}
+
+chartRange.addEventListener('pointerup', endRangeDrag);
+chartRange.addEventListener('pointercancel', endRangeDrag);
 
 function chartVolume(value) {
   if (!Number.isFinite(value)) return '--';
@@ -965,11 +1196,12 @@ function updateChartInfo(index) {
       infoItem('成交额', chartAmount(point.amount)),
     ].join('');
   } else {
-    const previousClose = index > 0 ? chartState.data[index - 1].close : point.open;
+    const absoluteIndex = chartState.viewStart + index;
+    const previousClose = absoluteIndex > 0 ? chartState.fullData[absoluteIndex - 1].close : point.open;
     const pct = previousClose ? (point.close - previousClose) / previousClose * 100 : 0;
     const tone = pct > 0 ? 'up' : pct < 0 ? 'down' : 'flat';
     chartInfo.innerHTML = [
-      infoItem('日期', point.date),
+      infoItem(chartState.type === 'minuteK' ? '时间' : '日期', chartState.type === 'minuteK' ? formatKlineTimestamp(point.date) : point.date),
       infoItem('开', chartNumber(point.open)),
       infoItem('高', chartNumber(point.high), 'up'),
       infoItem('低', chartNumber(point.low), 'down'),
@@ -982,28 +1214,125 @@ function updateChartInfo(index) {
   }
 }
 
-chartCanvas.addEventListener('pointermove', event => {
+function chartRatioAtClientX(clientX) {
+  const rect = chartCanvas.getBoundingClientRect();
+  const x = (clientX - rect.left) * chartState.layout.W / rect.width;
+  const { plotLeft, plotRight } = chartState.layout;
+  return Math.max(0, Math.min(1, (x - plotLeft) / (plotRight - plotLeft)));
+}
+
+function updateChartHover(event) {
   if (!chartState.layout || !chartState.data.length) return;
   const rect = chartCanvas.getBoundingClientRect();
   const x = (event.clientX - rect.left) * chartState.layout.W / rect.width;
   const y = (event.clientY - rect.top) * chartState.layout.H / rect.height;
   const { plotLeft, plotRight } = chartState.layout;
   if (x < plotLeft || x > plotRight) return;
-  const ratio = (x - plotLeft) / (plotRight - plotLeft);
+  const ratio = chartRatioAtClientX(event.clientX);
   chartState.hoverIndex = chartState.type === 'minute'
     ? Math.round(ratio * (chartState.data.length - 1))
     : Math.min(chartState.data.length - 1, Math.floor(ratio * chartState.data.length));
   chartState.pointerY = y;
   renderChart();
   updateChartInfo(chartState.hoverIndex);
+}
+
+const chartPointers = new Map();
+let chartGesture = null;
+
+function beginChartPan(pointer) {
+  chartGesture = {
+    mode: 'pan', pointerId: pointer.pointerId, startX: pointer.clientX,
+    start: chartState.viewStart, end: chartState.viewEnd, moved: false,
+  };
+}
+
+function beginChartPinch() {
+  const points = [...chartPointers.values()];
+  if (points.length < 2) return;
+  const distance = Math.max(1, Math.hypot(points[0].clientX - points[1].clientX, points[0].clientY - points[1].clientY));
+  const midpoint = (points[0].clientX + points[1].clientX) / 2;
+  const ratio = chartRatioAtClientX(midpoint);
+  const count = chartState.viewEnd - chartState.viewStart + 1;
+  chartGesture = {
+    mode: 'pinch', startDistance: distance, startCount: count,
+    anchor: chartState.viewStart + ratio * Math.max(0, count - 1), moved: false,
+  };
+}
+
+chartCanvas.addEventListener('pointerdown', event => {
+  if (!chartState.layout || !chartState.data.length || event.button > 0) return;
+  event.preventDefault();
+  chartPointers.set(event.pointerId, { pointerId: event.pointerId, clientX: event.clientX, clientY: event.clientY });
+  try { chartCanvas.setPointerCapture(event.pointerId); } catch (_) {}
+  chartCanvas.classList.add('panning');
+  if (chartPointers.size === 1) beginChartPan(chartPointers.get(event.pointerId));
+  else beginChartPinch();
+});
+
+chartCanvas.addEventListener('pointermove', event => {
+  if (!chartState.layout || !chartState.data.length) return;
+  if (!chartPointers.has(event.pointerId)) {
+    if (event.pointerType === 'mouse') updateChartHover(event);
+    return;
+  }
+  event.preventDefault();
+  chartPointers.set(event.pointerId, { pointerId: event.pointerId, clientX: event.clientX, clientY: event.clientY });
+  if (chartPointers.size >= 2) {
+    if (chartGesture?.mode !== 'pinch') beginChartPinch();
+    const points = [...chartPointers.values()];
+    const distance = Math.max(1, Math.hypot(points[0].clientX - points[1].clientX, points[0].clientY - points[1].clientY));
+    const midpoint = (points[0].clientX + points[1].clientX) / 2;
+    chartGesture.moved = true;
+    zoomChartAround(chartGesture.startCount * chartGesture.startDistance / distance, chartGesture.anchor, chartRatioAtClientX(midpoint));
+    return;
+  }
+  if (chartGesture?.mode !== 'pan' || chartGesture.pointerId !== event.pointerId) return;
+  const rect = chartCanvas.getBoundingClientRect();
+  const plotWidth = rect.width * (chartState.layout.plotRight - chartState.layout.plotLeft) / chartState.layout.W;
+  const count = chartGesture.end - chartGesture.start + 1;
+  const delta = Math.round(-(event.clientX - chartGesture.startX) / Math.max(1, plotWidth) * count);
+  if (Math.abs(event.clientX - chartGesture.startX) > 3) chartGesture.moved = true;
+  const total = chartState.fullData.length;
+  const start = Math.max(0, Math.min(total - count, chartGesture.start + delta));
+  setChartViewport(start, start + count - 1);
 });
 
 chartCanvas.addEventListener('pointerleave', event => {
-  if (event.pointerType !== 'mouse') return;
+  if (event.pointerType !== 'mouse' || chartPointers.size) return;
   chartState.hoverIndex = null;
   chartState.pointerY = null;
   renderChart();
   updateChartInfo(chartState.data.length - 1);
+});
+
+function endChartPointer(event) {
+  if (!chartPointers.has(event.pointerId)) return;
+  const wasTap = chartPointers.size === 1 && chartGesture?.mode === 'pan' && !chartGesture.moved;
+  chartPointers.delete(event.pointerId);
+  try { chartCanvas.releasePointerCapture(event.pointerId); } catch (_) {}
+  if (chartPointers.size === 1) beginChartPan([...chartPointers.values()][0]);
+  else if (!chartPointers.size) {
+    chartGesture = null;
+    chartCanvas.classList.remove('panning');
+  }
+  if (wasTap) updateChartHover(event);
+}
+
+chartCanvas.addEventListener('pointerup', endChartPointer);
+chartCanvas.addEventListener('pointercancel', endChartPointer);
+
+chartCanvas.addEventListener('wheel', event => {
+  if (!chartState.layout || !chartState.fullData.length) return;
+  event.preventDefault();
+  const currentCount = chartState.viewEnd - chartState.viewStart + 1;
+  const scale = Math.exp(event.deltaY * .0018);
+  zoomChartToCount(currentCount * scale, chartRatioAtClientX(event.clientX));
+}, { passive: false });
+
+chartCanvas.addEventListener('dblclick', event => {
+  event.preventDefault();
+  resetChartViewport();
 });
 
 window.addEventListener('resize', () => {
