@@ -1,0 +1,140 @@
+const http = require('http');
+const https = require('https');
+const fs = require('fs');
+const path = require('path');
+
+const PORT = 3000;
+const PUBLIC_DIR = path.join(__dirname, 'public');
+const gbkDecode = require('./iconv_gbk');
+
+const MIME = {
+  '.html': 'text/html; charset=utf-8',
+  '.js':   'application/javascript; charset=utf-8',
+  '.css':  'text/css; charset=utf-8',
+  '.json': 'application/json; charset=utf-8',
+};
+
+const UPSTREAM_HEADERS = {
+  'Referer': 'https://finance.qq.com',
+  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+};
+
+function serveFile(res, filePath) {
+  fs.readFile(filePath, (err, data) => {
+    if (err) { res.writeHead(404); res.end('Not Found'); return; }
+    const ext = path.extname(filePath);
+    res.writeHead(200, { 'Content-Type': MIME[ext] || 'application/octet-stream' });
+    res.end(data);
+  });
+}
+
+function proxyQuote(symbols, res) {
+  const url = `https://qt.gtimg.cn/q=${symbols}`;
+  const req = https.get(url, { headers: UPSTREAM_HEADERS, timeout: 8000 }, (r) => {
+    const chunks = [];
+    r.on('data', c => chunks.push(c));
+    r.on('end', () => {
+      const text = gbkDecode(Buffer.concat(chunks));
+      res.writeHead(200, {
+        'Content-Type': 'text/plain; charset=utf-8',
+        'Access-Control-Allow-Origin': '*',
+        'Cache-Control': 'no-cache',
+      });
+      res.end(text);
+    });
+  });
+  req.on('timeout', () => { req.destroy(); res.writeHead(504); res.end('Upstream timeout'); });
+  req.on('error', (e) => { res.writeHead(502); res.end('Upstream error: ' + e.message); });
+}
+
+function proxyJson(url, res) {
+  const req = https.get(url, { headers: UPSTREAM_HEADERS, timeout: 8000 }, (r) => {
+    const chunks = [];
+    r.on('data', c => chunks.push(c));
+    r.on('end', () => {
+      let text = Buffer.concat(chunks).toString('utf-8');
+      text = text.replace(/^[^=]+=/, ''); // strip JSONP wrapper
+      res.writeHead(200, {
+        'Content-Type': 'application/json; charset=utf-8',
+        'Access-Control-Allow-Origin': '*',
+        'Cache-Control': 'no-cache',
+      });
+      res.end(text);
+    });
+  });
+  req.on('timeout', () => { req.destroy(); res.writeHead(504); res.end('{}'); });
+  req.on('error', (e) => { res.writeHead(502); res.end('{}'); });
+}
+
+const server = http.createServer((req, res) => {
+  const urlObj = new URL(req.url, `http://localhost:${PORT}`);
+  const pathname = urlObj.pathname;
+
+  if (pathname === '/api/quote') {
+    const symbols = urlObj.searchParams.get('symbols') || '';
+    if (!symbols) { res.writeHead(400); res.end('Missing symbols'); return; }
+    const safe = symbols.split(',').filter(s => /^[a-zA-Z0-9._]+$/.test(s)).join(',');
+    if (!safe) { res.writeHead(400); res.end('No valid symbols'); return; }
+    proxyQuote(safe, res);
+    return;
+  }
+
+  if (pathname === '/api/kline') {
+    const sym = urlObj.searchParams.get('sym') || '';
+    if (!/^[a-zA-Z0-9._]+$/.test(sym)) { res.writeHead(400); res.end('Invalid sym'); return; }
+    proxyJson(`https://web.ifzq.gtimg.cn/appstock/app/fqkline/get?param=${sym},day,,,30,qfq`, res);
+    return;
+  }
+
+  if (pathname === '/api/minute') {
+    const sym = urlObj.searchParams.get('sym') || '';
+    if (!/^[a-zA-Z0-9._]+$/.test(sym)) { res.writeHead(400); res.end('Invalid sym'); return; }
+    proxyJson(`https://web.ifzq.gtimg.cn/appstock/app/minute/query?code=${sym}`, res);
+    return;
+  }
+
+  if (pathname === '/api/search') {
+    const q = urlObj.searchParams.get('q') || '';
+    if (!q) { res.writeHead(400); res.end('Missing q'); return; }
+    const url = `https://smartbox.gtimg.cn/s3/?v=2&q=${encodeURIComponent(q)}&t=all&c=8`;
+    const sreq = https.get(url, { headers: UPSTREAM_HEADERS, timeout: 8000 }, (r) => {
+      const chunks = [];
+      r.on('data', c => chunks.push(c));
+      r.on('end', () => {
+        const text = Buffer.concat(chunks).toString('utf-8');
+        const m = text.match(/v_hint="([^"]*)"/);
+        const results = [];
+        if (m && m[1]) {
+          for (const item of m[1].split('^')) {
+            const parts = item.split('~');
+            if (parts.length < 3) continue;
+            const [market, code, rawName, , type] = parts;
+            if (type && type !== 'GP' && type !== 'GP-A') continue;
+            let name;
+            try { name = JSON.parse('"' + rawName.replace(/"/g, '\\"') + '"'); }
+            catch(e) { name = rawName; }
+            const mkt = market.toLowerCase();
+            const sym = mkt === 'us'
+              ? 'us' + code.split('.')[0].toUpperCase()
+              : `${mkt}${code}`;
+            results.push({ sym, name, market: market.toUpperCase(), code: code.toUpperCase() });
+          }
+        }
+        res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'Access-Control-Allow-Origin': '*', 'Cache-Control': 'no-cache' });
+        res.end(JSON.stringify(results));
+      });
+    });
+    sreq.on('timeout', () => { sreq.destroy(); res.writeHead(504); res.end('[]'); });
+    sreq.on('error', () => { res.writeHead(502); res.end('[]'); });
+    return;
+  }
+
+  let filePath = path.join(PUBLIC_DIR, pathname === '/' ? 'index.html' : pathname);
+  filePath = path.normalize(filePath);
+  if (!filePath.startsWith(PUBLIC_DIR)) { res.writeHead(403); res.end('Forbidden'); return; }
+  serveFile(res, filePath);
+});
+
+server.listen(PORT, () => {
+  console.log(`Stock monitor running at http://localhost:${PORT}`);
+});

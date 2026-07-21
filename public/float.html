@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>自选股浮窗</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:#0d1117;color:#e6edf3;overflow:hidden;padding:8px}
+.header{display:flex;align-items:center;gap:8px;margin-bottom:8px;padding:6px 8px;background:#161b22;border-radius:6px}
+.title{font-size:14px;font-weight:600;flex:1}
+.time{font-size:11px;color:#8b949e}
+table{width:100%;border-collapse:collapse;background:#161b22;border-radius:6px;overflow:hidden;font-size:12px}
+thead{background:#1c2128}
+th{padding:6px 8px;text-align:right;font-size:11px;font-weight:600;color:#8b949e;white-space:nowrap}
+th:first-child,th:nth-child(2){text-align:left}
+td{padding:6px 8px;text-align:right;border-top:1px solid #21262d;white-space:nowrap}
+td:first-child,td:nth-child(2){text-align:left}
+tr:hover td{background:#1c2128}
+.up{color:#f85149}.down{color:#3fb950}.flat{color:#8b949e}
+.market-tag{display:inline-block;font-size:9px;padding:1px 4px;border-radius:3px;font-weight:600;margin-right:3px;vertical-align:middle}
+.tag-a{background:#1f3a5f;color:#79c0ff}
+.tag-hk{background:#3a2d1f;color:#e3b341}
+.tag-us{background:#1f3d2f;color:#3fb950}
+.empty{text-align:center;padding:40px;color:#6e7681;font-size:12px}
+</style>
+</head>
+<body>
+<div class="header">
+  <div class="title">📈 自选股</div>
+  <div class="time" id="time"></div>
+</div>
+<table>
+  <thead>
+    <tr>
+      <th>代码</th><th>名称</th><th>最新价</th>
+      <th>涨跌额</th><th>涨跌幅</th>
+    </tr>
+  </thead>
+  <tbody id="tbody"><tr><td colspan="5" class="empty">加载中...</td></tr></tbody>
+</table>
+
+<script>
+const STORAGE_KEY = 'watchlist_v1';
+const DEFAULT_STOCKS = ['sh600519','sz000001','hk00700','usAAPL'];
+const _stored = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null');
+const _valid = Array.isArray(_stored) ? _stored.filter(s => /^[a-zA-Z0-9._]+$/.test(s)) : [];
+let watchlist = _valid.length ? _valid : [...DEFAULT_STOCKS];
+
+function marketTag(sym) {
+  if (sym.startsWith('sh') || sym.startsWith('sz')) return '<span class="market-tag tag-a">A</span>';
+  if (sym.startsWith('hk')) return '<span class="market-tag tag-hk">港</span>';
+  if (sym.startsWith('us')) return '<span class="market-tag tag-us">美</span>';
+  return '';
+}
+
+function fmt(n, d=2) { const v=parseFloat(n); return (isNaN(v)||v===0)?'--':v.toFixed(d); }
+function cls(n) { const v=parseFloat(n); if(isNaN(v)||v===0)return'flat'; return v>0?'up':'down'; }
+function sign(n) { return parseFloat(n)>0?'+':''; }
+
+function parseQuoteText(text) {
+  const result = {};
+  for (const line of text.split('\n')) {
+    const m = line.match(/^v_(\w+)="([^"]*)"/);
+    if (m) result[m[1]] = m[2].split('~');
+  }
+  return result;
+}
+
+function extractQuote(sym, fields) {
+  if (!fields || fields.length < 10) return null;
+  return {
+    name: fields[1], price: fields[3], chg: fields[31], pct: fields[32],
+  };
+}
+
+async function fetchAndRender() {
+  if (!watchlist.length) return;
+  try {
+    const resp = await fetch(`/api/quote?symbols=${encodeURIComponent(watchlist.join(','))}`);
+    if (!resp.ok) throw new Error();
+    const data = parseQuoteText(await resp.text());
+    renderTable(data);
+    document.getElementById('time').textContent = new Date().toLocaleTimeString('zh-CN');
+  } catch(e) {
+    console.error('fetch error:', e);
+  }
+}
+
+function renderTable(data) {
+  if (!watchlist.length) {
+    document.getElementById('tbody').innerHTML = '<tr><td colspan="5" class="empty">暂无自选股</td></tr>';
+    return;
+  }
+  document.getElementById('tbody').innerHTML = watchlist.map(sym => {
+    const q = extractQuote(sym, data[sym]);
+    if (!q) return `<tr>
+      <td>${marketTag(sym)}<b>${sym.replace(/^(sh|sz|hk|us)/,'')}</b></td>
+      <td colspan="4" style="color:#6e7681">加载中...</td></tr>`;
+    const c = cls(q.chg);
+    return `<tr>
+      <td>${marketTag(sym)}<b>${sym.replace(/^(sh|sz|hk|us)/,'')}</b></td>
+      <td>${q.name||sym}</td>
+      <td class="${c}" style="font-weight:600">${fmt(q.price)}</td>
+      <td class="${c}">${sign(q.chg)}${fmt(q.chg)}</td>
+      <td class="${c}">${sign(q.pct)}${fmt(q.pct)}%</td></tr>`;
+  }).join('');
+}
+
+fetchAndRender();
+setInterval(fetchAndRender, 5000);
+</script>
+</body>
+</html>

@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>画中画自选股</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:#0d1117;color:#e6edf3;padding:20px}
+.controls{margin-bottom:16px;display:flex;gap:8px;align-items:center}
+button{background:#238636;border:none;border-radius:6px;color:#fff;padding:8px 16px;font-size:14px;cursor:pointer}
+button:hover{background:#2ea043}
+button:disabled{opacity:.4;cursor:not-allowed}
+#canvas-container{position:relative;background:#161b22;border:1px solid #30363d;border-radius:8px;overflow:hidden}
+canvas{display:block;width:100%}
+.status{font-size:13px;color:#8b949e;margin-left:auto}
+</style>
+</head>
+<body>
+<div class="controls">
+  <button id="start-btn" onclick="startPiP()">启动画中画</button>
+  <button id="stop-btn" onclick="stopPiP()" disabled>停止画中画</button>
+  <div class="status" id="status">未启动</div>
+</div>
+<div id="canvas-container">
+  <canvas id="canvas" width="640" height="360"></canvas>
+</div>
+
+<script>
+const STORAGE_KEY = 'watchlist_v1';
+const DEFAULT_STOCKS = ['sh600519','sz000001','hk00700','usAAPL'];
+const _stored = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null');
+const _valid = Array.isArray(_stored) ? _stored.filter(s => /^[a-zA-Z0-9._]+$/.test(s)) : [];
+let watchlist = _valid.length ? _valid : [...DEFAULT_STOCKS];
+
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+let stream = null;
+let video = null;
+let pipWindow = null;
+let refreshTimer = null;
+
+function marketLabel(sym) {
+  if (sym.startsWith('sh') || sym.startsWith('sz')) return 'A';
+  if (sym.startsWith('hk')) return '港';
+  if (sym.startsWith('us')) return '美';
+  return '';
+}
+
+function fmt(n, d=2) { const v=parseFloat(n); return (isNaN(v)||v===0)?'--':v.toFixed(d); }
+function cls(n) { const v=parseFloat(n); if(isNaN(v)||v===0)return'#8b949e'; return v>0?'#f85149':'#3fb950'; }
+function sign(n) { return parseFloat(n)>0?'+':''; }
+
+function parseQuoteText(text) {
+  const result = {};
+  for (const line of text.split('\n')) {
+    const m = line.match(/^v_(\w+)="([^"]*)"/);
+    if (m) result[m[1]] = m[2].split('~');
+  }
+  return result;
+}
+
+function extractQuote(sym, fields) {
+  if (!fields || fields.length < 10) return null;
+  return {
+    name: fields[1], price: fields[3], chg: fields[31], pct: fields[32],
+  };
+}
+
+async function fetchAndRender() {
+  if (!watchlist.length) return;
+  try {
+    const resp = await fetch(`/api/quote?symbols=${encodeURIComponent(watchlist.join(','))}`);
+    if (!resp.ok) throw new Error();
+    const data = parseQuoteText(await resp.text());
+    renderCanvas(data);
+  } catch(e) {
+    console.error('fetch error:', e);
+  }
+}
+
+function renderCanvas(data) {
+  const W = 640, H = 360;
+  ctx.fillStyle = '#0d1117';
+  ctx.fillRect(0, 0, W, H);
+
+  // title
+  ctx.fillStyle = '#e6edf3';
+  ctx.font = 'bold 20px sans-serif';
+  ctx.fillText('📈 自选股行情', 20, 35);
+
+  // time
+  ctx.font = '12px monospace';
+  ctx.fillStyle = '#8b949e';
+  ctx.fillText(new Date().toLocaleTimeString('zh-CN'), W - 90, 35);
+
+  // table header
+  const rowH = 40;
+  const startY = 60;
+  ctx.fillStyle = '#1c2128';
+  ctx.fillRect(0, startY, W, rowH);
+
+  ctx.fillStyle = '#8b949e';
+  ctx.font = 'bold 13px sans-serif';
+  ctx.textAlign = 'left';
+  ctx.fillText('代码', 20, startY + 25);
+  ctx.fillText('名称', 120, startY + 25);
+  ctx.fillText('最新价', 280, startY + 25);
+  ctx.fillText('涨跌额', 380, startY + 25);
+  ctx.fillText('涨跌幅', 490, startY + 25);
+
+  // rows
+  watchlist.forEach((sym, i) => {
+    const y = startY + rowH * (i + 1);
+    if (y > H - 10) return; // out of bounds
+
+    const q = extractQuote(sym, data[sym]);
+    if (!q) {
+      ctx.fillStyle = '#6e7681';
+      ctx.font = '13px sans-serif';
+      ctx.fillText('加载中...', 20, y + 25);
+      return;
+    }
+
+    // market + code
+    const mkt = marketLabel(sym);
+    const code = sym.replace(/^(sh|sz|hk|us)/, '');
+    ctx.fillStyle = '#58a6ff';
+    ctx.font = '11px sans-serif';
+    ctx.fillText(mkt, 20, y + 25);
+    ctx.fillStyle = '#e6edf3';
+    ctx.font = 'bold 13px monospace';
+    ctx.fillText(code, 40, y + 25);
+
+    // name
+    ctx.fillStyle = '#e6edf3';
+    ctx.font = '13px sans-serif';
+    ctx.fillText(q.name.slice(0, 8), 120, y + 25);
+
+    // price
+    const color = cls(q.chg);
+    ctx.fillStyle = color;
+    ctx.font = 'bold 14px monospace';
+    ctx.fillText(fmt(q.price), 280, y + 25);
+
+    // chg
+    ctx.fillText(sign(q.chg) + fmt(q.chg), 380, y + 25);
+
+    // pct
+    ctx.fillText(sign(q.pct) + fmt(q.pct) + '%', 490, y + 25);
+  });
+}
+
+async function startPiP() {
+  if (!document.pictureInPictureEnabled) {
+    alert('当前浏览器不支持画中画功能');
+    return;
+  }
+
+  try {
+    // first fetch and render data
+    await fetchAndRender();
+
+    // capture canvas stream
+    stream = canvas.captureStream(30); // higher fps for smoother updates
+
+    // create hidden video
+    video = document.createElement('video');
+    video.muted = true;
+    video.style.display = 'none';
+    document.body.appendChild(video);
+
+    video.srcObject = stream;
+
+    // play the video first
+    await video.play();
+
+    // small delay to ensure video is truly ready
+    await new Promise(resolve => setTimeout(resolve, 100));
+
+    // request PiP
+    pipWindow = await video.requestPictureInPicture();
+
+    document.getElementById('start-btn').disabled = true;
+    document.getElementById('stop-btn').disabled = false;
+    document.getElementById('status').textContent = '画中画运行中';
+
+    // refresh data every 5s
+    refreshTimer = setInterval(fetchAndRender, 5000);
+    // fetchAndRender already called before PiP started
+
+    // handle PiP close
+    pipWindow.addEventListener('resize', () => {
+      console.log('PiP resized:', pipWindow.width, pipWindow.height);
+    });
+
+    video.addEventListener('leavepictureinpicture', () => {
+      stopPiP();
+    });
+
+  } catch(e) {
+    console.error('PiP error:', e);
+    alert('启动画中画失败: ' + e.message);
+    stopPiP();
+  }
+}
+
+function stopPiP() {
+  if (refreshTimer) clearInterval(refreshTimer);
+  if (video) {
+    if (document.pictureInPictureElement) {
+      document.exitPictureInPicture();
+    }
+    video.srcObject = null;
+    video.remove();
+    video = null;
+  }
+  if (stream) {
+    stream.getTracks().forEach(t => t.stop());
+    stream = null;
+  }
+  pipWindow = null;
+
+  document.getElementById('start-btn').disabled = false;
+  document.getElementById('stop-btn').disabled = true;
+  document.getElementById('status').textContent = '已停止';
+}
+
+// initial render
+fetchAndRender();
+</script>
+</body>
+</html>
