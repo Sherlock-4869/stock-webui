@@ -19,6 +19,17 @@ const UPSTREAM_HEADERS = {
   'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
 };
 
+const GLOBAL_TENCENT_INDEXES = [
+  ['sh000001', '000001'], ['sz399001', '399001'], ['bj899050', '899050'],
+  ['sh000680', '000680'], ['sz399006', '399006'],
+  ['hkHSI', 'HSI'], ['usDJI', 'DJIA'], ['usIXIC', 'IXIC'], ['usINX', 'SPX'],
+];
+const GLOBAL_SINA_INDEXES = [
+  ['b_KOSPI', 'KOSPI'], ['int_nikkei', 'N225'],
+  ['int_dax30', 'GDAXI'], ['int_ftse', 'FTSE'],
+];
+const globalMarketCache = new Map();
+
 function serveFile(res, filePath) {
   fs.readFile(filePath, (err, data) => {
     if (err) { res.writeHead(404); res.end('Not Found'); return; }
@@ -66,6 +77,80 @@ function proxyJson(url, res) {
   req.on('error', (e) => { res.writeHead(502); res.end('{}'); });
 }
 
+function requestBuffer(url, headers) {
+  return new Promise((resolve, reject) => {
+    const req = https.get(url, { headers, timeout: 8000 }, (r) => {
+      const chunks = [];
+      r.on('data', chunk => chunks.push(chunk));
+      r.on('end', () => resolve(Buffer.concat(chunks)));
+    });
+    req.on('timeout', () => { req.destroy(); reject(new Error('Upstream timeout')); });
+    req.on('error', reject);
+  });
+}
+
+function parseTencentIndexes(buffer) {
+  const text = gbkDecode(buffer);
+  return GLOBAL_TENCENT_INDEXES.map(([symbol, code]) => {
+    const match = text.match(new RegExp(`v_${symbol}="([^"]*)"`));
+    if (!match) return null;
+    const fields = match[1].split('~');
+    return {
+      code,
+      price: Number(fields[3]), prevClose: Number(fields[4]), open: Number(fields[5]),
+      change: Number(fields[31]), pct: Number(fields[32]),
+      high: Number(fields[33]), low: Number(fields[34]), updated: fields[30] || '',
+    };
+  }).filter(Boolean);
+}
+
+function parseSinaIndexes(buffer) {
+  const text = gbkDecode(buffer);
+  return GLOBAL_SINA_INDEXES.map(([symbol, code]) => {
+    const match = text.match(new RegExp(`hq_str_${symbol}="([^"]*)"`));
+    if (!match || !match[1]) return null;
+    const [, priceRaw, changeRaw, pctRaw] = match[1].split(',');
+    const price = Number(priceRaw), change = Number(changeRaw);
+    return {
+      code, price, change, pct: Number(pctRaw), prevClose: price - change,
+      open: null, high: null, low: null, updated: '',
+    };
+  }).filter(Boolean);
+}
+
+async function proxyGlobalMarkets(res) {
+  const tencentSymbols = GLOBAL_TENCENT_INDEXES.map(([symbol]) => symbol).join(',');
+  const sinaSymbols = GLOBAL_SINA_INDEXES.map(([symbol]) => symbol).join(',');
+  const requests = await Promise.allSettled([
+    requestBuffer(`https://qt.gtimg.cn/q=${tencentSymbols}`, UPSTREAM_HEADERS),
+    requestBuffer(`https://hq.sinajs.cn/list=${sinaSymbols}`, {
+      ...UPSTREAM_HEADERS,
+      Referer: 'https://finance.sina.com.cn',
+    }),
+  ]);
+  const freshData = [];
+  if (requests[0].status === 'fulfilled') freshData.push(...parseTencentIndexes(requests[0].value));
+  if (requests[1].status === 'fulfilled') freshData.push(...parseSinaIndexes(requests[1].value));
+  freshData.forEach(item => globalMarketCache.set(item.code, item));
+  const codeOrder = [...GLOBAL_TENCENT_INDEXES, ...GLOBAL_SINA_INDEXES].map(([, code]) => code);
+  const data = codeOrder.map(code => globalMarketCache.get(code)).filter(Boolean);
+  if (!data.length) {
+    res.writeHead(502, { 'Content-Type': 'application/json; charset=utf-8' });
+    res.end(JSON.stringify({ data: [] }));
+    return;
+  }
+  res.writeHead(200, {
+    'Content-Type': 'application/json; charset=utf-8',
+    'Access-Control-Allow-Origin': '*',
+    'Cache-Control': 'no-cache',
+  });
+  res.end(JSON.stringify({
+    data,
+    fetchedAt: Date.now(),
+    partial: requests.some(request => request.status === 'rejected') || freshData.length < codeOrder.length,
+  }));
+}
+
 function oneYearAgoDate() {
   const date = new Date();
   date.setFullYear(date.getFullYear() - 1);
@@ -85,6 +170,11 @@ const server = http.createServer((req, res) => {
     const safe = symbols.split(',').filter(s => /^[a-zA-Z0-9._]+$/.test(s)).join(',');
     if (!safe) { res.writeHead(400); res.end('No valid symbols'); return; }
     proxyQuote(safe, res);
+    return;
+  }
+
+  if (pathname === '/api/markets') {
+    proxyGlobalMarkets(res);
     return;
   }
 

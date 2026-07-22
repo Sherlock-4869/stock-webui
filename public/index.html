@@ -13,14 +13,54 @@ header h1{font-size:18px;font-weight:600;letter-spacing:.5px}
 .dot{width:8px;height:8px;border-radius:50%;background:#3fb950}
 .dot.offline{background:#f85149}
 .main{padding:24px;max-width:1100px;margin:0 auto}
+.market-overview{margin-bottom:24px}
+.market-overview-head{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:10px}
+.market-kicker{color:#58a6ff;font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:3px}
+.market-title{font-size:17px;font-weight:650;letter-spacing:.2px}
+.market-summary{color:#8b949e;font-size:12px;text-align:right;line-height:1.5}
+.market-summary strong{font-weight:600;color:#c9d1d9}
+.market-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px}
+.market-card{--accent:#8b949e;position:relative;overflow:hidden;min-width:0;background:linear-gradient(145deg,#1a2028,#161b22 68%);border:1px solid #30363d;border-radius:8px;padding:11px 12px 10px;transition:border-color .15s,transform .15s}
+.market-card::before{content:"";position:absolute;left:0;right:0;top:0;height:2px;background:var(--accent);opacity:.78}
+.market-card:hover{border-color:#484f58;transform:translateY(-1px)}
+.market-card.up{--accent:#f85149}.market-card.down{--accent:#3fb950}
+#market-grid.market-colors-off .market-card{--accent:#8b949e;color:#e6edf3}
+#market-grid.market-colors-off .market-pct{color:#e6edf3}
+.market-card-top{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:7px}
+.market-name{font-size:12px;font-weight:600;color:#c9d1d9;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.market-region{flex:none;border:1px solid #30363d;border-radius:3px;color:#6e7681;font-size:9px;font-weight:700;line-height:16px;padding:0 4px;letter-spacing:.3px}
+.market-price-row{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
+.market-price{font:600 18px/1.2 ui-monospace,SFMono-Regular,Menlo,monospace;color:#e6edf3;letter-spacing:-.35px}
+.market-pct{font:600 12px/1 ui-monospace,SFMono-Regular,Menlo,monospace;white-space:nowrap}
+.market-change{height:18px;margin-top:2px;color:#8b949e;font:10px/18px ui-monospace,SFMono-Regular,Menlo,monospace}
+.market-range{margin-top:4px}
+.market-range-bar{height:3px;border-radius:3px;background:#30363d;overflow:hidden}
+.market-range-fill{height:100%;border-radius:inherit;background:var(--accent);opacity:.82}
+.market-range-labels{display:flex;justify-content:space-between;margin-top:4px;color:#6e7681;font:9px/1.2 ui-monospace,SFMono-Regular,Menlo,monospace}
+.market-card-loading{min-height:110px;display:flex;align-items:center;justify-content:center;color:#6e7681;font-size:11px}
+.market-card-loading::after{content:"";width:13px;height:13px;margin-left:7px;border:2px solid #30363d;border-top-color:#58a6ff;border-radius:50%;animation:market-spin .8s linear infinite}
+.market-overview-actions{display:none;justify-content:center;margin-top:10px}
+.market-overview-actions.visible{display:flex}
+.market-expand-btn{background:#161b22;border:1px solid #30363d;border-radius:6px;color:#8b949e;padding:6px 14px;font-size:11px;cursor:pointer;transition:color .15s,border-color .15s,background .15s}
+.market-expand-btn:hover{color:#e6edf3;border-color:#484f58;background:#1c2128}
+.market-expand-icon{display:inline-block;margin-left:5px;transition:transform .15s}
+.market-expand-btn[aria-expanded="true"] .market-expand-icon{transform:rotate(180deg)}
+@keyframes market-spin{to{transform:rotate(360deg)}}
 @media (max-width:768px){
   .main{padding:12px}
   header{padding:10px 12px;flex-wrap:wrap}
   header h1{font-size:16px}
   .status{font-size:11px}
+  .market-overview{margin-bottom:20px}
+  .market-overview-head{align-items:flex-start;margin-bottom:8px}
+  .market-title{font-size:15px}
+  .market-summary{max-width:180px;font-size:10px}
+  .market-grid{display:flex;gap:8px;overflow-x:auto;scroll-snap-type:x proximity;scrollbar-width:none;padding-bottom:2px}
+  .market-grid::-webkit-scrollbar{display:none}
+  .market-card{flex:0 0 176px;scroll-snap-align:start}
   .search-row{flex-direction:column;align-items:stretch}
   .search-wrap{width:100%}
-  .add-btn,.refresh-btn{width:100%}
+  .search-row .add-btn,.search-row .refresh-btn{width:100%}
   .table-wrapper{overflow-x:auto;-webkit-overflow-scrolling:touch;border:1px solid #30363d;border-radius:8px}
   .table-wrapper::-webkit-scrollbar{height:10px}
   .table-wrapper::-webkit-scrollbar-track{background:#21262d}
@@ -147,10 +187,25 @@ body.stock-sorting,body.stock-sorting *{cursor:grabbing!important;user-select:no
 <body>
 <header>
   <h1>📈 自选股行情</h1>
-  <button class="refresh-btn" onclick="fetchQuotes()">刷新</button>
+  <button class="refresh-btn" onclick="refreshAll()">刷新</button>
   <div class="status"><span class="dot" id="dot"></span><span id="status-text">连接中...</span></div>
 </header>
 <div class="main">
+  <section class="market-overview" aria-labelledby="market-title">
+    <div class="market-overview-head">
+      <div>
+        <div class="market-kicker">Global Markets</div>
+        <h2 class="market-title" id="market-title">全球市场概览</h2>
+      </div>
+      <div class="market-summary" id="market-summary" aria-live="polite">正在同步全球行情...</div>
+    </div>
+    <div class="market-grid" id="market-grid">
+      <div class="market-card market-card-loading">行情加载中</div>
+    </div>
+    <div class="market-overview-actions" id="market-overview-actions">
+      <button class="market-expand-btn" id="market-expand-btn" type="button" aria-expanded="false" aria-controls="market-grid" onclick="toggleMarketExpansion()"></button>
+    </div>
+  </section>
   <div class="search-row">
     <div class="search-wrap">
       <input id="search-input" type="text" placeholder="搜索股票名称或代码..." autocomplete="off">
@@ -158,7 +213,7 @@ body.stock-sorting,body.stock-sorting *{cursor:grabbing!important;user-select:no
       <div class="dropdown" id="dropdown"></div>
     </div>
     <button class="add-btn" id="add-btn" onclick="confirmAdd()">添加自选</button>
-    <button class="refresh-btn color-toggle" id="color-toggle" type="button" aria-pressed="true" onclick="toggleListColors()" title="切换股票列表的涨跌颜色">🎨 行情颜色：开</button>
+    <button class="refresh-btn color-toggle" id="color-toggle" type="button" aria-pressed="true" onclick="toggleListColors()" title="切换股票列表和全球市场的涨跌颜色">🎨 行情颜色：开</button>
     <button class="refresh-btn" id="pip-btn" onclick="openFloatWindow()">📺 浮窗</button>
   </div>
   <div class="sort-note"><span class="drag-handle" aria-hidden="true">⠿</span>长按股票行后拖动，可调整自选股顺序</div>
@@ -231,17 +286,36 @@ body.stock-sorting,body.stock-sorting *{cursor:grabbing!important;user-select:no
 const STORAGE_KEY = 'watchlist_v1';
 const COLOR_STORAGE_KEY = 'stock_list_colors_v1';
 const DEFAULT_STOCKS = ['sh600519','sz000001','hk00700','usAAPL'];
+const MARKET_INDEXES = [
+  { code:'000001', name:'上证指数', region:'沪' },
+  { code:'399001', name:'深证成指', region:'深' },
+  { code:'899050', name:'北证 50', region:'北' },
+  { code:'000680', name:'科创综指', region:'科' },
+  { code:'399006', name:'创业板指', region:'创' },
+  { code:'HSI', name:'恒生指数', region:'港' },
+  { code:'DJIA', name:'道琼斯', region:'美' },
+  { code:'IXIC', name:'纳斯达克综指', region:'美' },
+  { code:'SPX', name:'标普 500', region:'美' },
+  { code:'KOSPI', name:'韩国 KOSPI', region:'韩' },
+  { code:'N225', name:'日经 225', region:'日' },
+  { code:'GDAXI', name:'德国 DAX', region:'德' },
+  { code:'FTSE', name:'英国富时 100', region:'英' },
+];
 const _stored = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null');
 const _valid = Array.isArray(_stored) ? _stored.filter(s => /^[a-zA-Z0-9._]+$/.test(s)) : [];
 let watchlist = _valid.length ? _valid : [...DEFAULT_STOCKS];
 let showListColors = localStorage.getItem(COLOR_STORAGE_KEY) !== 'false';
 let timer = null;
 let lastRawQuoteData = {};
+let lastMarketRows = [];
+let lastMarketPartial = false;
+let marketsExpanded = false;
 
 function save() { localStorage.setItem(STORAGE_KEY, JSON.stringify(watchlist)); }
 
 function applyListColorPreference() {
   document.getElementById('stock-table').classList.toggle('market-colors-off', !showListColors);
+  document.getElementById('market-grid').classList.toggle('market-colors-off', !showListColors);
   const button = document.getElementById('color-toggle');
   button.setAttribute('aria-pressed', String(showListColors));
   button.textContent = `🎨 行情颜色：${showListColors ? '开' : '关'}`;
@@ -271,6 +345,92 @@ function fmtVol(n) { const v=parseFloat(n); if(isNaN(v)||v===0)return'--'; retur
 function fmtAmt(n) { const v=parseFloat(n); return (isNaN(v)||v===0)?'--':(v/10000).toFixed(2); }
 function cls(n) { const v=parseFloat(n); if(isNaN(v)||v===0)return'flat'; return v>0?'up':'down'; }
 function sign(n) { return parseFloat(n)>0?'+':''; }
+
+function marketNumber(value, digits=2) {
+  const number = Number(value);
+  if (!Number.isFinite(number)) return '--';
+  return number.toLocaleString('zh-CN', { minimumFractionDigits:digits, maximumFractionDigits:digits });
+}
+
+function renderMarkets(rows, partial=false) {
+  const byCode = new Map((Array.isArray(rows) ? rows : []).map(item => [String(item.code), item]));
+  const markets = MARKET_INDEXES.map(index => ({ ...index, data:byCode.get(index.code) })).filter(item => item.data);
+  if (!markets.length) throw new Error('empty market data');
+  lastMarketRows = rows;
+  lastMarketPartial = partial;
+  const visibleMarkets = marketsExpanded ? markets : markets.slice(0, 10);
+
+  document.getElementById('market-grid').innerHTML = visibleMarkets.map(({ name, region, data }) => {
+    const price = Number(data.price), change = Number(data.change), pct = Number(data.pct);
+    const low = data.low == null ? NaN : Number(data.low);
+    const high = data.high == null ? NaN : Number(data.high);
+    const prevClose = Number(data.prevClose);
+    const trend = pct > 0 ? 'up' : pct < 0 ? 'down' : 'flat';
+    const position = Number.isFinite(price) && Number.isFinite(low) && Number.isFinite(high) && high > low
+      ? Math.max(4, Math.min(100, (price - low) / (high - low) * 100)) : 0;
+    const rangeContent = position
+      ? `<div class="market-range" title="日内最低 ${marketNumber(low)}，最高 ${marketNumber(high)}">
+          <div class="market-range-bar"><div class="market-range-fill" style="width:${position.toFixed(1)}%"></div></div>
+          <div class="market-range-labels"><span>低 ${marketNumber(low)}</span><span>高 ${marketNumber(high)}</span></div>
+        </div>`
+      : `<div class="market-range" title="昨日收盘 ${marketNumber(prevClose)}">
+          <div class="market-range-bar"><div class="market-range-fill" style="width:50%"></div></div>
+          <div class="market-range-labels"><span>昨收</span><span>${marketNumber(prevClose)}</span></div>
+        </div>`;
+    return `<article class="market-card ${trend}">
+      <div class="market-card-top"><span class="market-name">${name}</span><span class="market-region">${region}</span></div>
+      <div class="market-price-row">
+        <span class="market-price">${marketNumber(price)}</span>
+        <span class="market-pct ${trend}">${sign(pct)}${marketNumber(pct)}%</span>
+      </div>
+      <div class="market-change">${sign(change)}${marketNumber(change)} 点</div>
+      ${rangeContent}
+    </article>`;
+  }).join('');
+
+  const rising = markets.filter(item => Number(item.data.pct) > 0).length;
+  const falling = markets.filter(item => Number(item.data.pct) < 0).length;
+  const leader = [...markets].sort((a,b) => Number(b.data.pct) - Number(a.data.pct))[0];
+  const timeLabel = new Date().toLocaleTimeString('zh-CN', { hour:'2-digit', minute:'2-digit' });
+  document.getElementById('market-summary').innerHTML =
+    `<strong>${rising} 涨 · ${falling} 跌</strong>　领涨 ${leader.name} ${sign(leader.data.pct)}${marketNumber(leader.data.pct)}%<br>${partial ? '部分行情延迟 · ' : ''}同步于 ${timeLabel}`;
+
+  const hiddenCount = Math.max(0, markets.length - 10);
+  const actions = document.getElementById('market-overview-actions');
+  const expandButton = document.getElementById('market-expand-btn');
+  actions.classList.toggle('visible', hiddenCount > 0);
+  expandButton.setAttribute('aria-expanded', String(marketsExpanded));
+  expandButton.innerHTML = marketsExpanded
+    ? `收起至前 10 个<span class="market-expand-icon">⌄</span>`
+    : `展开其余 ${hiddenCount} 个指数<span class="market-expand-icon">⌄</span>`;
+}
+
+function toggleMarketExpansion() {
+  if (!lastMarketRows.length) return;
+  marketsExpanded = !marketsExpanded;
+  renderMarkets(lastMarketRows, lastMarketPartial);
+}
+
+async function fetchMarkets() {
+  try {
+    const response = await fetch('/api/markets');
+    if (!response.ok) throw new Error('market request failed');
+    const payload = await response.json();
+    renderMarkets(payload.data, payload.partial);
+  } catch (error) {
+    console.error('fetchMarkets error:', error);
+    document.getElementById('market-summary').textContent = '全球行情暂时不可用，稍后将自动重试';
+    const grid = document.getElementById('market-grid');
+    if (!grid.querySelector('.market-card:not(.market-card-loading)')) {
+      grid.innerHTML = '<div class="market-card market-card-loading">等待行情恢复</div>';
+    }
+  }
+}
+
+function refreshAll() {
+  fetchMarkets();
+  fetchQuotes();
+}
 
 function parseQuoteText(text) {
   const result = {};
@@ -1369,7 +1529,8 @@ window.addEventListener('resize', () => {
 });
 applyListColorPreference();
 timer = setInterval(fetchQuotes, 5000);
-fetchQuotes(); // initial load
+setInterval(fetchMarkets, 15000);
+refreshAll(); // initial load
 
 // --- Float Window ---
 let floatWindow = null;
