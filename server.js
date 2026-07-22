@@ -168,7 +168,7 @@ const server = http.createServer((req, res) => {
   if (pathname === '/api/quote') {
     const symbols = urlObj.searchParams.get('symbols') || '';
     if (!symbols) { res.writeHead(400); res.end('Missing symbols'); return; }
-    const safe = symbols.split(',').filter(s => /^[a-zA-Z0-9._]+$/.test(s)).join(',');
+    const safe = symbols.split(',').filter(s => /^[a-zA-Z0-9._-]+$/.test(s)).join(',');
     if (!safe) { res.writeHead(400); res.end('No valid symbols'); return; }
     proxyQuote(safe, res);
     return;
@@ -181,7 +181,7 @@ const server = http.createServer((req, res) => {
 
   if (pathname === '/api/kline') {
     const sym = urlObj.searchParams.get('sym') || '';
-    if (!/^[a-zA-Z0-9._]+$/.test(sym)) { res.writeHead(400); res.end('Invalid sym'); return; }
+    if (!/^[a-zA-Z0-9._-]+$/.test(sym)) { res.writeHead(400); res.end('Invalid sym'); return; }
     // Fetch no more than one calendar year. The client keeps the default viewport
     // at the latest 30 sessions and exposes the rest via zoom.
     proxyJson(`https://ifzq.gtimg.cn/appstock/app/fqkline/get?param=${sym},day,${oneYearAgoDate()},,320,qfq`, res);
@@ -190,7 +190,7 @@ const server = http.createServer((req, res) => {
 
   if (pathname === '/api/minute') {
     const sym = urlObj.searchParams.get('sym') || '';
-    if (!/^[a-zA-Z0-9._]+$/.test(sym)) { res.writeHead(400); res.end('Invalid sym'); return; }
+    if (!/^[a-zA-Z0-9._-]+$/.test(sym)) { res.writeHead(400); res.end('Invalid sym'); return; }
     proxyJson(`https://ifzq.gtimg.cn/appstock/app/minute/query?code=${sym}`, res);
     return;
   }
@@ -198,7 +198,7 @@ const server = http.createServer((req, res) => {
   if (pathname === '/api/minute-kline') {
     const sym = urlObj.searchParams.get('sym') || '';
     const period = urlObj.searchParams.get('period') || 'm5';
-    if (!/^[a-zA-Z0-9._]+$/.test(sym)) { res.writeHead(400); res.end('Invalid sym'); return; }
+    if (!/^[a-zA-Z0-9._-]+$/.test(sym)) { res.writeHead(400); res.end('Invalid sym'); return; }
     if (!/^m(?:1|5|15|30|60)$/.test(period)) { res.writeHead(400); res.end('Invalid period'); return; }
     proxyJson(`https://ifzq.gtimg.cn/appstock/app/kline/mkline?param=${sym},${period},,80`, res);
     return;
@@ -220,15 +220,17 @@ const server = http.createServer((req, res) => {
             const parts = item.split('~');
             if (parts.length < 3) continue;
             const [market, code, rawName, , type] = parts;
-            if (type && type !== 'GP' && type !== 'GP-A') continue;
+            if (type && !/^GP(?:-|$)/.test(type)) continue;
             let name;
             try { name = JSON.parse('"' + rawName.replace(/"/g, '\\"') + '"'); }
             catch(e) { name = rawName; }
             const mkt = market.toLowerCase();
-            const sym = mkt === 'us'
-              ? 'us' + code.split('.')[0].toUpperCase()
-              : `${mkt}${code}`;
-            results.push({ sym, name, market: market.toUpperCase(), code: code.toUpperCase() });
+            if (!['sh', 'sz', 'hk', 'us'].includes(mkt)) continue;
+            const normalizedCode = mkt === 'us'
+              ? code.replace(/\.[A-Z]+$/i, '').toUpperCase()
+              : code.toUpperCase();
+            const sym = `${mkt}${normalizedCode}`;
+            results.push({ sym, name, market: market.toUpperCase(), code: normalizedCode });
           }
         }
         res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'Access-Control-Allow-Origin': '*', 'Cache-Control': 'no-cache' });

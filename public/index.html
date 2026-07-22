@@ -19,6 +19,11 @@ header h1{font-size:18px;font-weight:600;letter-spacing:.5px}
 .market-title{font-size:17px;font-weight:650;letter-spacing:.2px}
 .market-summary{color:#8b949e;font-size:12px;text-align:right;line-height:1.5}
 .market-summary strong{font-weight:600;color:#c9d1d9}
+.market-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:-1px 0 10px;color:#6e7681;font-size:11px}
+.market-order-note{display:flex;align-items:center;gap:5px;min-width:0}
+.market-row-setting{display:flex;align-items:center;gap:6px;white-space:nowrap}
+.market-row-select{appearance:none;background:#161b22;border:1px solid #30363d;border-radius:5px;color:#c9d1d9;padding:4px 24px 4px 8px;font-size:11px;outline:none;cursor:pointer;background-image:linear-gradient(45deg,transparent 50%,#8b949e 50%),linear-gradient(135deg,#8b949e 50%,transparent 50%);background-position:calc(100% - 11px) 9px,calc(100% - 7px) 9px;background-size:4px 4px,4px 4px;background-repeat:no-repeat}
+.market-row-select:focus{border-color:#58a6ff}
 .market-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px}
 .market-card{--accent:#8b949e;position:relative;overflow:hidden;min-width:0;background:linear-gradient(145deg,#1a2028,#161b22 68%);border:1px solid #30363d;border-radius:8px;padding:11px 12px 10px;transition:border-color .15s,transform .15s}
 .market-card::before{content:"";position:absolute;left:0;right:0;top:0;height:2px;background:var(--accent);opacity:.78}
@@ -28,7 +33,15 @@ header h1{font-size:18px;font-weight:600;letter-spacing:.5px}
 #market-grid.market-colors-off .market-pct{color:#e6edf3}
 .market-card-top{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:7px}
 .market-name{font-size:12px;font-weight:600;color:#c9d1d9;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.market-card-actions{display:flex;align-items:center;gap:4px;flex:none}
 .market-region{flex:none;border:1px solid #30363d;border-radius:3px;color:#6e7681;font-size:9px;font-weight:700;line-height:16px;padding:0 4px;letter-spacing:.3px}
+.market-drag-handle{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;margin-right:-4px;background:none;border:0;border-radius:3px;color:#6e7681;font-size:13px;line-height:1;cursor:grab;touch-action:none;user-select:none}
+.market-drag-handle:hover,.market-drag-handle:focus-visible{color:#58a6ff;background:#21262d;outline:none}
+.market-card.sorting-source{opacity:.3;transform:none}
+.market-card.drop-before{box-shadow:inset 3px 0 #58a6ff}
+.market-card.drop-after{box-shadow:inset -3px 0 #58a6ff}
+.market-drag-ghost{position:fixed;z-index:500;pointer-events:none;display:flex;align-items:center;gap:8px;min-width:155px;padding:9px 12px;border-radius:7px;border:1px solid #58a6ff;background:#1c2128;color:#e6edf3;box-shadow:0 12px 30px rgba(0,0,0,.5);font-size:12px;transform:translate(12px,12px)}
+body.market-sorting,body.market-sorting *{cursor:grabbing!important;user-select:none!important}
 .market-price-row{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
 .market-price{font:600 18px/1.2 ui-monospace,SFMono-Regular,Menlo,monospace;color:#e6edf3;letter-spacing:-.35px}
 .market-pct{font:600 12px/1 ui-monospace,SFMono-Regular,Menlo,monospace;white-space:nowrap}
@@ -46,6 +59,11 @@ header h1{font-size:18px;font-weight:600;letter-spacing:.5px}
 .market-expand-icon{display:inline-block;margin-left:5px;transition:transform .15s}
 .market-expand-btn[aria-expanded="true"] .market-expand-icon{transform:rotate(180deg)}
 @keyframes market-spin{to{transform:rotate(360deg)}}
+@media (max-width:980px){
+  .market-grid{grid-template-columns:repeat(5,176px);overflow-x:auto;scroll-snap-type:x proximity;scrollbar-width:none;padding-bottom:2px}
+  .market-grid::-webkit-scrollbar{display:none}
+  .market-card{scroll-snap-align:start}
+}
 @media (max-width:768px){
   .main{padding:12px}
   header{padding:10px 12px;flex-wrap:wrap}
@@ -55,9 +73,7 @@ header h1{font-size:18px;font-weight:600;letter-spacing:.5px}
   .market-overview-head{align-items:flex-start;margin-bottom:8px}
   .market-title{font-size:15px}
   .market-summary{max-width:180px;font-size:10px}
-  .market-grid{display:flex;gap:8px;overflow-x:auto;scroll-snap-type:x proximity;scrollbar-width:none;padding-bottom:2px}
-  .market-grid::-webkit-scrollbar{display:none}
-  .market-card{flex:0 0 176px;scroll-snap-align:start}
+  .market-toolbar{font-size:10px;margin-bottom:8px}
   .search-row{flex-direction:column;align-items:stretch}
   .search-wrap{width:100%}
   .search-row .add-btn,.search-row .refresh-btn{width:100%}
@@ -105,6 +121,8 @@ tr:hover td{background:#1c2128}
 .del-btn:hover{color:#f85149;background:#21262d}
 .market-tag{display:inline-block;font-size:10px;padding:1px 5px;border-radius:3px;font-weight:600;margin-right:4px;vertical-align:middle}
 .tag-a{background:#1f3a5f;color:#79c0ff}
+.tag-kcb{background:#34255a;color:#bc8cff}
+.tag-cyb{background:#173d4a;color:#56d4dd}
 .tag-hk{background:#3a2d1f;color:#e3b341}
 .tag-us{background:#1f3d2f;color:#3fb950}
 .empty{text-align:center;padding:60px;color:#6e7681;font-size:14px}
@@ -199,6 +217,17 @@ body.stock-sorting,body.stock-sorting *{cursor:grabbing!important;user-select:no
       </div>
       <div class="market-summary" id="market-summary" aria-live="polite">正在同步全球行情...</div>
     </div>
+    <div class="market-toolbar">
+      <div class="market-order-note"><span aria-hidden="true">⠿</span><span>拖动卡片右上角调整顺序</span></div>
+      <label class="market-row-setting" for="market-row-count">
+        <span>默认显示</span>
+        <select class="market-row-select" id="market-row-count" onchange="setMarketDefaultRows(this.value)">
+          <option value="1">1 行</option>
+          <option value="2" selected>2 行</option>
+          <option value="3">3 行</option>
+        </select>
+      </label>
+    </div>
     <div class="market-grid" id="market-grid">
       <div class="market-card market-card-loading">行情加载中</div>
     </div>
@@ -208,7 +237,7 @@ body.stock-sorting,body.stock-sorting *{cursor:grabbing!important;user-select:no
   </section>
   <div class="search-row">
     <div class="search-wrap">
-      <input id="search-input" type="text" placeholder="搜索股票名称或代码..." autocomplete="off">
+      <input id="search-input" type="text" placeholder="搜索 A 股、港股、美股名称或代码..." autocomplete="off">
       <button class="search-clear" id="search-clear" onclick="clearSearch()">✕</button>
       <div class="dropdown" id="dropdown"></div>
     </div>
@@ -285,6 +314,9 @@ body.stock-sorting,body.stock-sorting *{cursor:grabbing!important;user-select:no
 <script>
 const STORAGE_KEY = 'watchlist_v1';
 const COLOR_STORAGE_KEY = 'stock_list_colors_v1';
+const MARKET_ORDER_STORAGE_KEY = 'global_market_order_v1';
+const MARKET_ROWS_STORAGE_KEY = 'global_market_rows_v1';
+const MARKET_CARDS_PER_ROW = 5;
 const DEFAULT_STOCKS = ['sh600519','sz000001','hk00700','usAAPL'];
 const MARKET_INDEXES = [
   { code:'000001', name:'上证指数', region:'沪' },
@@ -303,14 +335,25 @@ const MARKET_INDEXES = [
   { code:'FTSE', name:'英国富时 100', region:'英' },
 ];
 const _stored = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null');
-const _valid = Array.isArray(_stored) ? _stored.filter(s => /^[a-zA-Z0-9._]+$/.test(s)) : [];
+const _valid = Array.isArray(_stored) ? _stored.filter(s => /^[a-zA-Z0-9._-]+$/.test(s)) : [];
+let _storedMarketOrder = [];
+try { _storedMarketOrder = JSON.parse(localStorage.getItem(MARKET_ORDER_STORAGE_KEY) || '[]'); }
+catch (_) { _storedMarketOrder = []; }
+const _marketCodes = MARKET_INDEXES.map(index => index.code);
+let marketOrder = [...new Set(
+  (Array.isArray(_storedMarketOrder) ? _storedMarketOrder : []).filter(code => _marketCodes.includes(code))
+)];
+marketOrder.push(..._marketCodes.filter(code => !marketOrder.includes(code)));
+const _storedMarketRows = Number(localStorage.getItem(MARKET_ROWS_STORAGE_KEY));
 let watchlist = _valid.length ? _valid : [...DEFAULT_STOCKS];
 let showListColors = localStorage.getItem(COLOR_STORAGE_KEY) !== 'false';
+let marketDefaultRows = [1,2,3].includes(_storedMarketRows) ? _storedMarketRows : 2;
 let timer = null;
 let lastRawQuoteData = {};
 let lastMarketRows = [];
 let lastMarketPartial = false;
 let marketsExpanded = false;
+let marketSortDrag = null;
 
 function save() { localStorage.setItem(STORAGE_KEY, JSON.stringify(watchlist)); }
 
@@ -335,6 +378,8 @@ window.addEventListener('storage', event => {
 });
 
 function marketTag(sym) {
+  if (/^sh68[89]/.test(sym)) return '<span class="market-tag tag-kcb">科</span>';
+  if (/^sz30[01]/.test(sym)) return '<span class="market-tag tag-cyb">创</span>';
   if (sym.startsWith('sh') || sym.startsWith('sz')) return '<span class="market-tag tag-a">A</span>';
   if (sym.startsWith('hk')) return '<span class="market-tag tag-hk">港</span>';
   if (sym.startsWith('us')) return '<span class="market-tag tag-us">美</span>';
@@ -355,13 +400,20 @@ function marketNumber(value, digits=2) {
 
 function renderMarkets(rows, partial=false) {
   const byCode = new Map((Array.isArray(rows) ? rows : []).map(item => [String(item.code), item]));
-  const markets = MARKET_INDEXES.map(index => ({ ...index, data:byCode.get(index.code) })).filter(item => item.data);
-  if (!markets.length) throw new Error('empty market data');
   lastMarketRows = rows;
   lastMarketPartial = partial;
-  const visibleMarkets = marketsExpanded ? markets : markets.slice(0, 10);
+  if (marketSortDrag) return;
+  const definitions = new Map(MARKET_INDEXES.map(index => [index.code, index]));
+  const markets = marketOrder
+    .map(code => definitions.get(code))
+    .filter(Boolean)
+    .map(index => ({ ...index, data:byCode.get(index.code) }))
+    .filter(item => item.data);
+  if (!markets.length) throw new Error('empty market data');
+  const collapsedCount = marketDefaultRows * MARKET_CARDS_PER_ROW;
+  const visibleMarkets = marketsExpanded ? markets : markets.slice(0, collapsedCount);
 
-  document.getElementById('market-grid').innerHTML = visibleMarkets.map(({ name, region, data }) => {
+  document.getElementById('market-grid').innerHTML = visibleMarkets.map(({ code, name, region, data }) => {
     const price = Number(data.price), change = Number(data.change), pct = Number(data.pct);
     const low = data.low == null ? NaN : Number(data.low);
     const high = data.high == null ? NaN : Number(data.high);
@@ -378,8 +430,14 @@ function renderMarkets(rows, partial=false) {
           <div class="market-range-bar"><div class="market-range-fill" style="width:50%"></div></div>
           <div class="market-range-labels"><span>昨收</span><span>${marketNumber(prevClose)}</span></div>
         </div>`;
-    return `<article class="market-card ${trend}">
-      <div class="market-card-top"><span class="market-name">${name}</span><span class="market-region">${region}</span></div>
+    return `<article class="market-card ${trend}" data-code="${code}">
+      <div class="market-card-top">
+        <span class="market-name">${name}</span>
+        <span class="market-card-actions">
+          <span class="market-region">${region}</span>
+          <button class="market-drag-handle" type="button" title="拖动或使用方向键调整 ${name} 的顺序" aria-label="调整 ${name} 的顺序，可拖动或使用方向键">⠿</button>
+        </span>
+      </div>
       <div class="market-price-row">
         <span class="market-price">${marketNumber(price)}</span>
         <span class="market-pct ${trend}">${sign(pct)}${marketNumber(pct)}%</span>
@@ -396,14 +454,24 @@ function renderMarkets(rows, partial=false) {
   document.getElementById('market-summary').innerHTML =
     `<strong>${rising} 涨 · ${falling} 跌</strong>　领涨 ${leader.name} ${sign(leader.data.pct)}${marketNumber(leader.data.pct)}%<br>${partial ? '部分行情延迟 · ' : ''}同步于 ${timeLabel}`;
 
-  const hiddenCount = Math.max(0, markets.length - 10);
+  const hiddenCount = Math.max(0, markets.length - collapsedCount);
   const actions = document.getElementById('market-overview-actions');
   const expandButton = document.getElementById('market-expand-btn');
+  document.getElementById('market-row-count').value = String(marketDefaultRows);
   actions.classList.toggle('visible', hiddenCount > 0);
   expandButton.setAttribute('aria-expanded', String(marketsExpanded));
   expandButton.innerHTML = marketsExpanded
-    ? `收起至前 10 个<span class="market-expand-icon">⌄</span>`
+    ? `收起至 ${marketDefaultRows} 行<span class="market-expand-icon">⌄</span>`
     : `展开其余 ${hiddenCount} 个指数<span class="market-expand-icon">⌄</span>`;
+}
+
+function setMarketDefaultRows(value) {
+  const rows = Number(value);
+  if (![1,2,3].includes(rows)) return;
+  marketDefaultRows = rows;
+  marketsExpanded = false;
+  localStorage.setItem(MARKET_ROWS_STORAGE_KEY, String(rows));
+  if (lastMarketRows.length) renderMarkets(lastMarketRows, lastMarketPartial);
 }
 
 function toggleMarketExpansion() {
@@ -411,6 +479,111 @@ function toggleMarketExpansion() {
   marketsExpanded = !marketsExpanded;
   renderMarkets(lastMarketRows, lastMarketPartial);
 }
+
+const marketGrid = document.getElementById('market-grid');
+
+function clearMarketDropMarks() {
+  marketGrid.querySelectorAll('.drop-before,.drop-after').forEach(card =>
+    card.classList.remove('drop-before', 'drop-after')
+  );
+}
+
+function saveVisibleMarketOrder(visibleCodes) {
+  const visibleSet = new Set(visibleCodes);
+  const positions = marketOrder
+    .map((code, index) => visibleSet.has(code) ? index : -1)
+    .filter(index => index >= 0);
+  positions.forEach((position, index) => { marketOrder[position] = visibleCodes[index]; });
+  localStorage.setItem(MARKET_ORDER_STORAGE_KEY, JSON.stringify(marketOrder));
+}
+
+function moveMarketGhost(x, y) {
+  if (!marketSortDrag) return;
+  marketSortDrag.ghost.style.left = `${x}px`;
+  marketSortDrag.ghost.style.top = `${y}px`;
+}
+
+marketGrid.addEventListener('pointerdown', event => {
+  const handle = event.target.closest('.market-drag-handle');
+  const card = handle?.closest('.market-card');
+  if (!handle || !card || (event.pointerType === 'mouse' && event.button !== 0)) return;
+  event.preventDefault();
+  const ghost = document.createElement('div');
+  ghost.className = 'market-drag-ghost';
+  ghost.textContent = `⠿ ${card.querySelector('.market-name')?.textContent || card.dataset.code}`;
+  document.body.appendChild(ghost);
+  card.classList.add('sorting-source');
+  document.body.classList.add('market-sorting');
+  marketSortDrag = { card, handle, ghost, pointerId:event.pointerId, target:null, before:true };
+  moveMarketGhost(event.clientX, event.clientY);
+  try { handle.setPointerCapture(event.pointerId); } catch (_) {}
+});
+
+window.addEventListener('pointermove', event => {
+  if (!marketSortDrag || event.pointerId !== marketSortDrag.pointerId) return;
+  event.preventDefault();
+  moveMarketGhost(event.clientX, event.clientY);
+  clearMarketDropMarks();
+
+  const gridRect = marketGrid.getBoundingClientRect();
+  if (event.clientX < gridRect.left + 32) marketGrid.scrollLeft -= 12;
+  else if (event.clientX > gridRect.right - 32) marketGrid.scrollLeft += 12;
+
+  const hit = document.elementFromPoint(event.clientX, event.clientY)?.closest('.market-card');
+  if (!hit || hit === marketSortDrag.card || !marketGrid.contains(hit)) {
+    marketSortDrag.target = null;
+    return;
+  }
+  const rect = hit.getBoundingClientRect();
+  const nearMiddleRow = Math.abs(event.clientY - (rect.top + rect.height / 2)) < rect.height * .3;
+  marketSortDrag.target = hit;
+  marketSortDrag.before = nearMiddleRow
+    ? event.clientX < rect.left + rect.width / 2
+    : event.clientY < rect.top + rect.height / 2;
+  hit.classList.add(marketSortDrag.before ? 'drop-before' : 'drop-after');
+}, { passive:false });
+
+function finishMarketSort(event, cancelled=false) {
+  if (!marketSortDrag || event.pointerId !== marketSortDrag.pointerId) return;
+  const { card, handle, ghost, target, before } = marketSortDrag;
+  let orderChanged = false;
+  if (!cancelled && target) {
+    marketGrid.insertBefore(card, before ? target : target.nextSibling);
+    const visibleCodes = [...marketGrid.querySelectorAll('.market-card[data-code]')].map(item => item.dataset.code);
+    saveVisibleMarketOrder(visibleCodes);
+    orderChanged = true;
+  }
+  clearMarketDropMarks();
+  card.classList.remove('sorting-source');
+  ghost.remove();
+  document.body.classList.remove('market-sorting');
+  try { handle.releasePointerCapture(event.pointerId); } catch (_) {}
+  marketSortDrag = null;
+  if (orderChanged && lastMarketRows.length) renderMarkets(lastMarketRows, lastMarketPartial);
+}
+
+window.addEventListener('pointerup', event => finishMarketSort(event));
+window.addEventListener('pointercancel', event => finishMarketSort(event, true));
+
+marketGrid.addEventListener('keydown', event => {
+  const handle = event.target.closest('.market-drag-handle');
+  if (!handle || !['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(event.key)) return;
+  const card = handle.closest('.market-card');
+  const visibleCodes = [...marketGrid.querySelectorAll('.market-card[data-code]')].map(item => item.dataset.code);
+  const currentIndex = visibleCodes.indexOf(card.dataset.code);
+  const delta = event.key === 'ArrowLeft' ? -1
+    : event.key === 'ArrowRight' ? 1
+      : event.key === 'ArrowUp' ? -MARKET_CARDS_PER_ROW : MARKET_CARDS_PER_ROW;
+  const targetIndex = Math.max(0, Math.min(visibleCodes.length - 1, currentIndex + delta));
+  if (currentIndex < 0 || targetIndex === currentIndex) return;
+  event.preventDefault();
+  [visibleCodes[currentIndex], visibleCodes[targetIndex]] = [visibleCodes[targetIndex], visibleCodes[currentIndex]];
+  saveVisibleMarketOrder(visibleCodes);
+  renderMarkets(lastMarketRows, lastMarketPartial);
+  requestAnimationFrame(() => {
+    marketGrid.querySelector(`.market-card[data-code="${card.dataset.code}"] .market-drag-handle`)?.focus();
+  });
+});
 
 async function fetchMarkets() {
   try {
@@ -436,7 +609,7 @@ function refreshAll() {
 function parseQuoteText(text) {
   const result = {};
   for (const line of text.split('\n')) {
-    const m = line.match(/^v_(\w+)="([^"]*)"/);
+    const m = line.match(/^v_([a-zA-Z0-9._-]+)="([^"]*)"/);
     if (m) result[m[1]] = m[2].split('~');
   }
   return result;
@@ -1529,6 +1702,7 @@ window.addEventListener('resize', () => {
   }, 100);
 });
 applyListColorPreference();
+document.getElementById('market-row-count').value = String(marketDefaultRows);
 timer = setInterval(fetchQuotes, 5000);
 setInterval(fetchMarkets, 15000);
 refreshAll(); // initial load
