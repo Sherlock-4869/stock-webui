@@ -70,6 +70,10 @@ tr:hover td{background:#1c2128}
 .empty{text-align:center;padding:60px;color:#6e7681;font-size:14px}
 .refresh-btn{background:#21262d;border:1px solid #30363d;color:#e6edf3;border-radius:6px;padding:7px 14px;font-size:13px;cursor:pointer;transition:background .15s}
 .refresh-btn:hover{background:#30363d}
+.color-toggle[aria-pressed="false"]{color:#8b949e}
+#stock-table.market-colors-off tbody .up,
+#stock-table.market-colors-off tbody .down,
+#stock-table.market-colors-off tbody .flat{color:inherit}
 tbody tr.stock-row{cursor:pointer;transition:opacity .15s,background .15s}
 tbody tr.stock-row.sorting-source{opacity:.3}
 tbody tr.stock-row.drop-before td{box-shadow:inset 0 2px #58a6ff}
@@ -154,11 +158,12 @@ body.stock-sorting,body.stock-sorting *{cursor:grabbing!important;user-select:no
       <div class="dropdown" id="dropdown"></div>
     </div>
     <button class="add-btn" id="add-btn" onclick="confirmAdd()">添加自选</button>
+    <button class="refresh-btn color-toggle" id="color-toggle" type="button" aria-pressed="true" onclick="toggleListColors()" title="切换股票列表的涨跌颜色">🎨 行情颜色：开</button>
     <button class="refresh-btn" id="pip-btn" onclick="openFloatWindow()">📺 浮窗</button>
   </div>
   <div class="sort-note"><span class="drag-handle" aria-hidden="true">⠿</span>长按股票行后拖动，可调整自选股顺序</div>
   <div class="table-wrapper">
-  <table>
+  <table id="stock-table">
     <thead>
       <tr>
         <th>代码</th><th>名称</th><th>最新价</th>
@@ -224,14 +229,35 @@ body.stock-sorting,body.stock-sorting *{cursor:grabbing!important;user-select:no
 
 <script>
 const STORAGE_KEY = 'watchlist_v1';
+const COLOR_STORAGE_KEY = 'stock_list_colors_v1';
 const DEFAULT_STOCKS = ['sh600519','sz000001','hk00700','usAAPL'];
 const _stored = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null');
 const _valid = Array.isArray(_stored) ? _stored.filter(s => /^[a-zA-Z0-9._]+$/.test(s)) : [];
 let watchlist = _valid.length ? _valid : [...DEFAULT_STOCKS];
+let showListColors = localStorage.getItem(COLOR_STORAGE_KEY) !== 'false';
 let timer = null;
 let lastRawQuoteData = {};
 
 function save() { localStorage.setItem(STORAGE_KEY, JSON.stringify(watchlist)); }
+
+function applyListColorPreference() {
+  document.getElementById('stock-table').classList.toggle('market-colors-off', !showListColors);
+  const button = document.getElementById('color-toggle');
+  button.setAttribute('aria-pressed', String(showListColors));
+  button.textContent = `🎨 行情颜色：${showListColors ? '开' : '关'}`;
+}
+
+function toggleListColors() {
+  showListColors = !showListColors;
+  localStorage.setItem(COLOR_STORAGE_KEY, String(showListColors));
+  applyListColorPreference();
+}
+
+window.addEventListener('storage', event => {
+  if (event.key !== COLOR_STORAGE_KEY) return;
+  showListColors = event.newValue !== 'false';
+  applyListColorPreference();
+});
 
 function marketTag(sym) {
   if (sym.startsWith('sh') || sym.startsWith('sz')) return '<span class="market-tag tag-a">A</span>';
@@ -305,7 +331,7 @@ function renderTable(data) {
       <td class="${c}">${sign(q.chg)}${fmt(q.chg)}</td>
       <td class="${c}">${sign(q.pct)}${fmt(q.pct)}%</td>
       <td>${fmt(q.open)}</td><td>${fmt(q.prevClose)}</td>
-      <td class="down">${fmt(q.high)}</td><td class="up">${fmt(q.low)}</td>
+      <td class="up">${fmt(q.high)}</td><td class="down">${fmt(q.low)}</td>
       <td>${fmtVol(q.volume)}</td><td>${fmtAmt(q.amount)}</td>
       <td><button class="del-btn" onclick="event.stopPropagation();removeStock('${sym}')">✕</button></td></tr>`;
   }).join('');
@@ -1341,6 +1367,7 @@ window.addEventListener('resize', () => {
     if (document.getElementById('modal-mask').classList.contains('open') && chartState.data.length) renderChart();
   }, 100);
 });
+applyListColorPreference();
 timer = setInterval(fetchQuotes, 5000);
 fetchQuotes(); // initial load
 

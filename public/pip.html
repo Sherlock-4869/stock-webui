@@ -28,10 +28,12 @@ canvas{display:block;width:100%}
 
 <script>
 const STORAGE_KEY = 'watchlist_v1';
+const COLOR_STORAGE_KEY = 'stock_list_colors_v1';
 const DEFAULT_STOCKS = ['sh600519','sz000001','hk00700','usAAPL'];
 const _stored = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null');
 const _valid = Array.isArray(_stored) ? _stored.filter(s => /^[a-zA-Z0-9._]+$/.test(s)) : [];
 let watchlist = _valid.length ? _valid : [...DEFAULT_STOCKS];
+let showListColors = localStorage.getItem(COLOR_STORAGE_KEY) !== 'false';
 
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
@@ -48,7 +50,12 @@ function marketLabel(sym) {
 }
 
 function fmt(n, d=2) { const v=parseFloat(n); return (isNaN(v)||v===0)?'--':v.toFixed(d); }
-function cls(n) { const v=parseFloat(n); if(isNaN(v)||v===0)return'#8b949e'; return v>0?'#f85149':'#3fb950'; }
+function cls(n) {
+  if (!showListColors) return '#e6edf3';
+  const v=parseFloat(n);
+  if(isNaN(v)||v===0)return'#8b949e';
+  return v>0?'#f85149':'#3fb950';
+}
 function sign(n) { return parseFloat(n)>0?'+':''; }
 
 function parseQuoteText(text) {
@@ -225,6 +232,12 @@ function stopPiP() {
   document.getElementById('stop-btn').disabled = true;
   document.getElementById('status').textContent = '已停止';
 }
+
+window.addEventListener('storage', event => {
+  if (event.key !== COLOR_STORAGE_KEY) return;
+  showListColors = event.newValue !== 'false';
+  fetchAndRender();
+});
 
 // initial render
 fetchAndRender();
