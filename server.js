@@ -20,9 +20,10 @@ const UPSTREAM_HEADERS = {
 };
 
 const GLOBAL_TENCENT_INDEXES = [
-  ['sh000001', '000001'], ['sz399001', '399001'], ['bj899050', '899050'],
-  ['sh000680', '000680'], ['sz399006', '399006'],
-  ['hkHSI', 'HSI'], ['usDJI', 'DJIA'], ['usIXIC', 'IXIC'], ['usINX', 'SPX'],
+  ['sh000001', '000001'], ['sz399001', '399001'], ['sz399006', '399006'],
+  ['sh000688', '000688'], ['bj899050', '899050'],
+  ['hkHSI', 'HSI'], ['hkHSTECH', 'HSTECH'],
+  ['usDJI', 'DJIA'], ['usIXIC', 'IXIC'], ['usINX', 'SPX'],
 ];
 const GLOBAL_SINA_INDEXES = [
   ['b_KOSPI', 'KOSPI'], ['int_nikkei', 'N225'],
