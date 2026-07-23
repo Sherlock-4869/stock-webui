@@ -26,8 +26,8 @@ const GLOBAL_TENCENT_INDEXES = [
   ['usDJI', 'DJIA'], ['usIXIC', 'IXIC'], ['usINX', 'SPX'],
 ];
 const GLOBAL_SINA_INDEXES = [
-  ['b_KOSPI', 'KOSPI'], ['int_nikkei', 'N225'],
-  ['int_dax30', 'GDAXI'], ['int_ftse', 'FTSE'],
+  ['b_KOSPI', 'KOSPI'], ['b_NKY', 'N225'],
+  ['b_DAX', 'GDAXI'], ['b_UKX', 'FTSE'],
 ];
 const GLOBAL_MARKET_CACHE_MS = 4500;
 const globalMarketCache = new Map();
@@ -113,11 +113,16 @@ function parseSinaIndexes(buffer) {
   return GLOBAL_SINA_INDEXES.map(([symbol, code]) => {
     const match = text.match(new RegExp(`hq_str_${symbol}="([^"]*)"`));
     if (!match || !match[1]) return null;
-    const [, priceRaw, changeRaw, pctRaw] = match[1].split(',');
+    const fields = match[1].split(',');
+    const [, priceRaw, changeRaw, pctRaw] = fields;
     const price = Number(priceRaw), change = Number(changeRaw);
+    const optionalNumber = value => value === '' || !Number.isFinite(Number(value)) ? null : Number(value);
+    const prevClose = optionalNumber(fields[9]);
     return {
-      code, price, change, pct: Number(pctRaw), prevClose: price - change,
-      open: null, high: null, low: null, updated: '',
+      code, price, change, pct: Number(pctRaw),
+      prevClose: prevClose ?? price - change,
+      open: optionalNumber(fields[8]), high: optionalNumber(fields[10]), low: optionalNumber(fields[11]),
+      updated: fields[6] && fields[7] ? `${fields[6]} ${fields[7]}` : '',
     };
   }).filter(Boolean);
 }
