@@ -29,7 +29,10 @@ const GLOBAL_SINA_INDEXES = [
   ['b_KOSPI', 'KOSPI'], ['int_nikkei', 'N225'],
   ['int_dax30', 'GDAXI'], ['int_ftse', 'FTSE'],
 ];
+const GLOBAL_MARKET_CACHE_MS = 4500;
 const globalMarketCache = new Map();
+let globalMarketSnapshot = null;
+let globalMarketRefreshPromise = null;
 
 function serveFile(res, filePath) {
   fs.readFile(filePath, (err, data) => {
@@ -119,37 +122,57 @@ function parseSinaIndexes(buffer) {
   }).filter(Boolean);
 }
 
+async function loadGlobalMarkets() {
+  if (globalMarketSnapshot && Date.now() - globalMarketSnapshot.fetchedAt < GLOBAL_MARKET_CACHE_MS) {
+    return globalMarketSnapshot;
+  }
+  if (globalMarketRefreshPromise) return globalMarketRefreshPromise;
+
+  globalMarketRefreshPromise = (async () => {
+    const tencentSymbols = GLOBAL_TENCENT_INDEXES.map(([symbol]) => symbol).join(',');
+    const sinaSymbols = GLOBAL_SINA_INDEXES.map(([symbol]) => symbol).join(',');
+    const requests = await Promise.allSettled([
+      requestBuffer(`https://qt.gtimg.cn/q=${tencentSymbols}`, UPSTREAM_HEADERS),
+      requestBuffer(`https://hq.sinajs.cn/list=${sinaSymbols}`, {
+        ...UPSTREAM_HEADERS,
+        Referer: 'https://finance.sina.com.cn',
+      }),
+    ]);
+    const freshData = [];
+    if (requests[0].status === 'fulfilled') freshData.push(...parseTencentIndexes(requests[0].value));
+    if (requests[1].status === 'fulfilled') freshData.push(...parseSinaIndexes(requests[1].value));
+    freshData.forEach(item => globalMarketCache.set(item.code, item));
+    const codeOrder = [...GLOBAL_TENCENT_INDEXES, ...GLOBAL_SINA_INDEXES].map(([, code]) => code);
+    const data = codeOrder.map(code => globalMarketCache.get(code)).filter(Boolean);
+    if (!data.length) throw new Error('Global market data unavailable');
+    globalMarketSnapshot = {
+      data,
+      fetchedAt: Date.now(),
+      partial: requests.some(request => request.status === 'rejected') || freshData.length < codeOrder.length,
+    };
+    return globalMarketSnapshot;
+  })();
+
+  try {
+    return await globalMarketRefreshPromise;
+  } finally {
+    globalMarketRefreshPromise = null;
+  }
+}
+
 async function proxyGlobalMarkets(res) {
-  const tencentSymbols = GLOBAL_TENCENT_INDEXES.map(([symbol]) => symbol).join(',');
-  const sinaSymbols = GLOBAL_SINA_INDEXES.map(([symbol]) => symbol).join(',');
-  const requests = await Promise.allSettled([
-    requestBuffer(`https://qt.gtimg.cn/q=${tencentSymbols}`, UPSTREAM_HEADERS),
-    requestBuffer(`https://hq.sinajs.cn/list=${sinaSymbols}`, {
-      ...UPSTREAM_HEADERS,
-      Referer: 'https://finance.sina.com.cn',
-    }),
-  ]);
-  const freshData = [];
-  if (requests[0].status === 'fulfilled') freshData.push(...parseTencentIndexes(requests[0].value));
-  if (requests[1].status === 'fulfilled') freshData.push(...parseSinaIndexes(requests[1].value));
-  freshData.forEach(item => globalMarketCache.set(item.code, item));
-  const codeOrder = [...GLOBAL_TENCENT_INDEXES, ...GLOBAL_SINA_INDEXES].map(([, code]) => code);
-  const data = codeOrder.map(code => globalMarketCache.get(code)).filter(Boolean);
-  if (!data.length) {
+  try {
+    const payload = await loadGlobalMarkets();
+    res.writeHead(200, {
+      'Content-Type': 'application/json; charset=utf-8',
+      'Access-Control-Allow-Origin': '*',
+      'Cache-Control': 'no-cache',
+    });
+    res.end(JSON.stringify(payload));
+  } catch (_) {
     res.writeHead(502, { 'Content-Type': 'application/json; charset=utf-8' });
     res.end(JSON.stringify({ data: [] }));
-    return;
   }
-  res.writeHead(200, {
-    'Content-Type': 'application/json; charset=utf-8',
-    'Access-Control-Allow-Origin': '*',
-    'Cache-Control': 'no-cache',
-  });
-  res.end(JSON.stringify({
-    data,
-    fetchedAt: Date.now(),
-    partial: requests.some(request => request.status === 'rejected') || freshData.length < codeOrder.length,
-  }));
 }
 
 function oneYearAgoDate() {

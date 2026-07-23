@@ -9,6 +9,9 @@
 body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:#0d1117;color:#e6edf3;min-height:100vh;-webkit-text-size-adjust:100%}
 header{background:#161b22;border-bottom:1px solid #30363d;padding:14px 24px;display:flex;align-items:center;gap:16px}
 header h1{font-size:18px;font-weight:600;letter-spacing:.5px}
+.refresh-setting{display:flex;align-items:center;gap:6px;color:#8b949e;font-size:11px;white-space:nowrap}
+.refresh-interval-select,.market-row-select{appearance:none;background:#161b22;border:1px solid #30363d;border-radius:5px;color:#c9d1d9;padding:4px 24px 4px 8px;font-size:11px;outline:none;cursor:pointer;background-image:linear-gradient(45deg,transparent 50%,#8b949e 50%),linear-gradient(135deg,#8b949e 50%,transparent 50%);background-position:calc(100% - 11px) 9px,calc(100% - 7px) 9px;background-size:4px 4px,4px 4px;background-repeat:no-repeat}
+.refresh-interval-select:focus,.market-row-select:focus{border-color:#58a6ff}
 .status{margin-left:auto;font-size:12px;color:#8b949e;display:flex;align-items:center;gap:6px}
 .dot{width:8px;height:8px;border-radius:50%;background:#3fb950}
 .dot.offline{background:#f85149}
@@ -22,8 +25,6 @@ header h1{font-size:18px;font-weight:600;letter-spacing:.5px}
 .market-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:-1px 0 10px;color:#6e7681;font-size:11px}
 .market-order-note{display:flex;align-items:center;gap:5px;min-width:0}
 .market-row-setting{display:flex;align-items:center;gap:6px;white-space:nowrap}
-.market-row-select{appearance:none;background:#161b22;border:1px solid #30363d;border-radius:5px;color:#c9d1d9;padding:4px 24px 4px 8px;font-size:11px;outline:none;cursor:pointer;background-image:linear-gradient(45deg,transparent 50%,#8b949e 50%),linear-gradient(135deg,#8b949e 50%,transparent 50%);background-position:calc(100% - 11px) 9px,calc(100% - 7px) 9px;background-size:4px 4px,4px 4px;background-repeat:no-repeat}
-.market-row-select:focus{border-color:#58a6ff}
 .market-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px}
 .market-card{--accent:#8b949e;position:relative;overflow:hidden;min-width:0;background:linear-gradient(145deg,#1a2028,#161b22 68%);border:1px solid #30363d;border-radius:8px;padding:11px 12px 10px;transition:border-color .15s,transform .15s}
 .market-card::before{content:"";position:absolute;left:0;right:0;top:0;height:2px;background:var(--accent);opacity:.78}
@@ -68,6 +69,7 @@ body.market-sorting,body.market-sorting *{cursor:grabbing!important;user-select:
   .main{padding:12px}
   header{padding:10px 12px;flex-wrap:wrap}
   header h1{font-size:16px}
+  .refresh-setting{font-size:10px}
   .status{font-size:11px}
   .market-overview{margin-bottom:20px}
   .market-overview-head{align-items:flex-start;margin-bottom:8px}
@@ -205,7 +207,18 @@ body.stock-sorting,body.stock-sorting *{cursor:grabbing!important;user-select:no
 <body>
 <header>
   <h1>📈 自选股行情</h1>
-  <button class="refresh-btn" onclick="refreshAll()">刷新</button>
+  <button class="refresh-btn" type="button" onclick="refreshAll()">刷新</button>
+  <label class="refresh-setting" for="refresh-interval">
+    <span>自选刷新</span>
+    <select class="refresh-interval-select" id="refresh-interval" title="自选股刷新间隔；全球指数固定每 5 秒刷新" onchange="setRefreshInterval(this.value)">
+      <option value="1000">1 秒（高频）</option>
+      <option value="3000">3 秒</option>
+      <option value="5000" selected>5 秒</option>
+      <option value="10000">10 秒</option>
+      <option value="30000">30 秒</option>
+      <option value="60000">60 秒</option>
+    </select>
+  </label>
   <div class="status"><span class="dot" id="dot"></span><span id="status-text">连接中...</span></div>
 </header>
 <div class="main">
@@ -218,7 +231,7 @@ body.stock-sorting,body.stock-sorting *{cursor:grabbing!important;user-select:no
       <div class="market-summary" id="market-summary" aria-live="polite">正在同步全球行情...</div>
     </div>
     <div class="market-toolbar">
-      <div class="market-order-note"><span aria-hidden="true">⠿</span><span>拖动卡片右上角调整顺序</span></div>
+      <div class="market-order-note"><span aria-hidden="true">⠿</span><span>拖动卡片右上角调整顺序 · 每 5 秒更新</span></div>
       <label class="market-row-setting" for="market-row-count">
         <span>默认显示</span>
         <select class="market-row-select" id="market-row-count" onchange="setMarketDefaultRows(this.value)">
@@ -316,6 +329,9 @@ const STORAGE_KEY = 'watchlist_v1';
 const COLOR_STORAGE_KEY = 'stock_list_colors_v1';
 const MARKET_ORDER_STORAGE_KEY = 'global_market_order_v1';
 const MARKET_ROWS_STORAGE_KEY = 'global_market_rows_v1';
+const REFRESH_INTERVAL_STORAGE_KEY = 'stock_refresh_interval_v1';
+const REFRESH_INTERVAL_OPTIONS = [1000,3000,5000,10000,30000,60000];
+const GLOBAL_MARKET_REFRESH_INTERVAL = 5000;
 const MARKET_CARDS_PER_ROW = 5;
 const DEFAULT_STOCKS = ['sh600519','sz000001','hk00700','usAAPL'];
 const MARKET_INDEXES = [
@@ -345,10 +361,15 @@ let marketOrder = [...new Set(
 )];
 marketOrder.push(..._marketCodes.filter(code => !marketOrder.includes(code)));
 const _storedMarketRows = Number(localStorage.getItem(MARKET_ROWS_STORAGE_KEY));
+const _storedRefreshInterval = Number(localStorage.getItem(REFRESH_INTERVAL_STORAGE_KEY));
 let watchlist = _valid.length ? _valid : [...DEFAULT_STOCKS];
 let showListColors = localStorage.getItem(COLOR_STORAGE_KEY) !== 'false';
 let marketDefaultRows = [1,2,3].includes(_storedMarketRows) ? _storedMarketRows : 2;
-let timer = null;
+let refreshIntervalMs = REFRESH_INTERVAL_OPTIONS.includes(_storedRefreshInterval) ? _storedRefreshInterval : 5000;
+let quoteTimer = null;
+let marketTimer = null;
+let quoteRequestPending = false;
+let marketRequestPending = false;
 let lastRawQuoteData = {};
 let lastMarketRows = [];
 let lastMarketPartial = false;
@@ -372,9 +393,18 @@ function toggleListColors() {
 }
 
 window.addEventListener('storage', event => {
-  if (event.key !== COLOR_STORAGE_KEY) return;
-  showListColors = event.newValue !== 'false';
-  applyListColorPreference();
+  if (event.key === COLOR_STORAGE_KEY) {
+    showListColors = event.newValue !== 'false';
+    applyListColorPreference();
+    return;
+  }
+  if (event.key === REFRESH_INTERVAL_STORAGE_KEY) {
+    const interval = Number(event.newValue);
+    if (!REFRESH_INTERVAL_OPTIONS.includes(interval)) return;
+    refreshIntervalMs = interval;
+    document.getElementById('refresh-interval').value = String(interval);
+    startAutoRefresh();
+  }
 });
 
 function marketTag(sym) {
@@ -586,6 +616,8 @@ marketGrid.addEventListener('keydown', event => {
 });
 
 async function fetchMarkets() {
+  if (marketRequestPending) return;
+  marketRequestPending = true;
   try {
     const response = await fetch('/api/markets');
     if (!response.ok) throw new Error('market request failed');
@@ -598,6 +630,8 @@ async function fetchMarkets() {
     if (!grid.querySelector('.market-card:not(.market-card-loading)')) {
       grid.innerHTML = '<div class="market-card market-card-loading">等待行情恢复</div>';
     }
+  } finally {
+    marketRequestPending = false;
   }
 }
 
@@ -605,6 +639,31 @@ function refreshAll() {
   fetchMarkets();
   fetchQuotes();
 }
+
+function startAutoRefresh() {
+  clearInterval(quoteTimer);
+  quoteTimer = document.hidden ? null : setInterval(fetchQuotes, refreshIntervalMs);
+}
+
+function startMarketRefresh() {
+  clearInterval(marketTimer);
+  marketTimer = document.hidden ? null : setInterval(fetchMarkets, GLOBAL_MARKET_REFRESH_INTERVAL);
+}
+
+function setRefreshInterval(value) {
+  const interval = Number(value);
+  if (!REFRESH_INTERVAL_OPTIONS.includes(interval)) return;
+  refreshIntervalMs = interval;
+  localStorage.setItem(REFRESH_INTERVAL_STORAGE_KEY, String(interval));
+  startAutoRefresh();
+  fetchQuotes();
+}
+
+document.addEventListener('visibilitychange', () => {
+  startAutoRefresh();
+  startMarketRefresh();
+  if (!document.hidden) refreshAll();
+});
 
 function parseQuoteText(text) {
   const result = {};
@@ -626,13 +685,20 @@ function extractQuote(sym, fields) {
 
 async function fetchQuotes() {
   if (!watchlist.length) { renderEmpty(); return; }
+  if (quoteRequestPending) return;
+  quoteRequestPending = true;
   try {
     const resp = await fetch(`/api/quote?symbols=${encodeURIComponent(watchlist.join(','))}`);
     if (!resp.ok) throw new Error();
     const data = parseQuoteText(await resp.text());
     renderTable(data);
     setStatus(true);
-  } catch(e) { console.error('fetchQuotes error:', e); setStatus(false); }
+  } catch(e) {
+    console.error('fetchQuotes error:', e);
+    setStatus(false);
+  } finally {
+    quoteRequestPending = false;
+  }
 }
 
 function setStatus(ok) {
@@ -1703,8 +1769,9 @@ window.addEventListener('resize', () => {
 });
 applyListColorPreference();
 document.getElementById('market-row-count').value = String(marketDefaultRows);
-timer = setInterval(fetchQuotes, 5000);
-setInterval(fetchMarkets, 15000);
+document.getElementById('refresh-interval').value = String(refreshIntervalMs);
+startAutoRefresh();
+startMarketRefresh();
 refreshAll(); // initial load
 
 // --- Float Window ---
