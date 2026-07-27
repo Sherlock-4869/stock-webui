@@ -7,8 +7,11 @@
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:#0d1117;color:#e6edf3;min-height:100vh;-webkit-text-size-adjust:100%}
-header{background:#161b22;border-bottom:1px solid #30363d;padding:14px 24px;display:flex;align-items:center;gap:16px}
-header h1{font-size:18px;font-weight:600;letter-spacing:.5px}
+.app-nav{position:sticky;top:0;z-index:150;padding:8px 24px;background:#0d1117f2;border-bottom:1px solid #21262d;backdrop-filter:blur(14px)}
+.app-nav-inner{display:flex;align-items:center;gap:4px;max-width:1100px;margin:0 auto}
+.app-tab{position:relative;border:0;border-radius:7px;background:transparent;color:#8b949e;padding:8px 16px;font-size:13px;font-weight:600;cursor:pointer;transition:.15s}
+.app-tab:hover{color:#e6edf3;background:#161b22}.app-tab.active{color:#fff;background:#1f3a5f}.app-tab-badge{display:inline-block;min-width:17px;margin-left:5px;padding:1px 5px;border-radius:9px;background:#30363d;color:#8b949e;font-size:9px;vertical-align:1px}.app-tab.active .app-tab-badge{background:#1f6feb;color:#fff}
+.app-page{display:none}.app-page.active{display:block;animation:page-in .18s ease-out}@keyframes page-in{from{opacity:.3;transform:translateY(3px)}}
 .refresh-setting{display:flex;align-items:center;gap:6px;color:#8b949e;font-size:11px;white-space:nowrap}
 .refresh-interval-select,.market-row-select{appearance:none;background:#161b22;border:1px solid #30363d;border-radius:5px;color:#c9d1d9;padding:4px 24px 4px 8px;font-size:11px;outline:none;cursor:pointer;background-image:linear-gradient(45deg,transparent 50%,#8b949e 50%),linear-gradient(135deg,#8b949e 50%,transparent 50%);background-position:calc(100% - 11px) 9px,calc(100% - 7px) 9px;background-size:4px 4px,4px 4px;background-repeat:no-repeat}
 .refresh-interval-select:focus,.market-row-select:focus{border-color:#58a6ff}
@@ -16,7 +19,13 @@ header h1{font-size:18px;font-weight:600;letter-spacing:.5px}
 .dot{width:8px;height:8px;border-radius:50%;background:#3fb950}
 .dot.offline{background:#f85149}
 .main{padding:24px;max-width:1100px;margin:0 auto}
-.market-overview{margin-bottom:24px}
+.market-page-note{margin:-5px 0 10px;color:#6e7681;font-size:10px;letter-spacing:.2px}
+.module-head{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:18px}.module-title{font-size:22px}.module-desc{margin-top:5px;color:#8b949e;font-size:12px}.module-actions{display:flex;gap:8px;align-items:center}
+.metric-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:18px}.metric-card{padding:15px 16px;border:1px solid #30363d;border-radius:9px;background:linear-gradient(145deg,#1a2028,#161b22)}.metric-label{color:#8b949e;font-size:11px}.metric-value{margin-top:5px;font-size:23px;font-weight:700}.metric-note{margin-top:3px;color:#6e7681;font-size:10px}
+.module-panel{border:1px solid #30363d;border-radius:9px;background:#161b22;overflow:hidden}.panel-toolbar{display:flex;align-items:center;gap:7px;padding:10px 12px;border-bottom:1px solid #30363d}.filter-chip{border:1px solid #30363d;border-radius:15px;background:#21262d;color:#8b949e;padding:5px 11px;font-size:11px;cursor:pointer}.filter-chip.active{color:#79c0ff;border-color:#1f6feb;background:#1f3a5f}.panel-status{margin-left:auto;color:#6e7681;font-size:11px}
+.ipo-list,.alert-list{padding:4px 14px}.ipo-row{display:grid;grid-template-columns:92px minmax(150px,1.3fr) repeat(3,minmax(95px,1fr)) 88px;align-items:center;gap:12px;padding:14px 4px;border-top:1px solid #21262d}.ipo-row:first-child{border-top:0}.ipo-date{font:600 13px ui-monospace,SFMono-Regular,monospace}.ipo-date small{display:block;margin-top:3px;color:#6e7681;font:10px sans-serif}.ipo-name{font-weight:650}.ipo-code{margin-top:3px;color:#8b949e;font:11px ui-monospace,SFMono-Regular,monospace}.ipo-field label{display:block;color:#6e7681;font-size:10px;margin-bottom:3px}.ipo-field span{font-size:12px}.ipo-status{justify-self:end;border-radius:12px;padding:4px 9px;background:#21262d;color:#8b949e;font-size:10px}.ipo-status.today{background:#3d2d13;color:#e3b341}.ipo-status.upcoming{background:#1f3a5f;color:#79c0ff}.ipo-status.done{background:#1f2d25;color:#3fb950}
+.alert-empty,.module-loading{padding:60px 20px;text-align:center;color:#6e7681}.module-loading::before{content:'◌';display:block;font-size:28px;color:#58a6ff;margin-bottom:8px;animation:market-spin 1s linear infinite}.alert-row{display:grid;grid-template-columns:8px minmax(150px,1fr) minmax(150px,2fr) 80px;gap:12px;align-items:center;padding:13px 4px;border-top:1px solid #21262d}.alert-row:first-child{border-top:0}.alert-mark{width:7px;height:32px;border-radius:4px;background:#8b949e}.alert-mark.up{background:#f85149}.alert-mark.down{background:#3fb950}.alert-stock{font-weight:650}.alert-stock small{display:block;margin-top:3px;color:#6e7681;font:10px ui-monospace,SFMono-Regular,monospace}.alert-message{font-size:12px;color:#c9d1d9}.alert-message strong{margin-right:6px}.alert-time{text-align:right;color:#6e7681;font-size:10px}.live-dot{display:inline-block;width:6px;height:6px;margin-right:5px;border-radius:50%;background:#3fb950;box-shadow:0 0 0 3px #3fb95022}
+.market-overview{margin-bottom:14px}
 .market-overview-head{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:10px}
 .market-kicker{color:#58a6ff;font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:3px}
 .market-title{font-size:17px;font-weight:650;letter-spacing:.2px}
@@ -67,15 +76,14 @@ body.market-sorting,body.market-sorting *{cursor:grabbing!important;user-select:
 }
 @media (max-width:768px){
   .main{padding:12px}
-  header{padding:10px 12px;flex-wrap:wrap}
-  header h1{font-size:16px}
   .refresh-setting{font-size:10px}
   .status{font-size:11px}
-  .market-overview{margin-bottom:20px}
+  .market-overview{margin-bottom:12px}
   .market-overview-head{align-items:flex-start;margin-bottom:8px}
   .market-title{font-size:15px}
   .market-summary{max-width:180px;font-size:10px}
   .market-toolbar{font-size:10px;margin-bottom:8px}
+  .app-nav{overflow-x:auto;padding:7px 12px}.app-nav-inner{width:max-content;margin:0}.app-tab{flex:none;padding:8px 12px}.market-page-note{margin-top:-1px}.group-bar{flex-wrap:wrap}.group-tabs{flex-basis:100%}.sort-note{flex-wrap:wrap;margin-top:-3px}.group-refresh-controls{width:100%;margin-left:0;flex-wrap:wrap}.group-refresh-controls .status{padding-left:0;border-left:0}.module-head{align-items:flex-start}.module-title{font-size:19px}.metric-grid{grid-template-columns:1fr}.ipo-row{grid-template-columns:74px 1fr 72px}.ipo-field{display:none}.alert-row{grid-template-columns:7px 1fr 58px}.alert-message{grid-column:2/4}.module-actions{flex:none}
   .search-row{flex-direction:column;align-items:stretch}
   .search-wrap{width:100%}
   .search-row .add-btn,.search-row .refresh-btn{width:100%}
@@ -93,13 +101,14 @@ body.market-sorting,body.market-sorting *{cursor:grabbing!important;user-select:
   tbody tr:hover td:first-child,tbody tr:hover td:nth-child(2){background:#1c2128}
 }
 .search-row{display:flex;gap:8px;margin-bottom:20px;align-items:flex-start}
-.group-bar{display:flex;align-items:center;gap:8px;margin-bottom:12px;min-width:0}
+.group-bar{display:flex;align-items:center;gap:7px;margin-bottom:9px;min-width:0}
 .group-tabs{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;flex:1;padding:1px}
 .group-tabs::-webkit-scrollbar{display:none}
 .group-tab{flex:none;background:#161b22;border:1px solid #30363d;border-radius:6px;color:#8b949e;padding:7px 12px;font-size:12px;cursor:pointer}
 .group-tab.active{color:#fff;background:#1f3a5f;border-color:#1f6feb}
 .group-count{margin-left:5px;color:#6e7681;font-size:10px}.group-tab.active .group-count{color:#79c0ff}
 .group-manage-btn{flex:none}
+.group-refresh-controls{display:flex;align-items:center;gap:7px;flex:none;margin-left:auto}.group-refresh-controls .status{margin-left:0;padding-left:8px;border-left:1px solid #30363d}.group-refresh-controls .refresh-setting{padding:0 2px}
 .batch-bar{display:none;align-items:center;gap:8px;margin:-4px 0 12px;padding:9px 10px;background:#161b22;border:1px solid #30363d;border-radius:7px}
 .batch-bar.visible{display:flex}.batch-count{color:#8b949e;font-size:12px;margin-right:auto}.batch-check{display:none;width:15px;height:15px;margin-right:7px;vertical-align:-2px;accent-color:#238636;cursor:pointer}
 #stock-table.selection-mode .batch-check{display:inline-block}
@@ -160,7 +169,7 @@ tbody tr.stock-row.drop-after td{box-shadow:inset 0 -2px #58a6ff}
 .drag-handle:hover{color:#58a6ff}
 body.stock-sorting,body.stock-sorting *{cursor:grabbing!important;user-select:none!important}
 .drag-ghost{position:fixed;z-index:500;pointer-events:none;display:flex;align-items:center;gap:10px;min-width:190px;padding:9px 14px;border-radius:7px;border:1px solid #58a6ff;background:#1c2128;color:#e6edf3;box-shadow:0 12px 30px rgba(0,0,0,.5);font-size:13px;transform:translate(12px,12px)}
-.sort-note{display:flex;align-items:center;gap:6px;margin:-8px 0 10px;color:#6e7681;font-size:12px}
+.sort-note{display:flex;align-items:center;gap:6px;margin:-8px 0 8px;color:#6e7681;font-size:12px;min-height:30px}
 .sort-note .drag-handle{cursor:default;margin:0}
 /* modal */
 .modal-mask{position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:200;display:none;align-items:center;justify-content:center}
@@ -223,23 +232,16 @@ body.stock-sorting,body.stock-sorting *{cursor:grabbing!important;user-select:no
 </style>
 </head>
 <body>
-<header>
-  <h1>📈 自选股行情</h1>
-  <button class="refresh-btn" type="button" onclick="refreshAll()">刷新</button>
-  <label class="refresh-setting" for="refresh-interval">
-    <span>自选刷新</span>
-    <select class="refresh-interval-select" id="refresh-interval" title="自选股刷新间隔；全球指数固定每 5 秒刷新" onchange="setRefreshInterval(this.value)">
-      <option value="1000">1 秒（高频）</option>
-      <option value="3000">3 秒</option>
-      <option value="5000" selected>5 秒</option>
-      <option value="10000">10 秒</option>
-      <option value="30000">30 秒</option>
-      <option value="60000">60 秒</option>
-    </select>
-  </label>
-  <div class="status"><span class="dot" id="dot"></span><span id="status-text">连接中...</span></div>
-</header>
+<nav class="app-nav" aria-label="功能导航">
+  <div class="app-nav-inner">
+    <button class="app-tab active" data-page="market" onclick="switchAppPage('market')">📈 自选股行情</button>
+    <button class="app-tab" data-page="ipo" onclick="switchAppPage('ipo')">🗓 打新消息<span class="app-tab-badge" id="ipo-badge">--</span></button>
+    <button class="app-tab" data-page="alerts" onclick="switchAppPage('alerts')">⚡ 自选异动<span class="app-tab-badge" id="alert-badge">0</span></button>
+  </div>
+</nav>
 <div class="main">
+  <section class="app-page active" id="page-market">
+  <div class="market-page-note">全球指数每 5 秒同步 · 自选股按设定频率刷新</div>
   <section class="market-overview" aria-labelledby="market-title">
     <div class="market-overview-head">
       <div>
@@ -288,7 +290,7 @@ body.stock-sorting,body.stock-sorting *{cursor:grabbing!important;user-select:no
     <button class="refresh-btn color-toggle" id="color-toggle" type="button" aria-pressed="true" onclick="toggleListColors()" title="切换股票列表和全球市场的涨跌颜色">🎨 行情颜色：开</button>
     <button class="refresh-btn" id="pip-btn" onclick="openFloatWindow()">📺 浮窗</button>
   </div>
-  <div class="sort-note"><span class="drag-handle" aria-hidden="true">⠿</span>长按股票行后拖动，可调整自选股顺序</div>
+  <div class="sort-note"><span class="drag-handle" aria-hidden="true">⠿</span><span>长按股票行后拖动，可调整自选股顺序</span><div class="group-refresh-controls"><button class="refresh-btn" type="button" onclick="refreshAll()">↻ 刷新</button><label class="refresh-setting" for="refresh-interval"><span>刷新频率</span><select class="refresh-interval-select" id="refresh-interval" title="自选股刷新间隔；全球指数固定每 5 秒刷新" onchange="setRefreshInterval(this.value)"><option value="1000">1 秒（高频）</option><option value="3000">3 秒</option><option value="5000" selected>5 秒</option><option value="10000">10 秒</option><option value="30000">30 秒</option><option value="60000">60 秒</option></select></label><div class="status"><span class="dot" id="dot"></span><span id="status-text">连接中...</span></div></div></div>
   <div class="table-wrapper">
   <table id="stock-table">
     <thead>
@@ -302,6 +304,19 @@ body.stock-sorting,body.stock-sorting *{cursor:grabbing!important;user-select:no
     <tbody id="tbody"><tr><td colspan="12" class="empty">暂无自选股，请添加</td></tr></tbody>
   </table>
 </div>
+</section>
+
+<section class="app-page" id="page-ipo">
+  <div class="module-head"><div><div class="market-kicker">IPO Calendar</div><h2 class="module-title">打新股消息</h2><p class="module-desc">聚合未来 60 天申购安排，发行信息以交易所最终公告为准</p></div><div class="module-actions"><button class="refresh-btn" onclick="fetchIpos(true)">刷新日历</button></div></div>
+  <div class="metric-grid"><div class="metric-card"><div class="metric-label">今日可申购</div><div class="metric-value" id="ipo-today-count">--</div><div class="metric-note">按申购日期统计</div></div><div class="metric-card"><div class="metric-label">未来 7 天</div><div class="metric-value" id="ipo-week-count">--</div><div class="metric-note">即将开放申购</div></div><div class="metric-card"><div class="metric-label">待上市</div><div class="metric-value" id="ipo-listing-count">--</div><div class="metric-note">近期已完成申购</div></div></div>
+  <div class="module-panel"><div class="panel-toolbar" id="ipo-filters"><button class="filter-chip active" data-filter="all" onclick="setIpoFilter('all')">全部</button><button class="filter-chip" data-filter="today" onclick="setIpoFilter('today')">今日申购</button><button class="filter-chip" data-filter="upcoming" onclick="setIpoFilter('upcoming')">即将申购</button><button class="filter-chip" data-filter="listed" onclick="setIpoFilter('listed')">已申购</button><span class="panel-status" id="ipo-updated">等待同步</span></div><div class="ipo-list" id="ipo-list"><div class="module-loading">正在同步打新日历</div></div></div>
+</section>
+
+<section class="app-page" id="page-alerts">
+  <div class="module-head"><div><div class="market-kicker">Watchlist Signals</div><h2 class="module-title">自选股异动消息</h2><p class="module-desc">监控全部分组，识别大幅涨跌、快速拉升/跳水和临近涨跌停</p></div><div class="module-actions"><button class="refresh-btn" onclick="clearAnomalyEvents()">清空消息</button><button class="refresh-btn" onclick="fetchAnomalyQuotes()">立即扫描</button></div></div>
+  <div class="metric-grid"><div class="metric-card"><div class="metric-label">监控股票</div><div class="metric-value" id="alert-stock-count">0</div><div class="metric-note">已自动去重</div></div><div class="metric-card"><div class="metric-label">今日异动</div><div class="metric-value" id="alert-event-count">0</div><div class="metric-note">仅保存在当前浏览器</div></div><div class="metric-card"><div class="metric-label">监控状态</div><div class="metric-value" style="font-size:15px;margin-top:10px"><span class="live-dot"></span><span id="alert-live-status">等待扫描</span></div><div class="metric-note">随自选刷新频率更新</div></div></div>
+  <div class="module-panel"><div class="panel-toolbar"><button class="filter-chip active" data-alert-filter="all" onclick="setAlertFilter('all')">全部</button><button class="filter-chip" data-alert-filter="up" onclick="setAlertFilter('up')">上涨异动</button><button class="filter-chip" data-alert-filter="down" onclick="setAlertFilter('down')">下跌异动</button><span class="panel-status">仅供行情观察，不构成投资建议</span></div><div class="alert-list" id="alert-list"><div class="alert-empty">正在等待第一轮行情扫描…</div></div></div>
+</section>
 </div>
 
 <div class="modal-mask" id="transfer-mask" onclick="closeTransferDialog(event)">
@@ -377,6 +392,8 @@ body.stock-sorting,body.stock-sorting *{cursor:grabbing!important;user-select:no
 const STORAGE_KEY = 'watchlist_v1';
 const GROUPS_STORAGE_KEY = 'watchlist_groups_v1';
 const ACTIVE_GROUP_STORAGE_KEY = 'watchlist_active_group_v1';
+const APP_PAGE_STORAGE_KEY = 'stock_active_page_v1';
+const ANOMALY_STORAGE_KEY = 'stock_anomaly_events_v1';
 const COLOR_STORAGE_KEY = 'stock_list_colors_v1';
 const MARKET_ORDER_STORAGE_KEY = 'global_market_order_v1';
 const MARKET_ROWS_STORAGE_KEY = 'global_market_rows_v1';
@@ -431,6 +448,7 @@ let marketDefaultRows = [1,2,3].includes(_storedMarketRows) ? _storedMarketRows 
 let refreshIntervalMs = REFRESH_INTERVAL_OPTIONS.includes(_storedRefreshInterval) ? _storedRefreshInterval : 5000;
 let quoteTimer = null;
 let marketTimer = null;
+let anomalyTimer = null;
 let quoteRequestPending = false;
 let marketRequestPending = false;
 let lastRawQuoteData = {};
@@ -720,11 +738,14 @@ async function fetchMarkets() {
 function refreshAll() {
   fetchMarkets();
   fetchQuotes();
+  fetchAnomalyQuotes();
 }
 
 function startAutoRefresh() {
   clearInterval(quoteTimer);
+  clearInterval(anomalyTimer);
   quoteTimer = document.hidden ? null : setInterval(fetchQuotes, refreshIntervalMs);
+  anomalyTimer = document.hidden ? null : setInterval(fetchAnomalyQuotes, refreshIntervalMs);
 }
 
 function startMarketRefresh() {
@@ -1938,9 +1959,146 @@ window.addEventListener('resize', () => {
     if (document.getElementById('modal-mask').classList.contains('open') && chartState.data.length) renderChart();
   }, 100);
 });
+
+// --- App pages / IPO calendar ---
+let activeAppPage = localStorage.getItem(APP_PAGE_STORAGE_KEY) || 'market';
+let ipoRows = [];
+let ipoFilter = 'all';
+let ipoRequestPending = false;
+
+function switchAppPage(page) {
+  if (!['market','ipo','alerts'].includes(page)) return;
+  activeAppPage = page; localStorage.setItem(APP_PAGE_STORAGE_KEY, page);
+  document.querySelectorAll('.app-tab').forEach(tab => tab.classList.toggle('active', tab.dataset.page === page));
+  document.querySelectorAll('.app-page').forEach(section => section.classList.toggle('active', section.id === `page-${page}`));
+  if (page === 'ipo' && !ipoRows.length) fetchIpos();
+  if (page === 'alerts') { renderAnomalyEvents(); fetchAnomalyQuotes(); }
+}
+
+function dateKey(value) { return value ? String(value).slice(0,10) : ''; }
+function localDateKey(date=new Date()) {
+  return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;
+}
+function dayDistance(date) {
+  const target = new Date(`${dateKey(date)}T00:00:00`), today = new Date(`${localDateKey()}T00:00:00`);
+  return Math.round((target - today) / 86400000);
+}
+function friendlyDate(value) {
+  const key = dateKey(value), distance = dayDistance(key);
+  const label = distance === 0 ? '今天' : distance === 1 ? '明天' : distance === -1 ? '昨天' : `${Math.abs(distance)} 天${distance > 0 ? '后' : '前'}`;
+  return { date:key.slice(5).replace('-','/'), label };
+}
+function ipoStatus(item) {
+  const distance = dayDistance(item.applyDate);
+  if (distance === 0) return { key:'today', label:'今日申购' };
+  if (distance > 0) return { key:'upcoming', label:'即将申购' };
+  return { key:'done', label:item.listingDate ? '已申购' : '待上市' };
+}
+async function fetchIpos(force=false) {
+  if (ipoRequestPending) return;
+  ipoRequestPending = true;
+  if (!ipoRows.length) document.getElementById('ipo-list').innerHTML = '<div class="module-loading">正在同步打新日历</div>';
+  try {
+    const response = await fetch(`/api/ipos${force ? `?t=${Date.now()}` : ''}`);
+    if (!response.ok) throw new Error('IPO request failed');
+    const payload = await response.json(); ipoRows = Array.isArray(payload.data) ? payload.data : [];
+    const today = ipoRows.filter(item => dayDistance(item.applyDate) === 0).length;
+    const week = ipoRows.filter(item => dayDistance(item.applyDate) > 0 && dayDistance(item.applyDate) <= 7).length;
+    const waiting = ipoRows.filter(item => dayDistance(item.applyDate) < 0 && !item.listingDate).length;
+    document.getElementById('ipo-today-count').textContent = today;
+    document.getElementById('ipo-week-count').textContent = week;
+    document.getElementById('ipo-listing-count').textContent = waiting;
+    document.getElementById('ipo-badge').textContent = today || week;
+    document.getElementById('ipo-updated').textContent = `同步于 ${new Date(payload.fetchedAt).toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'})}`;
+    renderIpos();
+  } catch (error) {
+    document.getElementById('ipo-list').innerHTML = '<div class="alert-empty">打新数据暂时不可用，请稍后重试</div>';
+    document.getElementById('ipo-updated').textContent = '同步失败';
+  } finally { ipoRequestPending = false; }
+}
+function setIpoFilter(filter) {
+  ipoFilter = filter;
+  document.querySelectorAll('[data-filter]').forEach(button => button.classList.toggle('active', button.dataset.filter === filter));
+  renderIpos();
+}
+function renderIpos() {
+  const rows = ipoRows.filter(item => {
+    const status = ipoStatus(item);
+    return ipoFilter === 'all' || ipoFilter === status.key || (ipoFilter === 'listed' && status.key === 'done');
+  }).sort((a,b) => new Date(b.applyDate) - new Date(a.applyDate));
+  document.getElementById('ipo-list').innerHTML = rows.length ? rows.map(item => {
+    const when = friendlyDate(item.applyDate), status = ipoStatus(item);
+    const upper = Number(item.upperLimit), marketCap = Number(item.requiredMarketCap), price = Number(item.price);
+    return `<article class="ipo-row"><div class="ipo-date">${when.date}<small>${when.label}</small></div><div><div class="ipo-name">${escapeHtml(item.name || '--')}</div><div class="ipo-code">${escapeHtml(item.applyCode || item.code)} · ${escapeHtml((item.market || '').replace('证券交易所',''))}</div></div><div class="ipo-field"><label>发行价</label><span>${price ? `¥ ${price.toFixed(2)}` : '待公布'}</span></div><div class="ipo-field"><label>申购上限</label><span>${upper ? `${Math.round(upper/100)/10} 千股` : '--'}</span></div><div class="ipo-field"><label>所需市值</label><span>${marketCap ? `${marketCap} 万` : '--'}</span></div><span class="ipo-status ${status.key}">${status.label}</span></article>`;
+  }).join('') : '<div class="alert-empty">当前筛选条件下暂无记录</div>';
+}
+
+// --- Watchlist anomaly monitor ---
+let anomalySnapshots = new Map();
+let anomalyRequestPending = false;
+let alertFilter = 'all';
+let anomalyEvents = [];
+try { anomalyEvents = JSON.parse(localStorage.getItem(ANOMALY_STORAGE_KEY) || '[]'); } catch (_) {}
+if (!Array.isArray(anomalyEvents)) anomalyEvents = [];
+
+function allWatchlistSymbols() { return [...new Set(groups.flatMap(group => group.stocks))]; }
+function anomalyGroups(sym) { return groups.filter(group => group.stocks.includes(sym)).map(group => group.name).join('、'); }
+function addAnomalyEvent(sym, quote, type, direction, title, message, cooldown=30*60*1000) {
+  const now = Date.now();
+  if (anomalyEvents.some(event => event.sym === sym && event.type === type && now - event.timestamp < cooldown)) return;
+  anomalyEvents.unshift({ id:`${now}_${sym}_${type}`, sym, name:quote.name || sym, type, direction, title, message, groups:anomalyGroups(sym), timestamp:now });
+  anomalyEvents = anomalyEvents.slice(0,100);
+  localStorage.setItem(ANOMALY_STORAGE_KEY, JSON.stringify(anomalyEvents));
+}
+function detectAnomaly(sym, quote) {
+  const price = Number(quote.price), pct = Number(quote.pct), previous = anomalySnapshots.get(sym);
+  if (!Number.isFinite(price) || !Number.isFinite(pct)) return;
+  const isWideLimit = /^sh68[89]|^sz30[01]/.test(sym), limit = isWideLimit ? 20 : 10;
+  if ((sym.startsWith('sh') || sym.startsWith('sz')) && Math.abs(pct) >= limit - .5) {
+    addAnomalyEvent(sym, quote, 'limit', pct > 0 ? 'up' : 'down', pct > 0 ? '临近涨停' : '临近跌停', `当前涨跌幅 ${sign(pct)}${pct.toFixed(2)}%`, 4*60*60*1000);
+  } else if (Math.abs(pct) >= 5) {
+    addAnomalyEvent(sym, quote, 'large', pct > 0 ? 'up' : 'down', pct > 0 ? '大幅上涨' : '大幅下跌', `今日涨跌幅 ${sign(pct)}${pct.toFixed(2)}%`, 4*60*60*1000);
+  }
+  if (previous && previous.price > 0) {
+    const fastPct = (price - previous.price) / previous.price * 100;
+    if (Math.abs(fastPct) >= 1) addAnomalyEvent(sym, quote, 'fast', fastPct > 0 ? 'up' : 'down', fastPct > 0 ? '快速拉升' : '快速跳水', `较上次扫描 ${sign(fastPct)}${fastPct.toFixed(2)}%，现价 ${price.toFixed(2)}`, 10*60*1000);
+  }
+  anomalySnapshots.set(sym, { price, pct, timestamp:Date.now() });
+}
+async function fetchAnomalyQuotes() {
+  const symbols = allWatchlistSymbols();
+  document.getElementById('alert-stock-count').textContent = symbols.length;
+  if (!symbols.length || anomalyRequestPending) { renderAnomalyEvents(); return; }
+  anomalyRequestPending = true;
+  document.getElementById('alert-live-status').textContent = '扫描中';
+  try {
+    const batches = [];
+    for (let index=0; index<symbols.length; index+=60) batches.push(symbols.slice(index,index+60));
+    const responses = await Promise.all(batches.map(batch => fetch(`/api/quote?symbols=${encodeURIComponent(batch.join(','))}`)));
+    if (responses.some(response => !response.ok)) throw new Error('anomaly request failed');
+    const data = Object.assign({}, ...await Promise.all(responses.map(async response => parseQuoteText(await response.text()))));
+    symbols.forEach(sym => { const quote = extractQuote(sym, data[sym]); if (quote) detectAnomaly(sym, quote); });
+    document.getElementById('alert-live-status').textContent = `运行中 · ${new Date().toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'})}`;
+    renderAnomalyEvents();
+  } catch (_) { document.getElementById('alert-live-status').textContent = '连接失败，等待重试'; }
+  finally { anomalyRequestPending = false; }
+}
+function setAlertFilter(filter) { alertFilter = filter; document.querySelectorAll('[data-alert-filter]').forEach(button => button.classList.toggle('active', button.dataset.alertFilter === filter)); renderAnomalyEvents(); }
+function renderAnomalyEvents() {
+  const today = localDateKey(), todayEvents = anomalyEvents.filter(event => localDateKey(new Date(event.timestamp)) === today);
+  const rows = todayEvents.filter(event => alertFilter === 'all' || event.direction === alertFilter);
+  document.getElementById('alert-event-count').textContent = todayEvents.length;
+  document.getElementById('alert-badge').textContent = todayEvents.length;
+  document.getElementById('alert-list').innerHTML = rows.length ? rows.map(event => `<article class="alert-row"><span class="alert-mark ${event.direction}"></span><div class="alert-stock">${escapeHtml(event.name)}<small>${escapeHtml(event.sym.replace(/^(sh|sz|hk|us)/,'').toUpperCase())} · ${escapeHtml(event.groups || '自选')}</small></div><div class="alert-message"><strong class="${event.direction}">${escapeHtml(event.title)}</strong>${escapeHtml(event.message)}</div><time class="alert-time">${new Date(event.timestamp).toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit',second:'2-digit'})}</time></article>`).join('') : '<div class="alert-empty">暂无异动消息<br><span style="font-size:11px">系统会持续扫描全部分组中的股票</span></div>';
+}
+function clearAnomalyEvents() { if (!anomalyEvents.length || confirm('清空全部异动消息？')) { anomalyEvents=[]; localStorage.removeItem(ANOMALY_STORAGE_KEY); renderAnomalyEvents(); } }
+
 applyListColorPreference();
 save();
 renderGroupTabs();
+switchAppPage(activeAppPage);
+renderAnomalyEvents();
+fetchIpos();
 document.getElementById('market-row-count').value = String(marketDefaultRows);
 document.getElementById('refresh-interval').value = String(refreshIntervalMs);
 startAutoRefresh();

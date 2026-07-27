@@ -33,6 +33,9 @@ const GLOBAL_MARKET_CACHE_MS = 4500;
 const globalMarketCache = new Map();
 let globalMarketSnapshot = null;
 let globalMarketRefreshPromise = null;
+const IPO_CACHE_MS = 15 * 60 * 1000;
+let ipoCache = null;
+let ipoRefreshPromise = null;
 
 function serveFile(res, filePath) {
   fs.readFile(filePath, (err, data) => {
@@ -180,6 +183,54 @@ async function proxyGlobalMarkets(res) {
   }
 }
 
+async function loadIpoCalendar() {
+  if (ipoCache && Date.now() - ipoCache.fetchedAt < IPO_CACHE_MS) return ipoCache;
+  if (ipoRefreshPromise) return ipoRefreshPromise;
+  ipoRefreshPromise = (async () => {
+    const columns = [
+      'SECURITY_CODE','SECURITY_NAME','APPLY_CODE','APPLY_DATE','LISTING_DATE',
+      'BALLOT_NUM_DATE','ISSUE_PRICE','ONLINE_APPLY_UPPER','TOP_APPLY_MARKETCAP',
+      'TRADE_MARKET','MARKET_TYPE','ISSUE_NUM','INDUSTRY_NAME'
+    ].join(',');
+    const url = 'https://datacenter-web.eastmoney.com/api/data/v1/get?' + new URLSearchParams({
+      reportName:'RPTA_APP_IPOAPPLY', columns, pageNumber:'1', pageSize:'100',
+      sortColumns:'APPLY_DATE', sortTypes:'-1', source:'WEB', client:'WEB',
+    });
+    const raw = await requestBuffer(url, { ...UPSTREAM_HEADERS, Referer:'https://data.eastmoney.com/' });
+    const payload = JSON.parse(raw.toString('utf-8'));
+    const rows = payload?.result?.data || [];
+    const today = new Date(); today.setHours(0,0,0,0);
+    const minDate = new Date(today); minDate.setDate(minDate.getDate() - 14);
+    const maxDate = new Date(today); maxDate.setDate(maxDate.getDate() + 60);
+    const data = rows.map(row => ({
+      code:row.SECURITY_CODE, name:row.SECURITY_NAME, applyCode:row.APPLY_CODE,
+      applyDate:row.APPLY_DATE, listingDate:row.LISTING_DATE, ballotDate:row.BALLOT_NUM_DATE,
+      price:row.ISSUE_PRICE, upperLimit:row.ONLINE_APPLY_UPPER,
+      requiredMarketCap:row.TOP_APPLY_MARKETCAP, market:row.TRADE_MARKET,
+      board:row.MARKET_TYPE, issueShares:row.ISSUE_NUM, industry:row.INDUSTRY_NAME,
+    })).filter(item => {
+      const date = new Date(item.applyDate);
+      return Number.isFinite(date.getTime()) && date >= minDate && date <= maxDate;
+    }).sort((a,b) => new Date(b.applyDate) - new Date(a.applyDate));
+    if (!data.length) throw new Error('IPO calendar is empty');
+    ipoCache = { data, fetchedAt:Date.now() };
+    return ipoCache;
+  })();
+  try { return await ipoRefreshPromise; } finally { ipoRefreshPromise = null; }
+}
+
+async function proxyIpoCalendar(res) {
+  try {
+    const payload = await loadIpoCalendar();
+    res.writeHead(200, { 'Content-Type':'application/json; charset=utf-8', 'Access-Control-Allow-Origin':'*', 'Cache-Control':'no-cache' });
+    res.end(JSON.stringify(payload));
+  } catch (error) {
+    console.error('IPO calendar error:', error.message);
+    res.writeHead(502, { 'Content-Type':'application/json; charset=utf-8' });
+    res.end(JSON.stringify({ data:[], error:'打新数据暂时不可用' }));
+  }
+}
+
 function oneYearAgoDate() {
   const date = new Date();
   date.setFullYear(date.getFullYear() - 1);
@@ -204,6 +255,11 @@ const server = http.createServer((req, res) => {
 
   if (pathname === '/api/markets') {
     proxyGlobalMarkets(res);
+    return;
+  }
+
+  if (pathname === '/api/ipos') {
+    proxyIpoCalendar(res);
     return;
   }
 
