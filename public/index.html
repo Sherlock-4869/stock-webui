@@ -150,6 +150,9 @@ tr:hover td{background:#1c2128}
 .form-input:focus,.form-select:focus{border-color:#58a6ff}
 .dialog-modal{width:420px;padding:18px}.dialog-title{font-size:16px;font-weight:650}.dialog-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:18px}
 .dialog-btn{border:1px solid #30363d;border-radius:6px;background:#21262d;color:#e6edf3;padding:7px 13px;cursor:pointer}.dialog-btn.primary{background:#238636;border-color:#238636}.dialog-btn.danger{color:#f85149}
+.metric-option-list{display:grid;gap:8px;margin-top:14px}.metric-option{display:flex;align-items:flex-start;gap:10px;padding:11px 12px;border:1px solid #30363d;border-radius:7px;background:#1c2128;cursor:pointer}.metric-option input{margin-top:2px;accent-color:#238636}.metric-option strong{display:block;font-size:13px}.metric-option small{display:block;margin-top:3px;color:#6e7681;font-size:10px;line-height:1.4}
+.optional-column{display:none}#stock-table.show-pe .metric-pe,#stock-table.show-pb .metric-pb,#stock-table.show-bvps .metric-bvps{display:table-cell}
+#stock-table.has-optional{min-width:1050px}
 .group-list{margin-top:12px;border:1px solid #30363d;border-radius:7px;overflow:hidden}.group-list-row{display:flex;align-items:center;gap:8px;padding:9px 10px;border-top:1px solid #30363d}.group-list-row:first-child{border-top:0}.group-list-name{flex:1}.group-list-meta{font-size:11px;color:#6e7681}
 .market-tag{display:inline-block;font-size:10px;padding:1px 5px;border-radius:3px;font-weight:600;margin-right:4px;vertical-align:middle}
 .tag-a{background:#1f3a5f;color:#79c0ff}
@@ -237,6 +240,7 @@ html[data-theme="light"] tr:hover td{background:#f4f8fc}html[data-theme="light"]
 html[data-theme="light"] .refresh-btn,html[data-theme="light"] .dialog-btn,html[data-theme="light"] .filter-chip,html[data-theme="light"] .period-btn,html[data-theme="light"] .chart-window-btn,html[data-theme="light"] .market-expand-btn{background:#f6f8fa;border-color:#d0d7de;color:#1f2328}
 html[data-theme="light"] .refresh-btn:hover,html[data-theme="light"] .dialog-btn:hover,html[data-theme="light"] .filter-chip:hover{background:#eaeef2}
 html[data-theme="light"] .dialog-btn.primary{background:#1f883d;border-color:#1f883d;color:#fff}html[data-theme="light"] .dialog-btn.danger{color:#cf222e}html[data-theme="light"] .filter-chip.active,html[data-theme="light"] .period-btn.active{background:#ddf4ff;border-color:#54aeff;color:#0969da}
+html[data-theme="light"] .metric-option{background:#f6f8fa;border-color:#d7e0ea}
 html[data-theme="light"] .refresh-interval-select,html[data-theme="light"] .market-row-select,html[data-theme="light"] .form-input,html[data-theme="light"] .form-select,html[data-theme="light"] .search-wrap input{background-color:#fff;border-color:#d0d7de;color:#1f2328}
 html[data-theme="light"] .dropdown{background:#fff;border-color:#d0d7de;box-shadow:0 8px 24px #1f23281f}html[data-theme="light"] .dd-item:hover,html[data-theme="light"] .dd-item.active{background:#f0f3f6}html[data-theme="light"] .dd-item.selected{background:#ddf4ff}
 html[data-theme="light"] .group-tab{background:#fff;border-color:#d0d7de;color:#57606a}html[data-theme="light"] .group-tab.active{background:#ddf4ff;border-color:#54aeff;color:#0969da}
@@ -317,6 +321,7 @@ html[data-theme="light"] .market-kicker{color:#0969da}html[data-theme="light"] .
     </div>
     <button class="add-btn" id="add-btn" onclick="confirmAdd()">添加自选</button>
     <button class="refresh-btn color-toggle" id="color-toggle" type="button" aria-pressed="true" onclick="toggleListColors()" title="切换股票列表和全球市场的涨跌颜色">🎨 行情颜色：开</button>
+    <button class="refresh-btn" id="metrics-btn" type="button" onclick="openMetricSettings()">📊 自定义指标</button>
     <button class="refresh-btn" id="pip-btn" onclick="openFloatWindow()">📺 浮窗</button>
   </div>
   <div class="sort-note"><span class="drag-handle" aria-hidden="true">⠿</span><span>长按股票行后拖动，可调整自选股顺序</span><div class="group-refresh-controls"><button class="refresh-btn" type="button" onclick="refreshAll()">↻ 刷新</button><label class="refresh-setting" for="refresh-interval"><span>刷新频率</span><select class="refresh-interval-select" id="refresh-interval" title="自选股刷新间隔；全球指数固定每 5 秒刷新" onchange="setRefreshInterval(this.value)"><option value="1000">1 秒（高频）</option><option value="3000">3 秒</option><option value="5000" selected>5 秒</option><option value="10000">10 秒</option><option value="30000">30 秒</option><option value="60000">60 秒</option></select></label><div class="status"><span class="dot" id="dot"></span><span id="status-text">连接中...</span></div></div></div>
@@ -327,10 +332,10 @@ html[data-theme="light"] .market-kicker{color:#0969da}html[data-theme="light"] .
         <th>代码</th><th>名称</th><th>最新价</th>
         <th>涨跌额</th><th>涨跌幅</th><th>今开</th>
         <th>昨收</th><th>最高</th><th>最低</th>
-        <th>成交量(手)</th><th>成交额(万)</th><th>操作</th>
+        <th>成交量(手)</th><th>成交额(万)</th><th class="optional-column metric-pe">市盈率</th><th class="optional-column metric-pb">市净率</th><th class="optional-column metric-bvps" title="根据最新价和市净率计算">每股净资产</th><th>操作</th>
       </tr>
     </thead>
-    <tbody id="tbody"><tr><td colspan="12" class="empty">暂无自选股，请添加</td></tr></tbody>
+    <tbody id="tbody"><tr><td colspan="15" class="empty">暂无自选股，请添加</td></tr></tbody>
   </table>
 </div>
 </section>
@@ -346,6 +351,19 @@ html[data-theme="light"] .market-kicker{color:#0969da}html[data-theme="light"] .
   <div class="metric-grid"><div class="metric-card"><div class="metric-label">监控股票</div><div class="metric-value" id="alert-stock-count">0</div><div class="metric-note">已自动去重</div></div><div class="metric-card"><div class="metric-label">今日异动</div><div class="metric-value" id="alert-event-count">0</div><div class="metric-note">仅保存在当前浏览器</div></div><div class="metric-card"><div class="metric-label">监控状态</div><div class="metric-value" style="font-size:15px;margin-top:10px"><span class="live-dot"></span><span id="alert-live-status">等待扫描</span></div><div class="metric-note">随自选刷新频率更新</div></div></div>
   <div class="module-panel"><div class="panel-toolbar"><button class="filter-chip active" data-alert-filter="all" onclick="setAlertFilter('all')">全部</button><button class="filter-chip" data-alert-filter="up" onclick="setAlertFilter('up')">上涨异动</button><button class="filter-chip" data-alert-filter="down" onclick="setAlertFilter('down')">下跌异动</button><span class="panel-status">仅供行情观察，不构成投资建议</span></div><div class="alert-list" id="alert-list"><div class="alert-empty">正在等待第一轮行情扫描…</div></div></div>
 </section>
+</div>
+
+<div class="modal-mask" id="metrics-mask" onclick="closeMetricSettings(event)">
+  <div class="modal dialog-modal" role="dialog" aria-modal="true" aria-labelledby="metrics-title">
+    <div class="dialog-title" id="metrics-title">自定义股票指标</div>
+    <div class="modal-sub">默认行情列始终显示；所选指标将追加在表格右侧</div>
+    <div class="metric-option-list">
+      <label class="metric-option"><input type="checkbox" value="pe"><span><strong>市盈率（PE）</strong><small>衡量股价相对于每股收益的估值水平</small></span></label>
+      <label class="metric-option"><input type="checkbox" value="pb"><span><strong>市净率（PB）</strong><small>衡量股价相对于每股净资产的倍数</small></span></label>
+      <label class="metric-option"><input type="checkbox" value="bvps"><span><strong>每股净资产</strong><small>根据最新价与市净率计算；无有效市净率时显示 --</small></span></label>
+    </div>
+    <div class="dialog-actions"><button class="dialog-btn" onclick="closeMetricSettings()">取消</button><button class="dialog-btn primary" onclick="saveMetricSettings()">应用</button></div>
+  </div>
 </div>
 
 <div class="modal-mask" id="transfer-mask" onclick="closeTransferDialog(event)">
@@ -424,6 +442,7 @@ const ACTIVE_GROUP_STORAGE_KEY = 'watchlist_active_group_v1';
 const APP_PAGE_STORAGE_KEY = 'stock_active_page_v1';
 const ANOMALY_STORAGE_KEY = 'stock_anomaly_events_v1';
 const THEME_STORAGE_KEY = 'stock_theme_v1';
+const OPTIONAL_METRICS_STORAGE_KEY = 'stock_optional_metrics_v1';
 const COLOR_STORAGE_KEY = 'stock_list_colors_v1';
 const MARKET_ORDER_STORAGE_KEY = 'global_market_order_v1';
 const MARKET_ROWS_STORAGE_KEY = 'global_market_rows_v1';
@@ -486,6 +505,11 @@ let lastMarketRows = [];
 let lastMarketPartial = false;
 let marketsExpanded = false;
 let marketSortDrag = null;
+let selectedMetrics = new Set();
+try {
+  const storedMetrics = JSON.parse(localStorage.getItem(OPTIONAL_METRICS_STORAGE_KEY) || '[]');
+  selectedMetrics = new Set(Array.isArray(storedMetrics) ? storedMetrics.filter(item => ['pe','pb','bvps'].includes(item)) : []);
+} catch (_) {}
 const systemThemeQuery = window.matchMedia('(prefers-color-scheme: light)');
 let themePreference = ['light','dark','system'].includes(localStorage.getItem(THEME_STORAGE_KEY)) ? localStorage.getItem(THEME_STORAGE_KEY) : 'dark';
 
@@ -499,6 +523,24 @@ function applyThemePreference() {
 function setThemePreference(value) {
   if (!['light','dark','system'].includes(value)) return;
   themePreference = value; localStorage.setItem(THEME_STORAGE_KEY, value); applyThemePreference();
+}
+
+function applyMetricSettings() {
+  const table = document.getElementById('stock-table');
+  ['pe','pb','bvps'].forEach(metric => table.classList.toggle(`show-${metric}`, selectedMetrics.has(metric)));
+  table.classList.toggle('has-optional', selectedMetrics.size > 0);
+  const button = document.getElementById('metrics-btn');
+  button.textContent = selectedMetrics.size ? `📊 指标：${selectedMetrics.size}` : '📊 自定义指标';
+}
+function openMetricSettings() {
+  document.querySelectorAll('#metrics-mask input[type="checkbox"]').forEach(input => { input.checked = selectedMetrics.has(input.value); });
+  document.getElementById('metrics-mask').classList.add('open');
+}
+function closeMetricSettings(event) { if (event && event.target !== event.currentTarget) return; document.getElementById('metrics-mask').classList.remove('open'); }
+function saveMetricSettings() {
+  selectedMetrics = new Set([...document.querySelectorAll('#metrics-mask input[type="checkbox"]:checked')].map(input => input.value));
+  localStorage.setItem(OPTIONAL_METRICS_STORAGE_KEY, JSON.stringify([...selectedMetrics]));
+  applyMetricSettings(); closeMetricSettings();
 }
 systemThemeQuery.addEventListener?.('change', () => { if (themePreference === 'system') applyThemePreference(); });
 
@@ -538,6 +580,10 @@ function toggleListColors() {
 }
 
 window.addEventListener('storage', event => {
+  if (event.key === OPTIONAL_METRICS_STORAGE_KEY) {
+    try { const values=JSON.parse(event.newValue||'[]'); selectedMetrics=new Set(Array.isArray(values)?values.filter(item=>['pe','pb','bvps'].includes(item)):[]); } catch (_) { selectedMetrics=new Set(); }
+    applyMetricSettings(); return;
+  }
   if (event.key === THEME_STORAGE_KEY) {
     themePreference = ['light','dark','system'].includes(event.newValue) ? event.newValue : 'dark'; applyThemePreference(); return;
   }
@@ -827,10 +873,16 @@ function parseQuoteText(text) {
 
 function extractQuote(sym, fields) {
   if (!fields || fields.length < 10) return null;
+  const price = Number(fields[3]);
+  const peRaw = Number(fields[39]);
+  const pbRaw = Number((sym.startsWith('sh') || sym.startsWith('sz')) ? fields[46] : fields[58]);
+  const pe = Number.isFinite(peRaw) && fields[39] !== '' && peRaw !== 0 ? peRaw : null;
+  const pb = Number.isFinite(pbRaw) && pbRaw > 0 ? pbRaw : null;
   return {
     name: fields[1], price: fields[3], prevClose: fields[4],
     open: fields[5], chg: fields[31], pct: fields[32],
     high: fields[33], low: fields[34], volume: fields[36], amount: fields[37],
+    pe, pb, bvps:pb && Number.isFinite(price) ? price / pb : null,
   };
 }
 
@@ -860,8 +912,10 @@ function setStatus(ok) {
 
 function renderEmpty() {
   document.getElementById('tbody').innerHTML =
-    '<tr><td colspan="12" class="empty">暂无自选股，请添加</td></tr>';
+    '<tr><td colspan="15" class="empty">暂无自选股，请添加</td></tr>';
 }
+
+function fmtFundamental(value) { return Number.isFinite(value) ? value.toFixed(2) : '--'; }
 
 function renderTable(data) {
   if (!watchlist.length) { renderEmpty(); return; }
@@ -872,7 +926,7 @@ function renderTable(data) {
     if (q) lastQuoteData[sym] = q;
     if (!q) return `<tr class="stock-row" data-sym="${sym}" onclick="handleRowClick(event,'${sym}')">
       <td><input class="batch-check" type="checkbox" aria-label="选择 ${sym}" ${selectedSymbols.has(sym)?'checked':''} onclick="event.stopPropagation()" onchange="setStockSelected('${sym}',this.checked)"><span class="drag-handle" title="长按拖动排序" aria-label="拖动排序">⠿</span>${marketTag(sym)}<b>${sym.replace(/^(sh|sz|hk|us)/,'')}</b></td>
-      <td colspan="10" style="color:#6e7681">数据加载中...</td>
+      <td colspan="10" style="color:#6e7681">数据加载中...</td><td class="optional-column metric-pe">--</td><td class="optional-column metric-pb">--</td><td class="optional-column metric-bvps">--</td>
       <td><div class="stock-actions"><button class="del-btn pin-btn" title="置顶" aria-label="将 ${sym} 置顶" ${i===0?'disabled':''} onclick="event.stopPropagation();pinStock('${sym}')">↑</button><button class="del-btn transfer-btn" title="复制或移动" onclick="event.stopPropagation();openTransferDialog('${sym}')">⇄</button><button class="del-btn" title="从当前分组删除" onclick="event.stopPropagation();removeStock('${sym}')">✕</button></div></td></tr>`;
     const c = cls(q.chg);
     return `<tr class="stock-row" data-sym="${sym}" onclick="handleRowClick(event,'${sym}')">
@@ -883,7 +937,7 @@ function renderTable(data) {
       <td class="${c}">${sign(q.pct)}${fmt(q.pct)}%</td>
       <td>${fmt(q.open)}</td><td>${fmt(q.prevClose)}</td>
       <td class="up">${fmt(q.high)}</td><td class="down">${fmt(q.low)}</td>
-      <td>${fmtVol(q.volume)}</td><td>${fmtAmt(q.amount)}</td>
+      <td>${fmtVol(q.volume)}</td><td>${fmtAmt(q.amount)}</td><td class="optional-column metric-pe">${fmtFundamental(q.pe)}</td><td class="optional-column metric-pb">${fmtFundamental(q.pb)}</td><td class="optional-column metric-bvps">${fmtFundamental(q.bvps)}</td>
       <td><div class="stock-actions"><button class="del-btn pin-btn" title="置顶" aria-label="将 ${q.name||sym} 置顶" ${i===0?'disabled':''} onclick="event.stopPropagation();pinStock('${sym}')">↑</button><button class="del-btn transfer-btn" title="复制或移动" onclick="event.stopPropagation();openTransferDialog('${sym}')">⇄</button><button class="del-btn" title="从当前分组删除" onclick="event.stopPropagation();removeStock('${sym}')">✕</button></div></td></tr>`;
   }).join('');
 }
@@ -2161,6 +2215,7 @@ function clearAnomalyEvents() { if (!anomalyEvents.length || confirm('清空全�
 
 applyListColorPreference();
 applyThemePreference();
+applyMetricSettings();
 save();
 renderGroupTabs();
 switchAppPage(activeAppPage);
