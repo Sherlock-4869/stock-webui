@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>画中画自选股</title>
+<script>try{const t=localStorage.getItem('stock_theme_v1')||'dark';document.documentElement.dataset.theme=t==='system'?(matchMedia('(prefers-color-scheme: light)').matches?'light':'dark'):t}catch(_){}</script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:#0d1117;color:#e6edf3;padding:20px}
@@ -14,6 +15,7 @@ button:disabled{opacity:.4;cursor:not-allowed}
 #canvas-container{position:relative;background:#161b22;border:1px solid #30363d;border-radius:8px;overflow:hidden}
 canvas{display:block;width:100%}
 .status{font-size:13px;color:#8b949e;margin-left:auto}
+html[data-theme="light"]{color-scheme:light}html[data-theme="light"] body{background:#f3f6fa;color:#172033}html[data-theme="light"] #canvas-container{background:#fff;border-color:#d7e0ea;box-shadow:0 3px 14px #1f3b5b0d}html[data-theme="light"] .status{color:#57606a}
 </style>
 </head>
 <body>
@@ -31,6 +33,7 @@ const STORAGE_KEY = 'watchlist_v1';
 const GROUPS_STORAGE_KEY = 'watchlist_groups_v1';
 const ACTIVE_GROUP_STORAGE_KEY = 'watchlist_active_group_v1';
 const COLOR_STORAGE_KEY = 'stock_list_colors_v1';
+const THEME_STORAGE_KEY = 'stock_theme_v1';
 const DEFAULT_STOCKS = ['sh600519','sz000001','hk00700','usAAPL'];
 const _stored = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null');
 const _valid = Array.isArray(_stored) ? _stored.filter(s => /^[a-zA-Z0-9._]+$/.test(s)) : [];
@@ -45,6 +48,12 @@ function loadActiveWatchlist() {
 }
 let watchlist = loadActiveWatchlist();
 let showListColors = localStorage.getItem(COLOR_STORAGE_KEY) !== 'false';
+const systemThemeQuery = matchMedia('(prefers-color-scheme: light)');
+let themePreference = ['light','dark','system'].includes(localStorage.getItem(THEME_STORAGE_KEY)) ? localStorage.getItem(THEME_STORAGE_KEY) : 'dark';
+function resolvedTheme() { return themePreference === 'system' ? (systemThemeQuery.matches ? 'light' : 'dark') : themePreference; }
+function applyTheme() { document.documentElement.dataset.theme = resolvedTheme(); fetchAndRender(); }
+function pipColor(dark, light) { return resolvedTheme() === 'light' ? light : dark; }
+systemThemeQuery.addEventListener?.('change', () => { if (themePreference === 'system') applyTheme(); });
 
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
@@ -62,9 +71,9 @@ function marketLabel(sym) {
 
 function fmt(n, d=2) { const v=parseFloat(n); return (isNaN(v)||v===0)?'--':v.toFixed(d); }
 function cls(n) {
-  if (!showListColors) return '#e6edf3';
+  if (!showListColors) return pipColor('#e6edf3','#1f2328');
   const v=parseFloat(n);
-  if(isNaN(v)||v===0)return'#8b949e';
+  if(isNaN(v)||v===0)return pipColor('#8b949e','#57606a');
   return v>0?'#f85149':'#3fb950';
 }
 function sign(n) { return parseFloat(n)>0?'+':''; }
@@ -99,26 +108,26 @@ async function fetchAndRender() {
 
 function renderCanvas(data) {
   const W = 640, H = 360;
-  ctx.fillStyle = '#0d1117';
+  ctx.fillStyle = pipColor('#0d1117','#ffffff');
   ctx.fillRect(0, 0, W, H);
 
   // title
-  ctx.fillStyle = '#e6edf3';
+  ctx.fillStyle = pipColor('#e6edf3','#1f2328');
   ctx.font = 'bold 20px sans-serif';
   ctx.fillText('📈 自选股行情', 20, 35);
 
   // time
   ctx.font = '12px monospace';
-  ctx.fillStyle = '#8b949e';
+  ctx.fillStyle = pipColor('#8b949e','#57606a');
   ctx.fillText(new Date().toLocaleTimeString('zh-CN'), W - 90, 35);
 
   // table header
   const rowH = 40;
   const startY = 60;
-  ctx.fillStyle = '#1c2128';
+  ctx.fillStyle = pipColor('#1c2128','#f0f3f6');
   ctx.fillRect(0, startY, W, rowH);
 
-  ctx.fillStyle = '#8b949e';
+  ctx.fillStyle = pipColor('#8b949e','#57606a');
   ctx.font = 'bold 13px sans-serif';
   ctx.textAlign = 'left';
   ctx.fillText('代码', 20, startY + 25);
@@ -134,7 +143,7 @@ function renderCanvas(data) {
 
     const q = extractQuote(sym, data[sym]);
     if (!q) {
-      ctx.fillStyle = '#6e7681';
+      ctx.fillStyle = pipColor('#6e7681','#6e7781');
       ctx.font = '13px sans-serif';
       ctx.fillText('加载中...', 20, y + 25);
       return;
@@ -143,15 +152,15 @@ function renderCanvas(data) {
     // market + code
     const mkt = marketLabel(sym);
     const code = sym.replace(/^(sh|sz|hk|us)/, '');
-    ctx.fillStyle = '#58a6ff';
+    ctx.fillStyle = pipColor('#58a6ff','#0969da');
     ctx.font = '11px sans-serif';
     ctx.fillText(mkt, 20, y + 25);
-    ctx.fillStyle = '#e6edf3';
+    ctx.fillStyle = pipColor('#e6edf3','#1f2328');
     ctx.font = 'bold 13px monospace';
     ctx.fillText(code, 40, y + 25);
 
     // name
-    ctx.fillStyle = '#e6edf3';
+    ctx.fillStyle = pipColor('#e6edf3','#1f2328');
     ctx.font = '13px sans-serif';
     ctx.fillText(q.name.slice(0, 8), 120, y + 25);
 
@@ -245,6 +254,7 @@ function stopPiP() {
 }
 
 window.addEventListener('storage', event => {
+  if (event.key === THEME_STORAGE_KEY) { themePreference = ['light','dark','system'].includes(event.newValue) ? event.newValue : 'dark'; applyTheme(); return; }
   if (event.key === COLOR_STORAGE_KEY) showListColors = event.newValue !== 'false';
   else if ([GROUPS_STORAGE_KEY, ACTIVE_GROUP_STORAGE_KEY, STORAGE_KEY].includes(event.key)) watchlist = loadActiveWatchlist();
   else return;
@@ -252,7 +262,7 @@ window.addEventListener('storage', event => {
 });
 
 // initial render
-fetchAndRender();
+applyTheme();
 </script>
 </body>
 </html>
