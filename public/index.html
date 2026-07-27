@@ -9,7 +9,7 @@
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:#0d1117;color:#e6edf3;min-height:100vh;-webkit-text-size-adjust:100%}
 .app-nav{position:sticky;top:0;z-index:150;padding:8px 24px;background:#0d1117f2;border-bottom:1px solid #21262d;backdrop-filter:blur(14px)}
-.app-nav-inner{display:flex;align-items:center;gap:4px;max-width:1100px;margin:0 auto}
+.app-nav-inner{display:flex;align-items:center;gap:4px;max-width:1100px;margin:0 auto;transition:max-width .2s ease}
 .app-tab{position:relative;display:inline-flex;align-items:center;justify-content:center;width:138px;flex:none;border:0;border-radius:7px;background:transparent;color:#8b949e;padding:8px 12px;font-size:13px;font-weight:600;cursor:pointer;transition:.15s}
 .app-tab:hover{color:#e6edf3;background:#161b22}.app-tab.active{color:#fff;background:#1f3a5f}.app-tab-badge{display:inline-block;min-width:17px;margin-left:5px;padding:1px 5px;border-radius:9px;background:#30363d;color:#8b949e;font-size:9px;vertical-align:1px}.app-tab.active .app-tab-badge{background:#1f6feb;color:#fff}
 .app-page{display:none}.app-page.active{display:block;animation:page-in .18s ease-out}@keyframes page-in{from{opacity:.3;transform:translateY(3px)}}
@@ -19,7 +19,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;b
 .status{margin-left:auto;font-size:12px;color:#8b949e;display:flex;align-items:center;gap:6px}
 .dot{width:8px;height:8px;border-radius:50%;background:#3fb950}
 .dot.offline{background:#f85149}
-.main{padding:24px;max-width:1100px;margin:0 auto}
+.main{padding:24px;max-width:1100px;margin:0 auto;transition:max-width .2s ease}
+html.metrics-1 .main,html.metrics-1 .app-nav-inner{max-width:1220px}
+html.metrics-2 .main,html.metrics-2 .app-nav-inner{max-width:1330px}
+html.metrics-3 .main,html.metrics-3 .app-nav-inner{max-width:1440px}
 .market-page-note{margin:-5px 0 10px;color:#6e7681;font-size:10px;letter-spacing:.2px}
 .module-head{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:18px}.module-title{font-size:22px}.module-desc{margin-top:5px;color:#8b949e;font-size:12px}.module-actions{display:flex;gap:8px;align-items:center}
 .metric-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:18px}.metric-card{padding:15px 16px;border:1px solid #30363d;border-radius:9px;background:linear-gradient(145deg,#1a2028,#161b22)}.metric-label{color:#8b949e;font-size:11px}.metric-value{margin-top:5px;font-size:23px;font-weight:700}.metric-note{margin-top:3px;color:#6e7681;font-size:10px}
@@ -152,7 +155,7 @@ tr:hover td{background:#1c2128}
 .dialog-btn{border:1px solid #30363d;border-radius:6px;background:#21262d;color:#e6edf3;padding:7px 13px;cursor:pointer}.dialog-btn.primary{background:#238636;border-color:#238636}.dialog-btn.danger{color:#f85149}
 .metric-option-list{display:grid;gap:8px;margin-top:14px}.metric-option{display:flex;align-items:flex-start;gap:10px;padding:11px 12px;border:1px solid #30363d;border-radius:7px;background:#1c2128;cursor:pointer}.metric-option input{margin-top:2px;accent-color:#238636}.metric-option strong{display:block;font-size:13px}.metric-option small{display:block;margin-top:3px;color:#6e7681;font-size:10px;line-height:1.4}
 .optional-column{display:none}#stock-table.show-pe .metric-pe,#stock-table.show-pb .metric-pb,#stock-table.show-bvps .metric-bvps{display:table-cell}
-#stock-table.has-optional{min-width:1050px}
+html.metrics-1 #stock-table{min-width:1140px}html.metrics-2 #stock-table{min-width:1220px}html.metrics-3 #stock-table{min-width:1300px}
 .group-list{margin-top:12px;border:1px solid #30363d;border-radius:7px;overflow:hidden}.group-list-row{display:flex;align-items:center;gap:8px;padding:9px 10px;border-top:1px solid #30363d}.group-list-row:first-child{border-top:0}.group-list-name{flex:1}.group-list-meta{font-size:11px;color:#6e7681}
 .market-tag{display:inline-block;font-size:10px;padding:1px 5px;border-radius:3px;font-weight:600;margin-right:4px;vertical-align:middle}
 .tag-a{background:#1f3a5f;color:#79c0ff}
@@ -529,6 +532,8 @@ function applyMetricSettings() {
   const table = document.getElementById('stock-table');
   ['pe','pb','bvps'].forEach(metric => table.classList.toggle(`show-${metric}`, selectedMetrics.has(metric)));
   table.classList.toggle('has-optional', selectedMetrics.size > 0);
+  document.documentElement.classList.remove('metrics-1','metrics-2','metrics-3');
+  if (selectedMetrics.size) document.documentElement.classList.add(`metrics-${selectedMetrics.size}`);
   const button = document.getElementById('metrics-btn');
   button.textContent = selectedMetrics.size ? `📊 指标：${selectedMetrics.size}` : '📊 自定义指标';
 }
