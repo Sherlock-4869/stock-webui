@@ -45,11 +45,22 @@ tr:hover td{background:#1c2128}
 
 <script>
 const STORAGE_KEY = 'watchlist_v1';
+const GROUPS_STORAGE_KEY = 'watchlist_groups_v1';
+const ACTIVE_GROUP_STORAGE_KEY = 'watchlist_active_group_v1';
 const COLOR_STORAGE_KEY = 'stock_list_colors_v1';
 const DEFAULT_STOCKS = ['sh600519','sz000001','hk00700','usAAPL'];
 const _stored = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null');
 const _valid = Array.isArray(_stored) ? _stored.filter(s => /^[a-zA-Z0-9._]+$/.test(s)) : [];
-let watchlist = _valid.length ? _valid : [...DEFAULT_STOCKS];
+function loadActiveWatchlist() {
+  try {
+    const groups = JSON.parse(localStorage.getItem(GROUPS_STORAGE_KEY) || 'null');
+    const activeId = localStorage.getItem(ACTIVE_GROUP_STORAGE_KEY);
+    const active = Array.isArray(groups) && groups.find(group => group.id === activeId);
+    if (active && Array.isArray(active.stocks)) return active.stocks.filter(s => /^[a-zA-Z0-9._-]+$/.test(s));
+  } catch (_) {}
+  return _valid.length ? _valid : [...DEFAULT_STOCKS];
+}
+let watchlist = loadActiveWatchlist();
 let showListColors = localStorage.getItem(COLOR_STORAGE_KEY) !== 'false';
 
 function applyListColorPreference() {
@@ -117,9 +128,13 @@ function renderTable(data) {
 }
 
 window.addEventListener('storage', event => {
-  if (event.key !== COLOR_STORAGE_KEY) return;
-  showListColors = event.newValue !== 'false';
-  applyListColorPreference();
+  if (event.key === COLOR_STORAGE_KEY) {
+    showListColors = event.newValue !== 'false';
+    applyListColorPreference();
+  } else if ([GROUPS_STORAGE_KEY, ACTIVE_GROUP_STORAGE_KEY, STORAGE_KEY].includes(event.key)) {
+    watchlist = loadActiveWatchlist();
+    watchlist.length ? fetchAndRender() : renderTable({});
+  }
 });
 
 applyListColorPreference();

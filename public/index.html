@@ -93,6 +93,17 @@ body.market-sorting,body.market-sorting *{cursor:grabbing!important;user-select:
   tbody tr:hover td:first-child,tbody tr:hover td:nth-child(2){background:#1c2128}
 }
 .search-row{display:flex;gap:8px;margin-bottom:20px;align-items:flex-start}
+.group-bar{display:flex;align-items:center;gap:8px;margin-bottom:12px;min-width:0}
+.group-tabs{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;flex:1;padding:1px}
+.group-tabs::-webkit-scrollbar{display:none}
+.group-tab{flex:none;background:#161b22;border:1px solid #30363d;border-radius:6px;color:#8b949e;padding:7px 12px;font-size:12px;cursor:pointer}
+.group-tab.active{color:#fff;background:#1f3a5f;border-color:#1f6feb}
+.group-count{margin-left:5px;color:#6e7681;font-size:10px}.group-tab.active .group-count{color:#79c0ff}
+.group-manage-btn{flex:none}
+.batch-bar{display:none;align-items:center;gap:8px;margin:-4px 0 12px;padding:9px 10px;background:#161b22;border:1px solid #30363d;border-radius:7px}
+.batch-bar.visible{display:flex}.batch-count{color:#8b949e;font-size:12px;margin-right:auto}.batch-check{display:none;width:15px;height:15px;margin-right:7px;vertical-align:-2px;accent-color:#238636;cursor:pointer}
+#stock-table.selection-mode .batch-check{display:inline-block}
+.batch-action:disabled{opacity:.4;cursor:not-allowed}
 .search-wrap{position:relative;width:320px}
 .search-wrap input{width:100%;background:#21262d;border:1px solid #30363d;border-radius:6px;color:#e6edf3;padding:8px 32px 8px 12px;font-size:14px;outline:none;transition:border-color .15s}
 .search-wrap input:focus{border-color:#58a6ff}
@@ -121,6 +132,13 @@ tr:hover td{background:#1c2128}
 .up{color:#f85149}.down{color:#3fb950}.flat{color:#8b949e}
 .del-btn{background:none;border:none;color:#6e7681;cursor:pointer;font-size:15px;padding:2px 6px;border-radius:4px;transition:color .15s,background .15s}
 .del-btn:hover{color:#f85149;background:#21262d}
+.stock-actions{display:flex;justify-content:flex-end;gap:2px}.transfer-btn{font-size:13px}
+.form-row{margin-top:14px}.form-row label{display:block;color:#8b949e;font-size:12px;margin-bottom:6px}
+.form-input,.form-select{width:100%;background:#21262d;border:1px solid #30363d;border-radius:6px;color:#e6edf3;padding:8px 10px;font-size:13px;outline:none}
+.form-input:focus,.form-select:focus{border-color:#58a6ff}
+.dialog-modal{width:420px;padding:18px}.dialog-title{font-size:16px;font-weight:650}.dialog-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:18px}
+.dialog-btn{border:1px solid #30363d;border-radius:6px;background:#21262d;color:#e6edf3;padding:7px 13px;cursor:pointer}.dialog-btn.primary{background:#238636;border-color:#238636}.dialog-btn.danger{color:#f85149}
+.group-list{margin-top:12px;border:1px solid #30363d;border-radius:7px;overflow:hidden}.group-list-row{display:flex;align-items:center;gap:8px;padding:9px 10px;border-top:1px solid #30363d}.group-list-row:first-child{border-top:0}.group-list-name{flex:1}.group-list-meta{font-size:11px;color:#6e7681}
 .market-tag{display:inline-block;font-size:10px;padding:1px 5px;border-radius:3px;font-weight:600;margin-right:4px;vertical-align:middle}
 .tag-a{background:#1f3a5f;color:#79c0ff}
 .tag-kcb{background:#34255a;color:#bc8cff}
@@ -248,6 +266,18 @@ body.stock-sorting,body.stock-sorting *{cursor:grabbing!important;user-select:no
       <button class="market-expand-btn" id="market-expand-btn" type="button" aria-expanded="false" aria-controls="market-grid" onclick="toggleMarketExpansion()"></button>
     </div>
   </section>
+  <div class="group-bar">
+    <div class="group-tabs" id="group-tabs" role="tablist" aria-label="股票分组"></div>
+    <button class="refresh-btn group-manage-btn" id="selection-toggle" type="button" onclick="toggleSelectionMode()">☑ 选择</button>
+    <button class="refresh-btn group-manage-btn" type="button" onclick="openGroupManager()">⚙ 管理分组</button>
+  </div>
+  <div class="batch-bar" id="batch-bar">
+    <label class="batch-count"><input type="checkbox" id="select-all" onchange="toggleSelectAll(this.checked)"> 已选择 <strong id="selected-count">0</strong> 只</label>
+    <button class="dialog-btn batch-action" onclick="openBatchTransfer('copy')">复制到</button>
+    <button class="dialog-btn batch-action" onclick="openBatchTransfer('move')">移动到</button>
+    <button class="dialog-btn danger batch-action" onclick="batchDelete()">删除</button>
+    <button class="dialog-btn" onclick="toggleSelectionMode(false)">取消</button>
+  </div>
   <div class="search-row">
     <div class="search-wrap">
       <input id="search-input" type="text" placeholder="搜索 A 股、港股、美股名称或代码..." autocomplete="off">
@@ -272,6 +302,25 @@ body.stock-sorting,body.stock-sorting *{cursor:grabbing!important;user-select:no
     <tbody id="tbody"><tr><td colspan="12" class="empty">暂无自选股，请添加</td></tr></tbody>
   </table>
 </div>
+</div>
+
+<div class="modal-mask" id="transfer-mask" onclick="closeTransferDialog(event)">
+  <div class="modal dialog-modal" role="dialog" aria-modal="true" aria-labelledby="transfer-title">
+    <div class="dialog-title" id="transfer-title">复制或移动股票</div>
+    <div class="modal-sub" id="transfer-stock"></div>
+    <div class="form-row"><label for="transfer-mode">操作方式</label><select class="form-select" id="transfer-mode"><option value="copy">复制到（保留当前分组）</option><option value="move">移动到（从当前分组移除）</option></select></div>
+    <div class="form-row"><label for="transfer-target">目标分组</label><select class="form-select" id="transfer-target"></select></div>
+    <div class="dialog-actions"><button class="dialog-btn" onclick="closeTransferDialog()">取消</button><button class="dialog-btn primary" onclick="confirmTransfer()">确认</button></div>
+  </div>
+</div>
+
+<div class="modal-mask" id="groups-mask" onclick="closeGroupManager(event)">
+  <div class="modal dialog-modal" role="dialog" aria-modal="true" aria-labelledby="groups-title">
+    <div class="dialog-title" id="groups-title">管理分组</div>
+    <div class="form-row"><label for="new-group-name">新建分组</label><div style="display:flex;gap:8px"><input class="form-input" id="new-group-name" maxlength="20" placeholder="例如：长期持有"><button class="dialog-btn primary" onclick="createGroup()">添加</button></div></div>
+    <div class="group-list" id="group-list"></div>
+    <div class="dialog-actions"><button class="dialog-btn" onclick="closeGroupManager()">完成</button></div>
+  </div>
 </div>
 
 <div class="modal-mask" id="modal-mask" onclick="closeModal(event)">
@@ -326,6 +375,8 @@ body.stock-sorting,body.stock-sorting *{cursor:grabbing!important;user-select:no
 
 <script>
 const STORAGE_KEY = 'watchlist_v1';
+const GROUPS_STORAGE_KEY = 'watchlist_groups_v1';
+const ACTIVE_GROUP_STORAGE_KEY = 'watchlist_active_group_v1';
 const COLOR_STORAGE_KEY = 'stock_list_colors_v1';
 const MARKET_ORDER_STORAGE_KEY = 'global_market_order_v1';
 const MARKET_ROWS_STORAGE_KEY = 'global_market_rows_v1';
@@ -350,8 +401,11 @@ const MARKET_INDEXES = [
   { code:'GDAXI', name:'德国 DAX', region:'德' },
   { code:'FTSE', name:'英国富时 100', region:'英' },
 ];
-const _stored = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null');
+let _stored = null;
+try { _stored = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null'); } catch (_) {}
 const _valid = Array.isArray(_stored) ? _stored.filter(s => /^[a-zA-Z0-9._-]+$/.test(s)) : [];
+let _storedGroups = null;
+try { _storedGroups = JSON.parse(localStorage.getItem(GROUPS_STORAGE_KEY) || 'null'); } catch (_) {}
 let _storedMarketOrder = [];
 try { _storedMarketOrder = JSON.parse(localStorage.getItem(MARKET_ORDER_STORAGE_KEY) || '[]'); }
 catch (_) { _storedMarketOrder = []; }
@@ -362,7 +416,16 @@ let marketOrder = [...new Set(
 marketOrder.push(..._marketCodes.filter(code => !marketOrder.includes(code)));
 const _storedMarketRows = Number(localStorage.getItem(MARKET_ROWS_STORAGE_KEY));
 const _storedRefreshInterval = Number(localStorage.getItem(REFRESH_INTERVAL_STORAGE_KEY));
-let watchlist = _valid.length ? _valid : [...DEFAULT_STOCKS];
+function validGroup(group) {
+  return group && /^[a-zA-Z0-9_-]+$/.test(group.id) && typeof group.name === 'string' && Array.isArray(group.stocks);
+}
+let groups = Array.isArray(_storedGroups) ? _storedGroups.filter(validGroup).map(group => ({
+  id:group.id, name:group.name.slice(0,20), stocks:[...new Set(group.stocks.filter(s => /^[a-zA-Z0-9._-]+$/.test(s)))]
+})) : [];
+if (!groups.length) groups = [{ id:'default', name:'默认分组', stocks:_valid.length ? _valid : [...DEFAULT_STOCKS] }];
+let activeGroupId = localStorage.getItem(ACTIVE_GROUP_STORAGE_KEY) || groups[0].id;
+if (!groups.some(group => group.id === activeGroupId)) activeGroupId = groups[0].id;
+let watchlist = groups.find(group => group.id === activeGroupId).stocks;
 let showListColors = localStorage.getItem(COLOR_STORAGE_KEY) !== 'false';
 let marketDefaultRows = [1,2,3].includes(_storedMarketRows) ? _storedMarketRows : 2;
 let refreshIntervalMs = REFRESH_INTERVAL_OPTIONS.includes(_storedRefreshInterval) ? _storedRefreshInterval : 5000;
@@ -376,7 +439,26 @@ let lastMarketPartial = false;
 let marketsExpanded = false;
 let marketSortDrag = null;
 
-function save() { localStorage.setItem(STORAGE_KEY, JSON.stringify(watchlist)); }
+function save() {
+  localStorage.setItem(GROUPS_STORAGE_KEY, JSON.stringify(groups));
+  localStorage.setItem(ACTIVE_GROUP_STORAGE_KEY, activeGroupId);
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(watchlist)); // legacy/float-window compatibility
+}
+
+function renderGroupTabs() {
+  document.getElementById('group-tabs').innerHTML = groups.map(group =>
+    `<button class="group-tab${group.id === activeGroupId ? ' active' : ''}" role="tab" aria-selected="${group.id === activeGroupId}" onclick="switchGroup('${group.id}')">${escapeHtml(group.name)}<span class="group-count">${group.stocks.length}</span></button>`
+  ).join('');
+}
+
+function escapeHtml(value) { return String(value).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+function switchGroup(id) {
+  const group = groups.find(item => item.id === id);
+  if (!group || id === activeGroupId) return;
+  toggleSelectionMode(false);
+  activeGroupId = id; watchlist = group.stocks; lastRawQuoteData = {}; save(); renderGroupTabs(); fetchQuotes();
+}
 
 function applyListColorPreference() {
   document.getElementById('stock-table').classList.toggle('market-colors-off', !showListColors);
@@ -720,12 +802,12 @@ function renderTable(data) {
     const q = extractQuote(sym, data[sym]);
     if (q) lastQuoteData[sym] = q;
     if (!q) return `<tr class="stock-row" data-sym="${sym}" onclick="handleRowClick(event,'${sym}')">
-      <td><span class="drag-handle" title="长按拖动排序" aria-label="拖动排序">⠿</span>${marketTag(sym)}<b>${sym.replace(/^(sh|sz|hk|us)/,'')}</b></td>
+      <td><input class="batch-check" type="checkbox" aria-label="选择 ${sym}" ${selectedSymbols.has(sym)?'checked':''} onclick="event.stopPropagation()" onchange="setStockSelected('${sym}',this.checked)"><span class="drag-handle" title="长按拖动排序" aria-label="拖动排序">⠿</span>${marketTag(sym)}<b>${sym.replace(/^(sh|sz|hk|us)/,'')}</b></td>
       <td colspan="10" style="color:#6e7681">数据加载中...</td>
-      <td><button class="del-btn" onclick="event.stopPropagation();removeStock('${sym}')">✕</button></td></tr>`;
+      <td><div class="stock-actions"><button class="del-btn transfer-btn" title="复制或移动" onclick="event.stopPropagation();openTransferDialog('${sym}')">⇄</button><button class="del-btn" title="从当前分组删除" onclick="event.stopPropagation();removeStock('${sym}')">✕</button></div></td></tr>`;
     const c = cls(q.chg);
     return `<tr class="stock-row" data-sym="${sym}" onclick="handleRowClick(event,'${sym}')">
-      <td><span class="drag-handle" title="长按拖动排序" aria-label="拖动排序">⠿</span>${marketTag(sym)}<b>${sym.replace(/^(sh|sz|hk|us)/,'')}</b></td>
+      <td><input class="batch-check" type="checkbox" aria-label="选择 ${sym}" ${selectedSymbols.has(sym)?'checked':''} onclick="event.stopPropagation()" onchange="setStockSelected('${sym}',this.checked)"><span class="drag-handle" title="长按拖动排序" aria-label="拖动排序">⠿</span>${marketTag(sym)}<b>${sym.replace(/^(sh|sz|hk|us)/,'')}</b></td>
       <td>${q.name||sym}</td>
       <td class="${c}" style="font-weight:600">${fmt(q.price)}</td>
       <td class="${c}">${sign(q.chg)}${fmt(q.chg)}</td>
@@ -733,7 +815,7 @@ function renderTable(data) {
       <td>${fmt(q.open)}</td><td>${fmt(q.prevClose)}</td>
       <td class="up">${fmt(q.high)}</td><td class="down">${fmt(q.low)}</td>
       <td>${fmtVol(q.volume)}</td><td>${fmtAmt(q.amount)}</td>
-      <td><button class="del-btn" onclick="event.stopPropagation();removeStock('${sym}')">✕</button></td></tr>`;
+      <td><div class="stock-actions"><button class="del-btn transfer-btn" title="复制或移动" onclick="event.stopPropagation();openTransferDialog('${sym}')">⇄</button><button class="del-btn" title="从当前分组删除" onclick="event.stopPropagation();removeStock('${sym}')">✕</button></div></td></tr>`;
   }).join('');
 }
 
@@ -742,6 +824,7 @@ function addStock(sym) {
   if (watchlist.includes(sym)) { clearSearch(); return; }
   watchlist.push(sym);
   save();
+  renderGroupTabs();
   clearSearch();
   fetchQuotes();
 }
@@ -750,8 +833,96 @@ function removeStock(sym) {
   const i = watchlist.indexOf(sym);
   if (i < 0) return;
   watchlist.splice(i, 1);
+  selectedSymbols.delete(sym);
   save();
+  renderGroupTabs();
+  updateBatchBar();
   watchlist.length ? fetchQuotes() : renderEmpty();
+}
+
+let selectionMode = false;
+let selectedSymbols = new Set();
+function toggleSelectionMode(force) {
+  selectionMode = typeof force === 'boolean' ? force : !selectionMode;
+  if (!selectionMode) selectedSymbols.clear();
+  document.getElementById('stock-table').classList.toggle('selection-mode', selectionMode);
+  document.getElementById('batch-bar').classList.toggle('visible', selectionMode);
+  document.getElementById('selection-toggle').textContent = selectionMode ? '☑ 选择中' : '☑ 选择';
+  if (lastRawQuoteData && Object.keys(lastRawQuoteData).length) renderTable(lastRawQuoteData);
+  updateBatchBar();
+}
+function setStockSelected(sym, checked) { checked ? selectedSymbols.add(sym) : selectedSymbols.delete(sym); updateBatchBar(); }
+function toggleSelectAll(checked) {
+  selectedSymbols = new Set(checked ? watchlist : []);
+  tbody.querySelectorAll('.batch-check').forEach(input => { input.checked = checked; });
+  updateBatchBar();
+}
+function updateBatchBar() {
+  const count = selectedSymbols.size, all = watchlist.length > 0 && count === watchlist.length;
+  document.getElementById('selected-count').textContent = count;
+  const selectAll = document.getElementById('select-all'); selectAll.checked = all; selectAll.indeterminate = count > 0 && !all;
+  document.querySelectorAll('.batch-action').forEach(button => { button.disabled = count === 0; });
+}
+
+let transferSymbols = [];
+function openTransferDialog(sym) {
+  document.getElementById('transfer-mode').value = 'copy';
+  openTransferDialogFor([sym]);
+}
+function openBatchTransfer(mode) {
+  if (!selectedSymbols.size) return;
+  document.getElementById('transfer-mode').value = mode;
+  openTransferDialogFor([...selectedSymbols]);
+}
+function openTransferDialogFor(symbols) {
+  transferSymbols = symbols.filter(sym => watchlist.includes(sym));
+  if (!transferSymbols.length) return;
+  const targets = groups.filter(group => group.id !== activeGroupId);
+  if (!targets.length) { openGroupManager(); return; }
+  document.getElementById('transfer-stock').textContent = transferSymbols.length === 1
+    ? `${lastQuoteData[transferSymbols[0]]?.name || transferSymbols[0]} · ${transferSymbols[0].replace(/^(sh|sz|hk|us)/,'').toUpperCase()}`
+    : `已选择 ${transferSymbols.length} 只股票`;
+  document.getElementById('transfer-target').innerHTML = targets.map(group => `<option value="${group.id}">${escapeHtml(group.name)}</option>`).join('');
+  document.getElementById('transfer-mask').classList.add('open');
+}
+function closeTransferDialog(event) { if (event && event.target !== event.currentTarget) return; document.getElementById('transfer-mask').classList.remove('open'); transferSymbols = []; }
+function confirmTransfer() {
+  const target = groups.find(group => group.id === document.getElementById('transfer-target').value);
+  if (!target || !transferSymbols.length) return;
+  transferSymbols.forEach(sym => { if (!target.stocks.includes(sym)) target.stocks.push(sym); });
+  if (document.getElementById('transfer-mode').value === 'move') {
+    const moved = new Set(transferSymbols); watchlist.splice(0, watchlist.length, ...watchlist.filter(sym => !moved.has(sym)));
+  }
+  save(); renderGroupTabs(); closeTransferDialog(); toggleSelectionMode(false); watchlist.length ? fetchQuotes() : renderEmpty();
+  document.getElementById('status-text').textContent = '分组操作已保存';
+}
+function batchDelete() {
+  if (!selectedSymbols.size || !confirm(`从当前分组删除选中的 ${selectedSymbols.size} 只股票？`)) return;
+  const removed = new Set(selectedSymbols); watchlist.splice(0, watchlist.length, ...watchlist.filter(sym => !removed.has(sym)));
+  save(); renderGroupTabs(); toggleSelectionMode(false); watchlist.length ? fetchQuotes() : renderEmpty();
+  document.getElementById('status-text').textContent = '已批量删除';
+}
+
+function openGroupManager() { renderGroupManager(); document.getElementById('groups-mask').classList.add('open'); setTimeout(() => document.getElementById('new-group-name').focus(),0); }
+function closeGroupManager(event) { if (event && event.target !== event.currentTarget) return; document.getElementById('groups-mask').classList.remove('open'); }
+function renderGroupManager() {
+  document.getElementById('group-list').innerHTML = groups.map(group => `<div class="group-list-row"><span class="group-list-name">${escapeHtml(group.name)}</span><span class="group-list-meta">${group.stocks.length} 只</span><button class="del-btn" title="重命名" onclick="renameGroup('${group.id}')">✎</button><button class="del-btn" title="删除分组" ${groups.length === 1 ? 'disabled' : ''} onclick="deleteGroup('${group.id}')">✕</button></div>`).join('');
+}
+function createGroup() {
+  const input = document.getElementById('new-group-name'), name = input.value.trim(); if (!name) return;
+  groups.push({ id:`g_${Date.now().toString(36)}`, name:name.slice(0,20), stocks:[] }); input.value=''; save(); renderGroupTabs(); renderGroupManager();
+}
+function renameGroup(id) {
+  const group = groups.find(item => item.id === id); if (!group) return;
+  const name = prompt('请输入新的分组名称', group.name); if (!name?.trim()) return;
+  group.name = name.trim().slice(0,20); save(); renderGroupTabs(); renderGroupManager();
+}
+function deleteGroup(id) {
+  if (groups.length === 1) return;
+  const group = groups.find(item => item.id === id); if (!group || !confirm(`删除分组“${group.name}”？其中股票不会影响其他分组。`)) return;
+  groups = groups.filter(item => item.id !== id);
+  if (activeGroupId === id) { toggleSelectionMode(false); activeGroupId = groups[0].id; watchlist = groups[0].stocks; fetchQuotes(); }
+  save(); renderGroupTabs(); renderGroupManager();
 }
 
 // --- Long-press row sorting (mouse + touch) ---
@@ -1768,6 +1939,8 @@ window.addEventListener('resize', () => {
   }, 100);
 });
 applyListColorPreference();
+save();
+renderGroupTabs();
 document.getElementById('market-row-count').value = String(marketDefaultRows);
 document.getElementById('refresh-interval').value = String(refreshIntervalMs);
 startAutoRefresh();
