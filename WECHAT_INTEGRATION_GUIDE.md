@@ -228,6 +228,9 @@ chmod 600 .env
 编辑 `.env`：
 
 ```env
+STOCK_NODE_BIN=/root/miniconda3/bin/node
+STOCK_NPM_BIN=/root/miniconda3/bin/npm
+
 STOCK_WECHAT_ENABLED=true
 STOCK_WECHAT_APP_ID=填写公众号AppID
 STOCK_WECHAT_APP_SECRET=填写重置后的新AppSecret
@@ -273,19 +276,25 @@ STOCK_WECHAT_ADMIN_KEY
 node -v
 ```
 
+服务器存在多个 Node.js 时，先在 `.env` 中固定已经验证可运行的 Node 和 npm。例如当前服务器使用：
+
+```env
+STOCK_NODE_BIN=/root/miniconda3/bin/node
+STOCK_NPM_BIN=/root/miniconda3/bin/npm
+```
+
 在项目目录执行：
 
 ```bash
-npm install
+./run.sh install
 ```
 
-当前新增的运行依赖只有 MySQL 驱动 `mysql2`。
+`run.sh install` 会使用与 `STOCK_NODE_BIN` 匹配的 npm 执行 `npm ci --omit=dev`。当前新增的运行依赖只有 MySQL 驱动 `mysql2`。
 
 安装后检查：
 
 ```bash
-npm run check
-npm test
+./run.sh verify
 ```
 
 ## 8. 第五步：配置微信开发者平台
@@ -378,16 +387,16 @@ sudo nginx -s reload
 ./run.sh check
 ```
 
-`run.sh` 会在自己的进程中读取 `.env`，导出其中的变量后启动 Node.js，等价于：
+`run.sh` 会在自己的进程中读取 `.env`，优先使用 `STOCK_NODE_BIN`，其次使用当前 Conda 环境的 Node。它不会依赖 PATH 中可能不兼容的旧 Node，也不会修改系统全局环境变量。
 
-```bash
-set -a
-. ./.env
-set +a
-node server.js
+当前服务器推荐配置：
+
+```env
+STOCK_NODE_BIN=/root/miniconda3/bin/node
+STOCK_NPM_BIN=/root/miniconda3/bin/npm
 ```
 
-这种方式兼容不支持 `node --env-file` 的旧版 Node.js；变量只会传给本次启动的 Node.js 进程，不会写入系统全局环境。因为 `.env` 按 shell 配置读取，如果密码包含空格、`#`、`$` 等 shell 特殊字符，需要使用单引号包裹，例如 `STOCK_DB_PASSWORD='实际密码'`。
+变量只会传给本次启动的 Node.js 进程。因为 `.env` 按 shell 配置读取，如果密码包含空格、`#`、`$` 等 shell 特殊字符，需要使用单引号包裹，例如 `STOCK_DB_PASSWORD='实际密码'`。
 
 正常日志应包含：
 
@@ -649,7 +658,7 @@ WHERE job_key = 'weekly-ipo:对应周一日期';
 2. 创建 `stock_wechat` 数据库账号。
 3. 执行建表 SQL。
 4. 在云服务器创建权限为 `600` 的 `.env`。
-5. 执行 `npm install`、`npm run check` 和 `npm test`。
+5. 执行 `./run.sh install` 和 `./run.sh verify`。
 6. 先保持 `STOCK_WECHAT_ENABLED=false`，确认原股票服务正常。
 7. 改为 `true` 并执行 `./run.sh restart`。
 8. 调用 `/internal/wechat/status` 确认 `ready=true`。
