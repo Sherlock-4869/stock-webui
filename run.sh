@@ -23,7 +23,11 @@ start() {
     echo -e "\033[32m[启动]\033[0m 正在后台启动 $APP_NAME..."
     # 仅向当前 Node.js 进程注入项目环境变量，不修改系统全局环境。
     if [ -f "$ENV_FILE" ]; then
-        nohup node --env-file="$ENV_FILE" server.js > "$LOG_FILE" 2>&1 &
+        set -a
+        # shellcheck disable=SC1090
+        . "$ENV_FILE"
+        set +a
+        nohup node server.js > "$LOG_FILE" 2>&1 &
     else
         echo -e "\033[33m[提示]\033[0m 未找到 $ENV_FILE，将使用当前进程已有环境变量启动。"
         nohup $APP_CMD > "$LOG_FILE" 2>&1 &

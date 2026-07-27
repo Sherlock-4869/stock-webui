@@ -267,6 +267,12 @@ STOCK_WECHAT_ADMIN_KEY
 
 ## 7. 第四步：安装依赖
 
+先确认 Node.js 版本不低于 18：
+
+```bash
+node -v
+```
+
 在项目目录执行：
 
 ```bash
@@ -372,11 +378,16 @@ sudo nginx -s reload
 ./run.sh check
 ```
 
-`run.sh` 会自动执行等价操作：
+`run.sh` 会在自己的进程中读取 `.env`，导出其中的变量后启动 Node.js，等价于：
 
 ```bash
-node --env-file=.env server.js
+set -a
+. ./.env
+set +a
+node server.js
 ```
+
+这种方式兼容不支持 `node --env-file` 的旧版 Node.js；变量只会传给本次启动的 Node.js 进程，不会写入系统全局环境。因为 `.env` 按 shell 配置读取，如果密码包含空格、`#`、`$` 等 shell 特殊字符，需要使用单引号包裹，例如 `STOCK_DB_PASSWORD='实际密码'`。
 
 正常日志应包含：
 
