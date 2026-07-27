@@ -2086,7 +2086,10 @@ window.addEventListener('resize', () => {
 });
 
 // --- App pages / IPO calendar ---
-let activeAppPage = localStorage.getItem(APP_PAGE_STORAGE_KEY) || 'market';
+const requestedAppPage = new URLSearchParams(location.search).get('page');
+let activeAppPage = ['market','ipo','alerts'].includes(requestedAppPage)
+  ? requestedAppPage
+  : (localStorage.getItem(APP_PAGE_STORAGE_KEY) || 'market');
 let ipoRows = [];
 let ipoFilter = 'all';
 let ipoRequestPending = false;

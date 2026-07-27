@@ -2,6 +2,7 @@ const http = require('http');
 const https = require('https');
 const fs = require('fs');
 const path = require('path');
+const { createWechatService } = require('./wechat/service');
 
 const PORT = 3000;
 const PUBLIC_DIR = path.join(__dirname, 'public');
@@ -240,9 +241,22 @@ function oneYearAgoDate() {
   return `${year}-${month}-${day}`;
 }
 
-const server = http.createServer((req, res) => {
+const wechatService = createWechatService({ loadIpoCalendar });
+
+const server = http.createServer(async (req, res) => {
   const urlObj = new URL(req.url, `http://localhost:${PORT}`);
   const pathname = urlObj.pathname;
+
+  try {
+    if (await wechatService.handleRoute(req, res, urlObj)) return;
+  } catch (error) {
+    console.error('WeChat request error:', error.message);
+    if (!res.headersSent) {
+      res.writeHead(error.statusCode || 500, { 'Content-Type':'application/json; charset=utf-8', 'Cache-Control':'no-store' });
+    }
+    if (!res.writableEnded) res.end(JSON.stringify({ error:'微信服务处理失败' }));
+    return;
+  }
 
   if (pathname === '/api/quote') {
     const symbols = urlObj.searchParams.get('symbols') || '';
@@ -334,4 +348,20 @@ const server = http.createServer((req, res) => {
 
 server.listen(PORT, () => {
   console.log(`Stock monitor running at http://localhost:${PORT}`);
+  wechatService.start().catch(error => console.error('WeChat service start failed:', error.message));
 });
+
+let shuttingDown = false;
+function shutdown(signal) {
+  if (shuttingDown) return;
+  shuttingDown = true;
+  console.log(`Received ${signal}, shutting down...`);
+  server.close(async () => {
+    try { await wechatService.close(); }
+    catch (error) { console.error('WeChat shutdown error:', error.message); }
+    process.exit(0);
+  });
+  setTimeout(() => process.exit(1), 10000).unref();
+}
+process.on('SIGTERM', () => shutdown('SIGTERM'));
+process.on('SIGINT', () => shutdown('SIGINT'));

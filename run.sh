@@ -3,12 +3,13 @@
 # ==================== 配置区域 ====================
 APP_NAME="Stock Monitor"
 APP_CMD="node server.js"
+ENV_FILE="${STOCK_ENV_FILE:-.env}"
 LOG_FILE="output.log"
 # ==================================================
 
 # 获取正在运行的进程 PID
 get_pid() {
-    echo $(pgrep -f "$APP_CMD")
+    echo $(pgrep -f "node .*server.js")
 }
 
 # 启动服务
@@ -20,8 +21,13 @@ start() {
     fi
 
     echo -e "\033[32m[启动]\033[0m 正在后台启动 $APP_NAME..."
-    # 使用 nohup 启动，并将输出和错误都重定向到 LOG_FILE
-    nohup $APP_CMD > $LOG_FILE 2>&1 &
+    # 仅向当前 Node.js 进程注入项目环境变量，不修改系统全局环境。
+    if [ -f "$ENV_FILE" ]; then
+        nohup node --env-file="$ENV_FILE" server.js > "$LOG_FILE" 2>&1 &
+    else
+        echo -e "\033[33m[提示]\033[0m 未找到 $ENV_FILE，将使用当前进程已有环境变量启动。"
+        nohup $APP_CMD > "$LOG_FILE" 2>&1 &
+    fi
 
     sleep 1.5
     PID=$(get_pid)
