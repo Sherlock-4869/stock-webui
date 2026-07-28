@@ -90,6 +90,10 @@ class WeChatClient {
     });
   }
 
+  createMenu(menu) {
+    return this.call('POST', '/cgi-bin/menu/create', menu);
+  }
+
   async listFollowers() {
     const openids = [];
     let nextOpenid = '';

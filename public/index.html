@@ -1151,7 +1151,8 @@ function finishRowSort(event, cancelled = false) {
   const { row, target, before, ghost } = sortDrag;
   if (!cancelled && target) {
     tbody.insertBefore(row, before ? target : target.nextSibling);
-    watchlist = [...tbody.querySelectorAll('tr.stock-row')].map(r => r.dataset.sym);
+    const sortedSymbols = [...tbody.querySelectorAll('tr.stock-row')].map(r => r.dataset.sym);
+    watchlist.splice(0, watchlist.length, ...sortedSymbols);
     save();
     document.getElementById('status-text').textContent = '自选股顺序已保存';
   }

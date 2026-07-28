@@ -44,6 +44,22 @@ function delay(milliseconds) {
   return new Promise(resolve => setTimeout(resolve, milliseconds));
 }
 
+function buildDefaultMenu(pageUrl) {
+  return {
+    button: [
+      {
+        name: '打新服务',
+        sub_button: [
+          { type: 'click', name: '本周打新', key: 'IPO_WEEKLY' },
+          { type: 'click', name: '开启提醒', key: 'IPO_ENABLE' },
+          { type: 'click', name: '关闭提醒', key: 'IPO_DISABLE' },
+        ],
+      },
+      { type: 'view', name: '打新日历', url: pageUrl },
+    ],
+  };
+}
+
 class WeChatService {
   constructor({ loadIpoCalendar, env = process.env }) {
     this.config = loadWechatConfig(env);
@@ -145,6 +161,21 @@ class WeChatService {
       jsonResponse(res, 200, result);
       return true;
     }
+    if (pathname === '/internal/wechat/menu/sync' && req.method === 'POST') {
+      const menu = buildDefaultMenu(this.config.pageUrl);
+      try {
+        const wechat = await this.client.createMenu(menu);
+        jsonResponse(res, 200, { created: true, menu, wechat });
+      } catch (error) {
+        console.error('WeChat menu synchronization failed:', error.message);
+        jsonResponse(res, 502, {
+          created: false,
+          errcode: Number.isFinite(Number(error.errcode)) ? Number(error.errcode) : -1,
+          error: error.message,
+        });
+      }
+      return true;
+    }
     if (pathname === '/internal/wechat/subscribers/sync' && req.method === 'POST') {
       const openids = await this.client.listFollowers();
       const count = await this.database.syncFollowers(openids, this.config.autoEnable);
@@ -209,6 +240,7 @@ class WeChatService {
       return 'success';
     }
     if (messageType === 'event' && event === 'click') {
+      await this.database.recordInteraction(openid);
       const eventKey = String(message.EventKey || '').toUpperCase();
       if (eventKey === 'IPO_ENABLE') {
         await this.database.setNotification(openid, true);
@@ -324,4 +356,4 @@ function createWechatService(options) {
   return new WeChatService(options);
 }
 
-module.exports = { createWechatService, WeChatService, signatureFor, safeEqual, readBody };
+module.exports = { createWechatService, WeChatService, buildDefaultMenu, signatureFor, safeEqual, readBody };

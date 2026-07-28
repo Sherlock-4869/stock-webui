@@ -43,6 +43,20 @@ function formatPrice(value) {
   return Number.isFinite(number) && number > 0 ? `${number.toFixed(2)}元` : '待公布';
 }
 
+function formatBoard(item = {}) {
+  const board = String(item.board || '').trim();
+  if (board) return board;
+
+  const code = String(item.code || '').trim();
+  const market = String(item.market || '').trim();
+  if (/^(688|689)/.test(code)) return '科创板';
+  if (/^(300|301)/.test(code)) return '创业板';
+  if (/^(4|8|92)/.test(code) || market.includes('北京') || market.includes('北交')) return '北交所';
+  if (/^(600|601|603|605)/.test(code) || market.includes('上海')) return '沪市主板';
+  if (/^(000|001|002|003)/.test(code) || market.includes('深圳')) return '深市主板';
+  return '待确认';
+}
+
 function buildWeeklyMessage(items, range, pageUrl) {
   const lines = [`【本周新股申购】`, `${range.start} 至 ${range.end}`];
   if (!items.length) {
@@ -53,7 +67,7 @@ function buildWeeklyMessage(items, range, pageUrl) {
       const dateKey = String(item.applyDate || '').slice(0, 10);
       const weekday = WEEKDAY_NAMES[new Date(`${dateKey}T00:00:00Z`).getUTCDay()];
       lines.push(`${index + 1}. ${item.name || '--'}（${item.applyCode || item.code || '--'}）`);
-      lines.push(`   ${dateKey} ${weekday}｜发行价 ${formatPrice(item.price)}`);
+      lines.push(`   ${dateKey} ${weekday}｜板块 ${formatBoard(item)}｜发行价 ${formatPrice(item.price)}`);
     });
     if (items.length > 20) lines.push(`另有 ${items.length - 20} 只，请打开页面查看。`);
   }
@@ -62,4 +76,4 @@ function buildWeeklyMessage(items, range, pageUrl) {
   return content.length <= 1900 ? content : `${content.slice(0, 1870)}\n…\n详情：${pageUrl}`;
 }
 
-module.exports = { zonedParts, shiftDateKey, weekRange, selectWeekIpos, buildWeeklyMessage };
+module.exports = { zonedParts, shiftDateKey, weekRange, selectWeekIpos, formatBoard, buildWeeklyMessage };

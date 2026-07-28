@@ -2,9 +2,9 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { weekRange, selectWeekIpos, buildWeeklyMessage, zonedParts } = require('../wechat/weekly-ipo');
+const { weekRange, selectWeekIpos, formatBoard, buildWeeklyMessage, zonedParts } = require('../wechat/weekly-ipo');
 const { parseWechatXml, textReplyXml } = require('../wechat/xml');
-const { signatureFor } = require('../wechat/service');
+const { buildDefaultMenu, signatureFor } = require('../wechat/service');
 const { loadWechatConfig } = require('../wechat/config');
 
 test('weekRange uses Monday through Sunday in Shanghai', () => {
@@ -34,11 +34,34 @@ test('selectWeekIpos filters and orders by apply date', () => {
 
 test('weekly message contains IPO details and target page', () => {
   const content = buildWeeklyMessage([
-    { name: '测试股份', applyCode: '787001', applyDate: '2026-07-28', price: 12.5 },
+    { name: '测试股份', applyCode: '787001', applyDate: '2026-07-28', price: 12.5, board: '科创板' },
   ], { start: '2026-07-27', end: '2026-08-02' }, 'https://stock.example/?page=ipo');
   assert.match(content, /测试股份/);
+  assert.match(content, /板块 科创板/);
   assert.match(content, /12\.50元/);
   assert.match(content, /https:\/\/stock\.example\/\?page=ipo/);
+});
+
+test('IPO board falls back to stock code and exchange', () => {
+  assert.equal(formatBoard({ code: '688001' }), '科创板');
+  assert.equal(formatBoard({ code: '301001' }), '创业板');
+  assert.equal(formatBoard({ code: '920001' }), '北交所');
+  assert.equal(formatBoard({ code: '603001' }), '沪市主板');
+  assert.equal(formatBoard({ code: '001001' }), '深市主板');
+  assert.equal(formatBoard({ market: '上海证券交易所' }), '沪市主板');
+});
+
+test('default WeChat menu connects click actions and IPO page', () => {
+  const menu = buildDefaultMenu('https://stock.example/?page=ipo');
+  assert.equal(menu.button.length, 2);
+  assert.deepEqual(menu.button[0].sub_button.map(item => item.key), [
+    'IPO_WEEKLY', 'IPO_ENABLE', 'IPO_DISABLE',
+  ]);
+  assert.deepEqual(menu.button[1], {
+    type: 'view',
+    name: '打新日历',
+    url: 'https://stock.example/?page=ipo',
+  });
 });
 
 test('weekly message explicitly reports an empty week', () => {

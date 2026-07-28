@@ -1,6 +1,31 @@
-# 普通微信公众号每周打新消息接入与部署指南
+# Stock Monitor：股票监控与微信公众号打新提醒
 
-本文档对应当前项目已经实现的微信公众号接入代码，目标是：
+这是一个直接运行于 Node.js 的股票监控服务，提供自选股行情、全球市场概览、K 线、异动消息和新股申购日历，并在现有服务中集成微信公众号回调、菜单和每周打新提醒。
+
+主要能力：
+
+- 浏览自选股、全球指数、K 线和打新日历。
+- 通过 `https://stock.sherlock-holmes.cn/?page=ipo` 直接打开打新页面。
+- 接收公众号关注、取消关注、文本消息和自定义菜单事件。
+- 每周一 `09:00` 按上海时区汇总本周可申购新股。
+- 推送内容包含名称、申购代码、所属板块、申购日期和发行价。
+- 使用 MySQL 保存关注者、任务和逐用户发送结果。
+
+## 快速启动
+
+环境要求：Node.js 18 及以上版本、npm 和 MySQL。
+
+```bash
+cp .env.example .env
+./run.sh install
+./run.sh verify
+./run.sh start
+./run.sh check
+```
+
+不开启微信公众号功能时，保持 `.env` 中 `STOCK_WECHAT_ENABLED=false` 即可运行股票监控服务。微信公众号与数据库的完整配置步骤见下文。
+
+微信公众号集成目标：
 
 - 继续使用现有 Node.js 服务，不新增另一套系统。
 - 使用普通公众号的文本客服消息接口，不使用模板消息。
@@ -8,6 +33,7 @@
 - 每周一 `09:00`（`Asia/Shanghai`）汇总并发送本周可申购新股。
 - 点击文本中的链接进入 `https://stock.sherlock-holmes.cn/?page=ipo`。
 - 使用 MySQL 保存关注者、任务和发送结果，防止重复发送。
+- 通过内部管理接口创建公众号底部自定义菜单。
 - 微信返回权限、频率、互动窗口等错误时如实记录，不把失败误报为成功。
 
 ## 1. 必须先了解的接口边界
@@ -39,7 +65,7 @@ POST https://api.weixin.qq.com/cgi-bin/message/custom/send?access_token=ACCESS_T
 - `40003`：OpenID 不合法或用户已经取消关注。
 - `40164`：服务器出口 IP 未加入 API IP 白名单。
 
-用户已经明确要求系统不要预先判断互动时间，因此当前代码仍会在每周一发起调用，并将微信的真实返回结果写入数据库。若微信返回 `48001`，代码本身无法绕过微信账号权限，需要改用有权限的账号或改为公众平台后台人工群发。
+当前实现不会在服务器侧预先判断互动时间，而是在每周一发起调用，并将微信的真实返回结果写入数据库。若微信返回 `48001`，代码本身无法绕过微信账号权限，需要改用有权限的账号或改为公众平台后台人工群发。
 
 - [发送客服消息官方文档](https://developers.weixin.qq.com/doc/service/api/customer/message/api_sendcustommessage.html)
 - [根据 OpenID 群发消息官方文档](https://developers.weixin.qq.com/doc/service/api/notify/message/api_masssend.html)
@@ -54,7 +80,7 @@ package.json                    项目依赖和检查命令
 package-lock.json               依赖锁定文件
 database/wechat_schema.sql      微信推送建表 SQL
 wechat/config.js                配置读取和校验
-wechat/client.js                access_token 和客服消息 API
+wechat/client.js                access_token、客服消息和自定义菜单 API
 wechat/database.js              MySQL 数据访问和自动建表
 wechat/service.js               回调、内部接口、调度和发送流程
 wechat/weekly-ipo.js            本周日期及打新汇总
@@ -109,24 +135,24 @@ test/wechat.test.js             核心逻辑测试
 本周暂无可申购新股。
 ```
 
-## 4. 第一步：立即重置已经暴露的密码
+## 4. 第一步：保护和轮换敏感凭证
 
-之前在对话中出现过公众号 AppSecret 和数据库 root 密码。上线前必须：
+上线前必须妥善管理敏感凭证：
 
-1. 在微信开发者平台重置 AppSecret。
-2. 修改 MySQL root 密码。
-3. 为本应用创建专用数据库账号，不让 Node.js 长期使用 root。
-4. 新密码只写入云服务器 `.env`，不要再次发送到聊天中。
+1. AppSecret 或数据库密码曾经泄漏时，先在对应平台完成轮换。
+2. 为本应用创建专用数据库账号，不让 Node.js 长期使用 root。
+3. 凭证只写入云服务器 `.env`，不要写入源码、README 或日志。
+4. 将 `.env` 权限设置为 `600`，并确认它已被 `.gitignore` 排除。
 
-代码和本文档都没有保存已暴露的密码。
+代码和本文档不保存真实 AppSecret、管理密钥或数据库密码。
 
 ## 5. 第二步：准备 MySQL
 
-数据库地址为：
+数据库连接信息通过 `.env` 配置，推荐让应用服务器和数据库处于可互通的同一 VPC，并优先使用私网地址：
 
 ```text
-172.16.0.13:3306
-数据库：stock
+地址：<数据库内网地址>:3306
+数据库名：stock
 ```
 
 ### 5.1 创建应用专用账号
@@ -244,7 +270,7 @@ STOCK_WECHAT_SCHEDULE_HOUR=9
 STOCK_WECHAT_SCHEDULE_MINUTE=0
 STOCK_WECHAT_SCHEDULE_CATCHUP=true
 
-STOCK_DB_HOST=172.16.0.13
+STOCK_DB_HOST=填写数据库主机名或IP，不要附带端口
 STOCK_DB_PORT=3306
 STOCK_DB_USER=stock_wechat
 STOCK_DB_PASSWORD=填写应用数据库账号的新密码
@@ -469,7 +495,32 @@ curl \
 
 返回内容不包含 AppSecret、数据库密码或 access_token。
 
-### 12.2 只预览、不发送
+### 12.2 创建或更新公众号菜单
+
+```bash
+curl -X POST \
+  -H 'X-Admin-Key: <管理密钥>' \
+  https://stock.sherlock-holmes.cn/internal/wechat/menu/sync
+```
+
+成功时返回 `created=true`、提交的菜单结构以及微信的 `errcode=0`。该操作会覆盖公众号当前已有的自定义菜单，只在首次创建或需要更新菜单时调用，不需要每次启动服务都执行。
+
+系统创建以下菜单：
+
+```text
+打新服务
+├── 本周打新：立即被动回复本周打新信息
+├── 开启提醒：打开数据库中的打新提醒开关
+└── 关闭提醒：关闭数据库中的打新提醒开关
+
+打新日历：打开 https://stock.sherlock-holmes.cn/?page=ipo
+```
+
+菜单创建后可能需要约 5 分钟才在微信客户端刷新。可以退出公众号会话后重新进入；测试阶段也可以取消关注后重新关注。
+
+如果返回 `48001`，表示当前公众号没有自定义菜单 API 权限，需要在微信开发者平台“接口管理”中确认权限，或改用公众平台提供的菜单配置页面。
+
+### 12.3 只预览、不发送
 
 ```bash
 curl -X POST \
@@ -491,7 +542,7 @@ curl -X POST \
 
 这一步不会创建发送任务，也不会调用微信发送接口。
 
-### 12.3 手动执行本周推送
+### 12.4 手动执行本周推送
 
 ```bash
 curl -X POST \
@@ -501,7 +552,7 @@ curl -X POST \
 
 同一周任务已经成功完成时，再次调用不会重复发送。
 
-### 12.4 重试本周失败用户
+### 12.5 重试本周失败用户
 
 ```bash
 curl -X POST \
@@ -544,9 +595,9 @@ weekly-ipo:2026-07-27
 
 共 2 只：
 1. 测试股份（787001）
-   2026-07-28 周二｜发行价 12.50元
+   2026-07-28 周二｜板块 科创板｜发行价 12.50元
 2. 示例科技（301002）
-   2026-07-30 周四｜发行价 待公布
+   2026-07-30 周四｜板块 创业板｜发行价 待公布
 
 详情：https://stock.sherlock-holmes.cn/?page=ipo
 数据以交易所最终公告为准，不构成投资建议。
@@ -654,7 +705,7 @@ WHERE job_key = 'weekly-ipo:对应周一日期';
 
 ## 17. 推荐的首次上线验证顺序
 
-1. 重置公众号 AppSecret 和数据库 root 密码。
+1. 确认 AppSecret 和数据库凭证未泄漏；如泄漏则先完成轮换。
 2. 创建 `stock_wechat` 数据库账号。
 3. 执行建表 SQL。
 4. 在云服务器创建权限为 `600` 的 `.env`。
@@ -666,10 +717,11 @@ WHERE job_key = 'weekly-ipo:对应周一日期';
 10. 配置明文消息回调 URL 和 Token。
 11. 重新关注公众号或向公众号发送消息。
 12. 检查 `wechat_subscribers` 是否出现 OpenID。
-13. 调用 `dry_run=1` 检查本周数据和文本内容。
-14. 手动执行一次本周推送。
-15. 检查 `wechat_push_deliveries` 的微信错误码。
-16. 若返回 `errcode=0`，再等待下一个周一自动执行。
+13. 调用 `/internal/wechat/menu/sync` 创建公众号底部菜单。
+14. 调用 `dry_run=1` 检查本周数据和文本内容。
+15. 手动执行一次本周推送。
+16. 检查 `wechat_push_deliveries` 的微信错误码。
+17. 若返回 `errcode=0`，再等待下一个周一自动执行。
 
 ## 18. 安全要求
 
@@ -680,7 +732,7 @@ WHERE job_key = 'weekly-ipo:对应周一日期';
 - MySQL 只允许应用服务器私网 IP 访问。
 - Node.js 使用专用低权限数据库账号，禁止使用 root 长期运行。
 - 定期检查 `wechat_push_deliveries` 中的异常错误码。
-- AppSecret 或数据库密码泄漏后立即轮换，而不是只删除聊天消息。
+- AppSecret 或数据库密码泄漏后立即轮换，而不是只删除暴露记录。
 
 ## 19. 当前实现范围
 
@@ -696,6 +748,7 @@ WHERE job_key = 'weekly-ipo:对应周一日期';
 - MySQL 分布式锁和唯一键防重。
 - 逐用户发送结果和错误码记录。
 - 手动预览、执行、失败重试和用户同步接口。
+- 自定义菜单创建接口，以及本周打新、开启提醒、关闭提醒菜单事件。
 - `?page=ipo` 页面直达。
 
 当前没有实现：
