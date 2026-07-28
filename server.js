@@ -37,6 +37,10 @@ let globalMarketRefreshPromise = null;
 const IPO_CACHE_MS = 15 * 60 * 1000;
 let ipoCache = null;
 let ipoRefreshPromise = null;
+const FUNDAMENTAL_CACHE_MS = 6 * 60 * 60 * 1000;
+const FUND_FLOW_HISTORY_CACHE_MS = 15 * 1000;
+const fundamentalCache = new Map();
+const fundFlowHistoryCache = new Map();
 
 function serveFile(res, filePath) {
   fs.readFile(filePath, (err, data) => {
@@ -95,6 +99,205 @@ function requestBuffer(url, headers) {
     req.on('timeout', () => { req.destroy(); reject(new Error('Upstream timeout')); });
     req.on('error', reject);
   });
+}
+
+function sendJson(res, statusCode, payload) {
+  res.writeHead(statusCode, {
+    'Content-Type': 'application/json; charset=utf-8',
+    'Access-Control-Allow-Origin': '*',
+    'Cache-Control': 'no-cache',
+  });
+  res.end(JSON.stringify(payload));
+}
+
+function numberOrNull(value) {
+  if (value === '' || value == null) return null;
+  const number = Number(value);
+  return Number.isFinite(number) ? number : null;
+}
+
+function isAShareSymbol(symbol) {
+  return /^(?:sh|sz)\d{6}$/.test(symbol);
+}
+
+function eastmoneySecuCode(symbol) {
+  if (!isAShareSymbol(symbol)) return '';
+  return `${symbol.slice(2)}.${symbol.startsWith('sh') ? 'SH' : 'SZ'}`;
+}
+
+function symbolFromSecuCode(secuCode) {
+  const match = String(secuCode || '').match(/^(\d{6})\.(SH|SZ)$/i);
+  return match ? `${match[2].toLowerCase()}${match[1]}` : '';
+}
+
+async function loadFundamentals(symbols) {
+  const aShares = [...new Set(symbols.filter(isAShareSymbol))];
+  const now = Date.now();
+  const missing = aShares.filter(symbol => {
+    const cached = fundamentalCache.get(symbol);
+    return !cached || now - cached.fetchedAt >= FUNDAMENTAL_CACHE_MS;
+  });
+
+  if (missing.length) {
+    try {
+      const secuCodes = missing.map(eastmoneySecuCode);
+      const params = new URLSearchParams({
+        reportName:'RPT_F10_FINANCE_MAINFINADATA',
+        columns:'SECUCODE,REPORT_DATE,REPORT_DATE_NAME,ROEJQ,XSMLL,TOTALOPERATEREVETZ,PARENTNETPROFITTZ',
+        filter:`(SECUCODE in (${secuCodes.map(code => `"${code}"`).join(',')}))`,
+        pageNumber:'1', pageSize:String(Math.min(500, Math.max(20, missing.length * 8))),
+        sortTypes:'-1', sortColumns:'REPORT_DATE', source:'HSF10', client:'PC',
+      });
+      const raw = await requestBuffer(
+        `https://datacenter.eastmoney.com/securities/api/data/v1/get?${params}`,
+        { ...UPSTREAM_HEADERS, Referer:'https://data.eastmoney.com/' }
+      );
+      const payload = JSON.parse(raw.toString('utf-8'));
+      const latestBySymbol = new Map();
+      for (const row of payload?.result?.data || []) {
+        const symbol = symbolFromSecuCode(row.SECUCODE);
+        if (!symbol || latestBySymbol.has(symbol)) continue;
+        latestBySymbol.set(symbol, {
+          reportName:row.REPORT_DATE_NAME || String(row.REPORT_DATE || '').slice(0, 10),
+          roe:numberOrNull(row.ROEJQ),
+          grossMargin:numberOrNull(row.XSMLL),
+          revenueGrowth:numberOrNull(row.TOTALOPERATEREVETZ),
+          netProfitGrowth:numberOrNull(row.PARENTNETPROFITTZ),
+        });
+      }
+      missing.forEach(symbol => fundamentalCache.set(symbol, {
+        fetchedAt:now,
+        data:latestBySymbol.get(symbol) || null,
+      }));
+    } catch (error) {
+      console.error('Fundamental metrics error:', error.message);
+    }
+  }
+
+  return Object.fromEntries(aShares.flatMap(symbol => {
+    const cached = fundamentalCache.get(symbol);
+    return cached?.data ? [[symbol, cached.data]] : [];
+  }));
+}
+
+async function loadRealtimeFundFlows(symbols) {
+  const aShares = [...new Set(symbols.filter(isAShareSymbol))];
+  const result = {};
+  const queue = [...aShares];
+  const workers = Array.from({ length:Math.min(6, queue.length) }, async () => {
+    while (queue.length) {
+      const symbol = queue.shift();
+      try {
+        const history = await loadFundFlowHistory(symbol);
+        const latest = history[history.length - 1];
+        if (!latest) continue;
+        result[symbol] = {
+          mainNetInflow:latest.mainNet,
+          mainNetRatio:latest.mainRatio,
+          superLargeNet:latest.superLargeNet,
+          largeNet:latest.largeNet,
+          updatedAt:latest.date,
+        };
+      } catch (error) {
+        console.error(`Realtime fund flow error (${symbol}):`, error.message);
+      }
+    }
+  });
+  await Promise.all(workers);
+  return result;
+}
+
+async function loadFundFlowHistory(symbol) {
+  if (!isAShareSymbol(symbol)) return [];
+  const cached = fundFlowHistoryCache.get(symbol);
+  if (cached && Date.now() - cached.fetchedAt < FUND_FLOW_HISTORY_CACHE_MS) return cached.data;
+  // 新浪资金分档中 r0 为超大单、r1 为大单；主力净额统一取两者之和。
+  const url = 'https://money.finance.sina.com.cn/quotes_service/api/json_v2.php/' +
+    `MoneyFlow.ssl_qsfx_lscjfb?page=1&num=120&sort=opendate&asc=0&daima=${symbol}`;
+  const raw = await requestBuffer(url, {
+    ...UPSTREAM_HEADERS,
+    Referer:'https://money.finance.sina.com.cn/',
+  });
+  const rows = JSON.parse(raw.toString('utf-8'));
+  const data = (Array.isArray(rows) ? rows : []).map(row => {
+    const superLargeNet = numberOrNull(row.r0_net);
+    const largeNet = numberOrNull(row.r1_net);
+    const mediumNet = numberOrNull(row.r2_net);
+    const smallNet = numberOrNull(row.r3_net);
+    const mainNet = Number.isFinite(superLargeNet) && Number.isFinite(largeNet)
+      ? superLargeNet + largeNet
+      : numberOrNull(row.netamount);
+    const totalAmount = ['r0','r1','r2','r3']
+      .map(key => numberOrNull(row[key]))
+      .filter(Number.isFinite)
+      .reduce((sum, value) => sum + value, 0);
+    return {
+      date:row.opendate,
+      mainNet,
+      smallNet,
+      mediumNet,
+      largeNet,
+      superLargeNet,
+      mainRatio:Number.isFinite(mainNet) && totalAmount > 0 ? mainNet / totalAmount * 100 : null,
+      smallRatio:Number.isFinite(smallNet) && totalAmount > 0 ? smallNet / totalAmount * 100 : null,
+      mediumRatio:Number.isFinite(mediumNet) && totalAmount > 0 ? mediumNet / totalAmount * 100 : null,
+      largeRatio:Number.isFinite(largeNet) && totalAmount > 0 ? largeNet / totalAmount * 100 : null,
+      superLargeRatio:Number.isFinite(superLargeNet) && totalAmount > 0 ? superLargeNet / totalAmount * 100 : null,
+      close:numberOrNull(row.trade),
+      pct:numberOrNull(row.changeratio) == null ? null : Number(row.changeratio) * 100,
+    };
+  }).filter(item => item.date && Number.isFinite(item.mainNet))
+    .sort((a, b) => String(a.date).localeCompare(String(b.date)));
+  if (!data.length) throw new Error('Fund flow history is empty');
+  fundFlowHistoryCache.set(symbol, { fetchedAt:Date.now(), data });
+  return data;
+}
+
+async function proxyStockMetrics(urlObj, res) {
+  const symbols = [...new Set((urlObj.searchParams.get('symbols') || '').split(',')
+    .filter(symbol => /^[a-zA-Z0-9._-]+$/.test(symbol)))]
+    .slice(0, 50);
+  if (!symbols.length) { sendJson(res, 400, { data:{}, error:'Missing symbols' }); return; }
+  const includeFundamentals = urlObj.searchParams.get('fundamentals') === '1';
+  const includeFlow = urlObj.searchParams.get('flow') === '1';
+  const includeFiveDay = urlObj.searchParams.get('fiveDay') === '1';
+  const data = Object.fromEntries(symbols.map(symbol => [symbol, {}]));
+
+  const [fundamentals, flow] = await Promise.all([
+    includeFundamentals ? loadFundamentals(symbols).catch(() => ({})) : {},
+    includeFlow ? loadRealtimeFundFlows(symbols).catch(() => ({})) : {},
+  ]);
+  symbols.forEach(symbol => Object.assign(data[symbol], fundamentals[symbol], flow[symbol]));
+
+  if (includeFiveDay) {
+    const queue = symbols.filter(isAShareSymbol);
+    const workers = Array.from({ length:Math.min(6, queue.length) }, async () => {
+      while (queue.length) {
+        const symbol = queue.shift();
+        try {
+          const history = await loadFundFlowHistory(symbol);
+          const lastFive = history.slice(-5).map(item => item.mainNet).filter(Number.isFinite);
+          if (lastFive.length) data[symbol].mainFiveDay = lastFive.reduce((sum, value) => sum + value, 0);
+        } catch (error) {
+          console.error(`Five-day fund flow error (${symbol}):`, error.message);
+        }
+      }
+    });
+    await Promise.all(workers);
+  }
+  sendJson(res, 200, { data, fetchedAt:Date.now() });
+}
+
+async function proxyFundFlowHistory(urlObj, res) {
+  const symbol = urlObj.searchParams.get('sym') || '';
+  if (!isAShareSymbol(symbol)) { sendJson(res, 400, { data:[], error:'仅支持 A 股主力资金数据' }); return; }
+  try {
+    const data = await loadFundFlowHistory(symbol);
+    sendJson(res, 200, { data, fetchedAt:Date.now() });
+  } catch (error) {
+    console.error(`Fund flow history error (${symbol}):`, error.message);
+    sendJson(res, 502, { data:[], error:'主力资金数据暂不可用' });
+  }
 }
 
 function parseTencentIndexes(buffer) {
@@ -274,6 +477,16 @@ const server = http.createServer(async (req, res) => {
 
   if (pathname === '/api/ipos') {
     proxyIpoCalendar(res);
+    return;
+  }
+
+  if (pathname === '/api/stock-metrics') {
+    await proxyStockMetrics(urlObj, res);
+    return;
+  }
+
+  if (pathname === '/api/fund-flow-history') {
+    await proxyFundFlowHistory(urlObj, res);
     return;
   }
 

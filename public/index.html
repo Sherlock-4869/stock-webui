@@ -19,11 +19,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;b
 .status{margin-left:auto;font-size:12px;color:#8b949e;display:flex;align-items:center;gap:6px}
 .dot{width:8px;height:8px;border-radius:50%;background:#3fb950}
 .dot.offline{background:#f85149}
-.main{padding:24px;max-width:1100px;margin:0 auto;transition:max-width .2s ease}
-html.metrics-1 .main,html.metrics-1 .app-nav-inner{max-width:1220px}
-html.metrics-2 .main,html.metrics-2 .app-nav-inner{max-width:1330px}
-html.metrics-3 .main,html.metrics-3 .app-nav-inner{max-width:1440px}
-html.metrics-4 .main,html.metrics-4 .app-nav-inner{max-width:1550px}
+.main{padding:24px;max-width:calc(1100px + var(--optional-metric-width,0px));margin:0 auto;transition:max-width .2s ease}
+html.has-metrics .app-nav-inner{max-width:calc(1100px + var(--optional-metric-width,0px))}
 .market-page-note{margin:-5px 0 10px;color:#6e7681;font-size:10px;letter-spacing:.2px}
 .module-head{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:18px}.module-title{font-size:22px}.module-desc{margin-top:5px;color:#8b949e;font-size:12px}.module-actions{display:flex;gap:8px;align-items:center}
 .metric-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:18px}.metric-card{padding:15px 16px;border:1px solid #30363d;border-radius:9px;background:linear-gradient(145deg,#1a2028,#161b22)}.metric-label{color:#8b949e;font-size:11px}.metric-value{margin-top:5px;font-size:23px;font-weight:700}.metric-note{margin-top:3px;color:#6e7681;font-size:10px}
@@ -152,11 +149,25 @@ tr:hover td{background:#1c2128}
 .form-row{margin-top:14px}.form-row label{display:block;color:#8b949e;font-size:12px;margin-bottom:6px}
 .form-input,.form-select{width:100%;background:#21262d;border:1px solid #30363d;border-radius:6px;color:#e6edf3;padding:8px 10px;font-size:13px;outline:none}
 .form-input:focus,.form-select:focus{border-color:#58a6ff}
-.dialog-modal{width:420px;padding:18px}.dialog-title{font-size:16px;font-weight:650}.dialog-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:18px}
+.dialog-modal{width:420px;padding:18px}#metrics-mask .dialog-modal{width:760px}.dialog-title{font-size:16px;font-weight:650}.dialog-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:18px}
 .dialog-btn{border:1px solid #30363d;border-radius:6px;background:#21262d;color:#e6edf3;padding:7px 13px;cursor:pointer}.dialog-btn.primary{background:#238636;border-color:#238636}.dialog-btn.danger{color:#f85149}
-.metric-option-list{display:grid;gap:8px;margin-top:14px}.metric-option{display:flex;align-items:flex-start;gap:10px;padding:11px 12px;border:1px solid #30363d;border-radius:7px;background:#1c2128;cursor:pointer}.metric-option input{margin-top:2px;accent-color:#238636}.metric-option strong{display:block;font-size:13px}.metric-option small{display:block;margin-top:3px;color:#6e7681;font-size:10px;line-height:1.4}
-.optional-column{display:none}#stock-table.show-pe .metric-pe,#stock-table.show-pb .metric-pb,#stock-table.show-bvps .metric-bvps,#stock-table.show-dividend .metric-dividend{display:table-cell}
-html.metrics-1 #stock-table{min-width:1140px}html.metrics-2 #stock-table{min-width:1220px}html.metrics-3 #stock-table{min-width:1300px}html.metrics-4 #stock-table{min-width:1380px}
+.metric-option-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:14px}.metric-option{display:flex;align-items:flex-start;gap:10px;padding:11px 12px;border:1px solid #30363d;border-radius:7px;background:#1c2128;cursor:pointer}.metric-option input{margin-top:2px;accent-color:#238636}.metric-option strong{display:block;font-size:13px}.metric-option small{display:block;margin-top:3px;color:#6e7681;font-size:10px;line-height:1.4}
+.optional-column{display:none}#stock-table.show-pe .metric-pe,#stock-table.show-pb .metric-pb,#stock-table.show-bvps .metric-bvps,#stock-table.show-dividend .metric-dividend,#stock-table.show-turnover .metric-turnover,#stock-table.show-volume-ratio .metric-volume-ratio,#stock-table.show-total-market-cap .metric-total-market-cap,#stock-table.show-float-market-cap .metric-float-market-cap,#stock-table.show-roe .metric-roe,#stock-table.show-net-profit-growth .metric-net-profit-growth,#stock-table.show-gross-margin .metric-gross-margin,#stock-table.show-revenue-growth .metric-revenue-growth,#stock-table.show-main-net-inflow .metric-main-net-inflow,#stock-table.show-main-net-ratio .metric-main-net-ratio,#stock-table.show-main-five-day .metric-main-five-day,#stock-table.show-super-large-net .metric-super-large-net,#stock-table.show-large-net .metric-large-net{display:table-cell}
+#stock-table.has-optional{min-width:calc(1100px + var(--metric-table-width,0px))}
+html.metrics-scroll .table-wrapper{position:relative;isolation:isolate;max-width:100%;overflow-x:auto;overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch;border:1px solid #30363d;border-radius:8px;scrollbar-color:#484f58 #21262d;scrollbar-width:auto}
+html.metrics-scroll .table-wrapper::-webkit-scrollbar{height:12px}
+html.metrics-scroll .table-wrapper::-webkit-scrollbar-track{background:#21262d}
+html.metrics-scroll .table-wrapper::-webkit-scrollbar-thumb{background:#484f58;border:2px solid #21262d;border-radius:7px}
+html.metrics-scroll .table-wrapper::-webkit-scrollbar-thumb:hover{background:#6e7681}
+html.metrics-scroll #stock-table{border:0;border-radius:0;border-collapse:separate;border-spacing:0;overflow:visible}
+html.metrics-scroll #stock-table th:first-child,html.metrics-scroll #stock-table td:first-child{position:-webkit-sticky;position:sticky;left:0;width:118px;min-width:118px;max-width:118px;background-clip:padding-box}
+html.metrics-scroll #stock-table th:nth-child(2),html.metrics-scroll #stock-table td:nth-child(2){position:-webkit-sticky;position:sticky;left:118px;width:128px;min-width:128px;max-width:128px;overflow:hidden;text-overflow:ellipsis;background-clip:padding-box}
+html.metrics-scroll #stock-table th:last-child,html.metrics-scroll #stock-table td:last-child{position:-webkit-sticky;position:sticky;right:0;width:120px;min-width:120px;max-width:120px;background-clip:padding-box}
+html.metrics-scroll #stock-table thead th:first-child,html.metrics-scroll #stock-table thead th:nth-child(2),html.metrics-scroll #stock-table thead th:last-child{z-index:20;background:#1c2128}
+html.metrics-scroll #stock-table tbody td:first-child,html.metrics-scroll #stock-table tbody td:nth-child(2),html.metrics-scroll #stock-table tbody td:last-child{z-index:10;background:#161b22}
+html.metrics-scroll #stock-table th:nth-child(2),html.metrics-scroll #stock-table td:nth-child(2){box-shadow:7px 0 9px -9px #000}
+html.metrics-scroll #stock-table th:last-child,html.metrics-scroll #stock-table td:last-child{box-shadow:-7px 0 9px -9px #000}
+html.metrics-scroll #stock-table tbody tr:hover td:first-child,html.metrics-scroll #stock-table tbody tr:hover td:nth-child(2),html.metrics-scroll #stock-table tbody tr:hover td:last-child{background:#1c2128}
 .group-list{margin-top:12px;border:1px solid #30363d;border-radius:7px;overflow:hidden}.group-list-row{display:flex;align-items:center;gap:8px;padding:9px 10px;border-top:1px solid #30363d}.group-list-row:first-child{border-top:0}.group-list-name{flex:1}.group-list-meta{font-size:11px;color:#6e7681}
 .market-tag{display:inline-block;font-size:10px;padding:1px 5px;border-radius:3px;font-weight:600;margin-right:4px;vertical-align:middle}
 .tag-a{background:#1f3a5f;color:#79c0ff}
@@ -241,6 +252,10 @@ html[data-theme="light"] .module-panel,html[data-theme="light"] table,html[data-
 html[data-theme="light"] thead,html[data-theme="light"] .stat-item,html[data-theme="light"] .group-list-row{background:#f6f8fa}
 html[data-theme="light"] th,html[data-theme="light"] td,html[data-theme="light"] .panel-toolbar,html[data-theme="light"] .group-list-row,html[data-theme="light"] .alert-row,html[data-theme="light"] .ipo-row{border-color:#d8dee4}
 html[data-theme="light"] tr:hover td{background:#f4f8fc}html[data-theme="light"] tbody td:first-child,html[data-theme="light"] tbody td:nth-child(2){background:#fff}html[data-theme="light"] tbody tr:hover td:first-child,html[data-theme="light"] tbody tr:hover td:nth-child(2){background:#f4f8fc}
+html[data-theme="light"].metrics-scroll .table-wrapper{border-color:#d0d7de;scrollbar-color:#8c959f #eaeef2}html[data-theme="light"].metrics-scroll .table-wrapper::-webkit-scrollbar-track{background:#eaeef2}html[data-theme="light"].metrics-scroll .table-wrapper::-webkit-scrollbar-thumb{background:#8c959f;border-color:#eaeef2}
+html[data-theme="light"].metrics-scroll #stock-table thead th:first-child,html[data-theme="light"].metrics-scroll #stock-table thead th:nth-child(2),html[data-theme="light"].metrics-scroll #stock-table thead th:last-child{background:#f6f8fa}
+html[data-theme="light"].metrics-scroll #stock-table tbody td:first-child,html[data-theme="light"].metrics-scroll #stock-table tbody td:nth-child(2),html[data-theme="light"].metrics-scroll #stock-table tbody td:last-child{background:#fff}
+html[data-theme="light"].metrics-scroll #stock-table tbody tr:hover td:first-child,html[data-theme="light"].metrics-scroll #stock-table tbody tr:hover td:nth-child(2),html[data-theme="light"].metrics-scroll #stock-table tbody tr:hover td:last-child{background:#f4f8fc}
 html[data-theme="light"] .refresh-btn,html[data-theme="light"] .dialog-btn,html[data-theme="light"] .filter-chip,html[data-theme="light"] .period-btn,html[data-theme="light"] .chart-window-btn,html[data-theme="light"] .market-expand-btn{background:#f6f8fa;border-color:#d0d7de;color:#1f2328}
 html[data-theme="light"] .refresh-btn:hover,html[data-theme="light"] .dialog-btn:hover,html[data-theme="light"] .filter-chip:hover{background:#eaeef2}
 html[data-theme="light"] .dialog-btn.primary{background:#1f883d;border-color:#1f883d;color:#fff}html[data-theme="light"] .dialog-btn.danger{color:#cf222e}html[data-theme="light"] .filter-chip.active,html[data-theme="light"] .period-btn.active{background:#ddf4ff;border-color:#54aeff;color:#0969da}
@@ -264,6 +279,7 @@ html[data-theme="light"] .market-kicker{color:#0969da}html[data-theme="light"] .
   .chart-guide{display:none}
   .stats-grid{margin:0 12px 14px}
   .stat-item{padding:8px 10px}
+  .metric-option-list{grid-template-columns:1fr}
 }
 </style>
 </head>
@@ -336,10 +352,10 @@ html[data-theme="light"] .market-kicker{color:#0969da}html[data-theme="light"] .
         <th>代码</th><th>名称</th><th>最新价</th>
         <th>涨跌额</th><th>涨跌幅</th><th>今开</th>
         <th>昨收</th><th>最高</th><th>最低</th>
-        <th>成交量(手)</th><th>成交额(万)</th><th class="optional-column metric-pe">市盈率</th><th class="optional-column metric-pb">市净率</th><th class="optional-column metric-bvps" title="根据最新价和市净率计算">每股净资产</th><th class="optional-column metric-dividend">股息率</th><th>操作</th>
+        <th>成交量(手)</th><th>成交额(万)</th><th class="optional-column metric-pe">市盈率</th><th class="optional-column metric-pb">市净率</th><th class="optional-column metric-bvps" title="根据最新价和市净率计算">每股净资产</th><th class="optional-column metric-dividend">股息率</th><th class="optional-column metric-turnover">换手率</th><th class="optional-column metric-volume-ratio">量比</th><th class="optional-column metric-total-market-cap">总市值</th><th class="optional-column metric-float-market-cap">流通市值</th><th class="optional-column metric-roe">ROE</th><th class="optional-column metric-net-profit-growth">净利润增速</th><th class="optional-column metric-gross-margin">毛利率</th><th class="optional-column metric-revenue-growth">营收增速</th><th class="optional-column metric-main-net-inflow">主力流入</th><th class="optional-column metric-main-net-ratio">主力净额占成交比</th><th class="optional-column metric-main-five-day">近五日主力累计</th><th class="optional-column metric-super-large-net">超大单净额</th><th class="optional-column metric-large-net">大单净额</th><th>操作</th>
       </tr>
     </thead>
-    <tbody id="tbody"><tr><td colspan="16" class="empty">暂无自选股，请添加</td></tr></tbody>
+    <tbody id="tbody"><tr><td colspan="12" class="empty">暂无自选股，请添加</td></tr></tbody>
   </table>
 </div>
 </section>
@@ -360,12 +376,25 @@ html[data-theme="light"] .market-kicker{color:#0969da}html[data-theme="light"] .
 <div class="modal-mask" id="metrics-mask" onclick="closeMetricSettings(event)">
   <div class="modal dialog-modal" role="dialog" aria-modal="true" aria-labelledby="metrics-title">
     <div class="dialog-title" id="metrics-title">自定义股票指标</div>
-    <div class="modal-sub">默认行情列始终显示；所选指标将追加在表格右侧</div>
+    <div class="modal-sub">默认行情列始终显示；选择 8 项及以上时，可在表格内横向滚动查看指标</div>
     <div class="metric-option-list">
       <label class="metric-option"><input type="checkbox" value="pe"><span><strong>市盈率（PE）</strong><small>衡量股价相对于每股收益的估值水平</small></span></label>
       <label class="metric-option"><input type="checkbox" value="pb"><span><strong>市净率（PB）</strong><small>衡量股价相对于每股净资产的倍数</small></span></label>
       <label class="metric-option"><input type="checkbox" value="bvps"><span><strong>每股净资产</strong><small>根据最新价与市净率计算；无有效市净率时显示 --</small></span></label>
       <label class="metric-option"><input type="checkbox" value="dividend"><span><strong>股息率</strong><small>最近年度股息相对于当前股价的比例；无派息数据时显示 --</small></span></label>
+      <label class="metric-option"><input type="checkbox" value="turnover"><span><strong>换手率</strong><small>A 股当日成交量占流通股本的比例</small></span></label>
+      <label class="metric-option"><input type="checkbox" value="volume_ratio"><span><strong>量比</strong><small>A 股当前成交活跃度相对近期均值的倍数</small></span></label>
+      <label class="metric-option"><input type="checkbox" value="total_market_cap"><span><strong>总市值</strong><small>A 股总股本对应市值，单位为亿元</small></span></label>
+      <label class="metric-option"><input type="checkbox" value="float_market_cap"><span><strong>流通市值</strong><small>A 股流通股本对应市值，单位为亿元</small></span></label>
+      <label class="metric-option"><input type="checkbox" value="roe"><span><strong>ROE</strong><small>A 股最新报告期加权净资产收益率</small></span></label>
+      <label class="metric-option"><input type="checkbox" value="net_profit_growth"><span><strong>净利润增速</strong><small>A 股最新报告期归母净利润同比增速</small></span></label>
+      <label class="metric-option"><input type="checkbox" value="gross_margin"><span><strong>毛利率</strong><small>A 股最新报告期销售毛利率</small></span></label>
+      <label class="metric-option"><input type="checkbox" value="revenue_growth"><span><strong>营收增速</strong><small>A 股最新报告期营业总收入同比增速</small></span></label>
+      <label class="metric-option"><input type="checkbox" value="main_net_inflow"><span><strong>主力流入</strong><small>A 股当日主力资金净流入；流出时为负值</small></span></label>
+      <label class="metric-option"><input type="checkbox" value="main_net_ratio"><span><strong>主力净额占成交比</strong><small>A 股主力净额占当日成交额的比例</small></span></label>
+      <label class="metric-option"><input type="checkbox" value="main_five_day"><span><strong>近五日主力累计</strong><small>A 股最近五个交易日主力净额合计</small></span></label>
+      <label class="metric-option"><input type="checkbox" value="super_large_net"><span><strong>超大单净额</strong><small>A 股当日超大单资金净流入额</small></span></label>
+      <label class="metric-option"><input type="checkbox" value="large_net"><span><strong>大单净额</strong><small>A 股当日大单资金净流入额</small></span></label>
     </div>
     <div class="dialog-actions"><button class="dialog-btn" onclick="closeMetricSettings()">取消</button><button class="dialog-btn primary" onclick="saveMetricSettings()">应用</button></div>
   </div>
@@ -407,6 +436,7 @@ html[data-theme="light"] .market-kicker{color:#0969da}html[data-theme="light"] .
       <div class="tab active" data-tab="minute" onclick="switchTab(this)">分时</div>
       <div class="tab" data-tab="minuteK" onclick="switchTab(this)">分时K</div>
       <div class="tab" data-tab="kline" onclick="switchTab(this)">K线</div>
+      <div class="tab" data-tab="fundFlow" onclick="switchTab(this)">主力资金</div>
     </div>
     <div class="chart-area">
       <div class="period-bar" id="period-bar" aria-label="分时 K 线周期">
@@ -472,6 +502,26 @@ const MARKET_INDEXES = [
   { code:'GDAXI', name:'德国 DAX', region:'德' },
   { code:'FTSE', name:'英国富时 100', region:'英' },
 ];
+const OPTIONAL_METRICS = [
+  { key:'pe', dataKey:'pe', kind:'number' },
+  { key:'pb', dataKey:'pb', kind:'number' },
+  { key:'bvps', dataKey:'bvps', kind:'number' },
+  { key:'dividend', dataKey:'dividend', kind:'percent' },
+  { key:'turnover', dataKey:'turnover', kind:'percent' },
+  { key:'volume_ratio', dataKey:'volumeRatio', kind:'number' },
+  { key:'total_market_cap', dataKey:'totalMarketCap', kind:'marketCap' },
+  { key:'float_market_cap', dataKey:'floatMarketCap', kind:'marketCap' },
+  { key:'roe', dataKey:'roe', kind:'percent', source:'fundamentals' },
+  { key:'net_profit_growth', dataKey:'netProfitGrowth', kind:'percentTone', source:'fundamentals' },
+  { key:'gross_margin', dataKey:'grossMargin', kind:'percent', source:'fundamentals' },
+  { key:'revenue_growth', dataKey:'revenueGrowth', kind:'percentTone', source:'fundamentals' },
+  { key:'main_net_inflow', dataKey:'mainNetInflow', kind:'money', source:'flow' },
+  { key:'main_net_ratio', dataKey:'mainNetRatio', kind:'percentTone', source:'flow' },
+  { key:'main_five_day', dataKey:'mainFiveDay', kind:'money', source:'fiveDay' },
+  { key:'super_large_net', dataKey:'superLargeNet', kind:'money', source:'flow' },
+  { key:'large_net', dataKey:'largeNet', kind:'money', source:'flow' },
+];
+const OPTIONAL_METRIC_KEYS = OPTIONAL_METRICS.map(metric => metric.key);
 let _stored = null;
 try { _stored = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null'); } catch (_) {}
 const _valid = Array.isArray(_stored) ? _stored.filter(s => /^[a-zA-Z0-9._-]+$/.test(s)) : [];
@@ -504,8 +554,11 @@ let quoteTimer = null;
 let marketTimer = null;
 let anomalyTimer = null;
 let quoteRequestPending = false;
+let extendedMetricsRequestPending = false;
+let extendedMetricsQueued = false;
 let marketRequestPending = false;
 let lastRawQuoteData = {};
+let lastExtendedMetricData = {};
 let lastMarketRows = [];
 let lastMarketPartial = false;
 let marketsExpanded = false;
@@ -513,7 +566,7 @@ let marketSortDrag = null;
 let selectedMetrics = new Set();
 try {
   const storedMetrics = JSON.parse(localStorage.getItem(OPTIONAL_METRICS_STORAGE_KEY) || '[]');
-  selectedMetrics = new Set(Array.isArray(storedMetrics) ? storedMetrics.filter(item => ['pe','pb','bvps','dividend'].includes(item)) : []);
+  selectedMetrics = new Set(Array.isArray(storedMetrics) ? storedMetrics.filter(item => OPTIONAL_METRIC_KEYS.includes(item)) : []);
 } catch (_) {}
 const systemThemeQuery = window.matchMedia('(prefers-color-scheme: light)');
 let themePreference = ['light','dark','system'].includes(localStorage.getItem(THEME_STORAGE_KEY)) ? localStorage.getItem(THEME_STORAGE_KEY) : 'dark';
@@ -532,12 +585,16 @@ function setThemePreference(value) {
 
 function applyMetricSettings() {
   const table = document.getElementById('stock-table');
-  ['pe','pb','bvps','dividend'].forEach(metric => table.classList.toggle(`show-${metric}`, selectedMetrics.has(metric)));
-  table.classList.toggle('has-optional', selectedMetrics.size > 0);
-  document.documentElement.classList.remove('metrics-1','metrics-2','metrics-3','metrics-4');
-  if (selectedMetrics.size) document.documentElement.classList.add(`metrics-${selectedMetrics.size}`);
+  const metricCount = selectedMetrics.size;
+  const usesInternalScroll = metricCount >= 8;
+  OPTIONAL_METRIC_KEYS.forEach(metric => table.classList.toggle(`show-${metric.replaceAll('_','-')}`, selectedMetrics.has(metric)));
+  table.classList.toggle('has-optional', metricCount > 0);
+  document.documentElement.classList.toggle('has-metrics', metricCount > 0);
+  document.documentElement.classList.toggle('metrics-scroll', usesInternalScroll);
+  document.documentElement.style.setProperty('--optional-metric-width', `${Math.min(1500, Math.min(metricCount, 7) * 105)}px`);
+  document.documentElement.style.setProperty('--metric-table-width', `${Math.min(1500, metricCount * 105)}px`);
   const button = document.getElementById('metrics-btn');
-  button.textContent = selectedMetrics.size ? `📊 指标：${selectedMetrics.size}` : '📊 自定义指标';
+  button.textContent = metricCount ? `📊 指标：${metricCount}` : '📊 自定义指标';
 }
 function openMetricSettings() {
   document.querySelectorAll('#metrics-mask input[type="checkbox"]').forEach(input => { input.checked = selectedMetrics.has(input.value); });
@@ -548,6 +605,8 @@ function saveMetricSettings() {
   selectedMetrics = new Set([...document.querySelectorAll('#metrics-mask input[type="checkbox"]:checked')].map(input => input.value));
   localStorage.setItem(OPTIONAL_METRICS_STORAGE_KEY, JSON.stringify([...selectedMetrics]));
   applyMetricSettings(); closeMetricSettings();
+  if (lastRawQuoteData && Object.keys(lastRawQuoteData).length) renderTable(lastRawQuoteData);
+  fetchExtendedMetrics();
 }
 systemThemeQuery.addEventListener?.('change', () => { if (themePreference === 'system') applyThemePreference(); });
 
@@ -588,8 +647,8 @@ function toggleListColors() {
 
 window.addEventListener('storage', event => {
   if (event.key === OPTIONAL_METRICS_STORAGE_KEY) {
-    try { const values=JSON.parse(event.newValue||'[]'); selectedMetrics=new Set(Array.isArray(values)?values.filter(item=>['pe','pb','bvps','dividend'].includes(item)):[]); } catch (_) { selectedMetrics=new Set(); }
-    applyMetricSettings(); return;
+    try { const values=JSON.parse(event.newValue||'[]'); selectedMetrics=new Set(Array.isArray(values)?values.filter(item=>OPTIONAL_METRIC_KEYS.includes(item)):[]); } catch (_) { selectedMetrics=new Set(); }
+    applyMetricSettings(); if (Object.keys(lastRawQuoteData).length) renderTable(lastRawQuoteData); fetchExtendedMetrics(); return;
   }
   if (event.key === THEME_STORAGE_KEY) {
     themePreference = ['light','dark','system'].includes(event.newValue) ? event.newValue : 'dark'; applyThemePreference(); return;
@@ -881,18 +940,59 @@ function parseQuoteText(text) {
 function extractQuote(sym, fields) {
   if (!fields || fields.length < 10) return null;
   const price = Number(fields[3]);
+  const isAShare = /^(?:sh|sz)\d{6}$/.test(sym);
   const peRaw = Number(fields[39]);
-  const pbRaw = Number((sym.startsWith('sh') || sym.startsWith('sz')) ? fields[46] : fields[58]);
-  const dividendRaw = Number((sym.startsWith('sh') || sym.startsWith('sz')) ? fields[64] : sym.startsWith('hk') ? fields[47] : fields[52]);
+  const pbRaw = Number(isAShare ? fields[46] : fields[58]);
+  const dividendRaw = Number(isAShare ? fields[64] : sym.startsWith('hk') ? fields[47] : fields[52]);
   const pe = Number.isFinite(peRaw) && fields[39] !== '' && peRaw !== 0 ? peRaw : null;
   const pb = Number.isFinite(pbRaw) && pbRaw > 0 ? pbRaw : null;
   const dividend = Number.isFinite(dividendRaw) && dividendRaw > 0 ? dividendRaw : null;
+  const quoteMetric = (index, positiveOnly=false) => {
+    const value = Number(fields[index]);
+    return fields[index] !== '' && Number.isFinite(value) && (!positiveOnly || value > 0) ? value : null;
+  };
   return {
     name: fields[1], price: fields[3], prevClose: fields[4],
     open: fields[5], chg: fields[31], pct: fields[32],
     high: fields[33], low: fields[34], volume: fields[36], amount: fields[37],
     pe, pb, bvps:pb && Number.isFinite(price) ? price / pb : null, dividend,
+    turnover:isAShare ? quoteMetric(38) : null,
+    volumeRatio:isAShare ? quoteMetric(49) : null,
+    floatMarketCap:isAShare ? quoteMetric(44, true) : null,
+    totalMarketCap:isAShare ? quoteMetric(45, true) : null,
   };
+}
+
+function selectedMetricSources() {
+  return new Set(OPTIONAL_METRICS.filter(metric => selectedMetrics.has(metric.key) && metric.source).map(metric => metric.source));
+}
+
+async function fetchExtendedMetrics(symbols = [...watchlist]) {
+  const sources = selectedMetricSources();
+  if (!sources.size || !symbols.some(sym => /^(?:sh|sz)\d{6}$/.test(sym))) return;
+  if (extendedMetricsRequestPending) { extendedMetricsQueued = true; return; }
+  extendedMetricsRequestPending = true;
+  const params = new URLSearchParams({ symbols:symbols.join(',') });
+  if (sources.has('fundamentals')) params.set('fundamentals', '1');
+  if (sources.has('flow')) params.set('flow', '1');
+  if (sources.has('fiveDay')) params.set('fiveDay', '1');
+  try {
+    const response = await fetch(`/api/stock-metrics?${params}`);
+    if (!response.ok) throw new Error('stock metrics request failed');
+    const payload = await response.json();
+    Object.entries(payload.data || {}).forEach(([symbol, values]) => {
+      lastExtendedMetricData[symbol] = { ...(lastExtendedMetricData[symbol] || {}), ...values };
+    });
+    if (Object.keys(lastRawQuoteData).length) renderTable(lastRawQuoteData);
+  } catch (error) {
+    console.error('fetchExtendedMetrics error:', error);
+  } finally {
+    extendedMetricsRequestPending = false;
+    if (extendedMetricsQueued) {
+      extendedMetricsQueued = false;
+      fetchExtendedMetrics();
+    }
+  }
 }
 
 async function fetchQuotes() {
@@ -904,6 +1004,7 @@ async function fetchQuotes() {
     if (!resp.ok) throw new Error();
     const data = parseQuoteText(await resp.text());
     renderTable(data);
+    fetchExtendedMetrics();
     setStatus(true);
   } catch(e) {
     console.error('fetchQuotes error:', e);
@@ -921,11 +1022,37 @@ function setStatus(ok) {
 
 function renderEmpty() {
   document.getElementById('tbody').innerHTML =
-    '<tr><td colspan="16" class="empty">暂无自选股，请添加</td></tr>';
+    `<tr><td colspan="${12 + selectedMetrics.size}" class="empty">暂无自选股，请添加</td></tr>`;
 }
 
-function fmtFundamental(value) { return Number.isFinite(value) ? value.toFixed(2) : '--'; }
-function fmtDividend(value) { return Number.isFinite(value) ? `${value.toFixed(2)}%` : '--'; }
+function fmtMetricMoney(value) {
+  if (!Number.isFinite(value)) return '--';
+  const absolute = Math.abs(value);
+  const prefix = value > 0 ? '+' : value < 0 ? '-' : '';
+  if (absolute >= 100000000) return `${prefix}${(absolute / 100000000).toFixed(2)}亿`;
+  if (absolute >= 10000) return `${prefix}${(absolute / 10000).toFixed(2)}万`;
+  return `${prefix}${Math.round(absolute).toLocaleString('zh-CN')}`;
+}
+
+function metricValue(metric, value) {
+  if (!Number.isFinite(value)) return '--';
+  if (metric.kind === 'percent' || metric.kind === 'percentTone') return `${value.toFixed(2)}%`;
+  if (metric.kind === 'marketCap') return `${value.toLocaleString('zh-CN', { maximumFractionDigits:2 })}亿`;
+  if (metric.kind === 'money') return fmtMetricMoney(value);
+  return value.toFixed(2);
+}
+
+function renderOptionalMetricCells(sym, quote) {
+  const extended = lastExtendedMetricData[sym] || {};
+  const reportTitle = extended.reportName ? `最新报告期：${extended.reportName}` : '';
+  return OPTIONAL_METRICS.map(metric => {
+    const source = metric.source ? extended : quote || {};
+    const value = source?.[metric.dataKey];
+    const tone = (metric.kind === 'money' || metric.kind === 'percentTone') && Number.isFinite(value) ? ` ${cls(value)}` : '';
+    const title = metric.source === 'fundamentals' && reportTitle ? ` title="${escapeHtml(reportTitle)}"` : '';
+    return `<td class="optional-column metric-${metric.key.replaceAll('_','-')}${tone}"${title}>${metricValue(metric, value)}</td>`;
+  }).join('');
+}
 
 function renderTable(data) {
   if (!watchlist.length) { renderEmpty(); return; }
@@ -936,7 +1063,7 @@ function renderTable(data) {
     if (q) lastQuoteData[sym] = q;
     if (!q) return `<tr class="stock-row" data-sym="${sym}" onclick="handleRowClick(event,'${sym}')">
       <td><input class="batch-check" type="checkbox" aria-label="选择 ${sym}" ${selectedSymbols.has(sym)?'checked':''} onclick="event.stopPropagation()" onchange="setStockSelected('${sym}',this.checked)"><span class="drag-handle" title="长按拖动排序" aria-label="拖动排序">⠿</span>${marketTag(sym)}<b>${sym.replace(/^(sh|sz|hk|us)/,'')}</b></td>
-      <td colspan="10" style="color:#6e7681">数据加载中...</td><td class="optional-column metric-pe">--</td><td class="optional-column metric-pb">--</td><td class="optional-column metric-bvps">--</td><td class="optional-column metric-dividend">--</td>
+      <td colspan="10" style="color:#6e7681">数据加载中...</td>${renderOptionalMetricCells(sym, null)}
       <td><div class="stock-actions"><button class="del-btn pin-btn" title="置顶" aria-label="将 ${sym} 置顶" ${i===0?'disabled':''} onclick="event.stopPropagation();pinStock('${sym}')">↑</button><button class="del-btn transfer-btn" title="复制或移动" onclick="event.stopPropagation();openTransferDialog('${sym}')">⇄</button><button class="del-btn" title="从当前分组删除" onclick="event.stopPropagation();removeStock('${sym}')">✕</button></div></td></tr>`;
     const c = cls(q.chg);
     return `<tr class="stock-row" data-sym="${sym}" onclick="handleRowClick(event,'${sym}')">
@@ -947,7 +1074,7 @@ function renderTable(data) {
       <td class="${c}">${sign(q.pct)}${fmt(q.pct)}%</td>
       <td>${fmt(q.open)}</td><td>${fmt(q.prevClose)}</td>
       <td class="up">${fmt(q.high)}</td><td class="down">${fmt(q.low)}</td>
-      <td>${fmtVol(q.volume)}</td><td>${fmtAmt(q.amount)}</td><td class="optional-column metric-pe">${fmtFundamental(q.pe)}</td><td class="optional-column metric-pb">${fmtFundamental(q.pb)}</td><td class="optional-column metric-bvps">${fmtFundamental(q.bvps)}</td><td class="optional-column metric-dividend">${fmtDividend(q.dividend)}</td>
+      <td>${fmtVol(q.volume)}</td><td>${fmtAmt(q.amount)}</td>${renderOptionalMetricCells(sym, q)}
       <td><div class="stock-actions"><button class="del-btn pin-btn" title="置顶" aria-label="将 ${q.name||sym} 置顶" ${i===0?'disabled':''} onclick="event.stopPropagation();pinStock('${sym}')">↑</button><button class="del-btn transfer-btn" title="复制或移动" onclick="event.stopPropagation();openTransferDialog('${sym}')">⇄</button><button class="del-btn" title="从当前分组删除" onclick="event.stopPropagation();removeStock('${sym}')">✕</button></div></td></tr>`;
   }).join('');
 }
@@ -1315,6 +1442,7 @@ function switchTab(el) {
   el.classList.add('active');
   currentTab = el.dataset.tab;
   document.getElementById('period-bar').classList.toggle('visible', currentTab === 'minuteK');
+  if (currentTab !== 'fundFlow' && lastQuoteData[modalSym]) renderStats(lastQuoteData[modalSym]);
   loadChart(currentTab);
 }
 
@@ -1384,6 +1512,13 @@ async function loadChart(type) {
       if (requestId !== chartRequestId || currentTab !== type || currentMinuteKPeriod !== period) return;
       const symKey = Object.keys(d.data || {})[0];
       drawKline(chartCanvas, d.data?.[symKey]?.[period] || [], 'minuteK', period);
+    } else if (type === 'fundFlow') {
+      if (!/^(sh|sz)\d{6}$/.test(modalSym)) throw new Error('fund flow is unavailable for this market');
+      const r = await fetch(`/api/fund-flow-history?sym=${modalSym}`);
+      if (!r.ok) throw new Error('fund flow request failed');
+      const d = await r.json();
+      if (requestId !== chartRequestId || currentTab !== type) return;
+      drawFundFlow(d.data || []);
     } else {
       const r = await fetch(`/api/kline?sym=${modalSym}`);
       if (!r.ok) throw new Error('kline request failed');
@@ -1399,9 +1534,11 @@ async function loadChart(type) {
   } catch(e) {
     if (requestId !== chartRequestId) return;
     console.error('loadChart error:', e);
-    loading.textContent = type === 'minuteK' && !/^(sh|sz)/.test(modalSym || '')
-      ? '该市场暂不支持分时 K 线'
-      : '图表数据暂不可用';
+    loading.textContent = type === 'fundFlow' && !/^(sh|sz)\d{6}$/.test(modalSym || '')
+      ? '主力资金数据目前仅支持 A 股'
+      : type === 'minuteK' && !/^(sh|sz)/.test(modalSym || '')
+        ? '该市场暂不支持分时 K 线'
+        : type === 'fundFlow' ? '主力资金数据暂不可用' : '图表数据暂不可用';
   }
 }
 
@@ -1433,6 +1570,21 @@ function parseKlineRows(rows) {
     if (!date || ![open, close, high, low].every(Number.isFinite)) return null;
     return { date, open, close, high, low, volume: Number.isFinite(volume) ? volume : 0 };
   }).filter(Boolean);
+}
+
+function parseFundFlowRows(rows) {
+  const parsed = rows.map(row => {
+    const point = { ...row };
+    ['mainNet','smallNet','mediumNet','largeNet','superLargeNet','mainRatio','smallRatio','mediumRatio','largeRatio','superLargeRatio','close','pct'].forEach(key => {
+      const value = point[key] == null || point[key] === '' ? NaN : Number(point[key]);
+      point[key] = Number.isFinite(value) ? value : null;
+    });
+    return point.date && Number.isFinite(point.mainNet) ? point : null;
+  }).filter(Boolean);
+  return parsed.map((point, index) => ({
+    ...point,
+    mainFiveDay:parsed.slice(Math.max(0, index - 4), index + 1).reduce((sum, item) => sum + item.mainNet, 0),
+  }));
 }
 
 function movingAverage(data, period) {
@@ -1512,6 +1664,35 @@ function drawKline(canvas, rows, type = 'kline', period = '') {
   chartState.fullMa10 = movingAverage(chartState.fullData, 10);
   chartState.fullMa20 = movingAverage(chartState.fullData, 20);
   initializeChartViewport(type === 'kline' ? 30 : chartState.fullData.length);
+}
+
+function drawFundFlow(rows) {
+  chartState.type = 'fundFlow';
+  chartState.fullData = parseFundFlowRows(rows);
+  chartState.prevClose = 0;
+  chartState.date = '';
+  chartState.period = '';
+  chartState.fullMa5 = [];
+  chartState.fullMa10 = [];
+  chartState.fullMa20 = [];
+  renderFundFlowStats(chartState.fullData);
+  initializeChartViewport(30);
+}
+
+function renderFundFlowStats(rows) {
+  const latest = rows[rows.length - 1];
+  if (!latest) return;
+  const items = [
+    ['当日主力', fmtMetricMoney(latest.mainNet), cls(latest.mainNet)],
+    ['主力占比', Number.isFinite(latest.mainRatio) ? `${latest.mainRatio.toFixed(2)}%` : '--', cls(latest.mainRatio)],
+    ['近五日累计', fmtMetricMoney(latest.mainFiveDay), cls(latest.mainFiveDay)],
+    ['超大单净额', fmtMetricMoney(latest.superLargeNet), cls(latest.superLargeNet)],
+    ['大单净额', fmtMetricMoney(latest.largeNet), cls(latest.largeNet)],
+    ['最新交易日', latest.date, ''],
+  ];
+  document.getElementById('stats-grid').innerHTML = items.map(([label,value,tone]) =>
+    `<div class="stat-item"><div class="stat-label">${label}</div><div class="stat-value ${tone}">${value}</div></div>`
+  ).join('');
 }
 
 function prepareChartCanvas() {
@@ -1741,9 +1922,87 @@ function drawKlineChart(ctx, W, H) {
   chartState.layout = { W, H, plotLeft, plotRight, cw, priceTop, priceH, volTop, volH, priceMin, priceMax, xFor, py, valueForY };
 }
 
+function fundAxisAmount(value) {
+  if (!Number.isFinite(value)) return '--';
+  const absolute = Math.abs(value);
+  const sign = value < 0 ? '-' : '';
+  if (absolute >= 100000000) return `${sign}${(absolute / 100000000).toFixed(1)}亿`;
+  if (absolute >= 10000) return `${sign}${(absolute / 10000).toFixed(0)}万`;
+  return `${sign}${Math.round(absolute)}`;
+}
+
+function drawFundFlowChart(ctx, W, H) {
+  const data = chartState.data;
+  if (!data.length) return;
+  const pad = { l:64, r:12 };
+  const plotLeft = pad.l, plotRight = W - pad.r, cw = plotRight - plotLeft;
+  const priceTop = 24, priceH = 222, volTop = priceTop, volH = priceH;
+  const values = data.flatMap(point => [point.mainNet, point.mainFiveDay]).filter(Number.isFinite);
+  const maxAbs = Math.max(...values.map(Math.abs), 10000) * 1.08;
+  const priceMin = -maxAbs, priceMax = maxAbs, range = maxAbs * 2;
+  const step = cw / data.length;
+  const xFor = index => plotLeft + (index + .5) * step;
+  const py = value => priceTop + (priceMax - value) / range * priceH;
+  const valueForY = y => priceMax - (y - priceTop) / priceH * range;
+  const zeroY = py(0);
+
+  ctx.fillStyle = chartThemeColor('bg');
+  ctx.fillRect(0, 0, W, H);
+  ctx.font = '10px ui-monospace, monospace';
+  for (let i = 0; i <= 4; i++) {
+    const ratio = i / 4, y = priceTop + ratio * priceH;
+    const value = priceMax - ratio * range;
+    drawGridLine(ctx, plotLeft, y, plotRight, y);
+    ctx.fillStyle = chartThemeColor('muted');
+    ctx.textAlign = 'right';
+    ctx.fillText(fundAxisAmount(value), plotLeft - 6, y + 3);
+  }
+  ctx.fillStyle = '#f85149';
+  ctx.textAlign = 'left';
+  ctx.fillText('■ 主力净流入', plotLeft, 12);
+  ctx.fillStyle = '#e3b341';
+  ctx.fillText('— 近五日累计', plotLeft + 82, 12);
+
+  const xIndexes = [...new Set([0, Math.round((data.length - 1) * .25), Math.round((data.length - 1) * .5), Math.round((data.length - 1) * .75), data.length - 1])];
+  xIndexes.forEach((index, tickIndex) => {
+    const x = xFor(index);
+    drawGridLine(ctx, x, priceTop, x, priceTop + priceH);
+    ctx.fillStyle = chartThemeColor('muted');
+    ctx.textAlign = tickIndex === 0 ? 'left' : tickIndex === xIndexes.length - 1 ? 'right' : 'center';
+    ctx.fillText(String(data[index].date || '').slice(5), x, H - 8);
+  });
+
+  ctx.strokeStyle = chartThemeColor('subtle');
+  ctx.lineWidth = 1.2;
+  ctx.beginPath();
+  ctx.moveTo(plotLeft, zeroY);
+  ctx.lineTo(plotRight, zeroY);
+  ctx.stroke();
+
+  const barW = Math.max(2, Math.min(14, step * .62));
+  data.forEach((point, index) => {
+    const y = py(point.mainNet);
+    ctx.fillStyle = point.mainNet >= 0 ? '#f85149aa' : '#3fb950aa';
+    ctx.fillRect(xFor(index) - barW / 2, Math.min(y, zeroY), barW, Math.max(1, Math.abs(zeroY - y)));
+  });
+
+  ctx.beginPath();
+  data.forEach((point, index) => {
+    const x = xFor(index), y = py(point.mainFiveDay);
+    index ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
+  });
+  ctx.strokeStyle = '#e3b341';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+
+  chartState.layout = { W, H, plotLeft, plotRight, cw, priceTop, priceH, volTop, volH, priceMin, priceMax, xFor, py, valueForY };
+}
+
 function renderChart() {
   const { ctx, W, H } = prepareChartCanvas();
-  chartState.type === 'minute' ? drawMinuteChart(ctx, W, H) : drawKlineChart(ctx, W, H);
+  if (chartState.type === 'minute') drawMinuteChart(ctx, W, H);
+  else if (chartState.type === 'fundFlow') drawFundFlowChart(ctx, W, H);
+  else drawKlineChart(ctx, W, H);
   if (chartState.hoverIndex != null) drawCrosshair(ctx);
 }
 
@@ -1776,10 +2035,11 @@ function drawCrosshair(ctx) {
     ctx.moveTo(layout.plotLeft, y);
     ctx.lineTo(layout.plotRight, y);
     ctx.stroke();
-    drawBadge(ctx, layout.valueForY(y).toFixed(2), layout.plotRight - 28, y - 9, 58);
+    const yLabel = chartState.type === 'fundFlow' ? fundAxisAmount(layout.valueForY(y)) : layout.valueForY(y).toFixed(2);
+    drawBadge(ctx, yLabel, layout.plotRight - 32, y - 9, chartState.type === 'fundFlow' ? 68 : 58);
   }
   ctx.setLineDash([]);
-  const markerY = layout.py(chartState.type === 'minute' ? point.price : point.close);
+  const markerY = layout.py(chartState.type === 'minute' ? point.price : chartState.type === 'fundFlow' ? point.mainNet : point.close);
   ctx.fillStyle = chartThemeColor('text');
   ctx.beginPath();
   ctx.arc(x, markerY, 3, 0, Math.PI * 2);
@@ -1939,7 +2199,17 @@ function infoItem(label, value, tone = '') {
 function updateChartInfo(index) {
   const point = chartState.data[index];
   if (!point) { chartInfo.innerHTML = ''; return; }
-  if (chartState.type === 'minute') {
+  if (chartState.type === 'fundFlow') {
+    chartInfo.innerHTML = [
+      infoItem('日期', point.date),
+      infoItem('主力净额', fmtMetricMoney(point.mainNet), cls(point.mainNet)),
+      infoItem('净额占比', Number.isFinite(point.mainRatio) ? `${point.mainRatio.toFixed(2)}%` : '--', cls(point.mainRatio)),
+      infoItem('近五日', fmtMetricMoney(point.mainFiveDay), cls(point.mainFiveDay)),
+      infoItem('超大单', fmtMetricMoney(point.superLargeNet), cls(point.superLargeNet)),
+      infoItem('大单', fmtMetricMoney(point.largeNet), cls(point.largeNet)),
+      infoItem('涨跌', Number.isFinite(point.pct) ? `${point.pct > 0 ? '+' : ''}${point.pct.toFixed(2)}%` : '--', cls(point.pct)),
+    ].join('');
+  } else if (chartState.type === 'minute') {
     const pct = chartState.prevClose > 0 ? (point.price - chartState.prevClose) / chartState.prevClose * 100 : 0;
     const tone = pct > 0 ? 'up' : pct < 0 ? 'down' : 'flat';
     chartInfo.innerHTML = [
