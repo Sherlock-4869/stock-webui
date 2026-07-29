@@ -23,7 +23,7 @@ const UPSTREAM_HEADERS = {
 const GLOBAL_TENCENT_INDEXES = [
   ['sh000001', '000001'], ['sz399001', '399001'], ['sz399006', '399006'],
   ['sh000688', '000688'], ['bj899050', '899050'],
-  ['hkHSI', 'HSI'], ['hkHSTECH', 'HSTECH'],
+  ['r_hkHSI', 'HSI'], ['r_hkHSTECH', 'HSTECH'],
   ['usDJI', 'DJIA'], ['usIXIC', 'IXIC'], ['usINX', 'SPX'],
 ];
 const GLOBAL_SINA_INDEXES = [
@@ -38,9 +38,11 @@ const IPO_CACHE_MS = 15 * 60 * 1000;
 let ipoCache = null;
 let ipoRefreshPromise = null;
 const FUNDAMENTAL_CACHE_MS = 6 * 60 * 60 * 1000;
-const FUND_FLOW_HISTORY_CACHE_MS = 15 * 1000;
+const FUND_FLOW_HISTORY_CACHE_MS = 60 * 1000;
+const REALTIME_FUND_FLOW_CACHE_MS = 4500;
 const fundamentalCache = new Map();
 const fundFlowHistoryCache = new Map();
+const realtimeFundFlowCache = new Map();
 
 function serveFile(res, filePath) {
   fs.readFile(filePath, (err, data) => {
@@ -125,6 +127,19 @@ function eastmoneySecuCode(symbol) {
   return `${symbol.slice(2)}.${symbol.startsWith('sh') ? 'SH' : 'SZ'}`;
 }
 
+function eastmoneySecId(symbol) {
+  if (!isAShareSymbol(symbol)) return '';
+  return `${symbol.startsWith('sh') ? 1 : 0}.${symbol.slice(2)}`;
+}
+
+function shanghaiDateKey(timestampMs=Date.now()) {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone:'Asia/Shanghai', year:'numeric', month:'2-digit', day:'2-digit',
+  }).formatToParts(new Date(timestampMs));
+  const values = Object.fromEntries(parts.map(part => [part.type, part.value]));
+  return `${values.year}-${values.month}-${values.day}`;
+}
+
 function symbolFromSecuCode(secuCode) {
   const match = String(secuCode || '').match(/^(\d{6})\.(SH|SZ)$/i);
   return match ? `${match[2].toLowerCase()}${match[1]}` : '';
@@ -182,75 +197,132 @@ async function loadFundamentals(symbols) {
 
 async function loadRealtimeFundFlows(symbols) {
   const aShares = [...new Set(symbols.filter(isAShareSymbol))];
-  const result = {};
-  const queue = [...aShares];
-  const workers = Array.from({ length:Math.min(6, queue.length) }, async () => {
-    while (queue.length) {
-      const symbol = queue.shift();
-      try {
-        const history = await loadFundFlowHistory(symbol);
-        const latest = history[history.length - 1];
-        if (!latest) continue;
-        result[symbol] = {
-          mainNetInflow:latest.mainNet,
-          mainNetRatio:latest.mainRatio,
-          superLargeNet:latest.superLargeNet,
-          largeNet:latest.largeNet,
-          updatedAt:latest.date,
-        };
-      } catch (error) {
-        console.error(`Realtime fund flow error (${symbol}):`, error.message);
-      }
-    }
-  });
-  await Promise.all(workers);
-  return result;
+  const points = await loadRealtimeFundFlowPoints(aShares);
+  return Object.fromEntries(aShares.map(symbol => {
+    const point = points[symbol];
+    return [symbol, point ? {
+      mainNetInflow:point.mainNet,
+      mainNetRatio:point.mainRatio,
+      superLargeNet:point.superLargeNet,
+      largeNet:point.largeNet,
+      flowDate:point.date,
+      updatedAt:point.updatedAt,
+    } : {
+      mainNetInflow:null, mainNetRatio:null, superLargeNet:null, largeNet:null,
+      flowDate:null, updatedAt:null,
+    }];
+  }));
 }
 
-async function loadFundFlowHistory(symbol) {
+async function loadRealtimeFundFlowPoints(symbols) {
+  const aShares = [...new Set(symbols.filter(isAShareSymbol))];
+  const now = Date.now();
+  const missing = aShares.filter(symbol => {
+    const cached = realtimeFundFlowCache.get(symbol);
+    return !cached || now - cached.fetchedAt >= REALTIME_FUND_FLOW_CACHE_MS;
+  });
+
+  if (missing.length) {
+    try {
+      const secids = missing.map(eastmoneySecId).join(',');
+      const fields = 'f2,f3,f12,f13,f14,f62,f66,f69,f72,f75,f78,f81,f84,f87,f124,f184';
+      const raw = await requestBuffer(
+        `https://push2.eastmoney.com/api/qt/ulist.np/get?secids=${secids}&fields=${fields}`,
+        { ...UPSTREAM_HEADERS, Referer:'https://quote.eastmoney.com/' }
+      );
+      const rows = JSON.parse(raw.toString('utf-8'))?.data?.diff || [];
+      const returned = new Set();
+      for (const row of rows) {
+        const symbol = `${Number(row.f13) === 1 ? 'sh' : 'sz'}${row.f12}`;
+        const updatedAt = numberOrNull(row.f124);
+        if (!isAShareSymbol(symbol) || !updatedAt) continue;
+        returned.add(symbol);
+        realtimeFundFlowCache.set(symbol, {
+          fetchedAt:now,
+          data:{
+            date:shanghaiDateKey(updatedAt * 1000),
+            mainNet:numberOrNull(row.f62),
+            smallNet:numberOrNull(row.f84),
+            mediumNet:numberOrNull(row.f78),
+            largeNet:numberOrNull(row.f72),
+            superLargeNet:numberOrNull(row.f66),
+            mainRatio:numberOrNull(row.f184) == null ? null : Number(row.f184) / 100,
+            smallRatio:numberOrNull(row.f87) == null ? null : Number(row.f87) / 100,
+            mediumRatio:numberOrNull(row.f81) == null ? null : Number(row.f81) / 100,
+            largeRatio:numberOrNull(row.f75) == null ? null : Number(row.f75) / 100,
+            superLargeRatio:numberOrNull(row.f69) == null ? null : Number(row.f69) / 100,
+            close:numberOrNull(row.f2) == null ? null : Number(row.f2) / 100,
+            pct:numberOrNull(row.f3) == null ? null : Number(row.f3) / 100,
+            updatedAt,
+          },
+        });
+      }
+      missing.filter(symbol => !returned.has(symbol)).forEach(symbol => {
+        realtimeFundFlowCache.set(symbol, { fetchedAt:now, data:null });
+      });
+    } catch (error) {
+      console.error('Realtime fund flow error:', error.message);
+    }
+  }
+
+  const today = shanghaiDateKey();
+  return Object.fromEntries(aShares.flatMap(symbol => {
+    const point = realtimeFundFlowCache.get(symbol)?.data;
+    return point?.date === today && Number.isFinite(point.mainNet) ? [[symbol, point]] : [];
+  }));
+}
+
+async function loadHistoricalFundFlow(symbol) {
   if (!isAShareSymbol(symbol)) return [];
   const cached = fundFlowHistoryCache.get(symbol);
   if (cached && Date.now() - cached.fetchedAt < FUND_FLOW_HISTORY_CACHE_MS) return cached.data;
-  // 新浪资金分档中 r0 为超大单、r1 为大单；主力净额统一取两者之和。
-  const url = 'https://money.finance.sina.com.cn/quotes_service/api/json_v2.php/' +
-    `MoneyFlow.ssl_qsfx_lscjfb?page=1&num=120&sort=opendate&asc=0&daima=${symbol}`;
-  const raw = await requestBuffer(url, {
-    ...UPSTREAM_HEADERS,
-    Referer:'https://money.finance.sina.com.cn/',
-  });
-  const rows = JSON.parse(raw.toString('utf-8'));
-  const data = (Array.isArray(rows) ? rows : []).map(row => {
-    const superLargeNet = numberOrNull(row.r0_net);
-    const largeNet = numberOrNull(row.r1_net);
-    const mediumNet = numberOrNull(row.r2_net);
-    const smallNet = numberOrNull(row.r3_net);
-    const mainNet = Number.isFinite(superLargeNet) && Number.isFinite(largeNet)
-      ? superLargeNet + largeNet
-      : numberOrNull(row.netamount);
-    const totalAmount = ['r0','r1','r2','r3']
-      .map(key => numberOrNull(row[key]))
-      .filter(Number.isFinite)
-      .reduce((sum, value) => sum + value, 0);
-    return {
-      date:row.opendate,
-      mainNet,
-      smallNet,
-      mediumNet,
-      largeNet,
-      superLargeNet,
-      mainRatio:Number.isFinite(mainNet) && totalAmount > 0 ? mainNet / totalAmount * 100 : null,
-      smallRatio:Number.isFinite(smallNet) && totalAmount > 0 ? smallNet / totalAmount * 100 : null,
-      mediumRatio:Number.isFinite(mediumNet) && totalAmount > 0 ? mediumNet / totalAmount * 100 : null,
-      largeRatio:Number.isFinite(largeNet) && totalAmount > 0 ? largeNet / totalAmount * 100 : null,
-      superLargeRatio:Number.isFinite(superLargeNet) && totalAmount > 0 ? superLargeNet / totalAmount * 100 : null,
-      close:numberOrNull(row.trade),
-      pct:numberOrNull(row.changeratio) == null ? null : Number(row.changeratio) * 100,
-    };
-  }).filter(item => item.date && Number.isFinite(item.mainNet))
-    .sort((a, b) => String(a.date).localeCompare(String(b.date)));
-  if (!data.length) throw new Error('Fund flow history is empty');
-  fundFlowHistoryCache.set(symbol, { fetchedAt:Date.now(), data });
-  return data;
+  const fields1 = 'f1,f2,f3,f7';
+  const fields2 = 'f51,f52,f53,f54,f55,f56,f57,f58,f59,f60,f61,f62,f63';
+  try {
+    const raw = await requestBuffer(
+      `https://push2his.eastmoney.com/api/qt/stock/fflow/daykline/get?secid=${eastmoneySecId(symbol)}&lmt=120&klt=101&fields1=${fields1}&fields2=${fields2}`,
+      { ...UPSTREAM_HEADERS, Referer:'https://quote.eastmoney.com/' }
+    );
+    const payload = JSON.parse(raw.toString('utf-8'));
+    const data = (payload?.data?.klines || []).map(line => {
+      const fields = String(line).split(',');
+      return {
+        date:fields[0],
+        mainNet:numberOrNull(fields[1]),
+        smallNet:numberOrNull(fields[2]),
+        mediumNet:numberOrNull(fields[3]),
+        largeNet:numberOrNull(fields[4]),
+        superLargeNet:numberOrNull(fields[5]),
+        mainRatio:numberOrNull(fields[6]),
+        smallRatio:numberOrNull(fields[7]),
+        mediumRatio:numberOrNull(fields[8]),
+        largeRatio:numberOrNull(fields[9]),
+        superLargeRatio:numberOrNull(fields[10]),
+        close:numberOrNull(fields[11]),
+        pct:numberOrNull(fields[12]),
+      };
+    }).filter(item => item.date && Number.isFinite(item.mainNet));
+    if (!data.length) throw new Error('Fund flow history is empty');
+    fundFlowHistoryCache.set(symbol, { fetchedAt:Date.now(), data });
+    return data;
+  } catch (error) {
+    if (cached?.data?.length) return cached.data;
+    throw error;
+  }
+}
+
+async function loadFundFlowHistory(symbol) {
+  const [history, points] = await Promise.all([
+    loadHistoricalFundFlow(symbol),
+    loadRealtimeFundFlowPoints([symbol]),
+  ]);
+  const current = points[symbol];
+  if (!current) return history;
+  const data = history.map(item => ({ ...item }));
+  const currentIndex = data.findIndex(item => item.date === current.date);
+  if (currentIndex >= 0) data[currentIndex] = { ...data[currentIndex], ...current };
+  else data.push(current);
+  return data.sort((a, b) => String(a.date).localeCompare(String(b.date)));
 }
 
 async function proxyStockMetrics(urlObj, res) {
@@ -277,7 +349,10 @@ async function proxyStockMetrics(urlObj, res) {
         try {
           const history = await loadFundFlowHistory(symbol);
           const lastFive = history.slice(-5).map(item => item.mainNet).filter(Number.isFinite);
-          if (lastFive.length) data[symbol].mainFiveDay = lastFive.reduce((sum, value) => sum + value, 0);
+          if (lastFive.length) {
+            data[symbol].mainFiveDay = lastFive.reduce((sum, value) => sum + value, 0);
+            data[symbol].mainFiveDayDate = history[history.length - 1]?.date || null;
+          }
         } catch (error) {
           console.error(`Five-day fund flow error (${symbol}):`, error.message);
         }

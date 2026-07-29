@@ -954,7 +954,7 @@ function extractQuote(sym, fields) {
   return {
     name: fields[1], price: fields[3], prevClose: fields[4],
     open: fields[5], chg: fields[31], pct: fields[32],
-    high: fields[33], low: fields[34], volume: fields[36], amount: fields[37],
+    high: fields[33], low: fields[34], volume: fields[36], amount: fields[37], updatedAt:fields[30] || '',
     pe, pb, bvps:pb && Number.isFinite(price) ? price / pb : null, dividend,
     turnover:isAShare ? quoteMetric(38) : null,
     volumeRatio:isAShare ? quoteMetric(49) : null,
@@ -1049,7 +1049,10 @@ function renderOptionalMetricCells(sym, quote) {
     const source = metric.source ? extended : quote || {};
     const value = source?.[metric.dataKey];
     const tone = (metric.kind === 'money' || metric.kind === 'percentTone') && Number.isFinite(value) ? ` ${cls(value)}` : '';
-    const title = metric.source === 'fundamentals' && reportTitle ? ` title="${escapeHtml(reportTitle)}"` : '';
+    const titleText = metric.source === 'fundamentals' ? reportTitle
+      : metric.source === 'flow' && extended.flowDate ? `资金日期：${extended.flowDate}`
+        : metric.source === 'fiveDay' && extended.mainFiveDayDate ? `统计截至：${extended.mainFiveDayDate}` : '';
+    const title = titleText ? ` title="${escapeHtml(titleText)}"` : '';
     return `<td class="optional-column metric-${metric.key.replaceAll('_','-')}${tone}"${title}>${metricValue(metric, value)}</td>`;
   }).join('');
 }
@@ -2454,6 +2457,67 @@ if (!Array.isArray(anomalyEvents)) anomalyEvents = [];
 
 function allWatchlistSymbols() { return [...new Set(groups.flatMap(group => group.stocks))]; }
 function anomalyGroups(sym) { return groups.filter(group => group.stocks.includes(sym)).map(group => group.name).join('、'); }
+const MARKET_CLOCK_FORMATTERS = new Map();
+function marketDefinition(sym) {
+  if (/^(?:sh|sz)/.test(sym)) return { timeZone:'Asia/Shanghai', intervals:[[570,690],[780,900]] };
+  if (sym.startsWith('hk')) return { timeZone:'Asia/Shanghai', intervals:[[570,720],[780,960]] };
+  if (sym.startsWith('us')) return { timeZone:'America/New_York', intervals:[[570,960]] };
+  return null;
+}
+function marketClock(sym, date=new Date()) {
+  const definition = marketDefinition(sym);
+  if (!definition) return null;
+  let formatter = MARKET_CLOCK_FORMATTERS.get(definition.timeZone);
+  if (!formatter) {
+    formatter = new Intl.DateTimeFormat('en-US', {
+      timeZone:definition.timeZone, weekday:'short', year:'numeric', month:'2-digit', day:'2-digit',
+      hour:'2-digit', minute:'2-digit', hourCycle:'h23',
+    });
+    MARKET_CLOCK_FORMATTERS.set(definition.timeZone, formatter);
+  }
+  const parts = Object.fromEntries(formatter.formatToParts(date).map(part => [part.type, part.value]));
+  return {
+    definition,
+    weekday:parts.weekday,
+    dateKey:`${parts.year}-${parts.month}-${parts.day}`,
+    minutes:Number(parts.hour) * 60 + Number(parts.minute),
+  };
+}
+function isTradingMinute(definition, minutes) {
+  return definition.intervals.some(([start,end]) => minutes >= start && minutes <= end);
+}
+function marketSessionState(sym, date=new Date()) {
+  const clock = marketClock(sym, date);
+  if (!clock) return null;
+  const weekday = !['Sat','Sun'].includes(clock.weekday);
+  return { ...clock, open:weekday && isTradingMinute(clock.definition, clock.minutes) };
+}
+function quoteTimestampInfo(value) {
+  const digits = String(value || '').replace(/\D/g, '');
+  if (digits.length < 12) return null;
+  return {
+    dateKey:`${digits.slice(0,4)}-${digits.slice(4,6)}-${digits.slice(6,8)}`,
+    minutes:Number(digits.slice(8,10)) * 60 + Number(digits.slice(10,12)),
+  };
+}
+function isQuoteEligibleForAnomaly(sym, quote, now=new Date()) {
+  const session = marketSessionState(sym, now);
+  const quoteTime = quoteTimestampInfo(quote?.updatedAt);
+  return Boolean(session?.open && quoteTime && quoteTime.dateKey === session.dateKey &&
+    isTradingMinute(session.definition, quoteTime.minutes));
+}
+function pruneInvalidAnomalyEvents() {
+  const originalLength = anomalyEvents.length;
+  anomalyEvents = anomalyEvents.filter(event => {
+    const timestamp = Number(event?.timestamp);
+    const session = Number.isFinite(timestamp) ? marketSessionState(event.sym, new Date(timestamp)) : null;
+    return !session || session.open;
+  });
+  if (anomalyEvents.length !== originalLength) {
+    if (anomalyEvents.length) localStorage.setItem(ANOMALY_STORAGE_KEY, JSON.stringify(anomalyEvents));
+    else localStorage.removeItem(ANOMALY_STORAGE_KEY);
+  }
+}
 function addAnomalyEvent(sym, quote, type, direction, title, message, cooldown=30*60*1000) {
   const now = Date.now();
   if (anomalyEvents.some(event => event.sym === sym && event.type === type && now - event.timestamp < cooldown)) return;
@@ -2463,7 +2527,10 @@ function addAnomalyEvent(sym, quote, type, direction, title, message, cooldown=3
 }
 function detectAnomaly(sym, quote) {
   const price = Number(quote.price), pct = Number(quote.pct), previous = anomalySnapshots.get(sym);
-  if (!Number.isFinite(price) || !Number.isFinite(pct)) return;
+  if (!Number.isFinite(price) || !Number.isFinite(pct) || !isQuoteEligibleForAnomaly(sym, quote)) {
+    anomalySnapshots.delete(sym);
+    return false;
+  }
   const isWideLimit = /^sh68[89]|^sz30[01]/.test(sym), limit = isWideLimit ? 20 : 10;
   if ((sym.startsWith('sh') || sym.startsWith('sz')) && Math.abs(pct) >= limit - .5) {
     addAnomalyEvent(sym, quote, 'limit', pct > 0 ? 'up' : 'down', pct > 0 ? '临近涨停' : '临近跌停', `当前涨跌幅 ${sign(pct)}${pct.toFixed(2)}%`, 4*60*60*1000);
@@ -2475,21 +2542,35 @@ function detectAnomaly(sym, quote) {
     if (Math.abs(fastPct) >= 1) addAnomalyEvent(sym, quote, 'fast', fastPct > 0 ? 'up' : 'down', fastPct > 0 ? '快速拉升' : '快速跳水', `较上次扫描 ${sign(fastPct)}${fastPct.toFixed(2)}%，现价 ${price.toFixed(2)}`, 10*60*1000);
   }
   anomalySnapshots.set(sym, { price, pct, timestamp:Date.now() });
+  return true;
 }
 async function fetchAnomalyQuotes() {
   const symbols = allWatchlistSymbols();
   document.getElementById('alert-stock-count').textContent = symbols.length;
   if (!symbols.length || anomalyRequestPending) { renderAnomalyEvents(); return; }
+  const activeSymbols = symbols.filter(sym => marketSessionState(sym)?.open);
+  symbols.filter(sym => !activeSymbols.includes(sym)).forEach(sym => anomalySnapshots.delete(sym));
+  if (!activeSymbols.length) {
+    document.getElementById('alert-live-status').textContent = '休市中 · 开盘后自动继续';
+    renderAnomalyEvents();
+    return;
+  }
   anomalyRequestPending = true;
   document.getElementById('alert-live-status').textContent = '扫描中';
   try {
     const batches = [];
-    for (let index=0; index<symbols.length; index+=60) batches.push(symbols.slice(index,index+60));
+    for (let index=0; index<activeSymbols.length; index+=60) batches.push(activeSymbols.slice(index,index+60));
     const responses = await Promise.all(batches.map(batch => fetch(`/api/quote?symbols=${encodeURIComponent(batch.join(','))}`)));
     if (responses.some(response => !response.ok)) throw new Error('anomaly request failed');
     const data = Object.assign({}, ...await Promise.all(responses.map(async response => parseQuoteText(await response.text()))));
-    symbols.forEach(sym => { const quote = extractQuote(sym, data[sym]); if (quote) detectAnomaly(sym, quote); });
-    document.getElementById('alert-live-status').textContent = `运行中 · ${new Date().toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'})}`;
+    let eligibleCount = 0;
+    activeSymbols.forEach(sym => {
+      const quote = extractQuote(sym, data[sym]);
+      if (quote && detectAnomaly(sym, quote)) eligibleCount++;
+    });
+    document.getElementById('alert-live-status').textContent = eligibleCount
+      ? `运行中 · ${new Date().toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'})}`
+      : '等待当日行情更新';
     renderAnomalyEvents();
   } catch (_) { document.getElementById('alert-live-status').textContent = '连接失败，等待重试'; }
   finally { anomalyRequestPending = false; }
@@ -2510,6 +2591,7 @@ applyMetricSettings();
 save();
 renderGroupTabs();
 switchAppPage(activeAppPage);
+pruneInvalidAnomalyEvents();
 renderAnomalyEvents();
 fetchIpos();
 document.getElementById('market-row-count').value = String(marketDefaultRows);
