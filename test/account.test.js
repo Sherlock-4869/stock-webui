@@ -128,3 +128,59 @@ test('account HTTP flow persists config across logout and password login', async
   assert.equal(afterLogin.payload.user.displayName, '测试用户');
   assert.equal(afterLogin.payload.config.values.watchlist_v1, '["sh600519","usAAPL"]');
 });
+
+test('notes CRUD is persisted and isolated by account', async t => {
+  const app = await startTestService();
+  t.after(app.close);
+
+  const first = await jsonRequest(app.service, '/api/auth/register', {
+    method:'POST',
+    body:{ username:'notes_owner', password:'password-123', displayName:'笔记用户' },
+  });
+  const firstCookie = cookieFrom(first);
+  const second = await jsonRequest(app.service, '/api/auth/register', {
+    method:'POST',
+    body:{ username:'notes_other', password:'password-123', displayName:'其他用户' },
+  });
+  const secondCookie = cookieFrom(second);
+
+  const created = await jsonRequest(app.service, '/api/notes', {
+    method:'POST', cookie:firstCookie,
+    body:{ title:'安全笔记', content:'# 内容\n<img src=x onerror=alert(1)>' },
+  });
+  assert.equal(created.response.status, 201);
+  assert.equal(created.payload.note.title, '安全笔记');
+  const noteId = created.payload.note.id;
+
+  const imported = await jsonRequest(app.service, '/api/notes/import', {
+    method:'POST', cookie:firstCookie,
+    body:{ title:'导入文档', content:'# 导入内容\n<script>alert(1)</script>' },
+  });
+  assert.equal(imported.response.status, 201);
+  assert.equal(imported.payload.note.content, '# 导入内容\n<script>alert(1)</script>');
+
+  const firstList = await jsonRequest(app.service, '/api/notes', { cookie:firstCookie });
+  assert.equal(firstList.payload.notes.length, 2);
+  const secondList = await jsonRequest(app.service, '/api/notes', { cookie:secondCookie });
+  assert.deepEqual(secondList.payload.notes, []);
+
+  const forbiddenRead = await jsonRequest(app.service, `/api/notes/${noteId}`, { cookie:secondCookie });
+  assert.equal(forbiddenRead.response.status, 404);
+  const forbiddenUpdate = await jsonRequest(app.service, `/api/notes/${noteId}`, {
+    method:'PUT', cookie:secondCookie, body:{ title:'越权修改' },
+  });
+  assert.equal(forbiddenUpdate.response.status, 404);
+  const forbiddenDelete = await jsonRequest(app.service, `/api/notes/${noteId}`, {
+    method:'DELETE', cookie:secondCookie, body:{},
+  });
+  assert.equal(forbiddenDelete.response.status, 404);
+
+  const updated = await jsonRequest(app.service, `/api/notes/${noteId}`, {
+    method:'PUT', cookie:firstCookie, body:{ title:'已更新', content:'新的内容' },
+  });
+  assert.equal(updated.payload.note.title, '已更新');
+  const removed = await jsonRequest(app.service, `/api/notes/${noteId}`, {
+    method:'DELETE', cookie:firstCookie, body:{},
+  });
+  assert.equal(removed.payload.deleted, true);
+});

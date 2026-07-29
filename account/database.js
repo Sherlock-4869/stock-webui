@@ -65,6 +65,18 @@ const SCHEMA_STATEMENTS = [
     PRIMARY KEY (state_hash),
     KEY idx_user_oauth_states_expires (expires_at)
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
+  `CREATE TABLE IF NOT EXISTS user_notes (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    user_id BIGINT UNSIGNED NOT NULL,
+    title VARCHAR(200) NOT NULL DEFAULT '',
+    content MEDIUMTEXT NOT NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    KEY idx_user_notes_user (user_id),
+    KEY idx_user_notes_updated (user_id, updated_at),
+    CONSTRAINT fk_user_notes_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
 ];
 
 function parseJson(value) {
@@ -268,6 +280,52 @@ class AccountDatabase {
     }
   }
 
+  async listNotes(userId) {
+    const [rows] = await this.requirePool().execute(
+      `SELECT id, title, LEFT(content, 200) AS summary, created_at, updated_at
+       FROM user_notes WHERE user_id=? ORDER BY updated_at DESC LIMIT 200`,
+      [userId]
+    );
+    return rows;
+  }
+
+  async createNote(userId, { title, content }) {
+    const [result] = await this.requirePool().execute(
+      'INSERT INTO user_notes (user_id, title, content) VALUES (?, ?, ?)',
+      [userId, title, content]
+    );
+    return this.getNote(userId, result.insertId);
+  }
+
+  async getNote(userId, noteId) {
+    const [rows] = await this.requirePool().execute(
+      'SELECT * FROM user_notes WHERE id=? AND user_id=? LIMIT 1',
+      [noteId, userId]
+    );
+    return rows[0] || null;
+  }
+
+  async updateNote(userId, noteId, { title, content }) {
+    const sets = [];
+    const params = [];
+    if (title !== undefined) { sets.push('title=?'); params.push(title); }
+    if (content !== undefined) { sets.push('content=?'); params.push(content); }
+    if (!sets.length) return this.getNote(userId, noteId);
+    params.push(noteId, userId);
+    await this.requirePool().execute(
+      `UPDATE user_notes SET ${sets.join(',')} WHERE id=? AND user_id=?`, params
+    );
+    return this.getNote(userId, noteId);
+  }
+
+  async deleteNote(userId, noteId) {
+    const [result] = await this.requirePool().execute(
+      'DELETE FROM user_notes WHERE id=? AND user_id=?',
+      [noteId, userId]
+    );
+    return result.affectedRows > 0;
+  }
+
   async cleanup() {
     await this.requirePool().query('DELETE FROM user_sessions WHERE expires_at<=NOW()');
     await this.requirePool().query('DELETE FROM user_oauth_states WHERE expires_at<=NOW() OR consumed_at IS NOT NULL');
@@ -282,8 +340,10 @@ class MemoryAccountDatabase {
     this.sessions = new Map();
     this.preferences = new Map();
     this.states = new Map();
+    this.notes = new Map();
     this.nextUserId = 1;
     this.nextSessionId = 1;
+    this.nextNoteId = 1;
   }
 
   async initialize() {}
@@ -382,6 +442,49 @@ class MemoryAccountDatabase {
     if (!state || state.consumed_at || new Date(state.expires_at).getTime() <= Date.now()) return null;
     state.consumed_at = new Date();
     return { ...state };
+  }
+
+  async listNotes(userId) {
+    const userNotes = [];
+    for (const note of this.notes.values()) {
+      if (note.user_id === Number(userId)) {
+        userNotes.push({ ...note, summary: note.content.slice(0, 200) });
+      }
+    }
+    userNotes.sort((a, b) => b.updated_at - a.updated_at);
+    return userNotes.slice(0, 200);
+  }
+
+  async createNote(userId, { title, content }) {
+    const now = new Date();
+    const note = {
+      id: this.nextNoteId++, user_id: Number(userId),
+      title, content, created_at: now, updated_at: now,
+    };
+    this.notes.set(note.id, note);
+    return { ...note };
+  }
+
+  async getNote(userId, noteId) {
+    const note = this.notes.get(Number(noteId));
+    if (!note || note.user_id !== Number(userId)) return null;
+    return { ...note };
+  }
+
+  async updateNote(userId, noteId, { title, content }) {
+    const note = this.notes.get(Number(noteId));
+    if (!note || note.user_id !== Number(userId)) return null;
+    if (title !== undefined) note.title = title;
+    if (content !== undefined) note.content = content;
+    note.updated_at = new Date();
+    return { ...note };
+  }
+
+  async deleteNote(userId, noteId) {
+    const note = this.notes.get(Number(noteId));
+    if (!note || note.user_id !== Number(userId)) return false;
+    this.notes.delete(Number(noteId));
+    return true;
   }
 
   async cleanup() {

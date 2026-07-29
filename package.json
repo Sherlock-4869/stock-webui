@@ -6,7 +6,7 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "check": "node --check server.js && node --check account/config.js && node --check account/security.js && node --check account/database.js && node --check account/service.js && node --check wechat/config.js && node --check wechat/client.js && node --check wechat/database.js && node --check wechat/service.js && node --check wechat/weekly-ipo.js && node --check wechat/xml.js",
+    "check": "node --check server.js && node --check account/config.js && node --check account/security.js && node --check account/database.js && node --check account/service.js && node --check chat/chat.js && node --check wechat/config.js && node --check wechat/client.js && node --check wechat/database.js && node --check wechat/service.js && node --check wechat/weekly-ipo.js && node --check wechat/xml.js",
     "test": "node --test test/*.test.js"
   },
   "engines": {

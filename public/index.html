@@ -278,6 +278,28 @@ html[data-theme="light"] .market-name,html[data-theme="light"] .market-price,htm
 html[data-theme="light"] .market-page-note,html[data-theme="light"] .market-summary,html[data-theme="light"] .market-toolbar,html[data-theme="light"] .sort-note,html[data-theme="light"] .module-desc,html[data-theme="light"] .metric-label,html[data-theme="light"] .panel-status,html[data-theme="light"] .status,html[data-theme="light"] .refresh-setting,html[data-theme="light"] .time{color:#57606a}
 html[data-theme="light"] .ipo-status{border:1px solid transparent;font-weight:650}html[data-theme="light"] .ipo-status.upcoming{background:#e5f3ff;border-color:#b6ddff;color:#0969da}html[data-theme="light"] .ipo-status.today{background:#fff3cd;border-color:#f2d675;color:#8a5a00}html[data-theme="light"] .ipo-status.done{background:#dafbe1;border-color:#aceebb;color:#1a7f37}
 html[data-theme="light"] .market-kicker{color:#0969da}html[data-theme="light"] .metric-value,html[data-theme="light"] .module-title,html[data-theme="light"] .ipo-name{color:#172033}
+/* --- Notes --- */
+html[data-theme="light"] .note-card{background:#fff;border-color:#d7e0ea}html[data-theme="light"] .note-card:hover{border-color:#54aeff;background:#f8fbff}
+html[data-theme="light"] .note-card-title{color:#1f2328}html[data-theme="light"] .note-card-summary{color:#57606a}html[data-theme="light"] .note-card-time{color:#8c959f}
+html[data-theme="light"] .note-editor-area{background:#fff;border-color:#d0d7de;color:#1f2328}
+html[data-theme="light"] .note-title-input{background:#fff;border-color:#d0d7de;color:#1f2328}
+html[data-theme="light"] .note-preview{background:#fff;border-color:#d0d7de;color:#1f2328}
+html[data-theme="light"] .note-toolbar{border-color:#d0d7de;background:#f6f8fa}
+html[data-theme="light"] .note-empty{color:#57606a}
+html[data-theme="light"] .note-search-input{background:#fff;border-color:#d0d7de;color:#1f2328}
+html[data-theme="light"] .note-import-zone{border-color:#d0d7de;background:#f8fbff;color:#57606a}html[data-theme="light"] .note-import-zone.dragover{border-color:#54aeff;background:#e5f3ff}
+/* --- Chat --- */
+html[data-theme="light"] .chat-float{background:#ffffffe6;border-color:#d0d7de;box-shadow:0 12px 40px #1f232822}
+html[data-theme="light"] .chat-header{background:linear-gradient(135deg,#e5f3ff,#fbefff);border-color:#d0d7de;color:#1f2328}
+html[data-theme="light"] .chat-messages{background:#f6f8fa}
+html[data-theme="light"] .chat-msg{background:#fff;border-color:#d7e0ea}html[data-theme="light"] .chat-msg.self{background:#ddf4ff;border-color:#b6ddff}
+html[data-theme="light"] .chat-msg-name{color:#1f2328}html[data-theme="light"] .chat-msg-text{color:#1f2328}html[data-theme="light"] .chat-msg-time{color:#8c959f}
+html[data-theme="light"] .chat-system-msg{color:#57606a;background:#eaeef2}
+html[data-theme="light"] .chat-input-area{border-color:#d0d7de;background:#fff}
+html[data-theme="light"] .chat-input{background:#f6f8fa;border-color:#d0d7de;color:#1f2328}
+html[data-theme="light"] .chat-send-btn{background:#1f883d;color:#fff}
+html[data-theme="light"] .chat-minimized{background:#ffffffe6;border-color:#d0d7de;box-shadow:0 6px 20px #1f232822}
+html[data-theme="light"] .chat-badge{background:#cf222e}
 @media (max-width:600px){
   .modal-header{padding:14px 14px 0}
   .tab-bar{padding-left:14px}
@@ -289,6 +311,78 @@ html[data-theme="light"] .market-kicker{color:#0969da}html[data-theme="light"] .
   .stat-item{padding:8px 10px}
   .metric-option-list{grid-template-columns:1fr}
 }
+/* ====== Notes styles ====== */
+.notes-layout{display:flex;gap:16px;min-height:calc(100vh - 200px)}
+.note-sidebar{width:300px;flex:none;display:flex;flex-direction:column;gap:10px}
+.note-sidebar-head{display:flex;gap:8px;align-items:center}
+.note-search-input{flex:1;background:#21262d;border:1px solid #30363d;border-radius:6px;color:#e6edf3;padding:7px 10px;font-size:12px;outline:none}.note-search-input:focus{border-color:#58a6ff}.note-search-input::placeholder{color:#6e7681}
+.note-list{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:6px;max-height:calc(100vh - 280px);scrollbar-width:thin;scrollbar-color:#484f58 transparent}
+.note-card{padding:12px 14px;border:1px solid #30363d;border-radius:8px;background:#161b22;cursor:pointer;transition:border-color .15s,background .15s,transform .1s}
+.note-card:hover{border-color:#484f58;transform:translateY(-1px)}
+.note-card.active{border-color:#1f6feb;background:#1f3a5f22}
+.note-card-title{font-size:13px;font-weight:650;color:#e6edf3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.note-card-summary{margin-top:4px;font-size:11px;color:#8b949e;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;line-height:1.5}
+.note-card-time{margin-top:6px;font-size:10px;color:#6e7681}
+.note-main{flex:1;min-width:0;display:flex;flex-direction:column}
+.note-toolbar{display:flex;align-items:center;gap:8px;padding:8px 12px;border:1px solid #30363d;border-radius:8px 8px 0 0;background:#1c2128}
+.note-toolbar .refresh-btn{padding:5px 10px;font-size:11px}
+.note-title-input{width:100%;background:#161b22;border:1px solid #30363d;border-top:0;border-radius:0;color:#e6edf3;padding:10px 14px;font-size:15px;font-weight:600;outline:none}.note-title-input:focus{border-color:#58a6ff}.note-title-input::placeholder{color:#6e7681}
+.note-editor-wrap{flex:1;display:flex;border:1px solid #30363d;border-top:0;border-radius:0 0 8px 8px;overflow:hidden;min-height:400px}
+.note-editor-area{flex:1;background:#0d1117;color:#e6edf3;border:none;padding:14px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px;line-height:1.7;resize:none;outline:none;tab-size:2}
+.note-preview{flex:1;padding:14px 18px;overflow-y:auto;border-left:1px solid #30363d;background:#161b22;color:#e6edf3;font-size:13px;line-height:1.8}
+.note-preview h1{font-size:22px;margin:0 0 12px;padding-bottom:8px;border-bottom:1px solid #30363d}.note-preview h2{font-size:18px;margin:16px 0 8px;padding-bottom:6px;border-bottom:1px solid #30363d}.note-preview h3{font-size:15px;margin:14px 0 6px}
+.note-preview p{margin:0 0 10px}.note-preview code{background:#30363d;padding:2px 6px;border-radius:4px;font-family:ui-monospace,SFMono-Regular,monospace;font-size:12px}
+.note-preview pre{background:#0d1117;border:1px solid #30363d;border-radius:6px;padding:12px;overflow-x:auto;margin:8px 0}.note-preview pre code{background:none;padding:0}
+.note-preview ul,.note-preview ol{margin:0 0 10px;padding-left:24px}.note-preview li{margin:2px 0}
+.note-preview blockquote{margin:8px 0;padding:6px 14px;border-left:3px solid #1f6feb;background:#1f6feb0a;color:#8b949e}
+.note-preview a{color:#58a6ff}.note-preview strong{font-weight:700}.note-preview em{font-style:italic}
+.note-preview img{max-width:100%;border-radius:6px}
+.note-preview table{width:100%;border-collapse:collapse;margin:8px 0}.note-preview th,.note-preview td{padding:6px 10px;border:1px solid #30363d;text-align:left;font-size:12px}.note-preview th{background:#1c2128;font-weight:600}
+.note-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:60px;text-align:center;color:#6e7681}
+.note-empty-icon{font-size:48px;opacity:.5}
+.note-import-zone{border:2px dashed #30363d;border-radius:8px;padding:20px;text-align:center;color:#8b949e;font-size:12px;cursor:pointer;transition:border-color .15s,background .15s}
+.note-import-zone.dragover{border-color:#1f6feb;background:#1f6feb0a}
+.note-import-zone input{display:none}
+.note-view-toggle{display:flex;border:1px solid #30363d;border-radius:5px;overflow:hidden}
+.note-view-btn{background:#21262d;border:none;color:#8b949e;padding:4px 10px;font-size:11px;cursor:pointer}
+.note-view-btn.active{background:#1f3a5f;color:#79c0ff}
+@media (max-width:768px){.notes-layout{flex-direction:column}.note-sidebar{width:100%;max-height:200px}.note-list{max-height:140px}.note-editor-wrap{min-height:300px}}
+/* ====== Chat styles ====== */
+.chat-float{position:fixed;z-index:300;bottom:20px;right:20px;width:380px;height:520px;display:none;flex-direction:column;border:1px solid #30363d;border-radius:14px;background:#161b22e6;backdrop-filter:blur(18px);box-shadow:0 12px 40px #000a;overflow:hidden;transition:width .2s,height .2s;resize:both;min-width:300px;min-height:350px}
+.chat-float.open{display:flex;animation:chat-in .25s ease-out}
+@keyframes chat-in{from{opacity:0;transform:translateY(20px) scale(.95)}}
+.chat-header{display:flex;align-items:center;gap:8px;padding:12px 14px;background:linear-gradient(135deg,#1f6feb18,#8957e514);border-bottom:1px solid #30363d;flex:none;cursor:move;user-select:none}
+.chat-header-icon{font-size:18px}
+.chat-header-title{font-size:13px;font-weight:650;flex:1;color:#e6edf3}
+.chat-online{font-size:10px;color:#3fb950;display:flex;align-items:center;gap:4px}
+.chat-online::before{content:"";width:6px;height:6px;border-radius:50%;background:#3fb950;box-shadow:0 0 6px #3fb95088}
+.chat-header-btn{background:none;border:none;color:#8b949e;font-size:16px;cursor:pointer;padding:2px 4px;border-radius:4px;transition:color .15s,background .15s}
+.chat-header-btn:hover{color:#e6edf3;background:#30363d}
+.chat-messages{flex:1;overflow-y:auto;padding:10px 12px;display:flex;flex-direction:column;gap:6px;scrollbar-width:thin;scrollbar-color:#484f58 transparent}
+.chat-msg{display:flex;gap:8px;padding:8px 10px;border-radius:8px;background:#21262d;border:1px solid transparent;max-width:88%;animation:msg-in .2s ease-out}
+.chat-msg.self{margin-left:auto;background:#1f3a5f;border-color:#1f6feb44;flex-direction:row-reverse}
+@keyframes msg-in{from{opacity:0;transform:translateY(6px)}}
+.chat-msg-avatar{flex:none;width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#1f6feb,#8957e5);display:grid;place-items:center;color:#fff;font-size:10px;font-weight:700;overflow:hidden}
+.chat-msg-avatar img{width:100%;height:100%;object-fit:cover}
+.chat-msg-body{min-width:0;flex:1}
+.chat-msg-name{font-size:10px;font-weight:600;color:#c9d1d9;margin-bottom:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.chat-msg.self .chat-msg-name{text-align:right}
+.chat-msg-text{font-size:12px;color:#e6edf3;line-height:1.6;word-break:break-word}
+.chat-msg-time{font-size:9px;color:#6e7681;margin-top:3px}
+.chat-msg.self .chat-msg-time{text-align:right}
+.chat-system-msg{text-align:center;font-size:10px;color:#6e7681;padding:4px 12px;background:#21262d;border-radius:10px;align-self:center;max-width:80%}
+.chat-input-area{display:flex;gap:8px;padding:10px 12px;border-top:1px solid #30363d;background:#0d1117;flex:none}
+.chat-input{flex:1;background:#21262d;border:1px solid #30363d;border-radius:8px;color:#e6edf3;padding:8px 12px;font-size:12px;outline:none;resize:none;max-height:60px;font-family:inherit}
+.chat-input:focus{border-color:#58a6ff}
+.chat-input::placeholder{color:#6e7681}
+.chat-send-btn{flex:none;background:#238636;border:none;border-radius:8px;color:#fff;padding:8px 14px;font-size:12px;font-weight:600;cursor:pointer;transition:background .15s}
+.chat-send-btn:hover{background:#2ea043}
+.chat-send-btn:disabled{opacity:.4;cursor:not-allowed}
+.chat-minimized{position:fixed;z-index:300;bottom:20px;right:20px;display:none;align-items:center;justify-content:center;width:52px;height:52px;border-radius:50%;background:#161b22e6;backdrop-filter:blur(12px);border:1px solid #30363d;box-shadow:0 6px 20px #0008;cursor:pointer;font-size:22px;transition:transform .15s,box-shadow .15s}
+.chat-minimized.visible{display:flex;animation:chat-in .25s ease-out}
+.chat-minimized:hover{transform:scale(1.08);box-shadow:0 8px 25px #0009}
+.chat-badge{position:absolute;top:-2px;right:-2px;min-width:16px;height:16px;border-radius:8px;background:#f85149;color:#fff;font-size:9px;font-weight:700;display:none;align-items:center;justify-content:center;padding:0 4px}
+.chat-badge.visible{display:flex}
 </style>
 </head>
 <body>
@@ -299,6 +393,8 @@ html[data-theme="light"] .market-kicker{color:#0969da}html[data-theme="light"] .
     <button class="app-tab" data-page="ipo" onclick="switchAppPage('ipo')">🗓 打新消息<span class="app-tab-badge" id="ipo-badge">--</span></button>
     <button class="app-tab" data-page="alerts" onclick="switchAppPage('alerts')">⚡ 自选异动<span class="app-tab-badge" id="alert-badge">0</span></button>
     <a class="app-tab" href="/reference.html">📚 参考文档</a>
+    <button class="app-tab" data-page="notes" onclick="switchAppPage('notes')">📝 笔记</button>
+    <button class="app-tab" id="chat-entry-btn" onclick="openChatRoom()" style="width:auto;padding:8px 14px">💬 聊天室</button>
     <label class="theme-setting" for="theme-select"><span>主题</span><select class="refresh-interval-select" id="theme-select" onchange="setThemePreference(this.value)"><option value="light">浅色</option><option value="dark">深色</option><option value="system">跟随系统</option></select></label>
     <div class="account-area" id="account-area">
       <button class="account-trigger" id="account-trigger" type="button" onclick="toggleAccountMenu(event)" aria-haspopup="menu" aria-expanded="false">
@@ -386,6 +482,24 @@ html[data-theme="light"] .market-kicker{color:#0969da}html[data-theme="light"] .
   <div class="module-head"><div><div class="market-kicker">Watchlist Signals</div><h2 class="module-title">自选股异动消息</h2><p class="module-desc">监控全部分组，识别大幅涨跌、快速拉升/跳水和临近涨跌停</p></div><div class="module-actions"><button class="refresh-btn" onclick="clearAnomalyEvents()">清空消息</button><button class="refresh-btn" onclick="fetchAnomalyQuotes()">立即扫描</button></div></div>
   <div class="metric-grid"><div class="metric-card"><div class="metric-label">监控股票</div><div class="metric-value" id="alert-stock-count">0</div><div class="metric-note">已自动去重</div></div><div class="metric-card"><div class="metric-label">今日异动</div><div class="metric-value" id="alert-event-count">0</div><div class="metric-note">仅保存在当前浏览器</div></div><div class="metric-card"><div class="metric-label">监控状态</div><div class="metric-value" style="font-size:15px;margin-top:10px"><span class="live-dot"></span><span id="alert-live-status">等待扫描</span></div><div class="metric-note">随自选刷新频率更新</div></div></div>
   <div class="module-panel"><div class="panel-toolbar"><button class="filter-chip active" data-alert-filter="all" onclick="setAlertFilter('all')">全部</button><button class="filter-chip" data-alert-filter="up" onclick="setAlertFilter('up')">上涨异动</button><button class="filter-chip" data-alert-filter="down" onclick="setAlertFilter('down')">下跌异动</button><span class="panel-status">仅供行情观察，不构成投资建议</span></div><div class="alert-list" id="alert-list"><div class="alert-empty">正在等待第一轮行情扫描…</div></div></div>
+</section>
+
+<section class="app-page" id="page-notes">
+  <div class="module-head"><div><div class="market-kicker">Personal Notes</div><h2 class="module-title">我的笔记</h2><p class="module-desc">Markdown 格式笔记，支持实时预览和文档导入</p></div><div class="module-actions"><div class="note-import-zone" id="note-import-zone" onclick="document.getElementById('note-import-input').click()" ondragover="event.preventDefault();this.classList.add('dragover')" ondragleave="this.classList.remove('dragover')" ondrop="handleNoteFileDrop(event)">📄 拖拽 .md/.txt 文件到此处导入<input type="file" id="note-import-input" accept=".md,.txt,.markdown" onchange="handleNoteFileSelect(event)"></div><button class="refresh-btn" onclick="createNewNote()">✏ 新建笔记</button></div></div>
+  <div class="notes-layout" id="notes-layout">
+    <div class="note-sidebar">
+      <div class="note-sidebar-head"><input class="note-search-input" id="note-search" type="text" placeholder="搜索笔记..." oninput="filterNotes(this.value)"></div>
+      <div class="note-list" id="note-list"><div class="note-empty"><div class="note-empty-icon">📝</div><div>请先登录以使用笔记功能</div></div></div>
+    </div>
+    <div class="note-main" id="note-main">
+      <div class="note-empty" id="note-placeholder"><div class="note-empty-icon">📄</div><div>选择左侧笔记或新建一篇</div></div>
+      <div id="note-editor" style="display:none;flex:1;flex-direction:column">
+        <div class="note-toolbar"><button class="refresh-btn" onclick="saveCurrentNote()" id="note-save-btn">💾 保存</button><button class="refresh-btn" onclick="deleteCurrentNote()">🗑 删除</button><div style="margin-left:auto"><div class="note-view-toggle"><button class="note-view-btn active" onclick="setNoteView('split')" data-view="split">分栏</button><button class="note-view-btn" onclick="setNoteView('edit')" data-view="edit">编辑</button><button class="note-view-btn" onclick="setNoteView('preview')" data-view="preview">预览</button></div></div><span id="note-status" style="font-size:10px;color:#6e7681"></span></div>
+        <input class="note-title-input" id="note-title" placeholder="笔记标题..." maxlength="200">
+        <div class="note-editor-wrap" id="note-editor-wrap"><textarea class="note-editor-area" id="note-content" placeholder="在此编写 Markdown 内容..."></textarea><div class="note-preview" id="note-preview"></div></div>
+      </div>
+    </div>
+  </div>
 </section>
 </div>
 
@@ -2473,12 +2587,13 @@ let ipoFilter = 'all';
 let ipoRequestPending = false;
 
 function switchAppPage(page) {
-  if (!['market','ipo','alerts'].includes(page)) return;
+  if (!['market','ipo','alerts','notes'].includes(page)) return;
   activeAppPage = page; localStorage.setItem(APP_PAGE_STORAGE_KEY, page);
   document.querySelectorAll('.app-tab').forEach(tab => tab.classList.toggle('active', tab.dataset.page === page));
   document.querySelectorAll('.app-page').forEach(section => section.classList.toggle('active', section.id === `page-${page}`));
   if (page === 'ipo' && !ipoRows.length) fetchIpos();
   if (page === 'alerts') { renderAnomalyEvents(); fetchAnomalyQuotes(); }
+  if (page === 'notes') { loadNotesList(); }
 }
 
 function dateKey(value) { return value ? String(value).slice(0,10) : ''; }
@@ -2765,6 +2880,8 @@ function renderAccountArea() {
   const avatar = document.getElementById('account-trigger-avatar');
   const label = document.getElementById('account-trigger-label');
   const menu = document.getElementById('account-menu');
+  const chatButton = document.getElementById('chat-entry-btn');
+  chatButton.title = currentUser ? '进入聊天室' : '登录后进入聊天室';
   if (!currentUser) {
     avatar.innerHTML = '人';
     label.textContent = '登录 / 注册';
@@ -2946,6 +3063,8 @@ function startAccountConfigSync() {
 async function logoutAccount() {
   closeAccountMenu();
   try {
+    closeChatRoom();
+    await flushPendingNoteSave();
     await syncAccountPreferences(true);
     await apiRequest('/api/auth/logout', { method:'POST', body:'{}' });
     restoreGuestConfigBackup();
@@ -3024,6 +3143,559 @@ function openFloatWindow() {
     'width=500,height=400,left=100,top=100,resizable=yes,scrollbars=no'
   );
 }
+
+// ============================================================
+// Notes Module
+// ============================================================
+let notesList = [];
+let currentNoteId = null;
+let noteSearchQuery = '';
+let noteViewMode = 'split';
+let noteSaveTimer = null;
+let pendingNoteDraft = null;
+let noteSaveQueue = Promise.resolve();
+let notesLoaded = false;
+
+function safeMarkdownUrl(value, image = false) {
+  const url = String(value || '').trim();
+  const compact = url.replace(/[\u0000-\u0020\u007f]+/g, '');
+  if (/^https?:\/\//i.test(compact) || /^\/(?!\/)/.test(compact) || /^\.\.?\//.test(compact)) return url;
+  if (!image && (/^mailto:/i.test(compact) || compact.startsWith('#'))) return url;
+  return image ? '' : '#';
+}
+
+function renderMarkdown(md) {
+  // Escape the complete source first. Only the Markdown tags generated below can
+  // become HTML, so imported documents cannot inject scripts or event handlers.
+  let html = escapeHtml(String(md || ''));
+  // Code blocks
+  html = html.replace(/```(\w*)\n([\s\S]*?)```/g, (_, lang, code) =>
+    `<pre><code class="lang-${lang}">${code}</code></pre>`);
+  // Inline code
+  html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
+  // Headers
+  html = html.replace(/^### (.+)$/gm, '<h3>$1</h3>');
+  html = html.replace(/^## (.+)$/gm, '<h2>$1</h2>');
+  html = html.replace(/^# (.+)$/gm, '<h1>$1</h1>');
+  // Bold & italic
+  html = html.replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>');
+  html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
+  // Strikethrough
+  html = html.replace(/~~(.+?)~~/g, '<del>$1</del>');
+  // Images
+  html = html.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (_, alt, url) => {
+    const safeUrl = safeMarkdownUrl(url, true);
+    return safeUrl ? `<img src="${safeUrl}" alt="${alt}">` : alt;
+  });
+  // Links
+  html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_, label, url) =>
+    `<a href="${safeMarkdownUrl(url)}" target="_blank" rel="noopener noreferrer">${label}</a>`);
+  // Blockquotes
+  html = html.replace(/^> (.+)$/gm, '<blockquote>$1</blockquote>');
+  // Horizontal rules
+  html = html.replace(/^---+$/gm, '<hr>');
+  // Tables
+  html = html.replace(/^(\|.+\|)\n(\|[\s:|-]+\|)\n((?:\|.+\|\n?)+)/gm, (_, header, sep, body) => {
+    const headers = header.split('|').filter(c => c.trim()).map(c => `<th>${c.trim()}</th>`).join('');
+    const rows = body.trim().split('\n').map(row => {
+      const cells = row.split('|').filter(c => c.trim()).map(c => `<td>${c.trim()}</td>`).join('');
+      return `<tr>${cells}</tr>`;
+    }).join('');
+    return `<table><thead><tr>${headers}</tr></thead><tbody>${rows}</tbody></table>`;
+  });
+  // Unordered lists
+  html = html.replace(/^(?:- (.+)(?:\n|$))+/gm, m => {
+    const items = m.trim().split('\n').map(l => `<li>${l.replace(/^- /,'')}</li>`).join('');
+    return `<ul>${items}</ul>`;
+  });
+  // Ordered lists
+  html = html.replace(/^(?:\d+\. (.+)(?:\n|$))+/gm, m => {
+    const items = m.trim().split('\n').map(l => `<li>${l.replace(/^\d+\. /,'')}</li>`).join('');
+    return `<ol>${items}</ol>`;
+  });
+  // Paragraphs
+  html = html.replace(/^(?!<[a-z])((?!<).+)$/gm, '<p>$1</p>');
+  // Clean up empty paragraphs
+  html = html.replace(/<p>\s*<\/p>/g, '');
+  return html;
+}
+
+function updateNotePreview() {
+  const content = document.getElementById('note-content').value;
+  document.getElementById('note-preview').innerHTML = renderMarkdown(content);
+}
+
+function setNoteView(mode) {
+  noteViewMode = mode;
+  const wrap = document.getElementById('note-editor-wrap');
+  const editor = wrap.querySelector('.note-editor-area');
+  const preview = wrap.querySelector('.note-preview');
+  document.querySelectorAll('.note-view-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.view === mode));
+  editor.style.display = mode === 'preview' ? 'none' : '';
+  preview.style.display = mode === 'edit' ? 'none' : '';
+  if (mode !== 'edit') updateNotePreview();
+}
+
+async function loadNotesList() {
+  if (!currentUser) {
+    document.getElementById('note-list').innerHTML = '<div class="note-empty"><div class="note-empty-icon">📝</div><div>请先登录以使用笔记功能</div></div>';
+    return;
+  }
+  try {
+    const resp = await apiRequest('/api/notes', { method:'GET', headers:{} });
+    notesList = resp.notes || [];
+    notesLoaded = true;
+    renderNoteList();
+  } catch (error) {
+    document.getElementById('note-list').innerHTML = `<div class="note-empty"><div>加载失败：${escapeHtml(error.message)}</div></div>`;
+  }
+}
+
+function renderNoteList() {
+  const container = document.getElementById('note-list');
+  const query = noteSearchQuery.toLowerCase();
+  const filtered = notesList.filter(n =>
+    !query || n.title.toLowerCase().includes(query) || (n.summary || '').toLowerCase().includes(query)
+  );
+  if (!filtered.length) {
+    container.innerHTML = notesList.length
+      ? '<div class="note-empty"><div>没有匹配的笔记</div></div>'
+      : '<div class="note-empty"><div class="note-empty-icon">📝</div><div>还没有笔记，点击新建一篇</div></div>';
+    return;
+  }
+  container.innerHTML = filtered.map(n => {
+    const time = n.updated_at ? new Date(n.updated_at).toLocaleString('zh-CN', {month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}) : '';
+    return `<div class="note-card${n.id == currentNoteId ? ' active' : ''}" onclick="openNote(${n.id})">
+      <div class="note-card-title">${escapeHtml(n.title || '无标题')}</div>
+      <div class="note-card-summary">${escapeHtml(n.summary || '')}</div>
+      <div class="note-card-time">${time}</div>
+    </div>`;
+  }).join('');
+}
+
+function filterNotes(query) {
+  noteSearchQuery = query;
+  renderNoteList();
+}
+
+async function openNote(noteId) {
+  if (!currentUser) return;
+  try {
+    await flushPendingNoteSave();
+    const resp = await apiRequest(`/api/notes/${noteId}`, { method:'GET', headers:{} });
+    const note = resp.note;
+    currentNoteId = note.id;
+    document.getElementById('note-title').value = note.title || '';
+    document.getElementById('note-content').value = note.content || '';
+    document.getElementById('note-placeholder').style.display = 'none';
+    document.getElementById('note-editor').style.display = 'flex';
+    document.getElementById('note-status').textContent = '';
+    updateNotePreview();
+    renderNoteList();
+  } catch (error) {
+    showToast('打开笔记失败：' + error.message, true);
+  }
+}
+
+async function createNewNote() {
+  if (!currentUser) { openAuthModal(); return; }
+  try {
+    await flushPendingNoteSave();
+    const resp = await apiRequest('/api/notes', {
+      method:'POST',
+      body: JSON.stringify({ title:'', content:'' }),
+    });
+    const note = resp.note;
+    currentNoteId = note.id;
+    document.getElementById('note-title').value = '';
+    document.getElementById('note-content').value = '';
+    document.getElementById('note-placeholder').style.display = 'none';
+    document.getElementById('note-editor').style.display = 'flex';
+    document.getElementById('note-status').textContent = '已创建';
+    document.getElementById('note-title').focus();
+    updateNotePreview();
+    await loadNotesList();
+  } catch (error) {
+    showToast('新建笔记失败：' + error.message, true);
+  }
+}
+
+function captureCurrentNoteDraft() {
+  if (!currentNoteId) return null;
+  return {
+    noteId: currentNoteId,
+    title: document.getElementById('note-title').value.trim(),
+    content: document.getElementById('note-content').value,
+  };
+}
+
+function persistNoteDraft(draft) {
+  if (!draft) return Promise.resolve(true);
+  const operation = noteSaveQueue.catch(() => {}).then(async () => {
+    await apiRequest(`/api/notes/${draft.noteId}`, {
+      method:'PUT',
+      body: JSON.stringify({ title:draft.title, content:draft.content }),
+    });
+    if (currentNoteId == draft.noteId && !pendingNoteDraft) {
+      document.getElementById('note-status').textContent = '已保存';
+      setTimeout(() => { if (document.getElementById('note-status').textContent === '已保存') document.getElementById('note-status').textContent = ''; }, 2000);
+    }
+    await loadNotesList();
+    return true;
+  }).catch(error => {
+    if (currentNoteId == draft.noteId) document.getElementById('note-status').textContent = '保存失败';
+    showToast('保存笔记失败：' + error.message, true);
+    return false;
+  });
+  noteSaveQueue = operation;
+  return operation;
+}
+
+async function flushPendingNoteSave() {
+  if (noteSaveTimer) clearTimeout(noteSaveTimer);
+  noteSaveTimer = null;
+  const draft = pendingNoteDraft;
+  pendingNoteDraft = null;
+  if (draft) await persistNoteDraft(draft);
+  else await noteSaveQueue;
+}
+
+async function saveCurrentNote() {
+  if (noteSaveTimer) clearTimeout(noteSaveTimer);
+  noteSaveTimer = null;
+  const draft = captureCurrentNoteDraft();
+  pendingNoteDraft = null;
+  await persistNoteDraft(draft);
+}
+
+function scheduleNoteAutoSave() {
+  if (noteSaveTimer) clearTimeout(noteSaveTimer);
+  const draft = captureCurrentNoteDraft();
+  if (!draft) return;
+  pendingNoteDraft = draft;
+  document.getElementById('note-status').textContent = '未保存';
+  noteSaveTimer = setTimeout(() => {
+    noteSaveTimer = null;
+    if (pendingNoteDraft === draft) pendingNoteDraft = null;
+    persistNoteDraft(draft);
+  }, 3000);
+}
+
+async function deleteCurrentNote() {
+  if (!currentNoteId) return;
+  if (!confirm('确认删除此笔记？')) return;
+  try {
+    if (noteSaveTimer) clearTimeout(noteSaveTimer);
+    noteSaveTimer = null;
+    pendingNoteDraft = null;
+    await noteSaveQueue;
+    await apiRequest(`/api/notes/${currentNoteId}`, { method:'DELETE', body:'{}' });
+    currentNoteId = null;
+    document.getElementById('note-placeholder').style.display = '';
+    document.getElementById('note-editor').style.display = 'none';
+    await loadNotesList();
+    showToast('笔记已删除');
+  } catch (error) {
+    showToast('删除笔记失败：' + error.message, true);
+  }
+}
+
+async function importNoteFile(file) {
+  if (!currentUser) { openAuthModal(); return; }
+  try {
+    if (file.size > 1024 * 1024) throw new Error('文档超过 1MB 限制');
+    const text = await file.text();
+    const title = file.name.replace(/\.(md|txt|markdown)$/i, '');
+    const resp = await apiRequest('/api/notes/import', {
+      method:'POST',
+      body: JSON.stringify({ title, content: text }),
+    });
+    showToast(`已导入：${title}`);
+    await loadNotesList();
+    await openNote(resp.note.id);
+  } catch (error) {
+    showToast('导入失败：' + error.message, true);
+  }
+}
+
+function handleNoteFileSelect(event) {
+  const file = event.target.files[0];
+  if (file) importNoteFile(file);
+  event.target.value = '';
+}
+
+function handleNoteFileDrop(event) {
+  event.preventDefault();
+  event.currentTarget.classList.remove('dragover');
+  const file = event.dataTransfer.files[0];
+  if (file && /\.(md|txt|markdown)$/i.test(file.name)) {
+    importNoteFile(file);
+  } else {
+    showToast('请拖入 .md 或 .txt 文件', true);
+  }
+}
+
+// Auto-save on content changes
+document.getElementById('note-content').addEventListener('input', () => {
+  updateNotePreview();
+  scheduleNoteAutoSave();
+});
+document.getElementById('note-title').addEventListener('input', () => {
+  scheduleNoteAutoSave();
+});
+
+// ============================================================
+// Chat Room Module
+// ============================================================
+let chatState = {
+  open: false,
+  minimized: false,
+  eventSource: null,
+  clientId: null,
+  displayName: null,
+  avatarUrl: null,
+  userId: null,
+  unread: 0,
+  connected: false,
+};
+
+async function openChatRoom() {
+  if (!currentUser) {
+    showToast('请先登录后进入聊天室', true);
+    openAuthModal('login');
+    return;
+  }
+  if (chatState.open) {
+    if (chatState.minimized) restoreChatRoom();
+    return;
+  }
+  chatState.open = true;
+  chatState.minimized = false;
+  chatState.unread = 0;
+  updateChatBadge();
+
+  // Create chat float HTML if not exists
+  if (!document.getElementById('chat-float')) {
+    const chatHtml = `
+    <div class="chat-float" id="chat-float">
+      <div class="chat-header" id="chat-header">
+        <span class="chat-header-icon">💬</span>
+        <span class="chat-header-title">聊天室</span>
+        <span class="chat-online" id="chat-online">0 在线</span>
+        <button class="chat-header-btn" onclick="minimizeChatRoom()" title="最小化">—</button>
+        <button class="chat-header-btn" onclick="closeChatRoom()" title="关闭">✕</button>
+      </div>
+      <div class="chat-messages" id="chat-messages"></div>
+      <div class="chat-input-area">
+        <textarea class="chat-input" id="chat-input" placeholder="输入消息…" rows="1" maxlength="500"></textarea>
+        <button class="chat-send-btn" id="chat-send-btn" onclick="sendChatMessage()">发送</button>
+      </div>
+    </div>
+    <div class="chat-minimized" id="chat-minimized" onclick="restoreChatRoom()">
+      💬<span class="chat-badge" id="chat-badge"></span>
+    </div>`;
+    document.body.insertAdjacentHTML('beforeend', chatHtml);
+
+    // Chat input enter to send
+    document.getElementById('chat-input').addEventListener('keydown', e => {
+      if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendChatMessage(); }
+    });
+
+    // Drag support
+    initChatDrag();
+  }
+
+  document.getElementById('chat-float').classList.add('open');
+  document.getElementById('chat-minimized').classList.remove('visible');
+  await loadChatHistory();
+  if (chatState.open) connectChatSSE();
+}
+
+function closeChatRoom() {
+  chatState.open = false;
+  chatState.minimized = false;
+  if (chatState.eventSource) { chatState.eventSource.close(); chatState.eventSource = null; }
+  chatState.connected = false;
+  chatState.unread = 0;
+  updateChatBadge();
+  const el = document.getElementById('chat-float');
+  if (el) el.classList.remove('open');
+  const min = document.getElementById('chat-minimized');
+  if (min) min.classList.remove('visible');
+}
+
+function minimizeChatRoom() {
+  chatState.minimized = true;
+  chatState.unread = 0;
+  updateChatBadge();
+  document.getElementById('chat-float').classList.remove('open');
+  document.getElementById('chat-minimized').classList.add('visible');
+}
+
+function restoreChatRoom() {
+  chatState.minimized = false;
+  chatState.unread = 0;
+  updateChatBadge();
+  document.getElementById('chat-float').classList.add('open');
+  document.getElementById('chat-minimized').classList.remove('visible');
+  scrollChatToBottom();
+}
+
+function updateChatBadge() {
+  const badge = document.getElementById('chat-badge');
+  if (!badge) return;
+  badge.textContent = chatState.unread > 0 ? String(chatState.unread) : '';
+  badge.classList.toggle('visible', chatState.unread > 0);
+}
+
+function connectChatSSE() {
+  if (chatState.eventSource) { chatState.eventSource.close(); }
+  const es = new EventSource('/api/chat/stream');
+  chatState.eventSource = es;
+
+  es.addEventListener('connected', e => {
+    const data = JSON.parse(e.data);
+    chatState.clientId = data.clientId;
+    chatState.displayName = data.displayName;
+    chatState.avatarUrl = data.avatarUrl;
+    chatState.userId = data.userId;
+    chatState.connected = true;
+    updateChatOnline(data.online);
+  });
+
+  es.addEventListener('message', e => {
+    const msg = JSON.parse(e.data);
+    appendChatMessage(msg);
+    if (chatState.minimized) {
+      chatState.unread++;
+      updateChatBadge();
+    }
+  });
+
+  es.addEventListener('system', e => {
+    const data = JSON.parse(e.data);
+    appendChatSystemMessage(data.text);
+  });
+
+  es.addEventListener('online', e => {
+    const data = JSON.parse(e.data);
+    updateChatOnline(data.count);
+  });
+
+  es.onerror = () => {
+    chatState.connected = false;
+    // EventSource performs its own bounded reconnect sequence.
+  };
+}
+
+async function loadChatHistory() {
+  try {
+    const data = await apiRequest('/api/chat/history', { method:'GET', headers:{} });
+    const container = document.getElementById('chat-messages');
+    if (container) container.innerHTML = '';
+    (data.messages || []).forEach(msg => appendChatMessage(msg, false));
+    updateChatOnline(data.online || 0);
+    scrollChatToBottom();
+  } catch (error) {
+    showToast('聊天室加载失败：' + error.message, true);
+    closeChatRoom();
+  }
+}
+
+function updateChatOnline(count) {
+  const el = document.getElementById('chat-online');
+  if (el) el.textContent = `${count} 在线`;
+}
+
+function appendChatMessage(msg, scroll = true) {
+  const container = document.getElementById('chat-messages');
+  if (!container) return;
+  const isSelf = chatState.userId ? msg.userId === chatState.userId : msg.displayName === chatState.displayName;
+  const time = new Date(msg.time).toLocaleTimeString('zh-CN', { hour:'2-digit', minute:'2-digit' });
+  const avatarContent = msg.avatarUrl
+    ? `<img src="${escapeHtml(msg.avatarUrl)}" alt="">`
+    : escapeHtml((msg.displayName || '?').slice(0, 1));
+  const div = document.createElement('div');
+  div.className = `chat-msg${isSelf ? ' self' : ''}`;
+  div.innerHTML = `
+    <div class="chat-msg-avatar">${avatarContent}</div>
+    <div class="chat-msg-body">
+      <div class="chat-msg-name">${escapeHtml(msg.displayName || '匿名')}${msg.isGuest ? ' <span style="opacity:.5">(游客)</span>' : ''}</div>
+      <div class="chat-msg-text">${escapeHtml(msg.text)}</div>
+      <div class="chat-msg-time">${time}</div>
+    </div>`;
+  container.appendChild(div);
+  if (scroll) scrollChatToBottom();
+}
+
+function appendChatSystemMessage(text) {
+  const container = document.getElementById('chat-messages');
+  if (!container) return;
+  const div = document.createElement('div');
+  div.className = 'chat-system-msg';
+  div.textContent = text;
+  container.appendChild(div);
+  scrollChatToBottom();
+}
+
+function scrollChatToBottom() {
+  const container = document.getElementById('chat-messages');
+  if (container) requestAnimationFrame(() => container.scrollTop = container.scrollHeight);
+}
+
+async function sendChatMessage() {
+  const input = document.getElementById('chat-input');
+  const text = input.value.trim();
+  if (!text || !chatState.connected) return;
+  const button = document.getElementById('chat-send-btn');
+  button.disabled = true;
+  try {
+    await apiRequest('/api/chat/send', {
+      method:'POST',
+      body: JSON.stringify({ text }),
+    });
+    input.value = '';
+  } catch (error) {
+    showToast('发送消息失败：' + error.message, true);
+  } finally {
+    button.disabled = false;
+    input.focus();
+  }
+}
+
+function initChatDrag() {
+  const header = document.getElementById('chat-header');
+  const float = document.getElementById('chat-float');
+  if (!header || !float) return;
+  let dragging = false, startX, startY, startLeft, startTop;
+
+  header.addEventListener('mousedown', e => {
+    if (e.target.closest('.chat-header-btn')) return;
+    dragging = true;
+    const rect = float.getBoundingClientRect();
+    startX = e.clientX; startY = e.clientY;
+    startLeft = rect.left; startTop = rect.top;
+    float.style.transition = 'none';
+    e.preventDefault();
+  });
+
+  document.addEventListener('mousemove', e => {
+    if (!dragging) return;
+    const dx = e.clientX - startX, dy = e.clientY - startY;
+    const newLeft = Math.max(0, Math.min(window.innerWidth - 100, startLeft + dx));
+    const newTop = Math.max(0, Math.min(window.innerHeight - 100, startTop + dy));
+    float.style.left = newLeft + 'px';
+    float.style.top = newTop + 'px';
+    float.style.right = 'auto';
+    float.style.bottom = 'auto';
+  });
+
+  document.addEventListener('mouseup', () => {
+    if (dragging) { dragging = false; float.style.transition = ''; }
+  });
+}
+
 </script>
 </body>
 </html>

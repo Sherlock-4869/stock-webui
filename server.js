@@ -4,6 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const { createWechatService } = require('./wechat/service');
 const { createAccountService } = require('./account/service');
+const { createChatService } = require('./chat/chat');
 
 const PORT = 3000;
 const PUBLIC_DIR = path.join(__dirname, 'public');
@@ -590,6 +591,7 @@ function oneYearAgoDate() {
 
 const wechatService = createWechatService({ loadIpoCalendar });
 const accountService = createAccountService();
+const chatService = createChatService();
 
 const server = http.createServer(async (req, res) => {
   const urlObj = new URL(req.url, `http://localhost:${PORT}`);
@@ -615,6 +617,28 @@ const server = http.createServer(async (req, res) => {
     }
     if (!res.writableEnded) res.end(JSON.stringify({ error:'微信服务处理失败' }));
     return;
+  }
+
+  // Chat routes - resolve session user for context
+  if (urlObj.pathname.startsWith('/api/chat')) {
+    let sessionUser = null;
+    try {
+      const session = await accountService.sessionFromRequest(req);
+      sessionUser = session?.user || null;
+    } catch (_) {}
+    try {
+      if (await chatService.handleRoute(req, res, urlObj, sessionUser)) return;
+    } catch (error) {
+      console.error('Chat request error:', error.message);
+      const status = error.statusCode || 500;
+      if (!res.headersSent) {
+        res.writeHead(status, { 'Content-Type':'application/json; charset=utf-8', 'Cache-Control':'no-store' });
+      }
+      if (!res.writableEnded) {
+        res.end(JSON.stringify({ error:status >= 500 ? '聊天服务处理失败' : error.message }));
+      }
+      return;
+    }
   }
 
   if (pathname === '/api/quote') {
@@ -737,6 +761,7 @@ function shutdown(signal) {
   shuttingDown = true;
   console.log(`Received ${signal}, shutting down...`);
   server.close(async () => {
+    chatService.close();
     const results = await Promise.allSettled([accountService.close(), wechatService.close()]);
     if (results[0].status === 'rejected') console.error('Account shutdown error:', results[0].reason.message);
     if (results[1].status === 'rejected') console.error('WeChat shutdown error:', results[1].reason.message);

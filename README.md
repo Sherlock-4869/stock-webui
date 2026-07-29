@@ -7,6 +7,8 @@
 - 浏览自选股、全球指数、K 线和打新日历。
 - 支持账号密码注册/登录、微信开放平台扫码登录及安全会话。
 - 登录后按账号同步自选股、分组、主题、指标等页面配置。
+- 登录账号可以创建、编辑、删除、搜索和导入 Markdown 笔记。
+- 登录账号可以进入支持实时消息、缩放和未读数字提示的网页聊天室；游客不可访问。
 - 通过 `https://stock.sherlock-holmes.cn/?page=ipo` 直接打开打新页面。
 - 接收公众号关注、取消关注、文本消息和自定义菜单事件。
 - 每周一 `09:00` 按上海时区汇总本周可申购新股。
@@ -113,6 +115,20 @@ CREATE TABLE IF NOT EXISTS user_oauth_states (
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (state_hash),
   KEY idx_user_oauth_states_expires (expires_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS user_notes (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  user_id BIGINT UNSIGNED NOT NULL,
+  title VARCHAR(200) NOT NULL DEFAULT '',
+  content MEDIUMTEXT NOT NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  KEY idx_user_notes_user (user_id),
+  KEY idx_user_notes_updated (user_id, updated_at),
+  CONSTRAINT fk_user_notes_user
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 ```
 
@@ -231,7 +247,8 @@ database/wechat_schema.sql      微信推送建表 SQL
 account/config.js               账号、会话、微信登录配置
 account/security.js             密码哈希、令牌与页面配置白名单
 account/database.js             MySQL/测试内存数据访问与自动建表
-account/service.js              注册、登录、配置同步和微信 OAuth 路由
+account/service.js              注册、登录、配置同步、笔记和微信 OAuth 路由
+chat/chat.js                    仅登录账号可用的 SSE 实时聊天室
 wechat/config.js                配置读取和校验
 wechat/client.js                access_token、客服消息和自定义菜单 API
 wechat/database.js              MySQL 数据访问和自动建表
@@ -239,14 +256,15 @@ wechat/service.js               回调、内部接口、调度和发送流程
 wechat/weekly-ipo.js            本周日期及打新汇总
 wechat/xml.js                   微信 XML 消息解析和回复
 test/wechat.test.js             核心逻辑测试
-test/account.test.js            账号与配置归属流程测试
+test/account.test.js            账号、配置与笔记归属流程测试
+test/chat.test.js               聊天登录、身份、限流和连接测试
 ```
 
 现有文件的调整：
 
-- `server.js` 增加账号和微信路由，并在服务启动后启动两个模块。
+- `server.js` 增加账号、聊天室和微信路由，并在服务启动后启动相关模块。
 - `run.sh` 启动时自动读取项目 `.env`，不会修改系统全局环境变量。
-- `public/index.html` 支持通过 `?page=ipo` 直接打开打新页面。
+- `public/index.html` 提供行情、打新、异动、账号笔记和浮动聊天室界面。
 - `.gitignore` 排除 `.env`、`node_modules` 和运行日志。
 
 ## 3. 完整逻辑流程

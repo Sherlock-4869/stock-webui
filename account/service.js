@@ -24,6 +24,9 @@ function sendJson(res, status, payload, headers = {}) {
   res.end(JSON.stringify(payload));
 }
 
+const MAX_NOTE_BYTES = 1024 * 1024;
+const MAX_NOTES_PER_USER = 200;
+
 function sendHtml(res, status, html, headers = {}) {
   res.writeHead(status, {
     'Content-Type': 'text/html; charset=utf-8',
@@ -247,7 +250,7 @@ class AccountService {
 
   async handleRoute(req, res, urlObject) {
     const pathname = urlObject.pathname;
-    if (!pathname.startsWith('/api/auth/')) return false;
+    if (!pathname.startsWith('/api/auth/') && !pathname.startsWith('/api/notes')) return false;
 
     try {
       if (pathname === '/api/auth/me' && req.method === 'GET') {
@@ -440,6 +443,89 @@ class AccountService {
         const login = await this.createLogin(user, req);
         sendHtml(res, 200, callbackPage({ ok: true }, savedState.return_to), { 'Set-Cookie': login.cookie });
         return true;
+      }
+
+      // ---- Notes routes ----
+      const notesMatch = pathname.match(/^\/api\/notes(?:\/(\d+))?$/);
+      const isNotesImport = pathname === '/api/notes/import';
+
+      if (notesMatch || isNotesImport) {
+        if (!this.config.enabled || !this.ready) {
+          sendJson(res, 503, { error: '账号服务尚未启用' });
+          return true;
+        }
+        assertSameOrigin(req);
+        const session = await this.requireUser(req);
+        const userId = session.user.id;
+        const noteId = notesMatch ? notesMatch[1] : null;
+
+        if (isNotesImport && req.method === 'POST') {
+          const body = await readJson(req, MAX_NOTE_BYTES + 1024);
+          const title = String(body.title || '').trim().slice(0, 200) || '导入的笔记';
+          const content = String(body.content || '');
+          if (Buffer.byteLength(content, 'utf8') > MAX_NOTE_BYTES) {
+            throw Object.assign(new Error('笔记内容超过 1MB 限制'), { statusCode: 413 });
+          }
+          const existing = await this.database.listNotes(userId);
+          if (existing.length >= MAX_NOTES_PER_USER) {
+            throw Object.assign(new Error(`笔记数量已达上限（${MAX_NOTES_PER_USER}条）`), { statusCode: 400 });
+          }
+          const note = await this.database.createNote(userId, { title, content });
+          sendJson(res, 201, { note });
+          return true;
+        }
+
+        if (!noteId && req.method === 'GET') {
+          const notes = await this.database.listNotes(userId);
+          sendJson(res, 200, { notes });
+          return true;
+        }
+
+        if (!noteId && req.method === 'POST') {
+          const existing = await this.database.listNotes(userId);
+          if (existing.length >= MAX_NOTES_PER_USER) {
+            throw Object.assign(new Error(`笔记数量已达上限（${MAX_NOTES_PER_USER}条）`), { statusCode: 400 });
+          }
+          const body = await readJson(req, MAX_NOTE_BYTES + 1024);
+          const title = String(body.title || '').trim().slice(0, 200);
+          const content = String(body.content || '');
+          if (Buffer.byteLength(content, 'utf8') > MAX_NOTE_BYTES) {
+            throw Object.assign(new Error('笔记内容超过 1MB 限制'), { statusCode: 413 });
+          }
+          const note = await this.database.createNote(userId, { title, content });
+          sendJson(res, 201, { note });
+          return true;
+        }
+
+        if (noteId && req.method === 'GET') {
+          const note = await this.database.getNote(userId, noteId);
+          if (!note) throw Object.assign(new Error('笔记不存在'), { statusCode: 404 });
+          sendJson(res, 200, { note });
+          return true;
+        }
+
+        if (noteId && req.method === 'PUT') {
+          const body = await readJson(req, MAX_NOTE_BYTES + 1024);
+          const updates = {};
+          if (body.title !== undefined) updates.title = String(body.title).trim().slice(0, 200);
+          if (body.content !== undefined) {
+            updates.content = String(body.content);
+            if (Buffer.byteLength(updates.content, 'utf8') > MAX_NOTE_BYTES) {
+              throw Object.assign(new Error('笔记内容超过 1MB 限制'), { statusCode: 413 });
+            }
+          }
+          const note = await this.database.updateNote(userId, noteId, updates);
+          if (!note) throw Object.assign(new Error('笔记不存在'), { statusCode: 404 });
+          sendJson(res, 200, { note });
+          return true;
+        }
+
+        if (noteId && req.method === 'DELETE') {
+          const deleted = await this.database.deleteNote(userId, noteId);
+          if (!deleted) throw Object.assign(new Error('笔记不存在'), { statusCode: 404 });
+          sendJson(res, 200, { deleted: true });
+          return true;
+        }
       }
 
       sendJson(res, 404, { error: 'Not Found' });
