@@ -3,6 +3,7 @@ const https = require('https');
 const fs = require('fs');
 const path = require('path');
 const { createWechatService } = require('./wechat/service');
+const { createAccountService } = require('./account/service');
 
 const PORT = 3000;
 const PUBLIC_DIR = path.join(__dirname, 'public');
@@ -588,10 +589,22 @@ function oneYearAgoDate() {
 }
 
 const wechatService = createWechatService({ loadIpoCalendar });
+const accountService = createAccountService();
 
 const server = http.createServer(async (req, res) => {
   const urlObj = new URL(req.url, `http://localhost:${PORT}`);
   const pathname = urlObj.pathname;
+
+  try {
+    if (await accountService.handleRoute(req, res, urlObj)) return;
+  } catch (error) {
+    console.error('Account request error:', error.message);
+    if (!res.headersSent) {
+      res.writeHead(error.statusCode || 500, { 'Content-Type':'application/json; charset=utf-8', 'Cache-Control':'no-store' });
+    }
+    if (!res.writableEnded) res.end(JSON.stringify({ error:'账号服务处理失败' }));
+    return;
+  }
 
   try {
     if (await wechatService.handleRoute(req, res, urlObj)) return;
@@ -714,6 +727,7 @@ const server = http.createServer(async (req, res) => {
 
 server.listen(PORT, () => {
   console.log(`Stock monitor running at http://localhost:${PORT}`);
+  accountService.start().catch(error => console.error('Account service start failed:', error.message));
   wechatService.start().catch(error => console.error('WeChat service start failed:', error.message));
 });
 
@@ -723,8 +737,9 @@ function shutdown(signal) {
   shuttingDown = true;
   console.log(`Received ${signal}, shutting down...`);
   server.close(async () => {
-    try { await wechatService.close(); }
-    catch (error) { console.error('WeChat shutdown error:', error.message); }
+    const results = await Promise.allSettled([accountService.close(), wechatService.close()]);
+    if (results[0].status === 'rejected') console.error('Account shutdown error:', results[0].reason.message);
+    if (results[1].status === 'rejected') console.error('WeChat shutdown error:', results[1].reason.message);
     process.exit(0);
   });
   setTimeout(() => process.exit(1), 10000).unref();

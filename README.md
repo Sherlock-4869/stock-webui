@@ -5,6 +5,8 @@
 主要能力：
 
 - 浏览自选股、全球指数、K 线和打新日历。
+- 支持账号密码注册/登录、微信开放平台扫码登录及安全会话。
+- 登录后按账号同步自选股、分组、主题、指标等页面配置。
 - 通过 `https://stock.sherlock-holmes.cn/?page=ipo` 直接打开打新页面。
 - 接收公众号关注、取消关注、文本消息和自定义菜单事件。
 - 每周一 `09:00` 按上海时区汇总本周可申购新股。
@@ -23,7 +25,153 @@ cp .env.example .env
 ./run.sh check
 ```
 
-不开启微信公众号功能时，保持 `.env` 中 `STOCK_WECHAT_ENABLED=false` 即可运行股票监控服务。微信公众号与数据库的完整配置步骤见下文。
+不开启账号或微信公众号功能时，分别保持 `.env` 中 `STOCK_ACCOUNT_ENABLED=false`、`STOCK_WECHAT_ENABLED=false`，原有未登录股票页面仍按之前方式运行。账号体系和微信公众号的完整配置步骤见下文。
+
+## 账号体系
+
+### 功能与数据切换规则
+
+- 未登录时继续使用当前浏览器 LocalStorage，页面默认行为不变。
+- 账号首次登录会询问是否关联当前页面配置。选择“关联当前配置”后，自选股、分组、主题、指标、行情颜色、刷新频率、当前页面和异动记录会保存到该账号。
+- 选择“使用账户默认配置”时，不导入登录前数据，账号从系统默认配置开始。
+- 已有账号配置时，登录后优先加载账号配置，并在页面发生变化后自动同步。
+- 登录前的访客配置会单独备份；退出登录后恢复访客配置，避免把账号数据遗留给未登录页面。
+- 密码使用 Node.js 原生 `scrypt` 加盐哈希。浏览器 Cookie 只保存随机会话令牌，数据库只保存令牌的 SHA-256；Cookie 使用 `HttpOnly`、`SameSite=Lax`，HTTPS 下自动增加 `Secure`。
+
+### 账号建表 SQL
+
+下面是账号体系的完整建表语句；同一份 SQL 也保存在 `database/account_schema.sql`。生产环境建议先由数据库管理员执行。账号服务启动时也会运行相同的 `CREATE TABLE IF NOT EXISTS`，不会删除或覆盖已有数据。
+
+```sql
+USE stock;
+
+CREATE TABLE IF NOT EXISTS users (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  username VARCHAR(32) CHARACTER SET ascii COLLATE ascii_general_ci NULL COMMENT '密码登录账号；纯微信账号可为空',
+  password_hash VARCHAR(255) CHARACTER SET ascii COLLATE ascii_bin NULL COMMENT 'scrypt 加盐哈希；不保存明文密码',
+  display_name VARCHAR(80) NOT NULL,
+  avatar_url VARCHAR(500) NULL,
+  status VARCHAR(20) NOT NULL DEFAULT 'active',
+  config_decided_at DATETIME NULL COMMENT '首次登录配置关联是否已选择',
+  last_login_at DATETIME NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  UNIQUE KEY uk_users_username (username),
+  KEY idx_users_status (status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS user_auth_identities (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  user_id BIGINT UNSIGNED NOT NULL,
+  provider VARCHAR(20) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+  provider_user_id VARCHAR(160) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+  openid VARCHAR(128) CHARACTER SET ascii COLLATE ascii_bin NULL,
+  unionid VARCHAR(128) CHARACTER SET ascii COLLATE ascii_bin NULL,
+  profile_json JSON NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  UNIQUE KEY uk_auth_identity_provider_user (provider, provider_user_id),
+  KEY idx_auth_identity_user (user_id),
+  CONSTRAINT fk_auth_identity_user
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS user_sessions (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  user_id BIGINT UNSIGNED NOT NULL,
+  token_hash CHAR(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL COMMENT '只保存会话令牌 SHA-256',
+  expires_at DATETIME NOT NULL,
+  last_seen_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  UNIQUE KEY uk_user_sessions_token (token_hash),
+  KEY idx_user_sessions_user (user_id),
+  KEY idx_user_sessions_expires (expires_at),
+  CONSTRAINT fk_user_sessions_user
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS user_page_preferences (
+  user_id BIGINT UNSIGNED NOT NULL,
+  config_json JSON NOT NULL,
+  config_version INT UNSIGNED NOT NULL DEFAULT 1,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (user_id),
+  CONSTRAINT fk_user_preferences_user
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS user_oauth_states (
+  state_hash CHAR(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL COMMENT '微信 OAuth state 的 SHA-256',
+  provider VARCHAR(20) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+  return_to VARCHAR(500) NOT NULL DEFAULT '/',
+  expires_at DATETIME NOT NULL,
+  consumed_at DATETIME NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (state_hash),
+  KEY idx_user_oauth_states_expires (expires_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+```
+
+账号服务需要数据库账号拥有 `SELECT`、`INSERT`、`UPDATE`、`DELETE` 权限。若让应用启动时自动建表，还需要 `CREATE`、`INDEX`、`REFERENCES`：
+
+```sql
+GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, INDEX, REFERENCES
+  ON stock.*
+  TO 'stock_wechat'@'<应用服务器私网IP>';
+```
+
+### 启用账号密码登录
+
+账号体系复用下文的 `STOCK_DB_*` MySQL 连接配置。在 `.env` 中设置：
+
+```env
+STOCK_ACCOUNT_ENABLED=true
+STOCK_ACCOUNT_DRIVER=mysql
+STOCK_ACCOUNT_SESSION_DAYS=30
+
+STOCK_DB_HOST=<数据库内网地址>
+STOCK_DB_PORT=3306
+STOCK_DB_USER=stock_wechat
+STOCK_DB_PASSWORD='<随机强密码>'
+STOCK_DB_NAME=stock
+STOCK_DB_CONNECTION_LIMIT=5
+```
+
+本地临时体验可以使用 `STOCK_ACCOUNT_DRIVER=memory`，无需 MySQL，但所有账号、会话和配置会在 Node.js 重启后丢失。代码会拒绝在 `NODE_ENV=production` 时使用内存驱动。
+
+### 启用微信扫码登录
+
+微信扫码登录使用微信开放平台的“网站应用”，不是公众号网页授权。需要先在微信开放平台创建并审核通过网站应用、申请微信登录能力，并把回调域名配置为当前站点。官方流程采用 `scope=snsapi_login` 的 authorization code 模式，服务端会校验一次性 `state`、使用 `code` 换取身份并读取昵称和头像。
+
+```env
+STOCK_WECHAT_LOGIN_APP_ID=<网站应用AppID>
+STOCK_WECHAT_LOGIN_APP_SECRET=<网站应用AppSecret>
+STOCK_WECHAT_LOGIN_CALLBACK_URL=https://stock.sherlock-holmes.cn/api/auth/wechat/callback
+```
+
+注意：
+
+- 回调地址必须使用 HTTPS，并与微信开放平台审核/配置的授权域名一致。
+- `STOCK_WECHAT_LOGIN_APP_ID`、`STOCK_WECHAT_LOGIN_APP_SECRET` 与下文公众号消息推送的 AppID/AppSecret 是两套配置，不要混用。
+- Nginx 必须保留 `Host`、`X-Forwarded-Host`、`X-Forwarded-Proto`，现有示例已包含必要的 `Host` 和 `X-Forwarded-Proto`；建议额外加入 `proxy_set_header X-Forwarded-Host $host;`。
+- 官方接入说明：[网站应用微信登录开发指南](https://developers.weixin.qq.com/doc/oplatform/Website_App/WeChat_Login/Wechat_Login.html)。
+
+启用后重启并检查日志：
+
+```bash
+./run.sh restart
+tail -f output.log
+```
+
+正常日志包含：
+
+```text
+Account service ready (mysql; WeChat login enabled)
+```
 
 微信公众号集成目标：
 
@@ -78,7 +226,12 @@ POST https://api.weixin.qq.com/cgi-bin/message/custom/send?access_token=ACCESS_T
 .env.example                    环境变量示例
 package.json                    项目依赖和检查命令
 package-lock.json               依赖锁定文件
+database/account_schema.sql     账号体系建表 SQL
 database/wechat_schema.sql      微信推送建表 SQL
+account/config.js               账号、会话、微信登录配置
+account/security.js             密码哈希、令牌与页面配置白名单
+account/database.js             MySQL/测试内存数据访问与自动建表
+account/service.js              注册、登录、配置同步和微信 OAuth 路由
 wechat/config.js                配置读取和校验
 wechat/client.js                access_token、客服消息和自定义菜单 API
 wechat/database.js              MySQL 数据访问和自动建表
@@ -86,11 +239,12 @@ wechat/service.js               回调、内部接口、调度和发送流程
 wechat/weekly-ipo.js            本周日期及打新汇总
 wechat/xml.js                   微信 XML 消息解析和回复
 test/wechat.test.js             核心逻辑测试
+test/account.test.js            账号与配置归属流程测试
 ```
 
 现有文件的调整：
 
-- `server.js` 增加微信路由，并在服务启动后启动微信调度器。
+- `server.js` 增加账号和微信路由，并在服务启动后启动两个模块。
 - `run.sh` 启动时自动读取项目 `.env`，不会修改系统全局环境变量。
 - `public/index.html` 支持通过 `?page=ipo` 直接打开打新页面。
 - `.gitignore` 排除 `.env`、`node_modules` 和运行日志。
@@ -169,7 +323,7 @@ CREATE DATABASE IF NOT EXISTS stock
 CREATE USER IF NOT EXISTS 'stock_wechat'@'<应用服务器私网IP>'
   IDENTIFIED BY '<随机强密码>';
 
-GRANT SELECT, INSERT, UPDATE, CREATE, INDEX, REFERENCES
+GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, INDEX, REFERENCES
   ON stock.*
   TO 'stock_wechat'@'<应用服务器私网IP>';
 
@@ -388,6 +542,7 @@ server {
         proxy_pass http://127.0.0.1:3000;
         proxy_http_version 1.1;
         proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;

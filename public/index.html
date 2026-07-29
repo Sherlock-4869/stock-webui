@@ -16,6 +16,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;b
 .app-brand{display:inline-flex;align-items:center;gap:8px;flex:none;margin-right:12px;color:#e6edf3;text-decoration:none;font-size:15px;font-weight:720;letter-spacing:.5px}.app-brand img{width:28px;height:28px;border-radius:7px;box-shadow:0 4px 14px #1f6feb2b}.app-brand span{white-space:nowrap}
 .app-tab{position:relative;display:inline-flex;align-items:center;justify-content:center;width:138px;flex:none;border:0;border-radius:7px;background:transparent;color:#8b949e;padding:8px 12px;font-size:13px;font-weight:600;text-decoration:none;cursor:pointer;transition:.15s}
 .app-tab:hover{color:#e6edf3;background:#161b22}.app-tab.active{color:#fff;background:#1f3a5f}.app-tab-badge{display:inline-block;min-width:17px;margin-left:5px;padding:1px 5px;border-radius:9px;background:#30363d;color:#8b949e;font-size:9px;vertical-align:1px}.app-tab.active .app-tab-badge{background:#1f6feb;color:#fff}
+.account-area{position:relative;flex:none;margin-left:4px}.account-trigger{display:flex;align-items:center;gap:7px;max-width:150px;height:32px;padding:0 10px;border:1px solid #30363d;border-radius:7px;background:#161b22;color:#c9d1d9;font-size:12px;cursor:pointer;transition:.15s}.account-trigger:hover{border-color:#58a6ff;background:#1c2128}.account-avatar{display:grid;place-items:center;flex:none;width:22px;height:22px;overflow:hidden;border-radius:50%;background:linear-gradient(135deg,#1f6feb,#8957e5);color:#fff;font-size:10px;font-weight:750}.account-avatar img{width:100%;height:100%;object-fit:cover}.account-label{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.account-chevron{color:#6e7681;font-size:9px}.account-menu{position:fixed;z-index:260;top:50px;right:max(12px,calc((100vw - 1100px)/2));display:none;width:230px;padding:7px;border:1px solid #30363d;border-radius:9px;background:#161b22;box-shadow:0 14px 40px #0008}.account-menu.open{display:block}.account-menu-head{display:flex;gap:9px;align-items:center;padding:8px 9px 10px;border-bottom:1px solid #30363d}.account-menu-name{overflow:hidden;text-overflow:ellipsis;font-size:13px;font-weight:650}.account-menu-id{overflow:hidden;text-overflow:ellipsis;margin-top:2px;color:#6e7681;font-size:10px}.account-menu-item{display:flex;width:100%;align-items:center;gap:8px;margin-top:4px;padding:8px 9px;border:0;border-radius:6px;background:transparent;color:#c9d1d9;text-align:left;font-size:12px;cursor:pointer}.account-menu-item:hover{background:#21262d}.account-menu-item.danger{color:#f85149}.account-sync-note{padding:6px 9px 3px;color:#6e7681;font-size:10px}
 .app-page{display:none}.app-page.active{display:block;animation:page-in .18s ease-out}@keyframes page-in{from{opacity:.3;transform:translateY(3px)}}
 .refresh-setting{display:flex;align-items:center;gap:6px;color:#8b949e;font-size:11px;white-space:nowrap}
 .refresh-interval-select,.market-row-select{appearance:none;background:#161b22;border:1px solid #30363d;border-radius:5px;color:#c9d1d9;padding:4px 24px 4px 8px;font-size:11px;outline:none;cursor:pointer;background-image:linear-gradient(45deg,transparent 50%,#8b949e 50%),linear-gradient(135deg,#8b949e 50%,transparent 50%);background-position:calc(100% - 11px) 9px,calc(100% - 7px) 9px;background-size:4px 4px,4px 4px;background-repeat:no-repeat}
@@ -155,6 +156,7 @@ tr:hover td{background:#1c2128}
 .form-input:focus,.form-select:focus{border-color:#58a6ff}
 .dialog-modal{width:420px;padding:18px}#metrics-mask .dialog-modal{width:760px}.dialog-title{font-size:16px;font-weight:650}.dialog-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:18px}
 .dialog-btn{border:1px solid #30363d;border-radius:6px;background:#21262d;color:#e6edf3;padding:7px 13px;cursor:pointer}.dialog-btn.primary{background:#238636;border-color:#238636}.dialog-btn.danger{color:#f85149}
+.dialog-btn:disabled{opacity:.5;cursor:not-allowed}.auth-modal{width:440px;padding:0;overflow:hidden}.auth-hero{padding:20px 20px 14px;background:linear-gradient(135deg,#1f6feb20,#8957e51a);border-bottom:1px solid #30363d}.auth-hero-row{display:flex;align-items:center;justify-content:space-between;gap:12px}.auth-brand{display:flex;align-items:center;gap:10px}.auth-brand img{width:34px;height:34px;border-radius:9px}.auth-close{border:0;background:transparent;color:#8b949e;font-size:19px;cursor:pointer}.auth-tabs{display:flex;padding:0 20px;border-bottom:1px solid #30363d}.auth-tab{flex:1;padding:11px;border:0;border-bottom:2px solid transparent;background:transparent;color:#8b949e;font-size:13px;cursor:pointer}.auth-tab.active{border-color:#58a6ff;color:#58a6ff}.auth-body{padding:18px 20px 20px}.auth-form{display:none}.auth-form.active{display:block}.auth-submit{width:100%;margin-top:16px;padding:9px}.auth-error{display:none;margin-top:11px;padding:8px 10px;border:1px solid #f8514966;border-radius:6px;background:#f8514912;color:#ff7b72;font-size:11px;line-height:1.5}.auth-error.visible{display:block}.auth-divider{display:flex;align-items:center;gap:10px;margin:18px 0;color:#6e7681;font-size:10px}.auth-divider::before,.auth-divider::after{content:"";flex:1;height:1px;background:#30363d}.wechat-login-btn{display:flex;width:100%;align-items:center;justify-content:center;gap:8px;padding:9px;border:1px solid #2ea04388;border-radius:6px;background:#23863618;color:#56d364;font-size:13px;cursor:pointer}.wechat-login-btn:hover{background:#23863628}.wechat-login-btn:disabled{opacity:.45;cursor:not-allowed}.wechat-login-note{margin-top:8px;color:#6e7681;font-size:10px;text-align:center;line-height:1.5}.config-choice{width:500px;padding:22px}.config-choice-icon{display:grid;place-items:center;width:46px;height:46px;margin-bottom:15px;border-radius:12px;background:#1f6feb22;color:#58a6ff;font-size:24px}.config-choice-copy{margin-top:9px;color:#8b949e;font-size:12px;line-height:1.7}.config-choice-list{margin:14px 0 0;padding:12px 14px;border:1px solid #30363d;border-radius:7px;background:#0d111766;color:#c9d1d9;font-size:11px;line-height:1.8}.settings-user{display:flex;align-items:center;gap:10px;margin-top:13px;padding:10px;border:1px solid #30363d;border-radius:7px}.settings-user .account-avatar{width:34px;height:34px}.settings-hint{margin-top:5px;color:#6e7681;font-size:10px;line-height:1.45}.toast{position:fixed;z-index:400;left:50%;bottom:28px;max-width:min(420px,90vw);transform:translate(-50%,14px);padding:9px 14px;border:1px solid #30363d;border-radius:7px;background:#21262d;color:#e6edf3;box-shadow:0 10px 35px #0008;font-size:12px;opacity:0;pointer-events:none;transition:.2s}.toast.visible{transform:translate(-50%,0);opacity:1}.toast.error{border-color:#f8514966;color:#ff7b72}
 .metric-option-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:14px}.metric-option{display:flex;align-items:flex-start;gap:10px;padding:11px 12px;border:1px solid #30363d;border-radius:7px;background:#1c2128;cursor:pointer}.metric-option input{margin-top:2px;accent-color:#238636}.metric-option strong{display:block;font-size:13px}.metric-option small{display:block;margin-top:3px;color:#6e7681;font-size:10px;line-height:1.4}
 .optional-column{display:none}#stock-table.show-pe .metric-pe,#stock-table.show-pb .metric-pb,#stock-table.show-bvps .metric-bvps,#stock-table.show-dividend .metric-dividend,#stock-table.show-turnover .metric-turnover,#stock-table.show-volume-ratio .metric-volume-ratio,#stock-table.show-total-market-cap .metric-total-market-cap,#stock-table.show-float-market-cap .metric-float-market-cap,#stock-table.show-roe .metric-roe,#stock-table.show-net-profit-growth .metric-net-profit-growth,#stock-table.show-gross-margin .metric-gross-margin,#stock-table.show-revenue-growth .metric-revenue-growth,#stock-table.show-main-net-inflow .metric-main-net-inflow,#stock-table.show-main-net-ratio .metric-main-net-ratio,#stock-table.show-main-five-day .metric-main-five-day,#stock-table.show-super-large-net .metric-super-large-net,#stock-table.show-large-net .metric-large-net{display:table-cell}
 #stock-table.has-optional{min-width:calc(1100px + var(--metric-table-width,0px))}
@@ -264,6 +266,7 @@ html[data-theme="light"].metrics-scroll #stock-table tbody tr:hover td:first-chi
 html[data-theme="light"] .refresh-btn,html[data-theme="light"] .dialog-btn,html[data-theme="light"] .filter-chip,html[data-theme="light"] .period-btn,html[data-theme="light"] .chart-window-btn,html[data-theme="light"] .market-expand-btn{background:#f6f8fa;border-color:#d0d7de;color:#1f2328}
 html[data-theme="light"] .refresh-btn:hover,html[data-theme="light"] .dialog-btn:hover,html[data-theme="light"] .filter-chip:hover{background:#eaeef2}
 html[data-theme="light"] .dialog-btn.primary{background:#1f883d;border-color:#1f883d;color:#fff}html[data-theme="light"] .dialog-btn.danger{color:#cf222e}html[data-theme="light"] .filter-chip.active,html[data-theme="light"] .period-btn.active{background:#ddf4ff;border-color:#54aeff;color:#0969da}
+html[data-theme="light"] .account-trigger,html[data-theme="light"] .account-menu{background:#fff;border-color:#d0d7de;color:#1f2328}html[data-theme="light"] .account-trigger:hover,html[data-theme="light"] .account-menu-item:hover{background:#f6f8fa}html[data-theme="light"] .account-menu-head,html[data-theme="light"] .auth-hero,html[data-theme="light"] .auth-tabs,html[data-theme="light"] .settings-user,html[data-theme="light"] .config-choice-list{border-color:#d0d7de}html[data-theme="light"] .account-menu-item{color:#1f2328}html[data-theme="light"] .account-menu-item.danger{color:#cf222e}html[data-theme="light"] .auth-hero{background:linear-gradient(135deg,#ddf4ff,#fbefff)}html[data-theme="light"] .auth-divider::before,html[data-theme="light"] .auth-divider::after{background:#d0d7de}html[data-theme="light"] .config-choice-list{background:#f6f8fa;color:#1f2328}html[data-theme="light"] .toast{background:#fff;border-color:#d0d7de;color:#1f2328;box-shadow:0 10px 35px #1f232833}
 html[data-theme="light"] .metric-option{background:#f6f8fa;border-color:#d7e0ea}
 html[data-theme="light"] .refresh-interval-select,html[data-theme="light"] .market-row-select,html[data-theme="light"] .form-input,html[data-theme="light"] .form-select,html[data-theme="light"] .search-wrap input{background-color:#fff;border-color:#d0d7de;color:#1f2328}
 html[data-theme="light"] .dropdown{background:#fff;border-color:#d0d7de;box-shadow:0 8px 24px #1f23281f}html[data-theme="light"] .dd-item:hover,html[data-theme="light"] .dd-item.active{background:#f0f3f6}html[data-theme="light"] .dd-item.selected{background:#ddf4ff}
@@ -297,6 +300,12 @@ html[data-theme="light"] .market-kicker{color:#0969da}html[data-theme="light"] .
     <button class="app-tab" data-page="alerts" onclick="switchAppPage('alerts')">⚡ 自选异动<span class="app-tab-badge" id="alert-badge">0</span></button>
     <a class="app-tab" href="/reference.html">📚 参考文档</a>
     <label class="theme-setting" for="theme-select"><span>主题</span><select class="refresh-interval-select" id="theme-select" onchange="setThemePreference(this.value)"><option value="light">浅色</option><option value="dark">深色</option><option value="system">跟随系统</option></select></label>
+    <div class="account-area" id="account-area">
+      <button class="account-trigger" id="account-trigger" type="button" onclick="toggleAccountMenu(event)" aria-haspopup="menu" aria-expanded="false">
+        <span class="account-avatar" id="account-trigger-avatar">人</span><span class="account-label" id="account-trigger-label">登录 / 注册</span><span class="account-chevron">▼</span>
+      </button>
+      <div class="account-menu" id="account-menu" role="menu"></div>
+    </div>
   </div>
 </nav>
 <div class="main">
@@ -379,6 +388,62 @@ html[data-theme="light"] .market-kicker{color:#0969da}html[data-theme="light"] .
   <div class="module-panel"><div class="panel-toolbar"><button class="filter-chip active" data-alert-filter="all" onclick="setAlertFilter('all')">全部</button><button class="filter-chip" data-alert-filter="up" onclick="setAlertFilter('up')">上涨异动</button><button class="filter-chip" data-alert-filter="down" onclick="setAlertFilter('down')">下跌异动</button><span class="panel-status">仅供行情观察，不构成投资建议</span></div><div class="alert-list" id="alert-list"><div class="alert-empty">正在等待第一轮行情扫描…</div></div></div>
 </section>
 </div>
+
+<div class="modal-mask" id="auth-mask" onclick="closeAuthModal(event)">
+  <div class="modal auth-modal" role="dialog" aria-modal="true" aria-labelledby="auth-title">
+    <div class="auth-hero">
+      <div class="auth-hero-row"><div class="auth-brand"><img src="/favicon.svg" alt=""><div><div class="dialog-title" id="auth-title">登录深度学习</div><div class="modal-sub">同步你的自选股、分组和页面显示配置</div></div></div><button class="auth-close" type="button" onclick="closeAuthModal()" aria-label="关闭">✕</button></div>
+    </div>
+    <div class="auth-tabs"><button class="auth-tab active" id="auth-login-tab" type="button" onclick="switchAuthMode('login')">账号登录</button><button class="auth-tab" id="auth-register-tab" type="button" onclick="switchAuthMode('register')">注册账号</button></div>
+    <div class="auth-body">
+      <form class="auth-form active" id="login-form" onsubmit="submitPasswordLogin(event)">
+        <div class="form-row" style="margin-top:0"><label for="login-username">账号</label><input class="form-input" id="login-username" name="username" autocomplete="username" maxlength="32" required placeholder="输入账号"></div>
+        <div class="form-row"><label for="login-password">密码</label><input class="form-input" id="login-password" name="password" type="password" autocomplete="current-password" maxlength="128" required placeholder="输入密码"></div>
+        <div class="auth-error" id="login-error" role="alert"></div>
+        <button class="dialog-btn primary auth-submit" id="login-submit" type="submit">登录</button>
+      </form>
+      <form class="auth-form" id="register-form" onsubmit="submitRegistration(event)">
+        <div class="form-row" style="margin-top:0"><label for="register-display-name">显示名称</label><input class="form-input" id="register-display-name" name="displayName" autocomplete="nickname" maxlength="40" required placeholder="例如：小明"></div>
+        <div class="form-row"><label for="register-username">账号</label><input class="form-input" id="register-username" name="username" autocomplete="username" maxlength="32" pattern="[A-Za-z0-9][A-Za-z0-9_.-]{3,31}" required placeholder="4-32 位字母、数字或 _.-"></div>
+        <div class="form-row"><label for="register-password">密码</label><input class="form-input" id="register-password" name="password" type="password" autocomplete="new-password" minlength="8" maxlength="128" required placeholder="至少 8 位"></div>
+        <div class="form-row"><label for="register-password-confirm">确认密码</label><input class="form-input" id="register-password-confirm" name="passwordConfirm" type="password" autocomplete="new-password" minlength="8" maxlength="128" required placeholder="再次输入密码"></div>
+        <div class="auth-error" id="register-error" role="alert"></div>
+        <button class="dialog-btn primary auth-submit" id="register-submit" type="submit">注册并登录</button>
+      </form>
+      <div class="auth-divider">或</div>
+      <button class="wechat-login-btn" id="wechat-login-btn" type="button" onclick="startWechatLogin()"><span aria-hidden="true">◉</span> 微信扫码登录</button>
+      <div class="wechat-login-note" id="wechat-login-note">将在安全窗口中打开微信官方二维码</div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-mask" id="config-link-mask">
+  <div class="modal config-choice" role="dialog" aria-modal="true" aria-labelledby="config-link-title">
+    <div class="config-choice-icon">☁</div>
+    <div class="dialog-title" id="config-link-title">关联当前页面配置？</div>
+    <p class="config-choice-copy">这是该账号首次登录。你可以把当前浏览器中的配置保存到账号，之后在其他设备登录也会显示相同内容。</p>
+    <div class="config-choice-list">将关联：自选股与分组、指标与行情显示、主题、刷新频率、页面位置和异动记录。</div>
+    <div class="auth-error" id="config-link-error" role="alert"></div>
+    <div class="dialog-actions"><button class="dialog-btn" id="config-skip-btn" type="button" onclick="decideConfigLink(false)">使用账户默认配置</button><button class="dialog-btn primary" id="config-import-btn" type="button" onclick="decideConfigLink(true)">关联当前配置</button></div>
+  </div>
+</div>
+
+<div class="modal-mask" id="account-settings-mask" onclick="closeAccountSettings(event)">
+  <div class="modal dialog-modal" role="dialog" aria-modal="true" aria-labelledby="account-settings-title">
+    <div class="dialog-title" id="account-settings-title">账户设置</div>
+    <div class="settings-user" id="settings-user"></div>
+    <form id="password-form" onsubmit="submitPasswordChange(event)">
+      <div class="form-row" id="set-username-row" style="display:none"><label for="set-username">设置登录账号</label><input class="form-input" id="set-username" name="username" autocomplete="username" maxlength="32" placeholder="4-32 位字母、数字或 _.-"><div class="settings-hint">微信账号设置密码时，需要同时设置一个用于密码登录的账号。</div></div>
+      <div class="form-row" id="current-password-row"><label for="current-password">当前密码</label><input class="form-input" id="current-password" name="currentPassword" type="password" autocomplete="current-password" maxlength="128"></div>
+      <div class="form-row"><label for="new-password">新密码</label><input class="form-input" id="new-password" name="newPassword" type="password" autocomplete="new-password" minlength="8" maxlength="128" required placeholder="至少 8 位"></div>
+      <div class="form-row"><label for="new-password-confirm">确认新密码</label><input class="form-input" id="new-password-confirm" name="newPasswordConfirm" type="password" autocomplete="new-password" minlength="8" maxlength="128" required></div>
+      <div class="auth-error" id="password-error" role="alert"></div>
+      <div class="dialog-actions"><button class="dialog-btn" type="button" onclick="closeAccountSettings()">取消</button><button class="dialog-btn primary" id="password-submit" type="submit">保存密码</button></div>
+    </form>
+  </div>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <div class="modal-mask" id="metrics-mask" onclick="closeMetricSettings(event)">
   <div class="modal dialog-modal" role="dialog" aria-modal="true" aria-labelledby="metrics-title">
@@ -489,6 +554,13 @@ const COLOR_STORAGE_KEY = 'stock_list_colors_v1';
 const MARKET_ORDER_STORAGE_KEY = 'global_market_order_v1';
 const MARKET_ROWS_STORAGE_KEY = 'global_market_rows_v1';
 const REFRESH_INTERVAL_STORAGE_KEY = 'stock_refresh_interval_v1';
+const ACCOUNT_GUEST_BACKUP_KEY = 'stock_guest_config_backup_v1';
+const ACCOUNT_CONFIG_KEYS = [
+  STORAGE_KEY, GROUPS_STORAGE_KEY, ACTIVE_GROUP_STORAGE_KEY, APP_PAGE_STORAGE_KEY,
+  ANOMALY_STORAGE_KEY, THEME_STORAGE_KEY, OPTIONAL_METRICS_STORAGE_KEY,
+  COLOR_STORAGE_KEY, MARKET_ORDER_STORAGE_KEY, MARKET_ROWS_STORAGE_KEY,
+  REFRESH_INTERVAL_STORAGE_KEY,
+];
 const REFRESH_INTERVAL_OPTIONS = [1000,3000,5000,10000,30000,60000];
 const GLOBAL_MARKET_REFRESH_INTERVAL = 5000;
 const MARKET_CARDS_PER_ROW = 5;
@@ -577,6 +649,14 @@ try {
 } catch (_) {}
 const systemThemeQuery = window.matchMedia('(prefers-color-scheme: light)');
 let themePreference = ['light','dark','system'].includes(localStorage.getItem(THEME_STORAGE_KEY)) ? localStorage.getItem(THEME_STORAGE_KEY) : 'dark';
+let currentUser = null;
+let accountServiceEnabled = null;
+let wechatLoginEnabled = false;
+let accountNeedsConfigDecision = false;
+let accountConfigReady = false;
+let accountConfigSyncTimer = null;
+let lastSyncedAccountConfig = '';
+let toastTimer = null;
 
 function resolvedTheme() { return themePreference === 'system' ? (systemThemeQuery.matches ? 'light' : 'dark') : themePreference; }
 function applyThemePreference() {
@@ -2597,20 +2677,338 @@ function renderAnomalyEvents() {
 }
 function clearAnomalyEvents() { if (!anomalyEvents.length || confirm('清空全部异动消息？')) { anomalyEvents=[]; localStorage.removeItem(ANOMALY_STORAGE_KEY); renderAnomalyEvents(); } }
 
-applyListColorPreference();
-applyThemePreference();
-applyMetricSettings();
-save();
-renderGroupTabs();
-switchAppPage(activeAppPage);
-pruneInvalidAnomalyEvents();
-renderAnomalyEvents();
-fetchIpos();
-document.getElementById('market-row-count').value = String(marketDefaultRows);
-document.getElementById('refresh-interval').value = String(refreshIntervalMs);
-startAutoRefresh();
-startMarketRefresh();
-refreshAll(); // initial load
+// --- Account and cross-device page preferences ---
+function collectPageConfig() {
+  const values = {};
+  ACCOUNT_CONFIG_KEYS.forEach(key => {
+    const value = localStorage.getItem(key);
+    if (value != null) values[key] = value;
+  });
+  return { version:1, values };
+}
+
+function applyPageConfig(config) {
+  const values = config?.values && typeof config.values === 'object' ? config.values : {};
+  ACCOUNT_CONFIG_KEYS.forEach(key => {
+    if (typeof values[key] === 'string') localStorage.setItem(key, values[key]);
+    else localStorage.removeItem(key);
+  });
+}
+
+function prepareGuestConfigBackup() {
+  if (localStorage.getItem(ACCOUNT_GUEST_BACKUP_KEY) == null) {
+    localStorage.setItem(ACCOUNT_GUEST_BACKUP_KEY, JSON.stringify(collectPageConfig()));
+  }
+}
+
+function restoreGuestConfigBackup() {
+  let backup = null;
+  try { backup = JSON.parse(localStorage.getItem(ACCOUNT_GUEST_BACKUP_KEY) || 'null'); } catch (_) {}
+  applyPageConfig(backup || { version:1, values:{} });
+  localStorage.removeItem(ACCOUNT_GUEST_BACKUP_KEY);
+}
+
+function reloadRuntimeConfigFromStorage() {
+  let storedStocks = null, storedGroups = null, storedOrder = [], storedEvents = [];
+  try { storedStocks = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null'); } catch (_) {}
+  try { storedGroups = JSON.parse(localStorage.getItem(GROUPS_STORAGE_KEY) || 'null'); } catch (_) {}
+  try { storedOrder = JSON.parse(localStorage.getItem(MARKET_ORDER_STORAGE_KEY) || '[]'); } catch (_) {}
+  try { storedEvents = JSON.parse(localStorage.getItem(ANOMALY_STORAGE_KEY) || '[]'); } catch (_) {}
+  const validStocks = Array.isArray(storedStocks) ? storedStocks.filter(stock => /^[a-zA-Z0-9._-]+$/.test(stock)) : [];
+  groups = Array.isArray(storedGroups) ? storedGroups.filter(validGroup).map(group => ({
+    id:group.id,
+    name:group.name.slice(0,20),
+    stocks:[...new Set(group.stocks.filter(stock => /^[a-zA-Z0-9._-]+$/.test(stock)))],
+  })) : [];
+  if (!groups.length) groups = [{ id:'default', name:'默认分组', stocks:validStocks.length ? validStocks : [...DEFAULT_STOCKS] }];
+  activeGroupId = localStorage.getItem(ACTIVE_GROUP_STORAGE_KEY) || groups[0].id;
+  if (!groups.some(group => group.id === activeGroupId)) activeGroupId = groups[0].id;
+  watchlist = groups.find(group => group.id === activeGroupId).stocks;
+  marketOrder = [...new Set((Array.isArray(storedOrder) ? storedOrder : []).filter(code => _marketCodes.includes(code)))];
+  marketOrder.push(..._marketCodes.filter(code => !marketOrder.includes(code)));
+  const rows = Number(localStorage.getItem(MARKET_ROWS_STORAGE_KEY));
+  marketDefaultRows = [1,2,3].includes(rows) ? rows : 2;
+  const interval = Number(localStorage.getItem(REFRESH_INTERVAL_STORAGE_KEY));
+  refreshIntervalMs = REFRESH_INTERVAL_OPTIONS.includes(interval) ? interval : 5000;
+  showListColors = localStorage.getItem(COLOR_STORAGE_KEY) !== 'false';
+  try {
+    const metrics = JSON.parse(localStorage.getItem(OPTIONAL_METRICS_STORAGE_KEY) || '[]');
+    selectedMetrics = new Set(Array.isArray(metrics) ? metrics.filter(item => OPTIONAL_METRIC_KEYS.includes(item)) : []);
+  } catch (_) { selectedMetrics = new Set(); }
+  themePreference = ['light','dark','system'].includes(localStorage.getItem(THEME_STORAGE_KEY))
+    ? localStorage.getItem(THEME_STORAGE_KEY)
+    : 'dark';
+  activeAppPage = ['market','ipo','alerts'].includes(requestedAppPage)
+    ? requestedAppPage
+    : (localStorage.getItem(APP_PAGE_STORAGE_KEY) || 'market');
+  anomalyEvents = Array.isArray(storedEvents) ? storedEvents : [];
+}
+
+async function apiRequest(path, options = {}) {
+  const response = await fetch(path, {
+    ...options,
+    headers:{ 'Content-Type':'application/json', ...(options.headers || {}) },
+  });
+  let payload = {};
+  try { payload = await response.json(); } catch (_) {}
+  if (!response.ok) throw new Error(payload.error || `请求失败（${response.status}）`);
+  return payload;
+}
+
+function avatarMarkup(user, fallback = '人') {
+  if (user?.avatarUrl) return `<img src="${escapeHtml(user.avatarUrl)}" alt="" referrerpolicy="no-referrer">`;
+  return escapeHtml((user?.displayName || fallback).trim().slice(0,1).toUpperCase() || fallback);
+}
+
+function renderAccountArea() {
+  const trigger = document.getElementById('account-trigger');
+  const avatar = document.getElementById('account-trigger-avatar');
+  const label = document.getElementById('account-trigger-label');
+  const menu = document.getElementById('account-menu');
+  if (!currentUser) {
+    avatar.innerHTML = '人';
+    label.textContent = '登录 / 注册';
+    trigger.setAttribute('aria-expanded', 'false');
+    menu.classList.remove('open');
+    menu.innerHTML = '';
+    return;
+  }
+  avatar.innerHTML = avatarMarkup(currentUser);
+  label.textContent = currentUser.displayName;
+  menu.innerHTML = `<div class="account-menu-head"><span class="account-avatar">${avatarMarkup(currentUser)}</span><div style="min-width:0"><div class="account-menu-name">${escapeHtml(currentUser.displayName)}</div><div class="account-menu-id">${escapeHtml(currentUser.username ? `@${currentUser.username}` : '微信账号')}</div></div></div><div class="account-sync-note" id="account-sync-note">页面配置已与账号关联</div><button class="account-menu-item" type="button" role="menuitem" onclick="openAccountSettings()">⚙ 账户设置与密码</button><button class="account-menu-item danger" type="button" role="menuitem" onclick="logoutAccount()">↪ 退出登录</button>`;
+}
+
+function toggleAccountMenu(event) {
+  event?.stopPropagation();
+  if (!currentUser) { openAuthModal(); return; }
+  const menu = document.getElementById('account-menu');
+  const open = !menu.classList.contains('open');
+  menu.classList.toggle('open', open);
+  document.getElementById('account-trigger').setAttribute('aria-expanded', String(open));
+}
+
+function closeAccountMenu() {
+  document.getElementById('account-menu').classList.remove('open');
+  document.getElementById('account-trigger').setAttribute('aria-expanded', 'false');
+}
+
+function showToast(message, error = false) {
+  const toast = document.getElementById('toast');
+  toast.textContent = message;
+  toast.classList.toggle('error', error);
+  toast.classList.add('visible');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => toast.classList.remove('visible'), 2600);
+}
+
+function setAuthError(id, message = '') {
+  const element = document.getElementById(id);
+  element.textContent = message;
+  element.classList.toggle('visible', Boolean(message));
+}
+
+function setButtonBusy(id, busy, busyLabel) {
+  const button = document.getElementById(id);
+  if (!button.dataset.label) button.dataset.label = button.textContent;
+  button.disabled = busy;
+  button.textContent = busy ? busyLabel : button.dataset.label;
+}
+
+function openAuthModal(mode = 'login') {
+  if (accountServiceEnabled === false) { showToast('账号服务尚未启用，请先完成服务器配置', true); return; }
+  if (accountServiceEnabled == null) { showToast('账号服务暂时不可用，请稍后重试', true); return; }
+  closeAccountMenu();
+  switchAuthMode(mode);
+  const wechatButton = document.getElementById('wechat-login-btn');
+  wechatButton.disabled = !wechatLoginEnabled;
+  document.getElementById('wechat-login-note').textContent = wechatLoginEnabled
+    ? '将在安全窗口中打开微信官方二维码'
+    : '管理员尚未配置微信开放平台网站应用';
+  document.getElementById('auth-mask').classList.add('open');
+  setTimeout(() => document.getElementById(mode === 'register' ? 'register-display-name' : 'login-username').focus(), 50);
+}
+
+function closeAuthModal(event) {
+  if (event && event.target !== event.currentTarget) return;
+  document.getElementById('auth-mask').classList.remove('open');
+  setAuthError('login-error'); setAuthError('register-error');
+}
+
+function switchAuthMode(mode) {
+  const register = mode === 'register';
+  document.getElementById('login-form').classList.toggle('active', !register);
+  document.getElementById('register-form').classList.toggle('active', register);
+  document.getElementById('auth-login-tab').classList.toggle('active', !register);
+  document.getElementById('auth-register-tab').classList.toggle('active', register);
+  setAuthError('login-error'); setAuthError('register-error');
+}
+
+async function submitPasswordLogin(event) {
+  event.preventDefault(); setAuthError('login-error'); setButtonBusy('login-submit', true, '登录中…');
+  const form = new FormData(event.currentTarget);
+  try {
+    await apiRequest('/api/auth/login', { method:'POST', body:JSON.stringify({ username:form.get('username'), password:form.get('password') }) });
+    prepareGuestConfigBackup();
+    location.reload();
+  } catch (error) { setAuthError('login-error', error.message); }
+  finally { setButtonBusy('login-submit', false, ''); }
+}
+
+async function submitRegistration(event) {
+  event.preventDefault(); setAuthError('register-error');
+  const form = new FormData(event.currentTarget);
+  if (form.get('password') !== form.get('passwordConfirm')) { setAuthError('register-error', '两次输入的密码不一致'); return; }
+  setButtonBusy('register-submit', true, '注册中…');
+  try {
+    await apiRequest('/api/auth/register', { method:'POST', body:JSON.stringify({
+      displayName:form.get('displayName'), username:form.get('username'), password:form.get('password'),
+    }) });
+    prepareGuestConfigBackup();
+    location.reload();
+  } catch (error) { setAuthError('register-error', error.message); }
+  finally { setButtonBusy('register-submit', false, ''); }
+}
+
+function startWechatLogin() {
+  if (!wechatLoginEnabled) { showToast('微信扫码登录尚未配置', true); return; }
+  prepareGuestConfigBackup();
+  const popup = window.open('/api/auth/wechat/start', 'stockWechatLogin', 'width=520,height=680,resizable=yes,scrollbars=yes');
+  if (!popup) location.href = '/api/auth/wechat/start';
+}
+
+async function decideConfigLink(importCurrent) {
+  setAuthError('config-link-error');
+  setButtonBusy('config-import-btn', true, '保存中…');
+  document.getElementById('config-skip-btn').disabled = true;
+  try {
+    const config = collectPageConfig();
+    await apiRequest('/api/auth/preferences/decision', { method:'POST', body:JSON.stringify({ importCurrent, config }) });
+    if (!importCurrent) applyPageConfig({ version:1, values:{} });
+    location.reload();
+  } catch (error) {
+    setAuthError('config-link-error', error.message);
+    setButtonBusy('config-import-btn', false, '');
+    document.getElementById('config-skip-btn').disabled = false;
+  }
+}
+
+function openAccountSettings() {
+  if (!currentUser) return;
+  closeAccountMenu(); setAuthError('password-error');
+  document.getElementById('settings-user').innerHTML = `<span class="account-avatar">${avatarMarkup(currentUser)}</span><div><div style="font-size:13px;font-weight:650">${escapeHtml(currentUser.displayName)}</div><div class="settings-hint">${escapeHtml(currentUser.username ? `登录账号：${currentUser.username}` : '当前通过微信登录')}</div></div>`;
+  document.getElementById('set-username-row').style.display = currentUser.hasPassword ? 'none' : 'block';
+  document.getElementById('current-password-row').style.display = currentUser.hasPassword ? 'block' : 'none';
+  document.getElementById('set-username').required = !currentUser.hasPassword;
+  document.getElementById('password-form').reset();
+  document.getElementById('account-settings-mask').classList.add('open');
+}
+
+function closeAccountSettings(event) {
+  if (event && event.target !== event.currentTarget) return;
+  document.getElementById('account-settings-mask').classList.remove('open');
+  setAuthError('password-error');
+}
+
+async function submitPasswordChange(event) {
+  event.preventDefault(); setAuthError('password-error');
+  const form = new FormData(event.currentTarget);
+  if (form.get('newPassword') !== form.get('newPasswordConfirm')) { setAuthError('password-error', '两次输入的新密码不一致'); return; }
+  setButtonBusy('password-submit', true, '保存中…');
+  try {
+    const payload = await apiRequest('/api/auth/password', { method:'PUT', body:JSON.stringify({
+      username:form.get('username'), currentPassword:form.get('currentPassword'), newPassword:form.get('newPassword'),
+    }) });
+    currentUser = payload.user;
+    renderAccountArea(); closeAccountSettings(); showToast('密码已更新');
+  } catch (error) { setAuthError('password-error', error.message); }
+  finally { setButtonBusy('password-submit', false, ''); }
+}
+
+async function syncAccountPreferences(force = false) {
+  if (!currentUser || !accountConfigReady || accountNeedsConfigDecision) return;
+  const config = collectPageConfig();
+  const serialized = JSON.stringify(config);
+  if (!force && serialized === lastSyncedAccountConfig) return;
+  try {
+    await apiRequest('/api/auth/preferences', { method:'PUT', body:JSON.stringify({ config }), keepalive:true });
+    lastSyncedAccountConfig = serialized;
+    const note = document.getElementById('account-sync-note');
+    if (note) note.textContent = `配置已同步 · ${new Date().toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'})}`;
+  } catch (_) {}
+}
+
+function startAccountConfigSync() {
+  clearInterval(accountConfigSyncTimer);
+  if (!currentUser || !accountConfigReady) return;
+  accountConfigSyncTimer = setInterval(() => syncAccountPreferences(), 2000);
+}
+
+async function logoutAccount() {
+  closeAccountMenu();
+  try {
+    await syncAccountPreferences(true);
+    await apiRequest('/api/auth/logout', { method:'POST', body:'{}' });
+    restoreGuestConfigBackup();
+    location.reload();
+  } catch (error) { showToast(error.message, true); }
+}
+
+async function bootstrapAccount() {
+  let payload = null;
+  for (let attempt=0; attempt<3 && !payload; attempt++) {
+    try { payload = await apiRequest('/api/auth/me', { method:'GET', headers:{} }); }
+    catch (_) { if (attempt < 2) await new Promise(resolve => setTimeout(resolve, 350 * (attempt + 1))); }
+  }
+  try {
+    if (!payload) throw new Error('account service unavailable');
+    accountServiceEnabled = payload.enabled !== false;
+    wechatLoginEnabled = payload.wechatEnabled === true;
+    currentUser = payload.user || null;
+    accountNeedsConfigDecision = Boolean(payload.needsConfigDecision);
+    accountConfigReady = Boolean(currentUser && !accountNeedsConfigDecision);
+    if (currentUser && payload.config) {
+      applyPageConfig(payload.config);
+      lastSyncedAccountConfig = JSON.stringify(collectPageConfig());
+    } else if (!currentUser && localStorage.getItem(ACCOUNT_GUEST_BACKUP_KEY)) {
+      restoreGuestConfigBackup();
+    }
+  } catch (_) {
+    accountServiceEnabled = null;
+    wechatLoginEnabled = false;
+    currentUser = null;
+  }
+  renderAccountArea();
+}
+
+async function initializeApplication() {
+  await bootstrapAccount();
+  reloadRuntimeConfigFromStorage();
+  applyListColorPreference();
+  applyThemePreference();
+  applyMetricSettings();
+  save();
+  renderGroupTabs();
+  switchAppPage(activeAppPage);
+  pruneInvalidAnomalyEvents();
+  renderAnomalyEvents();
+  fetchIpos();
+  document.getElementById('market-row-count').value = String(marketDefaultRows);
+  document.getElementById('refresh-interval').value = String(refreshIntervalMs);
+  startAutoRefresh();
+  startMarketRefresh();
+  refreshAll();
+  startAccountConfigSync();
+  if (currentUser && accountNeedsConfigDecision) document.getElementById('config-link-mask').classList.add('open');
+}
+
+document.addEventListener('click', event => { if (!event.target.closest('#account-area') && !event.target.closest('#account-menu')) closeAccountMenu(); });
+window.addEventListener('message', event => {
+  if (event.origin !== location.origin || event.data?.type !== 'stock-auth-complete') return;
+  if (event.data.ok) location.reload();
+  else showToast(event.data.error || '微信登录失败', true);
+});
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') syncAccountPreferences(); });
+initializeApplication();
 
 // --- Float Window ---
 let floatWindow = null;
