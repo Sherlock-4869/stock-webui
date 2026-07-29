@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <title>深度学习</title>
+  <defs>
+    <linearGradient id="bg" x1="8" y1="6" x2="57" y2="59" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#163a67"/>
+      <stop offset="1" stop-color="#24194d"/>
+    </linearGradient>
+    <linearGradient id="line" x1="12" y1="46" x2="52" y2="17" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#58a6ff"/>
+      <stop offset="1" stop-color="#7ee787"/>
+    </linearGradient>
+  </defs>
+  <rect x="2" y="2" width="60" height="60" rx="15" fill="#0d1117"/>
+  <rect x="4" y="4" width="56" height="56" rx="13" fill="url(#bg)" stroke="#58a6ff" stroke-opacity=".28"/>
+  <g fill="none" stroke="#8b5cf6" stroke-width="2" stroke-linecap="round" opacity=".42">
+    <path d="M13 21 27 31 39 18 51 27M13 43 27 31 39 45 51 27M13 21 27 45 39 18M13 43 27 45 39 45"/>
+  </g>
+  <path d="m12 46 14-12 10 5 16-21" fill="none" stroke="#07111d" stroke-opacity=".55" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="m12 46 14-12 10 5 16-21" fill="none" stroke="url(#line)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+  <g fill="#dff7ff" stroke="#58a6ff" stroke-width="1.5">
+    <circle cx="12" cy="46" r="3"/>
+    <circle cx="26" cy="34" r="3"/>
+    <circle cx="36" cy="39" r="3"/>
+    <circle cx="52" cy="18" r="3.5" stroke="#7ee787"/>
+  </g>
+</svg>

@@ -3,12 +3,15 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>画中画自选股</title>
+<title>深度学习 · 画中画</title>
+<meta name="application-name" content="深度学习">
+<meta name="theme-color" content="#0d1117">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <script>try{const t=localStorage.getItem('stock_theme_v1')||'dark';document.documentElement.dataset.theme=t==='system'?(matchMedia('(prefers-color-scheme: light)').matches?'light':'dark'):t}catch(_){}</script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:#0d1117;color:#e6edf3;padding:20px}
-.controls{margin-bottom:16px;display:flex;gap:8px;align-items:center}
+.controls{margin-bottom:16px;display:flex;gap:8px;align-items:center}.brand{display:flex;align-items:center;gap:7px;margin-right:6px;font-size:14px;font-weight:650}.brand img{width:24px;height:24px;border-radius:6px}
 button{background:#238636;border:none;border-radius:6px;color:#fff;padding:8px 16px;font-size:14px;cursor:pointer}
 button:hover{background:#2ea043}
 button:disabled{opacity:.4;cursor:not-allowed}
@@ -20,6 +23,7 @@ html[data-theme="light"]{color-scheme:light}html[data-theme="light"] body{backgr
 </head>
 <body>
 <div class="controls">
+  <div class="brand"><img src="/favicon.svg" alt="">深度学习</div>
   <button id="start-btn" onclick="startPiP()">启动画中画</button>
   <button id="stop-btn" onclick="stopPiP()" disabled>停止画中画</button>
   <div class="status" id="status">未启动</div>
@@ -114,7 +118,7 @@ function renderCanvas(data) {
   // title
   ctx.fillStyle = pipColor('#e6edf3','#1f2328');
   ctx.font = 'bold 20px sans-serif';
-  ctx.fillText('📈 自选股行情', 20, 35);
+  ctx.fillText('深度学习 · 自选股行情', 20, 35);
 
   // time
   ctx.font = '12px monospace';

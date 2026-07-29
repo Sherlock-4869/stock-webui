@@ -6,6 +6,7 @@ const { createWechatService } = require('./wechat/service');
 
 const PORT = 3000;
 const PUBLIC_DIR = path.join(__dirname, 'public');
+const REFERENCE_DOC_PATH = path.join(__dirname, 'doc', '参考文档.md');
 const gbkDecode = require('./iconv_gbk');
 
 const MIME = {
@@ -13,6 +14,7 @@ const MIME = {
   '.js':   'application/javascript; charset=utf-8',
   '.css':  'text/css; charset=utf-8',
   '.json': 'application/json; charset=utf-8',
+  '.svg':  'image/svg+xml',
 };
 
 const UPSTREAM_HEADERS = {
@@ -40,15 +42,32 @@ let ipoRefreshPromise = null;
 const FUNDAMENTAL_CACHE_MS = 6 * 60 * 60 * 1000;
 const FUND_FLOW_HISTORY_CACHE_MS = 60 * 1000;
 const REALTIME_FUND_FLOW_CACHE_MS = 4500;
+const REALTIME_VALUATION_CACHE_MS = 4500;
 const fundamentalCache = new Map();
 const fundFlowHistoryCache = new Map();
 const realtimeFundFlowCache = new Map();
+const realtimeValuationCache = new Map();
 
 function serveFile(res, filePath) {
   fs.readFile(filePath, (err, data) => {
     if (err) { res.writeHead(404); res.end('Not Found'); return; }
     const ext = path.extname(filePath);
     res.writeHead(200, { 'Content-Type': MIME[ext] || 'application/octet-stream' });
+    res.end(data);
+  });
+}
+
+function serveReferenceDocument(res, download=false) {
+  fs.readFile(REFERENCE_DOC_PATH, (err, data) => {
+    if (err) { res.writeHead(404); res.end('Not Found'); return; }
+    const headers = {
+      'Content-Type':'text/markdown; charset=utf-8',
+      'Cache-Control':'no-cache',
+    };
+    if (download) {
+      headers['Content-Disposition'] = `attachment; filename="reference-document.md"; filename*=UTF-8''${encodeURIComponent('参考文档.md')}`;
+    }
+    res.writeHead(200, headers);
     res.end(data);
   });
 }
@@ -195,6 +214,53 @@ async function loadFundamentals(symbols) {
   }));
 }
 
+async function loadRealtimeValuations(symbols) {
+  const aShares = [...new Set(symbols.filter(isAShareSymbol))];
+  const now = Date.now();
+  const missing = aShares.filter(symbol => {
+    const cached = realtimeValuationCache.get(symbol);
+    return !cached || now - cached.fetchedAt >= REALTIME_VALUATION_CACHE_MS;
+  });
+
+  if (missing.length) {
+    try {
+      const secids = missing.map(eastmoneySecId).join(',');
+      const raw = await requestBuffer(
+        `https://push2.eastmoney.com/api/qt/ulist.np/get?secids=${secids}&fields=f9,f12,f13,f14,f124`,
+        { ...UPSTREAM_HEADERS, Referer:'https://quote.eastmoney.com/' }
+      );
+      const rows = JSON.parse(raw.toString('utf-8'))?.data?.diff || [];
+      const returned = new Set();
+      for (const row of rows) {
+        const symbol = `${Number(row.f13) === 1 ? 'sh' : 'sz'}${row.f12}`;
+        if (!isAShareSymbol(symbol)) continue;
+        returned.add(symbol);
+        const rawPe = numberOrNull(row.f9);
+        const updatedAt = numberOrNull(row.f124);
+        realtimeValuationCache.set(symbol, {
+          fetchedAt:now,
+          data:{
+            peDynamic:rawPe != null && rawPe > 0 ? rawPe / 100 : null,
+            valuationDate:updatedAt ? shanghaiDateKey(updatedAt * 1000) : null,
+          },
+        });
+      }
+      missing.filter(symbol => !returned.has(symbol)).forEach(symbol => {
+        realtimeValuationCache.set(symbol, {
+          fetchedAt:now,
+          data:{ peDynamic:null, valuationDate:null },
+        });
+      });
+    } catch (error) {
+      console.error('Realtime valuation error:', error.message);
+    }
+  }
+
+  return Object.fromEntries(aShares.map(symbol => [symbol,
+    realtimeValuationCache.get(symbol)?.data || { peDynamic:null, valuationDate:null },
+  ]));
+}
+
 async function loadRealtimeFundFlows(symbols) {
   const aShares = [...new Set(symbols.filter(isAShareSymbol))];
   const points = await loadRealtimeFundFlowPoints(aShares);
@@ -331,15 +397,17 @@ async function proxyStockMetrics(urlObj, res) {
     .slice(0, 50);
   if (!symbols.length) { sendJson(res, 400, { data:{}, error:'Missing symbols' }); return; }
   const includeFundamentals = urlObj.searchParams.get('fundamentals') === '1';
+  const includeValuation = urlObj.searchParams.get('valuation') === '1';
   const includeFlow = urlObj.searchParams.get('flow') === '1';
   const includeFiveDay = urlObj.searchParams.get('fiveDay') === '1';
   const data = Object.fromEntries(symbols.map(symbol => [symbol, {}]));
 
-  const [fundamentals, flow] = await Promise.all([
+  const [fundamentals, valuations, flow] = await Promise.all([
     includeFundamentals ? loadFundamentals(symbols).catch(() => ({})) : {},
+    includeValuation ? loadRealtimeValuations(symbols).catch(() => ({})) : {},
     includeFlow ? loadRealtimeFundFlows(symbols).catch(() => ({})) : {},
   ]);
-  symbols.forEach(symbol => Object.assign(data[symbol], fundamentals[symbol], flow[symbol]));
+  symbols.forEach(symbol => Object.assign(data[symbol], fundamentals[symbol], valuations[symbol], flow[symbol]));
 
   if (includeFiveDay) {
     const queue = symbols.filter(isAShareSymbol);
@@ -542,6 +610,16 @@ const server = http.createServer(async (req, res) => {
     const safe = symbols.split(',').filter(s => /^[a-zA-Z0-9._-]+$/.test(s)).join(',');
     if (!safe) { res.writeHead(400); res.end('No valid symbols'); return; }
     proxyQuote(safe, res);
+    return;
+  }
+
+  if (pathname === '/api/reference-document') {
+    serveReferenceDocument(res);
+    return;
+  }
+
+  if (pathname === '/download/reference-document') {
+    serveReferenceDocument(res, true);
     return;
   }
 

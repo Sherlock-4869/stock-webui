@@ -3,14 +3,18 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>自选股行情</title>
+<title>深度学习</title>
+<meta name="application-name" content="深度学习">
+<meta name="theme-color" content="#0d1117">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <script>try{const t=localStorage.getItem('stock_theme_v1')||'dark';document.documentElement.dataset.theme=t==='system'?(matchMedia('(prefers-color-scheme: light)').matches?'light':'dark'):t}catch(_){}</script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:#0d1117;color:#e6edf3;min-height:100vh;-webkit-text-size-adjust:100%}
 .app-nav{position:sticky;top:0;z-index:150;padding:8px 24px;background:#0d1117f2;border-bottom:1px solid #21262d;backdrop-filter:blur(14px)}
 .app-nav-inner{display:flex;align-items:center;gap:4px;max-width:1100px;margin:0 auto;transition:max-width .2s ease}
-.app-tab{position:relative;display:inline-flex;align-items:center;justify-content:center;width:138px;flex:none;border:0;border-radius:7px;background:transparent;color:#8b949e;padding:8px 12px;font-size:13px;font-weight:600;cursor:pointer;transition:.15s}
+.app-brand{display:inline-flex;align-items:center;gap:8px;flex:none;margin-right:12px;color:#e6edf3;text-decoration:none;font-size:15px;font-weight:720;letter-spacing:.5px}.app-brand img{width:28px;height:28px;border-radius:7px;box-shadow:0 4px 14px #1f6feb2b}.app-brand span{white-space:nowrap}
+.app-tab{position:relative;display:inline-flex;align-items:center;justify-content:center;width:138px;flex:none;border:0;border-radius:7px;background:transparent;color:#8b949e;padding:8px 12px;font-size:13px;font-weight:600;text-decoration:none;cursor:pointer;transition:.15s}
 .app-tab:hover{color:#e6edf3;background:#161b22}.app-tab.active{color:#fff;background:#1f3a5f}.app-tab-badge{display:inline-block;min-width:17px;margin-left:5px;padding:1px 5px;border-radius:9px;background:#30363d;color:#8b949e;font-size:9px;vertical-align:1px}.app-tab.active .app-tab-badge{background:#1f6feb;color:#fff}
 .app-page{display:none}.app-page.active{display:block;animation:page-in .18s ease-out}@keyframes page-in{from{opacity:.3;transform:translateY(3px)}}
 .refresh-setting{display:flex;align-items:center;gap:6px;color:#8b949e;font-size:11px;white-space:nowrap}
@@ -244,6 +248,7 @@ body.stock-sorting,body.stock-sorting *{cursor:grabbing!important;user-select:no
 html[data-theme="light"]{color-scheme:light}
 html[data-theme="light"] body{background:#f3f6fa;color:#172033}
 html[data-theme="light"] .app-nav{background:#fffffff2;border-color:#dce3ec;box-shadow:0 1px 8px #1f3b5b0a}
+html[data-theme="light"] .app-brand{color:#172033}
 html[data-theme="light"] .app-tab{color:#637083}html[data-theme="light"] .app-tab:hover{color:#172033;background:#f0f5fa}html[data-theme="light"] .app-tab.active{color:#0969da;background:#e5f3ff;box-shadow:inset 0 0 0 1px #b6ddff}
 html[data-theme="light"] .app-tab-badge{background:#d8dee4;color:#57606a}html[data-theme="light"] .app-tab.active .app-tab-badge{background:#0969da;color:#fff}
 html[data-theme="light"] .market-card,html[data-theme="light"] .metric-card{background:#fff;border-color:#dbe3ec;box-shadow:0 2px 8px #1f3b5b0a}
@@ -286,9 +291,11 @@ html[data-theme="light"] .market-kicker{color:#0969da}html[data-theme="light"] .
 <body>
 <nav class="app-nav" aria-label="功能导航">
   <div class="app-nav-inner">
+    <a class="app-brand" href="/" aria-label="深度学习首页"><img src="/favicon.svg" alt=""><span>深度学习</span></a>
     <button class="app-tab active" data-page="market" onclick="switchAppPage('market')">📈 自选股行情</button>
     <button class="app-tab" data-page="ipo" onclick="switchAppPage('ipo')">🗓 打新消息<span class="app-tab-badge" id="ipo-badge">--</span></button>
     <button class="app-tab" data-page="alerts" onclick="switchAppPage('alerts')">⚡ 自选异动<span class="app-tab-badge" id="alert-badge">0</span></button>
+    <a class="app-tab" href="/reference.html">📚 参考文档</a>
     <label class="theme-setting" for="theme-select"><span>主题</span><select class="refresh-interval-select" id="theme-select" onchange="setThemePreference(this.value)"><option value="light">浅色</option><option value="dark">深色</option><option value="system">跟随系统</option></select></label>
   </div>
 </nav>
@@ -352,7 +359,7 @@ html[data-theme="light"] .market-kicker{color:#0969da}html[data-theme="light"] .
         <th>代码</th><th>名称</th><th>最新价</th>
         <th>涨跌额</th><th>涨跌幅</th><th>今开</th>
         <th>昨收</th><th>最高</th><th>最低</th>
-        <th>成交量(手)</th><th>成交额(万)</th><th class="optional-column metric-pe">市盈率</th><th class="optional-column metric-pb">市净率</th><th class="optional-column metric-bvps" title="根据最新价和市净率计算">每股净资产</th><th class="optional-column metric-dividend">股息率</th><th class="optional-column metric-turnover">换手率</th><th class="optional-column metric-volume-ratio">量比</th><th class="optional-column metric-total-market-cap">总市值</th><th class="optional-column metric-float-market-cap">流通市值</th><th class="optional-column metric-roe">ROE</th><th class="optional-column metric-net-profit-growth">净利润增速</th><th class="optional-column metric-gross-margin">毛利率</th><th class="optional-column metric-revenue-growth">营收增速</th><th class="optional-column metric-main-net-inflow">主力流入</th><th class="optional-column metric-main-net-ratio">主力净额占成交比</th><th class="optional-column metric-main-five-day">近五日主力累计</th><th class="optional-column metric-super-large-net">超大单净额</th><th class="optional-column metric-large-net">大单净额</th><th>操作</th>
+        <th>成交量(手)</th><th>成交额(万)</th><th class="optional-column metric-pe" title="A 股采用动态市盈率；亏损时显示 --">市盈率(动)</th><th class="optional-column metric-pb">市净率</th><th class="optional-column metric-bvps" title="根据最新价和市净率计算">每股净资产</th><th class="optional-column metric-dividend">股息率</th><th class="optional-column metric-turnover">换手率</th><th class="optional-column metric-volume-ratio">量比</th><th class="optional-column metric-total-market-cap">总市值</th><th class="optional-column metric-float-market-cap">流通市值</th><th class="optional-column metric-roe">ROE</th><th class="optional-column metric-net-profit-growth">净利润增速</th><th class="optional-column metric-gross-margin">毛利率</th><th class="optional-column metric-revenue-growth">营收增速</th><th class="optional-column metric-main-net-inflow">主力流入</th><th class="optional-column metric-main-net-ratio">主力净额占成交比</th><th class="optional-column metric-main-five-day">近五日主力累计</th><th class="optional-column metric-super-large-net">超大单净额</th><th class="optional-column metric-large-net">大单净额</th><th>操作</th>
       </tr>
     </thead>
     <tbody id="tbody"><tr><td colspan="12" class="empty">暂无自选股，请添加</td></tr></tbody>
@@ -378,7 +385,7 @@ html[data-theme="light"] .market-kicker{color:#0969da}html[data-theme="light"] .
     <div class="dialog-title" id="metrics-title">自定义股票指标</div>
     <div class="modal-sub">默认行情列始终显示；选择 8 项及以上时，可在表格内横向滚动查看指标</div>
     <div class="metric-option-list">
-      <label class="metric-option"><input type="checkbox" value="pe"><span><strong>市盈率（PE）</strong><small>衡量股价相对于每股收益的估值水平</small></span></label>
+      <label class="metric-option"><input type="checkbox" value="pe"><span><strong>市盈率（动态 PE）</strong><small>A 股按最新报告期利润年化计算；亏损时显示 --</small></span></label>
       <label class="metric-option"><input type="checkbox" value="pb"><span><strong>市净率（PB）</strong><small>衡量股价相对于每股净资产的倍数</small></span></label>
       <label class="metric-option"><input type="checkbox" value="bvps"><span><strong>每股净资产</strong><small>根据最新价与市净率计算；无有效市净率时显示 --</small></span></label>
       <label class="metric-option"><input type="checkbox" value="dividend"><span><strong>股息率</strong><small>最近年度股息相对于当前股价的比例；无派息数据时显示 --</small></span></label>
@@ -503,7 +510,7 @@ const MARKET_INDEXES = [
   { code:'FTSE', name:'英国富时 100', region:'英' },
 ];
 const OPTIONAL_METRICS = [
-  { key:'pe', dataKey:'pe', kind:'number' },
+  { key:'pe', dataKey:'peDynamic', kind:'number', source:'valuation' },
   { key:'pb', dataKey:'pb', kind:'number' },
   { key:'bvps', dataKey:'bvps', kind:'number' },
   { key:'dividend', dataKey:'dividend', kind:'percent' },
@@ -944,7 +951,7 @@ function extractQuote(sym, fields) {
   const peRaw = Number(fields[39]);
   const pbRaw = Number(isAShare ? fields[46] : fields[58]);
   const dividendRaw = Number(isAShare ? fields[64] : sym.startsWith('hk') ? fields[47] : fields[52]);
-  const pe = Number.isFinite(peRaw) && fields[39] !== '' && peRaw !== 0 ? peRaw : null;
+  const pe = Number.isFinite(peRaw) && fields[39] !== '' && peRaw > 0 ? peRaw : null;
   const pb = Number.isFinite(pbRaw) && pbRaw > 0 ? pbRaw : null;
   const dividend = Number.isFinite(dividendRaw) && dividendRaw > 0 ? dividendRaw : null;
   const quoteMetric = (index, positiveOnly=false) => {
@@ -973,6 +980,7 @@ async function fetchExtendedMetrics(symbols = [...watchlist]) {
   if (extendedMetricsRequestPending) { extendedMetricsQueued = true; return; }
   extendedMetricsRequestPending = true;
   const params = new URLSearchParams({ symbols:symbols.join(',') });
+  if (sources.has('valuation')) params.set('valuation', '1');
   if (sources.has('fundamentals')) params.set('fundamentals', '1');
   if (sources.has('flow')) params.set('flow', '1');
   if (sources.has('fiveDay')) params.set('fiveDay', '1');
@@ -1047,9 +1055,13 @@ function renderOptionalMetricCells(sym, quote) {
   const reportTitle = extended.reportName ? `最新报告期：${extended.reportName}` : '';
   return OPTIONAL_METRICS.map(metric => {
     const source = metric.source ? extended : quote || {};
-    const value = source?.[metric.dataKey];
+    const value = metric.key === 'pe' && !/^(?:sh|sz)\d{6}$/.test(sym)
+      ? quote?.pe
+      : source?.[metric.dataKey];
     const tone = (metric.kind === 'money' || metric.kind === 'percentTone') && Number.isFinite(value) ? ` ${cls(value)}` : '';
-    const titleText = metric.source === 'fundamentals' ? reportTitle
+    const titleText = metric.source === 'valuation'
+      ? `动态市盈率${extended.valuationDate ? ` · 行情日期：${extended.valuationDate}` : ''}；亏损时不展示`
+      : metric.source === 'fundamentals' ? reportTitle
       : metric.source === 'flow' && extended.flowDate ? `资金日期：${extended.flowDate}`
         : metric.source === 'fiveDay' && extended.mainFiveDayDate ? `统计截至：${extended.mainFiveDayDate}` : '';
     const title = titleText ? ` title="${escapeHtml(titleText)}"` : '';
