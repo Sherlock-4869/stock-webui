@@ -290,8 +290,15 @@ test('chat UI exposes emoji and validated image controls', () => {
   assert.match(html, /id="chat-emoji-panel"/);
   const emojiSource = html.match(/const CHAT_EMOJIS = \[([\s\S]*?)\];/);
   assert.ok(emojiSource, 'chat emoji list should be present');
-  assert.ok((emojiSource[1].match(/'[^']+'/g) || []).length >= 80, 'chat should offer a broad emoji selection');
-  assert.match(html, /chat-emoji-panel\{[^}]*max-height:min\(310px,calc\(100vh - 120px\)\)[^}]*overflow-y:auto/);
+  const emojiValues = (emojiSource[1].match(/'[^']+'/g) || []).map(value => value.slice(1, -1));
+  assert.ok(emojiValues.length >= 190, 'chat should retain common emoji and a broad face selection');
+  assert.equal(new Set(emojiValues).size, emojiValues.length, 'chat emoji should not include duplicate variants');
+  assert.ok(emojiValues.includes('🫠') && emojiValues.includes('😶‍🌫️') && emojiValues.includes('🫨'));
+  assert.equal(emojiValues.some(emoji => Array.from(emoji).some(char => {
+    const codePoint = char.codePointAt(0);
+    return codePoint >= 0x1F1E6 && codePoint <= 0x1F1FF;
+  })), false, 'chat emoji should exclude flags');
+  assert.match(html, /chat-emoji-panel\{[^}]*grid-template-columns:repeat\(6,30px\)[^}]*overflow-x:hidden[^}]*overflow-y:auto/);
   assert.match(html, /id="chat-image-btn"[\s\S]*?<svg class="chat-tool-icon"/);
   assert.match(html, /accept="image\/jpeg,image\/png,image\/gif,image\/webp"/);
   assert.match(html, /async function prepareChatImage\(file\)/);
