@@ -300,7 +300,7 @@ html[data-theme="light"] .note-sidebar-tab,html[data-theme="light"] .note-folder
 html[data-theme="light"] .note-sidebar-tab:hover,html[data-theme="light"] .note-folder-row:hover{background:#f6f8fa}html[data-theme="light"] .note-sidebar-tab.active,html[data-theme="light"] .note-folder-row.active{background:#ddf4ff;color:#0969da}
 html[data-theme="light"] .note-folder-create{background:#f6f8fa;border-color:#d0d7de;color:#57606a}
 html[data-theme="light"] .note-folder-action:hover,html[data-theme="light"] .note-folder-action:focus-visible{background:#eaeef2;color:#1f2328}
-html[data-theme="light"] .note-folder-select{background:#fff;border-color:#d0d7de;color:#1f2328}
+html[data-theme="light"] .note-folder-select,html[data-theme="light"] .note-create-folder-select{background:#fff;border-color:#d0d7de;color:#1f2328}
 html[data-theme="light"] .note-toc-link{color:#57606a}html[data-theme="light"] .note-toc-link:hover,html[data-theme="light"] .note-toc-link:focus-visible{background:#ddf4ff;color:#0969da}
 html[data-theme="light"] .note-toc-empty{color:#8c959f}
 html[data-theme="light"] .note-empty{color:#57606a}
@@ -334,7 +334,7 @@ html[data-theme="light"] .chat-image-preview{background:#ffffffee}html[data-them
 }
 /* ====== Notes styles ====== */
 .notes-layout{display:flex;gap:16px;min-height:calc(100vh - 200px)}
-.note-sidebar{width:300px;min-height:520px;max-height:calc(100vh - 200px);flex:none;display:flex;flex-direction:column;overflow:hidden;border:1px solid #30363d;border-radius:8px;background:#161b22}
+.note-sidebar{position:sticky;top:66px;align-self:flex-start;width:300px;min-height:520px;max-height:calc(100vh - 88px);flex:none;display:flex;flex-direction:column;overflow:hidden;border:1px solid #30363d;border-radius:8px;background:#161b22}
 .note-sidebar-tabs{display:grid;grid-template-columns:1fr 1fr;border-bottom:1px solid #30363d;background:#1c2128}
 .note-sidebar-tab{padding:10px 8px;border:0;border-right:1px solid #30363d;background:transparent;color:#8b949e;font-size:12px;cursor:pointer}.note-sidebar-tab:last-child{border-right:0}.note-sidebar-tab:hover{background:#21262d}.note-sidebar-tab.active{background:#1f3a5f;color:#79c0ff;font-weight:650}
 .note-sidebar-panel{display:none;min-height:0;flex:1;flex-direction:column}.note-sidebar-panel.active{display:flex}
@@ -378,11 +378,12 @@ html[data-theme="light"] .chat-image-preview{background:#ffffffee}html[data-them
 .note-import-zone{border:2px dashed #30363d;border-radius:8px;padding:20px;text-align:center;color:#8b949e;font-size:12px;cursor:pointer;transition:border-color .15s,background .15s}
 .note-import-zone.dragover{border-color:#1f6feb;background:#1f6feb0a}
 .note-import-zone input{display:none}
+.note-create-folder-label{display:flex;align-items:center;gap:6px;color:#8b949e;font-size:11px;white-space:nowrap}.note-create-folder-select{max-width:145px;padding:6px 25px 6px 8px;border:1px solid #30363d;border-radius:5px;background:#21262d;color:#c9d1d9;font-size:11px;outline:none}.note-create-folder-select:focus{border-color:#58a6ff}
 .note-folder-select-label{display:flex;min-width:0;align-items:center;gap:5px;color:#6e7681;font-size:10px}.note-folder-select{max-width:160px;padding:5px 25px 5px 8px;border:1px solid #30363d;border-radius:5px;background:#21262d;color:#c9d1d9;font-size:11px;outline:none}.note-folder-select:focus{border-color:#58a6ff}
 .note-view-toggle{display:flex;margin-left:auto;border:1px solid #30363d;border-radius:5px;overflow:hidden}
 .note-view-btn{background:#21262d;border:none;color:#8b949e;padding:4px 10px;font-size:11px;cursor:pointer}
 .note-view-btn.active{background:#1f3a5f;color:#79c0ff}
-@media (max-width:768px){.notes-layout{flex-direction:column}.note-sidebar{width:100%;min-height:280px;max-height:340px}.note-folder-list{max-height:130px}.note-folder-actions{opacity:1}.note-editor-wrap{min-height:300px}.note-folder-select-label{max-width:150px}.note-folder-select{max-width:115px}}
+@media (max-width:768px){.notes-layout{flex-direction:column}.note-sidebar{position:static;top:auto;align-self:stretch;width:100%;min-height:280px;max-height:340px}.note-folder-list{max-height:130px}.note-folder-actions{opacity:1}.note-editor-wrap{min-height:300px}.note-folder-select-label{max-width:150px}.note-folder-select{max-width:115px}.note-create-folder-select{max-width:120px}}
 /* ====== Reference reader ====== */
 .reference-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.reference-actions .refresh-btn{display:inline-flex;align-items:center;justify-content:center;text-decoration:none;white-space:nowrap}
 .reference-reader{display:grid;grid-template-columns:210px minmax(0,1fr);gap:22px;max-width:1090px;margin:0 auto;align-items:start}
@@ -541,7 +542,7 @@ html[data-theme="light"] .reference-retry{background:#f6f8fa;border-color:#d0d7d
 </section>
 
 <section class="app-page" id="page-notes">
-  <div class="module-head"><div><div class="market-kicker">Personal Notes</div><h2 class="module-title">我的笔记</h2><p class="module-desc">Markdown 格式笔记，支持文件夹分类、标题导航和文档导入</p></div><div class="module-actions"><div class="note-import-zone" id="note-import-zone" onclick="document.getElementById('note-import-input').click()" ondragover="event.preventDefault();this.classList.add('dragover')" ondragleave="this.classList.remove('dragover')" ondrop="handleNoteFileDrop(event)">📄 拖拽 .md/.txt 文件到此处导入<input type="file" id="note-import-input" accept=".md,.txt,.markdown" onchange="handleNoteFileSelect(event)"></div><button class="refresh-btn" onclick="createNewNote()">✏ 新建笔记</button></div></div>
+  <div class="module-head"><div><div class="market-kicker">Personal Notes</div><h2 class="module-title">我的笔记</h2><p class="module-desc">Markdown 格式笔记，可指定文件夹新建、导入和重新归类</p></div><div class="module-actions"><div class="note-import-zone" id="note-import-zone" onclick="document.getElementById('note-import-input').click()" ondragover="event.preventDefault();this.classList.add('dragover')" ondragleave="this.classList.remove('dragover')" ondrop="handleNoteFileDrop(event)">📄 拖拽 .md/.txt 文件到此处导入<input type="file" id="note-import-input" accept=".md,.txt,.markdown" onchange="handleNoteFileSelect(event)"></div><label class="note-create-folder-label">新建/导入到<select class="note-create-folder-select" id="note-create-folder-select" onchange="setNoteCreateFolder(this.value)"><option value="">未分类</option></select></label><button class="refresh-btn" onclick="createNewNote()">✏ 新建笔记</button></div></div>
   <div class="notes-layout" id="notes-layout">
     <aside class="note-sidebar" aria-label="笔记侧栏">
       <div class="note-sidebar-tabs" role="tablist" aria-label="笔记导航">
@@ -562,7 +563,7 @@ html[data-theme="light"] .reference-retry{background:#f6f8fa;border-color:#d0d7d
     <div class="note-main" id="note-main">
       <div class="note-empty" id="note-placeholder"><div class="note-empty-icon">📄</div><div>选择左侧笔记或新建一篇</div></div>
       <div id="note-editor" style="display:none;flex:1;flex-direction:column">
-        <div class="note-toolbar"><button class="refresh-btn" onclick="saveCurrentNote()" id="note-save-btn">💾 保存</button><button class="refresh-btn" onclick="deleteCurrentNote()">🗑 删除</button><label class="note-folder-select-label">文件夹<select class="note-folder-select" id="note-folder-select" onchange="moveCurrentNoteToFolder(this.value)"><option value="">未分类</option></select></label><span id="note-status" style="font-size:10px;color:#6e7681"></span><div class="note-view-toggle"><button class="note-view-btn active" onclick="setNoteView('split')" data-view="split">分栏</button><button class="note-view-btn" onclick="setNoteView('edit')" data-view="edit">编辑</button><button class="note-view-btn" onclick="setNoteView('preview')" data-view="preview">预览</button></div></div>
+        <div class="note-toolbar"><button class="refresh-btn" onclick="saveCurrentNote()" id="note-save-btn">💾 保存</button><button class="refresh-btn" onclick="deleteCurrentNote()">🗑 删除</button><label class="note-folder-select-label">归类到<select class="note-folder-select" id="note-folder-select" onchange="moveCurrentNoteToFolder(this.value)"><option value="">未分类</option></select></label><span id="note-status" style="font-size:10px;color:#6e7681"></span><div class="note-view-toggle"><button class="note-view-btn active" onclick="setNoteView('split')" data-view="split">分栏</button><button class="note-view-btn" onclick="setNoteView('edit')" data-view="edit">编辑</button><button class="note-view-btn" onclick="setNoteView('preview')" data-view="preview">预览</button></div></div>
         <input class="note-title-input" id="note-title" placeholder="笔记标题..." maxlength="200">
         <div class="note-editor-wrap" id="note-editor-wrap"><textarea class="note-editor-area" id="note-content" placeholder="在此编写 Markdown 内容..."></textarea><div class="note-preview" id="note-preview"></div></div>
       </div>
@@ -3312,6 +3313,7 @@ let currentNoteId = null;
 let currentNoteFolderId = null;
 let noteSearchQuery = '';
 let activeNoteFolderFilter = 'all';
+let noteCreateFolderId = null;
 let noteSidebarTab = 'files';
 let noteViewMode = 'split';
 let noteSaveTimer = null;
@@ -3461,10 +3463,25 @@ function setNoteSidebarTab(tab) {
 }
 
 function noteCreationFolderId() {
-  if (!/^\d+$/.test(activeNoteFolderFilter)) return null;
-  return noteFolders.some(folder => String(folder.id) === activeNoteFolderFilter)
-    ? activeNoteFolderFilter
+  const selected = noteCreateFolderId == null ? '' : String(noteCreateFolderId);
+  return noteFolders.some(folder => String(folder.id) === selected)
+    ? selected
     : null;
+}
+
+function setNoteCreateFolder(folderId) {
+  const selected = String(folderId || '');
+  noteCreateFolderId = noteFolders.some(folder => String(folder.id) === selected) ? selected : null;
+  renderNoteCreateFolderSelect();
+}
+
+function renderNoteCreateFolderSelect() {
+  const select = document.getElementById('note-create-folder-select');
+  if (!select) return;
+  select.innerHTML = '<option value="">未分类</option>' + noteFolders.map(folder =>
+    `<option value="${folder.id}">${escapeHtml(folder.name)}</option>`
+  ).join('');
+  select.value = noteCreateFolderId == null ? '' : String(noteCreateFolderId);
 }
 
 function renderNoteFolderSelect(folderId = currentNoteFolderId) {
@@ -3489,10 +3506,12 @@ function renderNoteFolderList() {
   container.innerHTML = `<div class="note-folder-row${activeNoteFolderFilter === 'all' ? ' active' : ''}"><button class="note-folder-main" type="button" onclick="setNoteFolderFilter('all')"><span aria-hidden="true">🗂</span><span class="note-folder-name">全部笔记</span><span class="note-folder-count">${notesList.length}</span></button></div>
     <div class="note-folder-row${activeNoteFolderFilter === 'unfiled' ? ' active' : ''}"><button class="note-folder-main" type="button" onclick="setNoteFolderFilter('unfiled')"><span aria-hidden="true">📄</span><span class="note-folder-name">未分类</span><span class="note-folder-count">${unfiledCount}</span></button></div>${folderRows}`;
   renderNoteFolderSelect();
+  renderNoteCreateFolderSelect();
 }
 
 function setNoteFolderFilter(folderId) {
   activeNoteFolderFilter = String(folderId);
+  noteCreateFolderId = /^\d+$/.test(activeNoteFolderFilter) ? activeNoteFolderFilter : null;
   setNoteSidebarTab('files');
   renderNoteFolderList();
   renderNoteList();
@@ -3505,6 +3524,7 @@ async function createNoteFolder() {
   try {
     const resp = await apiRequest('/api/note-folders', { method:'POST', body:JSON.stringify({ name }) });
     activeNoteFolderFilter = String(resp.folder.id);
+    noteCreateFolderId = String(resp.folder.id);
     await loadNotesList({ reloadFolders:true });
     showToast(`文件夹“${resp.folder.name}”已创建`);
   } catch (error) {
@@ -3534,6 +3554,7 @@ async function deleteNoteFolder(folderId) {
     await apiRequest(`/api/note-folders/${folderId}`, { method:'DELETE', body:'{}' });
     if (String(currentNoteFolderId || '') === String(folderId)) currentNoteFolderId = null;
     if (activeNoteFolderFilter === String(folderId)) activeNoteFolderFilter = 'unfiled';
+    if (String(noteCreateFolderId || '') === String(folderId)) noteCreateFolderId = null;
     await loadNotesList({ reloadFolders:true });
     showToast('文件夹已删除，原有笔记已移到未分类');
   } catch (error) {
@@ -3563,9 +3584,11 @@ async function loadNotesList({ reloadFolders = !notesLoaded } = {}) {
   if (!currentUser) {
     notesList = [];
     noteFolders = [];
+    noteCreateFolderId = null;
     notesLoaded = false;
     document.getElementById('note-list').innerHTML = '<div class="note-empty"><div class="note-empty-icon">📝</div><div>请先登录以使用笔记功能</div></div>';
     document.getElementById('note-folder-list').innerHTML = '<div class="note-toc-empty">登录后可管理文件夹</div>';
+    renderNoteCreateFolderSelect();
     renderNoteToc('');
     return;
   }
@@ -3578,6 +3601,9 @@ async function loadNotesList({ reloadFolders = !notesLoaded } = {}) {
     if (foldersResp) noteFolders = foldersResp.folders || [];
     if (/^\d+$/.test(activeNoteFolderFilter) && !noteFolders.some(folder => String(folder.id) === activeNoteFolderFilter)) {
       activeNoteFolderFilter = 'all';
+    }
+    if (noteCreateFolderId != null && !noteFolders.some(folder => String(folder.id) === String(noteCreateFolderId))) {
+      noteCreateFolderId = null;
     }
     notesLoaded = true;
     renderNoteFolderList();
@@ -3932,8 +3958,11 @@ function restoreChatRoom() {
   chatState.minimized = false;
   chatState.unread = 0;
   updateChatBadge();
-  document.getElementById('chat-float').classList.add('open');
-  document.getElementById('chat-minimized').classList.remove('visible');
+  const float = document.getElementById('chat-float');
+  const icon = document.getElementById('chat-minimized');
+  float.classList.add('open');
+  positionChatFloatNearMinimizedIcon();
+  icon.classList.remove('visible');
   scrollChatToBottom();
 }
 
@@ -4252,6 +4281,40 @@ function clampChatMinimizedPosition(left, top, width, height, viewportWidth = wi
     left: Math.max(0, Math.min(Math.max(0, viewportWidth - width), left)),
     top: Math.max(0, Math.min(Math.max(0, viewportHeight - height), top)),
   };
+}
+
+function calculateChatFloatPosition(iconRect, floatWidth, floatHeight, viewportWidth, viewportHeight, gap = 10, margin = 8) {
+  const spaceLeft = iconRect.left - margin;
+  const spaceRight = viewportWidth - iconRect.right - margin;
+  const placeOnLeft = spaceLeft >= floatWidth + gap || spaceLeft >= spaceRight;
+  const desiredLeft = placeOnLeft
+    ? iconRect.left - floatWidth - gap
+    : iconRect.right + gap;
+  const desiredTop = iconRect.top + iconRect.height / 2 - floatHeight / 2;
+  return {
+    left: Math.max(margin, Math.min(Math.max(margin, viewportWidth - floatWidth - margin), desiredLeft)),
+    top: Math.max(margin, Math.min(Math.max(margin, viewportHeight - floatHeight - margin), desiredTop)),
+    side: placeOnLeft ? 'left' : 'right',
+  };
+}
+
+function positionChatFloatNearMinimizedIcon() {
+  if (window.innerWidth <= 500) return;
+  const icon = document.getElementById('chat-minimized');
+  const float = document.getElementById('chat-float');
+  if (!icon || !float) return;
+  const iconRect = icon.getBoundingClientRect();
+  const position = calculateChatFloatPosition(
+    iconRect,
+    float.offsetWidth || 380,
+    float.offsetHeight || 520,
+    window.innerWidth,
+    window.innerHeight
+  );
+  float.style.left = `${position.left}px`;
+  float.style.top = `${position.top}px`;
+  float.style.right = 'auto';
+  float.style.bottom = 'auto';
 }
 
 function keepChatMinimizedInViewport() {

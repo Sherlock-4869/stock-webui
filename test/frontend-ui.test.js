@@ -53,12 +53,16 @@ test('Markdown heading navigation ignores fenced code and matches preview anchor
 });
 
 test('notes keep file and heading navigation in fixed sidebar tabs with folder controls', () => {
+  assert.match(html, /\.note-sidebar\{position:sticky;top:66px/);
   assert.match(html, /id="note-files-tab"[^>]*role="tab"[^>]*>文件列表<\/button>/);
   assert.match(html, /id="note-headings-tab"[^>]*role="tab"[^>]*>标题导航<\/button>/);
   assert.match(html, /id="note-toc-list"[^>]*aria-label="当前笔记标题导航"/);
   assert.match(html, /id="note-folder-list"/);
   assert.match(html, /onclick="createNoteFolder\(\)"/);
+  assert.match(html, /id="note-create-folder-select"[^>]*onchange="setNoteCreateFolder\(this\.value\)"/);
+  assert.match(html, />新建\/导入到<select/);
   assert.match(html, /id="note-folder-select"[^>]*onchange="moveCurrentNoteToFolder\(this\.value\)"/);
+  assert.match(html, />归类到<select/);
   assert.match(html, /async function createNoteFolder\(\)/);
   assert.match(html, /async function renameNoteFolder\(folderId\)/);
   assert.match(html, /async function deleteNoteFolder\(folderId\)/);
@@ -184,6 +188,25 @@ test('minimized chat icon supports bounded pointer dragging without accidental r
   assert.deepEqual(JSON.parse(JSON.stringify(context.clampChatMinimizedPosition(-10, -20, 52, 52, 320, 480))), { left:0, top:0 });
   assert.deepEqual(JSON.parse(JSON.stringify(context.clampChatMinimizedPosition(400, 500, 52, 52, 320, 480))), { left:268, top:428 });
   assert.deepEqual(JSON.parse(JSON.stringify(context.clampChatMinimizedPosition(10, 10, 52, 52, 20, 20))), { left:0, top:0 });
+});
+
+test('restored chat window opens beside the dragged minimized icon', () => {
+  assert.match(html, /function restoreChatRoom\(\)[\s\S]*?float\.classList\.add\('open'\);\s*positionChatFloatNearMinimizedIcon\(\);\s*icon\.classList\.remove\('visible'\)/);
+  const start = html.indexOf('function calculateChatFloatPosition');
+  const end = html.indexOf('function positionChatFloatNearMinimizedIcon', start);
+  assert.ok(start >= 0 && end > start);
+  const context = {};
+  vm.createContext(context);
+  vm.runInContext(html.slice(start, end), context);
+
+  const rightIcon = { left:740, right:792, top:700, height:52 };
+  assert.deepEqual(JSON.parse(JSON.stringify(context.calculateChatFloatPosition(rightIcon, 380, 520, 800, 800))), {
+    left:350, top:272, side:'left',
+  });
+  const leftIcon = { left:8, right:60, top:200, height:52 };
+  assert.deepEqual(JSON.parse(JSON.stringify(context.calculateChatFloatPosition(leftIcon, 380, 520, 800, 800))), {
+    left:70, top:8, side:'right',
+  });
 });
 
 test('chat UI exposes emoji and validated image controls', () => {
