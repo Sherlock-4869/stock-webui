@@ -66,6 +66,47 @@ test('notes keep file and heading navigation in fixed sidebar tabs with folder c
   assert.doesNotMatch(html, /note-toc-popover|toggleNoteToc/);
 });
 
+test('brand navigation returns home without reloading the current application', () => {
+  assert.match(html, /class="app-brand"[^>]*href="\/"[^>]*onclick="handleAppBrandClick\(event\)"/);
+  const start = html.indexOf('function handleAppBrandClick');
+  const end = html.indexOf('async function loadReferenceDocument', start);
+  assert.ok(start >= 0 && end > start);
+  const pages = [];
+  const context = { switchAppPage:page => pages.push(page) };
+  vm.createContext(context);
+  vm.runInContext(html.slice(start, end), context);
+
+  let prevented = false;
+  context.handleAppBrandClick({ button:0, metaKey:false, ctrlKey:false, shiftKey:false, altKey:false, preventDefault:() => { prevented = true; } });
+  assert.equal(prevented, true);
+  assert.deepEqual(pages, ['market']);
+
+  prevented = false;
+  context.handleAppBrandClick({ button:0, metaKey:true, ctrlKey:false, shiftKey:false, altKey:false, preventDefault:() => { prevented = true; } });
+  assert.equal(prevented, false);
+  assert.deepEqual(pages, ['market']);
+});
+
+test('note heading navigation scrolls the selected preview heading into view', () => {
+  const start = html.indexOf('function jumpToNoteHeading');
+  const end = html.indexOf('function setNoteView', start);
+  assert.ok(start >= 0 && end > start);
+  let selector = '';
+  let scrollOptions = null;
+  const heading = { scrollIntoView:options => { scrollOptions = options; } };
+  const preview = { querySelector:value => { selector = value; return heading; } };
+  const context = {
+    noteViewMode:'split',
+    document:{ getElementById:id => id === 'note-preview' ? preview : null },
+    setNoteView() {},
+  };
+  vm.createContext(context);
+  vm.runInContext(html.slice(start, end), context);
+  context.jumpToNoteHeading('note-heading-2');
+  assert.equal(selector, '[id="note-heading-2"]');
+  assert.deepEqual(JSON.parse(JSON.stringify(scrollOptions)), { behavior:'smooth', block:'start', inline:'nearest' });
+});
+
 test('reference documentation is immediately to the left of theme controls', () => {
   const navStart = html.indexOf('<div class="app-nav-inner">');
   const navEnd = html.indexOf('</nav>', navStart);
@@ -123,6 +164,26 @@ test('chat UI starts each entry empty and bounds temporary rendered content', ()
   const sessionEnd = html.indexOf('function updateChatOnline', sessionStart);
   assert.ok(sessionStart >= 0 && sessionEnd > sessionStart);
   assert.doesNotMatch(html.slice(sessionStart, sessionEnd), /appendChatMessage/);
+});
+
+test('minimized chat icon supports bounded pointer dragging without accidental restore', () => {
+  assert.match(html, /<button class="chat-minimized" id="chat-minimized"[^>]*aria-label="打开聊天室，可拖动位置"/);
+  assert.match(html, /\.chat-minimized\{[^}]*touch-action:none/);
+  assert.match(html, /initChatMinimizedDrag\(\);/);
+  assert.match(html, /addEventListener\('pointerdown'/);
+  assert.match(html, /addEventListener\('pointermove'/);
+  assert.match(html, /Math\.hypot\(dx, dy\) < 4/);
+  assert.match(html, /if \(ignoreNextClick\)[\s\S]*?event\.preventDefault\(\)/);
+
+  const start = html.indexOf('function clampChatMinimizedPosition');
+  const end = html.indexOf('function keepChatMinimizedInViewport', start);
+  assert.ok(start >= 0 && end > start);
+  const context = {};
+  vm.createContext(context);
+  vm.runInContext(html.slice(start, end), context);
+  assert.deepEqual(JSON.parse(JSON.stringify(context.clampChatMinimizedPosition(-10, -20, 52, 52, 320, 480))), { left:0, top:0 });
+  assert.deepEqual(JSON.parse(JSON.stringify(context.clampChatMinimizedPosition(400, 500, 52, 52, 320, 480))), { left:268, top:428 });
+  assert.deepEqual(JSON.parse(JSON.stringify(context.clampChatMinimizedPosition(10, 10, 52, 52, 20, 20))), { left:0, top:0 });
 });
 
 test('chat UI exposes emoji and validated image controls', () => {

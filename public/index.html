@@ -365,7 +365,7 @@ html[data-theme="light"] .chat-image-preview{background:#ffffffee}html[data-them
 .note-editor-wrap{flex:1;display:flex;border:1px solid #30363d;border-top:0;border-radius:0 0 8px 8px;overflow:hidden;min-height:400px}
 .note-editor-area{flex:1;background:#0d1117;color:#e6edf3;border:none;padding:14px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px;line-height:1.7;resize:none;outline:none;tab-size:2}
 .note-preview{flex:1;padding:14px 18px;overflow-y:auto;border-left:1px solid #30363d;background:#161b22;color:#e6edf3;font-size:13px;line-height:1.8}
-.note-preview h1{font-size:22px;margin:0 0 12px;padding-bottom:8px;border-bottom:1px solid #30363d}.note-preview h2{font-size:18px;margin:16px 0 8px;padding-bottom:6px;border-bottom:1px solid #30363d}.note-preview h3{font-size:15px;margin:14px 0 6px}
+.note-preview h1{font-size:22px;margin:0 0 12px;padding-bottom:8px;border-bottom:1px solid #30363d;scroll-margin-top:10px}.note-preview h2{font-size:18px;margin:16px 0 8px;padding-bottom:6px;border-bottom:1px solid #30363d;scroll-margin-top:10px}.note-preview h3{font-size:15px;margin:14px 0 6px;scroll-margin-top:10px}
 .note-preview p{margin:0 0 10px}.note-preview code{background:#30363d;padding:2px 6px;border-radius:4px;font-family:ui-monospace,SFMono-Regular,monospace;font-size:12px}
 .note-preview pre{background:#0d1117;border:1px solid #30363d;border-radius:6px;padding:12px;overflow-x:auto;margin:8px 0}.note-preview pre code{background:none;padding:0}
 .note-preview ul,.note-preview ol{margin:0 0 10px;padding-left:24px}.note-preview li{margin:2px 0}
@@ -431,9 +431,10 @@ html[data-theme="light"] .reference-retry{background:#f6f8fa;border-color:#d0d7d
 .chat-send-btn{flex:none;background:#238636;border:none;border-radius:8px;color:#fff;padding:8px 14px;font-size:12px;font-weight:600;cursor:pointer;transition:background .15s}
 .chat-send-btn:hover{background:#2ea043}
 .chat-send-btn:disabled{opacity:.4;cursor:not-allowed}
-.chat-minimized{position:fixed;z-index:300;bottom:20px;right:20px;display:none;align-items:center;justify-content:center;width:52px;height:52px;border-radius:50%;background:#161b22e6;backdrop-filter:blur(12px);border:1px solid #30363d;box-shadow:0 6px 20px #0008;cursor:pointer;font-size:22px;transition:transform .15s,box-shadow .15s}
+.chat-minimized{position:fixed;z-index:300;bottom:20px;right:20px;display:none;align-items:center;justify-content:center;width:52px;height:52px;padding:0;border-radius:50%;background:#161b22e6;backdrop-filter:blur(12px);border:1px solid #30363d;box-shadow:0 6px 20px #0008;color:inherit;cursor:grab;font:inherit;font-size:22px;touch-action:none;user-select:none;transition:transform .15s,box-shadow .15s}
 .chat-minimized.visible{display:flex;animation:chat-in .25s ease-out}
 .chat-minimized:hover{transform:scale(1.08);box-shadow:0 8px 25px #0009}
+.chat-minimized.dragging{transform:none;cursor:grabbing;transition:none}
 .chat-badge{position:absolute;top:-2px;right:-2px;min-width:16px;height:16px;border-radius:8px;background:#f85149;color:#fff;font-size:9px;font-weight:700;display:none;align-items:center;justify-content:center;padding:0 4px}
 .chat-badge.visible{display:flex}
 .chat-image-preview{position:fixed;z-index:520;inset:0;display:none;align-items:center;justify-content:center;padding:30px;background:#0d1117ee;backdrop-filter:blur(8px)}.chat-image-preview.open{display:flex}.chat-image-preview img{max-width:min(100%,1100px);max-height:calc(100vh - 60px);border-radius:10px;box-shadow:0 18px 60px #000c}.chat-image-preview-close{position:absolute;top:18px;right:18px;width:36px;height:36px;border:1px solid #30363d;border-radius:50%;background:#161b22;color:#e6edf3;font-size:18px;cursor:pointer}
@@ -443,7 +444,7 @@ html[data-theme="light"] .reference-retry{background:#f6f8fa;border-color:#d0d7d
 <body>
 <nav class="app-nav" aria-label="功能导航">
   <div class="app-nav-inner">
-    <a class="app-brand" href="/" aria-label="深度学习首页"><img src="/favicon.svg" alt=""><span>深度学习</span></a>
+    <a class="app-brand" href="/" aria-label="深度学习首页" onclick="handleAppBrandClick(event)"><img src="/favicon.svg" alt=""><span>深度学习</span></a>
     <button class="app-tab active" data-page="market" onclick="switchAppPage('market')">📈 自选股行情</button>
     <button class="app-tab" data-page="ipo" onclick="switchAppPage('ipo')">🗓 打新消息<span class="app-tab-badge" id="ipo-badge">--</span></button>
     <button class="app-tab" data-page="alerts" onclick="switchAppPage('alerts')">⚡ 自选异动<span class="app-tab-badge" id="alert-badge">0</span></button>
@@ -2691,6 +2692,12 @@ function updateAppPageHistory(page, mode) {
   else if (url.href !== location.href) history.pushState({ page }, '', url);
 }
 
+function handleAppBrandClick(event) {
+  if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+  event.preventDefault();
+  switchAppPage('market');
+}
+
 async function loadReferenceDocument(force = false) {
   const result = await ReferenceReader.mount({
     article:'reference-document',
@@ -3426,10 +3433,9 @@ function updateNotePreview() {
 function jumpToNoteHeading(id) {
   if (noteViewMode === 'edit') setNoteView('split');
   const preview = document.getElementById('note-preview');
-  const heading = document.getElementById(id);
+  const heading = preview.querySelector(`[id="${id}"]`);
   if (!heading) return;
-  const top = preview.scrollTop + heading.getBoundingClientRect().top - preview.getBoundingClientRect().top - 10;
-  preview.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
+  heading.scrollIntoView({ behavior:'smooth', block:'start', inline:'nearest' });
 }
 
 function setNoteView(mode) {
@@ -3856,9 +3862,9 @@ async function openChatRoom() {
         </div>
       </div>
     </div>
-    <div class="chat-minimized" id="chat-minimized" onclick="restoreChatRoom()">
+    <button class="chat-minimized" id="chat-minimized" type="button" aria-label="打开聊天室，可拖动位置" title="点击打开，拖动调整位置">
       💬<span class="chat-badge" id="chat-badge"></span>
-    </div>
+    </button>
     <div class="chat-image-preview" id="chat-image-preview" onclick="if(event.target===this)closeChatImagePreview()" role="dialog" aria-modal="true" aria-label="图片预览"><button class="chat-image-preview-close" type="button" onclick="closeChatImagePreview()" aria-label="关闭图片预览">✕</button><img id="chat-image-preview-content" alt="聊天图片预览"></div>`;
     document.body.insertAdjacentHTML('beforeend', chatHtml);
 
@@ -3883,6 +3889,7 @@ async function openChatRoom() {
 
     // Drag support
     initChatDrag();
+    initChatMinimizedDrag();
   }
 
   clearChatSessionView();
@@ -3916,6 +3923,7 @@ function minimizeChatRoom() {
   updateChatBadge();
   document.getElementById('chat-float').classList.remove('open');
   document.getElementById('chat-minimized').classList.add('visible');
+  requestAnimationFrame(keepChatMinimizedInViewport);
   closeChatEmojiPicker();
   closeChatImagePreview();
 }
@@ -4237,6 +4245,88 @@ async function sendChatMessage() {
     button.disabled = false;
     input.focus();
   }
+}
+
+function clampChatMinimizedPosition(left, top, width, height, viewportWidth = window.innerWidth, viewportHeight = window.innerHeight) {
+  return {
+    left: Math.max(0, Math.min(Math.max(0, viewportWidth - width), left)),
+    top: Math.max(0, Math.min(Math.max(0, viewportHeight - height), top)),
+  };
+}
+
+function keepChatMinimizedInViewport() {
+  const icon = document.getElementById('chat-minimized');
+  if (!icon?.classList.contains('visible') || !icon.style.left) return;
+  const rect = icon.getBoundingClientRect();
+  const position = clampChatMinimizedPosition(rect.left, rect.top, rect.width, rect.height);
+  icon.style.left = `${position.left}px`;
+  icon.style.top = `${position.top}px`;
+  icon.style.right = 'auto';
+  icon.style.bottom = 'auto';
+}
+
+function initChatMinimizedDrag() {
+  const icon = document.getElementById('chat-minimized');
+  if (!icon) return;
+  let drag = null;
+  let ignoreNextClick = false;
+
+  icon.addEventListener('pointerdown', event => {
+    if (event.pointerType === 'mouse' && event.button !== 0) return;
+    const rect = icon.getBoundingClientRect();
+    drag = {
+      pointerId:event.pointerId,
+      startX:event.clientX,
+      startY:event.clientY,
+      startLeft:rect.left,
+      startTop:rect.top,
+      width:rect.width,
+      height:rect.height,
+      moved:false,
+    };
+    icon.classList.add('dragging');
+    try { icon.setPointerCapture(event.pointerId); } catch (_) {}
+  });
+
+  icon.addEventListener('pointermove', event => {
+    if (!drag || event.pointerId !== drag.pointerId) return;
+    const dx = event.clientX - drag.startX;
+    const dy = event.clientY - drag.startY;
+    if (!drag.moved && Math.hypot(dx, dy) < 4) return;
+    drag.moved = true;
+    const position = clampChatMinimizedPosition(
+      drag.startLeft + dx,
+      drag.startTop + dy,
+      drag.width,
+      drag.height
+    );
+    icon.style.left = `${position.left}px`;
+    icon.style.top = `${position.top}px`;
+    icon.style.right = 'auto';
+    icon.style.bottom = 'auto';
+    event.preventDefault();
+  });
+
+  const finishDrag = (event, cancelled = false) => {
+    if (!drag || event.pointerId !== drag.pointerId) return;
+    const moved = drag.moved;
+    drag = null;
+    icon.classList.remove('dragging');
+    try { icon.releasePointerCapture(event.pointerId); } catch (_) {}
+    ignoreNextClick = !cancelled && moved;
+    if (ignoreNextClick) setTimeout(() => { ignoreNextClick = false; }, 250);
+  };
+  icon.addEventListener('pointerup', event => finishDrag(event));
+  icon.addEventListener('pointercancel', event => finishDrag(event, true));
+  icon.addEventListener('click', event => {
+    if (ignoreNextClick) {
+      ignoreNextClick = false;
+      event.preventDefault();
+      return;
+    }
+    restoreChatRoom();
+  });
+  window.addEventListener('resize', keepChatMinimizedInViewport);
 }
 
 function initChatDrag() {
