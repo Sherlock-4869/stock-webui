@@ -3,8 +3,12 @@
 const { Readable } = require('stream');
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
 const { AccountService } = require('../account/service');
-const { SCHEMA_STATEMENTS, SITE_RECOMMENDATION_SEEDS } = require('../account/database');
+const {
+  SCHEMA_STATEMENTS, SITE_RECOMMENDATION_SEEDS, ensureSiteRecommendationVisibilitySchema,
+} = require('../account/database');
 const { hashPassword, verifyPassword, sanitizePageConfig } = require('../account/security');
 
 async function startTestService() {
@@ -80,7 +84,16 @@ test('page config keeps only supported LocalStorage keys', () => {
 });
 
 test('site recommendations are seeded and publicly readable', async t => {
-  assert.match(SCHEMA_STATEMENTS.join('\n'), /CREATE TABLE IF NOT EXISTS site_recommendations/);
+  const runtimeSchema = SCHEMA_STATEMENTS.join('\n');
+  const canonicalSchema = fs.readFileSync(path.join(__dirname, '..', 'database', 'account_schema.sql'), 'utf8');
+  const readme = fs.readFileSync(path.join(__dirname, '..', 'README.md'), 'utf8');
+  for (const schema of [runtimeSchema, canonicalSchema, readme]) {
+    assert.match(schema, /CREATE TABLE IF NOT EXISTS site_recommendations/);
+    assert.match(schema, /CREATE TABLE IF NOT EXISTS stock_fund_flow_history_cache/);
+    assert.match(schema, /CREATE TABLE IF NOT EXISTS chat_messages/);
+    assert.match(schema, /is_admin TINYINT\(1\) NOT NULL DEFAULT 0/);
+    assert.match(schema, /is_admin_only TINYINT\(1\) NOT NULL DEFAULT 0/);
+  }
   assert.equal(SITE_RECOMMENDATION_SEEDS[0].url, 'https://pro.momoyu.cc');
   const app = await startTestService();
   t.after(app.close);
@@ -98,6 +111,93 @@ test('site recommendations are seeded and publicly readable', async t => {
     method:'POST', body:{ name:'不能通过公开接口写入' },
   });
   assert.equal(rejectedWrite.response.status, 405);
+});
+
+test('existing site recommendation tables receive the visibility migration', async () => {
+  const queries = [];
+  const connection = {
+    async execute() { return [[], []]; },
+    async query(sql) { queries.push(sql); return [[], []]; },
+  };
+  await ensureSiteRecommendationVisibilitySchema(connection, 'stock');
+  assert.equal(queries.length, 2);
+  assert.match(queries[0], /ADD COLUMN is_admin_only TINYINT\(1\) NOT NULL DEFAULT 0/);
+  assert.match(queries[1], /ADD KEY idx_site_recommendations_visibility_sort/);
+});
+
+test('only database-designated administrators can manage recommended sites', async t => {
+  const app = await startTestService();
+  t.after(app.close);
+
+  const registration = await jsonRequest(app.service, '/api/auth/register', {
+    method:'POST',
+    body:{ username:'site_admin', password:'password-123', displayName:'站点管理员' },
+  });
+  const cookie = cookieFrom(registration);
+  assert.equal(registration.payload.user.isAdmin, false);
+
+  const forbidden = await jsonRequest(app.service, '/api/admin/sites', { cookie });
+  assert.equal(forbidden.response.status, 403);
+
+  app.service.database.users.get(Number(registration.payload.user.id)).is_admin = 1;
+  const me = await jsonRequest(app.service, '/api/auth/me', { cookie });
+  assert.equal(me.payload.user.isAdmin, true);
+
+  const ordinaryRegistration = await jsonRequest(app.service, '/api/auth/register', {
+    method:'POST',
+    body:{ username:'site_reader', password:'password-123', displayName:'普通账号' },
+  });
+  const ordinaryCookie = cookieFrom(ordinaryRegistration);
+
+  const created = await jsonRequest(app.service, '/api/admin/sites', {
+    method:'POST', cookie,
+    body:{
+      name:'研究工具', url:'https://research.example.test/path', description:'测试站点',
+      sortOrder:5, isActive:false, isAdminOnly:true,
+    },
+  });
+  assert.equal(created.response.status, 201);
+  assert.equal(created.payload.site.isActive, false);
+  assert.equal(created.payload.site.isAdminOnly, true);
+  const siteId = created.payload.site.id;
+
+  const publicBeforeEnable = await jsonRequest(app.service, '/api/site-recommendations');
+  assert.equal(publicBeforeEnable.payload.sites.some(site => site.id === siteId), false);
+
+  const updated = await jsonRequest(app.service, `/api/admin/sites/${siteId}`, {
+    method:'PUT', cookie,
+    body:{
+      name:'研究工具 Pro', url:'https://research.example.test/path', description:'已启用',
+      sortOrder:1, isActive:true, isAdminOnly:true,
+    },
+  });
+  assert.equal(updated.response.status, 200);
+  assert.equal(updated.payload.site.name, '研究工具 Pro');
+  assert.equal(updated.payload.site.isActive, true);
+  assert.equal(updated.payload.site.isAdminOnly, true);
+
+  const visitorSites = await jsonRequest(app.service, '/api/site-recommendations');
+  assert.equal(visitorSites.payload.sites.some(site => site.id === siteId), false);
+  const ordinarySites = await jsonRequest(app.service, '/api/site-recommendations', { cookie:ordinaryCookie });
+  assert.equal(ordinarySites.payload.sites.some(site => site.id === siteId), false);
+  const adminSites = await jsonRequest(app.service, '/api/site-recommendations', { cookie });
+  assert.equal(adminSites.payload.sites.some(site => site.id === siteId), true);
+
+  const madePublic = await jsonRequest(app.service, `/api/admin/sites/${siteId}`, {
+    method:'PUT', cookie,
+    body:{
+      name:'研究工具 Pro', url:'https://research.example.test/path', description:'所有人可见',
+      sortOrder:1, isActive:true, isAdminOnly:false,
+    },
+  });
+  assert.equal(madePublic.payload.site.isAdminOnly, false);
+  const publicAfterVisibilityChange = await jsonRequest(app.service, '/api/site-recommendations');
+  assert.equal(publicAfterVisibilityChange.payload.sites.some(site => site.id === siteId), true);
+
+  const removed = await jsonRequest(app.service, `/api/admin/sites/${siteId}`, {
+    method:'DELETE', cookie, body:{},
+  });
+  assert.equal(removed.payload.deleted, true);
 });
 
 test('account HTTP flow persists config across logout and password login', async t => {

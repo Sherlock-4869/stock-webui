@@ -8,13 +8,15 @@ CREATE TABLE IF NOT EXISTS users (
   display_name VARCHAR(80) NOT NULL,
   avatar_url VARCHAR(500) NULL,
   status VARCHAR(20) NOT NULL DEFAULT 'active',
+  is_admin TINYINT(1) NOT NULL DEFAULT 0 COMMENT '仅由数据库后台赋值；1=管理员',
   config_decided_at DATETIME NULL COMMENT '首次登录配置关联是否已选择',
   last_login_at DATETIME NULL,
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (id),
   UNIQUE KEY uk_users_username (username),
-  KEY idx_users_status (status)
+  KEY idx_users_status (status),
+  KEY idx_users_admin_status (is_admin, status)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS user_auth_identities (
@@ -78,15 +80,45 @@ CREATE TABLE IF NOT EXISTS site_recommendations (
   description VARCHAR(255) NOT NULL DEFAULT '',
   sort_order INT NOT NULL DEFAULT 0,
   is_active TINYINT(1) NOT NULL DEFAULT 1,
+  is_admin_only TINYINT(1) NOT NULL DEFAULT 0 COMMENT '1=仅管理员账号可见',
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (id),
   UNIQUE KEY uk_site_recommendations_url (url),
-  KEY idx_site_recommendations_active_sort (is_active, sort_order, id)
+  KEY idx_site_recommendations_active_sort (is_active, sort_order, id),
+  KEY idx_site_recommendations_visibility_sort (is_active, is_admin_only, sort_order, id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 INSERT IGNORE INTO site_recommendations (name, url, description, sort_order)
 VALUES ('Momoyu Pro', 'https://pro.momoyu.cc', '效率工具与信息聚合站点', 10);
+
+CREATE TABLE IF NOT EXISTS stock_fund_flow_history_cache (
+  symbol VARCHAR(16) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+  data_json JSON NOT NULL COMMENT '最近 120 个交易日的主力资金历史数据',
+  source VARCHAR(40) CHARACTER SET ascii COLLATE ascii_bin NOT NULL DEFAULT 'unknown',
+  fetched_at DATETIME NOT NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (symbol),
+  KEY idx_fund_flow_cache_fetched (fetched_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS chat_messages (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  user_id BIGINT UNSIGNED NOT NULL,
+  message_type VARCHAR(10) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+  text_content VARCHAR(500) NULL,
+  image_data MEDIUMTEXT NULL COMMENT '图片 Data URL；单张最终图片不超过 768KB',
+  image_mime VARCHAR(32) CHARACTER SET ascii COLLATE ascii_bin NULL,
+  display_name VARCHAR(80) NOT NULL COMMENT '发送时显示名称快照',
+  avatar_url VARCHAR(500) NULL COMMENT '发送时头像快照',
+  created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  PRIMARY KEY (id),
+  KEY idx_chat_messages_created (created_at, id),
+  KEY idx_chat_messages_user (user_id, id),
+  CONSTRAINT fk_chat_messages_user
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS user_note_folders (
   id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,

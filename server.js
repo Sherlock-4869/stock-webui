@@ -5,7 +5,7 @@ const path = require('path');
 const { createWechatService } = require('./wechat/service');
 const { createAccountService } = require('./account/service');
 const { createChatService } = require('./chat/chat');
-const { createFundFlowHistoryLoader } = require('./fund-flow-history');
+const { createFundFlowHistoryLoader, mergeFundFlowHistory } = require('./fund-flow-history');
 
 const PORT = 3000;
 const PUBLIC_DIR = path.join(__dirname, 'public');
@@ -158,19 +158,44 @@ function eastmoneySecId(symbol) {
   return `${symbol.startsWith('sh') ? 1 : 0}.${symbol.slice(2)}`;
 }
 
+async function fetchFundFlowHistoryPayload(symbol) {
+  const fields1 = 'f1,f2,f3,f7';
+  const fields2 = 'f51,f52,f53,f54,f55,f56,f57,f58,f59,f60,f61,f62,f63';
+  const query = `secid=${eastmoneySecId(symbol)}&lmt=120&klt=101&fields1=${fields1}&fields2=${fields2}`;
+  const sources = [
+    { name:'eastmoney-daykline', path:'daykline/get', timeoutMs:5000 },
+    { name:'eastmoney-kline-fallback', path:'kline/get', timeoutMs:8000 },
+  ];
+  const errors = [];
+  for (const source of sources) {
+    try {
+      const raw = await requestBuffer(
+        `https://push2his.eastmoney.com/api/qt/stock/fflow/${source.path}?${query}`,
+        { ...UPSTREAM_HEADERS, Referer:'https://quote.eastmoney.com/' },
+        { timeoutMs:source.timeoutMs }
+      );
+      const payload = JSON.parse(raw.toString('utf-8'));
+      if (Number(payload?.rc) !== 0 || !Array.isArray(payload?.data?.klines) || !payload.data.klines.length) {
+        throw new Error(`invalid payload rc=${payload?.rc ?? 'unknown'}`);
+      }
+      return { payload, source:source.name };
+    } catch (error) {
+      errors.push(`${source.name}: ${error.message}`);
+    }
+  }
+  throw new Error(`Fund flow history sources failed (${errors.join('; ')})`);
+}
+
 const fundFlowHistoryLoader = createFundFlowHistoryLoader({
-  fetchPayload:async symbol => {
-    const fields1 = 'f1,f2,f3,f7';
-    const fields2 = 'f51,f52,f53,f54,f55,f56,f57,f58,f59,f60,f61,f62,f63';
-    const raw = await requestBuffer(
-      `https://push2his.eastmoney.com/api/qt/stock/fflow/daykline/get?secid=${eastmoneySecId(symbol)}&lmt=120&klt=101&fields1=${fields1}&fields2=${fields2}`,
-      { ...UPSTREAM_HEADERS, Referer:'https://quote.eastmoney.com/' },
-      { timeoutMs:5000 }
-    );
-    return JSON.parse(raw.toString('utf-8'));
-  },
+  fetchPayload:fetchFundFlowHistoryPayload,
+  loadPersisted:symbol => accountService.loadFundFlowHistoryCache(symbol),
+  savePersisted:(symbol, value) => accountService.saveFundFlowHistoryCache(symbol, value),
+  attempts:2,
   onBackgroundError:(error, symbol) => {
     console.error(`Fund flow background refresh error (${symbol}):`, error.message);
+  },
+  onPersistenceError:(error, symbol, operation) => {
+    console.error(`Fund flow persistent cache ${operation} error (${symbol}):`, error.message);
   },
 });
 
@@ -366,7 +391,7 @@ async function loadHistoricalFundFlow(symbol) {
   return fundFlowHistoryLoader.load(symbol);
 }
 
-async function loadFundFlowHistory(symbol) {
+async function loadFundFlowHistoryResult(symbol) {
   const [historyResult, points] = await Promise.all([
     loadHistoricalFundFlow(symbol)
       .then(data => ({ data, error:null }))
@@ -376,14 +401,45 @@ async function loadFundFlowHistory(symbol) {
   const history = historyResult.data;
   const current = points[symbol];
   if (!current) {
-    if (history.length) return history;
+    if (history.length) {
+      return {
+        data:history,
+        meta:{ coverage:'history', degraded:false, ...fundFlowHistoryLoader.info(symbol) },
+      };
+    }
     throw historyResult.error || new Error('Fund flow data is empty');
   }
-  const data = history.map(item => ({ ...item }));
-  const currentIndex = data.findIndex(item => item.date === current.date);
-  if (currentIndex >= 0) data[currentIndex] = { ...data[currentIndex], ...current };
-  else data.push(current);
-  return data.sort((a, b) => String(a.date).localeCompare(String(b.date)));
+  const sorted = mergeFundFlowHistory(history, current);
+  const historyInfo = fundFlowHistoryLoader.info(symbol);
+  const accumulatedOnly = !historyInfo || historyInfo.source === 'realtime-accumulated';
+  const degraded = history.length === 0 || accumulatedOnly;
+  const coverage = degraded ? (sorted.length > 1 ? 'partial-history' : 'today-only') : 'history';
+  try {
+    await accountService.saveFundFlowHistoryCache(symbol, {
+      data:sorted,
+      source:accumulatedOnly ? 'realtime-accumulated' : historyInfo.source,
+      fetchedAt:new Date(),
+    });
+  } catch (error) {
+    console.error(`Fund flow current-point persistence error (${symbol}):`, error.message);
+  }
+  return {
+    data:sorted,
+    meta:{
+      coverage,
+      degraded,
+      ...(historyInfo || {}),
+      message:coverage === 'today-only'
+        ? '历史资金源暂时不可用，当前仅展示今日实时数据'
+        : coverage === 'partial-history'
+          ? '历史资金源暂时不可用，当前展示数据库中逐日积累的数据'
+          : '',
+    },
+  };
+}
+
+async function loadFundFlowHistory(symbol) {
+  return (await loadFundFlowHistoryResult(symbol)).data;
 }
 
 async function proxyStockMetrics(urlObj, res) {
@@ -430,8 +486,8 @@ async function proxyFundFlowHistory(urlObj, res) {
   const symbol = urlObj.searchParams.get('sym') || '';
   if (!isAShareSymbol(symbol)) { sendJson(res, 400, { data:[], error:'仅支持 A 股主力资金数据' }); return; }
   try {
-    const data = await loadFundFlowHistory(symbol);
-    sendJson(res, 200, { data, fetchedAt:Date.now() });
+    const result = await loadFundFlowHistoryResult(symbol);
+    sendJson(res, 200, { ...result, fetchedAt:Date.now() });
   } catch (error) {
     console.error(`Fund flow history error (${symbol}):`, error.message);
     sendJson(res, 502, { data:[], error:'主力资金数据暂不可用' });
@@ -584,7 +640,10 @@ function oneYearAgoDate() {
 
 const wechatService = createWechatService({ loadIpoCalendar });
 const accountService = createAccountService();
-const chatService = createChatService();
+const chatService = createChatService({
+  saveMessage:(userId, message) => accountService.createChatMessage(userId, message),
+  listMessages:options => accountService.listChatMessages(options),
+});
 
 const server = http.createServer(async (req, res) => {
   const urlObj = new URL(req.url, `http://localhost:${PORT}`);

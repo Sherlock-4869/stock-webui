@@ -8,6 +8,7 @@ const SITE_RECOMMENDATION_SEEDS = [
     url:'https://pro.momoyu.cc',
     description:'效率工具与信息聚合站点',
     sortOrder:10,
+    adminOnly:false,
   },
 ];
 
@@ -19,13 +20,15 @@ const SCHEMA_STATEMENTS = [
     display_name VARCHAR(80) NOT NULL,
     avatar_url VARCHAR(500) NULL,
     status VARCHAR(20) NOT NULL DEFAULT 'active',
+    is_admin TINYINT(1) NOT NULL DEFAULT 0,
     config_decided_at DATETIME NULL,
     last_login_at DATETIME NULL,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
     UNIQUE KEY uk_users_username (username),
-    KEY idx_users_status (status)
+    KEY idx_users_status (status),
+    KEY idx_users_admin_status (is_admin, status)
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
   `CREATE TABLE IF NOT EXISTS user_auth_identities (
     id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -81,11 +84,38 @@ const SCHEMA_STATEMENTS = [
     description VARCHAR(255) NOT NULL DEFAULT '',
     sort_order INT NOT NULL DEFAULT 0,
     is_active TINYINT(1) NOT NULL DEFAULT 1,
+    is_admin_only TINYINT(1) NOT NULL DEFAULT 0,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
     UNIQUE KEY uk_site_recommendations_url (url),
-    KEY idx_site_recommendations_active_sort (is_active, sort_order, id)
+    KEY idx_site_recommendations_active_sort (is_active, sort_order, id),
+    KEY idx_site_recommendations_visibility_sort (is_active, is_admin_only, sort_order, id)
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
+  `CREATE TABLE IF NOT EXISTS stock_fund_flow_history_cache (
+    symbol VARCHAR(16) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+    data_json JSON NOT NULL,
+    source VARCHAR(40) CHARACTER SET ascii COLLATE ascii_bin NOT NULL DEFAULT 'unknown',
+    fetched_at DATETIME NOT NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (symbol),
+    KEY idx_fund_flow_cache_fetched (fetched_at)
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
+  `CREATE TABLE IF NOT EXISTS chat_messages (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    user_id BIGINT UNSIGNED NOT NULL,
+    message_type VARCHAR(10) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+    text_content VARCHAR(500) NULL,
+    image_data MEDIUMTEXT NULL,
+    image_mime VARCHAR(32) CHARACTER SET ascii COLLATE ascii_bin NULL,
+    display_name VARCHAR(80) NOT NULL,
+    avatar_url VARCHAR(500) NULL,
+    created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    PRIMARY KEY (id),
+    KEY idx_chat_messages_created (created_at, id),
+    KEY idx_chat_messages_user (user_id, id),
+    CONSTRAINT fk_chat_messages_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
   `CREATE TABLE IF NOT EXISTS user_note_folders (
     id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -114,6 +144,50 @@ const SCHEMA_STATEMENTS = [
     CONSTRAINT fk_user_notes_folder FOREIGN KEY (folder_id) REFERENCES user_note_folders(id) ON DELETE SET NULL
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
 ];
+
+async function ensureAdminSchema(connection, databaseName) {
+  const [columns] = await connection.execute(
+    `SELECT 1 FROM information_schema.COLUMNS
+     WHERE TABLE_SCHEMA=? AND TABLE_NAME='users' AND COLUMN_NAME='is_admin' LIMIT 1`,
+    [databaseName]
+  );
+  if (!columns.length) {
+    await connection.query("ALTER TABLE users ADD COLUMN is_admin TINYINT(1) NOT NULL DEFAULT 0 AFTER status");
+  }
+
+  const [indexes] = await connection.execute(
+    `SELECT 1 FROM information_schema.STATISTICS
+     WHERE TABLE_SCHEMA=? AND TABLE_NAME='users' AND INDEX_NAME='idx_users_admin_status' LIMIT 1`,
+    [databaseName]
+  );
+  if (!indexes.length) {
+    await connection.query('ALTER TABLE users ADD KEY idx_users_admin_status (is_admin, status)');
+  }
+}
+
+async function ensureSiteRecommendationVisibilitySchema(connection, databaseName) {
+  const [columns] = await connection.execute(
+    `SELECT 1 FROM information_schema.COLUMNS
+     WHERE TABLE_SCHEMA=? AND TABLE_NAME='site_recommendations' AND COLUMN_NAME='is_admin_only' LIMIT 1`,
+    [databaseName]
+  );
+  if (!columns.length) {
+    await connection.query(
+      'ALTER TABLE site_recommendations ADD COLUMN is_admin_only TINYINT(1) NOT NULL DEFAULT 0 AFTER is_active'
+    );
+  }
+
+  const [indexes] = await connection.execute(
+    `SELECT 1 FROM information_schema.STATISTICS
+     WHERE TABLE_SCHEMA=? AND TABLE_NAME='site_recommendations' AND INDEX_NAME='idx_site_recommendations_visibility_sort' LIMIT 1`,
+    [databaseName]
+  );
+  if (!indexes.length) {
+    await connection.query(
+      'ALTER TABLE site_recommendations ADD KEY idx_site_recommendations_visibility_sort (is_active, is_admin_only, sort_order, id)'
+    );
+  }
+}
 
 async function ensureNoteFolderSchema(connection, databaseName) {
   const [columns] = await connection.execute(
@@ -151,6 +225,13 @@ function parseJson(value) {
   try { return JSON.parse(value); } catch (_) { return null; }
 }
 
+function parseShanghaiDateTime(value) {
+  if (value instanceof Date) return value;
+  const normalized = String(value || '').trim().replace(' ', 'T');
+  if (!normalized) return new Date(Number.NaN);
+  return new Date(/(?:Z|[+-]\d{2}:\d{2})$/i.test(normalized) ? normalized : `${normalized}+08:00`);
+}
+
 class AccountDatabase {
   constructor(config) {
     this.config = config;
@@ -173,6 +254,8 @@ class AccountDatabase {
     const connection = await this.pool.getConnection();
     try {
       for (const statement of SCHEMA_STATEMENTS) await connection.query(statement);
+      await ensureAdminSchema(connection, this.config.database);
+      await ensureSiteRecommendationVisibilitySchema(connection, this.config.database);
       await ensureNoteFolderSchema(connection, this.config.database);
       for (const site of SITE_RECOMMENDATION_SEEDS) {
         await connection.execute(
@@ -196,15 +279,142 @@ class AccountDatabase {
     this.pool = null;
   }
 
-  async listSiteRecommendations() {
+  async listSiteRecommendations({ includeAdminOnly = false } = {}) {
     const [rows] = await this.requirePool().execute(
-      `SELECT id, name, url, description
+      `SELECT id, name, url, description, is_admin_only
        FROM site_recommendations
-       WHERE is_active=1
+       WHERE is_active=1 AND (is_admin_only=0 OR ?=1)
        ORDER BY sort_order ASC, id ASC
-       LIMIT 50`
+       LIMIT 50`,
+      [includeAdminOnly ? 1 : 0]
     );
     return rows;
+  }
+
+  async listAllSiteRecommendations() {
+    const [rows] = await this.requirePool().execute(
+      `SELECT id, name, url, description, sort_order, is_active, is_admin_only, created_at, updated_at
+       FROM site_recommendations ORDER BY sort_order ASC, id ASC LIMIT 200`
+    );
+    return rows;
+  }
+
+  async createSiteRecommendation({ name, url, description, sortOrder, isActive, isAdminOnly }) {
+    const [result] = await this.requirePool().execute(
+      `INSERT INTO site_recommendations (name, url, description, sort_order, is_active, is_admin_only)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+      [name, url, description, sortOrder, isActive ? 1 : 0, isAdminOnly ? 1 : 0]
+    );
+    return this.getSiteRecommendation(result.insertId);
+  }
+
+  async getSiteRecommendation(id) {
+    const [rows] = await this.requirePool().execute(
+      `SELECT id, name, url, description, sort_order, is_active, is_admin_only, created_at, updated_at
+       FROM site_recommendations WHERE id=? LIMIT 1`,
+      [id]
+    );
+    return rows[0] || null;
+  }
+
+  async updateSiteRecommendation(id, { name, url, description, sortOrder, isActive, isAdminOnly }) {
+    const [result] = await this.requirePool().execute(
+      `UPDATE site_recommendations
+       SET name=?, url=?, description=?, sort_order=?, is_active=?, is_admin_only=? WHERE id=?`,
+      [name, url, description, sortOrder, isActive ? 1 : 0, isAdminOnly ? 1 : 0, id]
+    );
+    return result.affectedRows ? this.getSiteRecommendation(id) : null;
+  }
+
+  async deleteSiteRecommendation(id) {
+    const [result] = await this.requirePool().execute(
+      'DELETE FROM site_recommendations WHERE id=?',
+      [id]
+    );
+    return result.affectedRows > 0;
+  }
+
+  async getFundFlowHistoryCache(symbol) {
+    const [rows] = await this.requirePool().execute(
+      `SELECT data_json, source, fetched_at
+       FROM stock_fund_flow_history_cache WHERE symbol=? LIMIT 1`,
+      [symbol]
+    );
+    if (!rows[0]) return null;
+    return {
+      data:parseJson(rows[0].data_json),
+      source:rows[0].source,
+      fetchedAt:rows[0].fetched_at,
+    };
+  }
+
+  async saveFundFlowHistoryCache(symbol, { data, source, fetchedAt }) {
+    await this.requirePool().execute(
+      `INSERT INTO stock_fund_flow_history_cache (symbol, data_json, source, fetched_at)
+       VALUES (?, ?, ?, ?)
+       ON DUPLICATE KEY UPDATE data_json=VALUES(data_json), source=VALUES(source), fetched_at=VALUES(fetched_at)`,
+      [symbol, JSON.stringify(data), source || 'unknown', fetchedAt]
+    );
+  }
+
+  async createChatMessage(userId, message) {
+    const [result] = await this.requirePool().execute(
+      `INSERT INTO chat_messages
+        (user_id, message_type, text_content, image_data, image_mime, display_name, avatar_url, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        userId,
+        message.type,
+        message.text || null,
+        message.imageData || null,
+        message.imageMime || null,
+        message.displayName,
+        message.avatarUrl || null,
+        new Date(message.time),
+      ]
+    );
+    const [rows] = await this.requirePool().execute(
+      `SELECT id, user_id, message_type, text_content, image_data, image_mime,
+              display_name, avatar_url, created_at
+       FROM chat_messages WHERE id=? LIMIT 1`,
+      [result.insertId]
+    );
+    return rows[0] || null;
+  }
+
+  async listChatMessages({ beforeId = null, since = null, limit = 50 } = {}) {
+    const safeLimit = Math.max(1, Math.min(100, Number(limit) || 50));
+    const fetchLimit = safeLimit + 1;
+    let rows;
+    if (beforeId) {
+      [rows] = await this.requirePool().execute(
+        `SELECT id, user_id, message_type, text_content, image_data, image_mime,
+                display_name, avatar_url, created_at
+         FROM chat_messages WHERE id<? ORDER BY id DESC LIMIT ${fetchLimit}`,
+        [beforeId]
+      );
+    } else {
+      [rows] = await this.requirePool().execute(
+        `SELECT id, user_id, message_type, text_content, image_data, image_mime,
+                display_name, avatar_url, created_at
+         FROM chat_messages WHERE created_at>=? ORDER BY id DESC LIMIT ${fetchLimit}`,
+        [since]
+      );
+    }
+
+    let hasMore = rows.length > safeLimit;
+    rows = rows.slice(0, safeLimit);
+    let nextCursor = rows.length ? String(rows[rows.length - 1].id) : null;
+    if (!beforeId && !hasMore) {
+      const [older] = nextCursor
+        ? await this.requirePool().execute('SELECT id FROM chat_messages WHERE id<? ORDER BY id DESC LIMIT 1', [nextCursor])
+        : await this.requirePool().execute('SELECT id FROM chat_messages WHERE created_at<? ORDER BY id DESC LIMIT 1', [since]);
+      if (older.length) {
+        hasMore = true;
+        if (!nextCursor) nextCursor = String(BigInt(String(older[0].id)) + 1n);
+      }
+    }
+    return { messages:rows.reverse(), nextCursor:hasMore ? nextCursor : null, hasMore };
   }
 
   async createPasswordUser({ username, passwordHash, displayName }) {
@@ -474,6 +684,8 @@ class MemoryAccountDatabase {
     this.states = new Map();
     this.notes = new Map();
     this.noteFolders = new Map();
+    this.fundFlowHistoryCache = new Map();
+    this.chatMessages = [];
     this.siteRecommendations = SITE_RECOMMENDATION_SEEDS.map((site, index) => ({
       id:index + 1,
       name:site.name,
@@ -481,22 +693,117 @@ class MemoryAccountDatabase {
       description:site.description,
       sort_order:site.sortOrder,
       is_active:1,
+      is_admin_only:site.adminOnly ? 1 : 0,
     }));
     this.nextUserId = 1;
     this.nextSessionId = 1;
     this.nextNoteId = 1;
     this.nextNoteFolderId = 1;
+    this.nextSiteRecommendationId = this.siteRecommendations.length + 1;
+    this.nextChatMessageId = 1;
   }
 
   async initialize() {}
   async close() {}
 
-  async listSiteRecommendations() {
+  async listSiteRecommendations({ includeAdminOnly = false } = {}) {
     return this.siteRecommendations
-      .filter(site => site.is_active)
+      .filter(site => site.is_active && (includeAdminOnly || !site.is_admin_only))
       .sort((a, b) => a.sort_order - b.sort_order || a.id - b.id)
       .slice(0, 50)
-      .map(({ id, name, url, description }) => ({ id, name, url, description }));
+      .map(({ id, name, url, description, is_admin_only }) => ({ id, name, url, description, is_admin_only }));
+  }
+
+  async listAllSiteRecommendations() {
+    return this.siteRecommendations
+      .sort((a, b) => a.sort_order - b.sort_order || a.id - b.id)
+      .map(site => ({ ...site }));
+  }
+
+  async getSiteRecommendation(id) {
+    const site = this.siteRecommendations.find(item => item.id === Number(id));
+    return site ? { ...site } : null;
+  }
+
+  async createSiteRecommendation({ name, url, description, sortOrder, isActive, isAdminOnly }) {
+    if (this.siteRecommendations.some(site => site.url === url)) {
+      throw Object.assign(new Error('Duplicate site URL'), { code:'ER_DUP_ENTRY' });
+    }
+    const now = new Date();
+    const site = {
+      id:this.nextSiteRecommendationId++, name, url, description,
+      sort_order:sortOrder, is_active:isActive ? 1 : 0, is_admin_only:isAdminOnly ? 1 : 0,
+      created_at:now, updated_at:now,
+    };
+    this.siteRecommendations.push(site);
+    return { ...site };
+  }
+
+  async updateSiteRecommendation(id, { name, url, description, sortOrder, isActive, isAdminOnly }) {
+    const site = this.siteRecommendations.find(item => item.id === Number(id));
+    if (!site) return null;
+    if (this.siteRecommendations.some(item => item.id !== site.id && item.url === url)) {
+      throw Object.assign(new Error('Duplicate site URL'), { code:'ER_DUP_ENTRY' });
+    }
+    Object.assign(site, {
+      name, url, description, sort_order:sortOrder, is_active:isActive ? 1 : 0,
+      is_admin_only:isAdminOnly ? 1 : 0, updated_at:new Date(),
+    });
+    return { ...site };
+  }
+
+  async deleteSiteRecommendation(id) {
+    const index = this.siteRecommendations.findIndex(item => item.id === Number(id));
+    if (index < 0) return false;
+    this.siteRecommendations.splice(index, 1);
+    return true;
+  }
+
+  async getFundFlowHistoryCache(symbol) {
+    const item = this.fundFlowHistoryCache.get(symbol);
+    return item ? structuredClone(item) : null;
+  }
+
+  async saveFundFlowHistoryCache(symbol, value) {
+    this.fundFlowHistoryCache.set(symbol, structuredClone(value));
+  }
+
+  async createChatMessage(userId, message) {
+    const row = {
+      id:this.nextChatMessageId++,
+      user_id:Number(userId),
+      message_type:message.type,
+      text_content:message.text || null,
+      image_data:message.imageData || null,
+      image_mime:message.imageMime || null,
+      display_name:message.displayName,
+      avatar_url:message.avatarUrl || null,
+      created_at:new Date(message.time),
+    };
+    this.chatMessages.push(row);
+    return structuredClone(row);
+  }
+
+  async listChatMessages({ beforeId = null, since = null, limit = 50 } = {}) {
+    const safeLimit = Math.max(1, Math.min(100, Number(limit) || 50));
+    const sinceDate = parseShanghaiDateTime(since);
+    let candidates = this.chatMessages.filter(row => beforeId
+      ? row.id < Number(beforeId)
+      : row.created_at >= sinceDate);
+    candidates = candidates.sort((a, b) => b.id - a.id);
+    let hasMore = candidates.length > safeLimit;
+    const rows = candidates.slice(0, safeLimit);
+    let nextCursor = rows.length ? String(rows[rows.length - 1].id) : null;
+    if (!beforeId && !hasMore) {
+      const older = this.chatMessages
+        .filter(row => nextCursor ? row.id < Number(nextCursor) : row.created_at < sinceDate)
+        .sort((a, b) => b.id - a.id)[0];
+      if (older) {
+        hasMore = true;
+        if (!nextCursor) nextCursor = String(older.id + 1);
+      }
+    }
+    return { messages:structuredClone(rows.reverse()), nextCursor:hasMore ? nextCursor : null, hasMore };
   }
 
   cloneUser(user) { return user ? { ...user } : null; }
@@ -506,7 +813,7 @@ class MemoryAccountDatabase {
     const now = new Date();
     const user = {
       id: this.nextUserId++, username, password_hash: passwordHash, display_name: displayName,
-      avatar_url: null, status: 'active', config_decided_at: null, last_login_at: now,
+      avatar_url: null, status: 'active', is_admin:0, config_decided_at: null, last_login_at: now,
       created_at: now, updated_at: now,
     };
     this.users.set(user.id, user);
@@ -527,7 +834,7 @@ class MemoryAccountDatabase {
       const now = new Date();
       user = {
         id: this.nextUserId++, username: null, password_hash: null, display_name: displayName,
-        avatar_url: avatarUrl || null, status: 'active', config_decided_at: null, last_login_at: now,
+        avatar_url: avatarUrl || null, status: 'active', is_admin:0, config_decided_at: null, last_login_at: now,
         created_at: now, updated_at: now,
       };
       this.users.set(user.id, user);
@@ -702,5 +1009,7 @@ module.exports = {
   MemoryAccountDatabase,
   SCHEMA_STATEMENTS,
   SITE_RECOMMENDATION_SEEDS,
+  ensureAdminSchema,
+  ensureSiteRecommendationVisibilitySchema,
   ensureNoteFolderSchema,
 };

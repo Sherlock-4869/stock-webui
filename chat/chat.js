@@ -13,6 +13,8 @@ const MESSAGE_RATE_WINDOW_MS = 10 * 1000;
 const IMAGE_RATE_LIMIT = 3;
 const IMAGE_RATE_WINDOW_MS = 60 * 1000;
 const MAX_SSE_BUFFER_BYTES = 2 * 1024 * 1024;
+const DEFAULT_HISTORY_LIMIT = 50;
+const MAX_HISTORY_LIMIT = 100;
 const CHAT_IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/gif', 'image/webp']);
 
 function sendJson(res, status, payload) {
@@ -60,7 +62,39 @@ function chatUser(sessionUser) {
     userId: String(sessionUser.id),
     displayName: String(sessionUser.display_name || sessionUser.username || '用户').slice(0, 80),
     avatarUrl: /^(?:https?:\/\/|\/)/i.test(avatarUrl) ? avatarUrl : null,
+    isAdmin: Number(sessionUser.is_admin) === 1,
   };
+}
+
+function shanghaiYesterdayStart(nowMs = Date.now()) {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone:'Asia/Shanghai', year:'numeric', month:'2-digit', day:'2-digit',
+  }).formatToParts(new Date(nowMs));
+  const values = Object.fromEntries(parts.map(part => [part.type, part.value]));
+  const yesterday = new Date(Date.UTC(Number(values.year), Number(values.month) - 1, Number(values.day)) - 86400000);
+  return `${yesterday.getUTCFullYear()}-${String(yesterday.getUTCMonth() + 1).padStart(2, '0')}-${String(yesterday.getUTCDate()).padStart(2, '0')} 00:00:00.000`;
+}
+
+function storedChatMessage(row) {
+  if (!row) return null;
+  const type = row.message_type === 'image' ? 'image' : 'text';
+  const time = new Date(row.created_at).getTime();
+  const message = {
+    id:String(row.id),
+    type,
+    displayName:String(row.display_name || '用户').slice(0, 80),
+    avatarUrl:/^(?:https?:\/\/|\/)/i.test(String(row.avatar_url || '')) ? String(row.avatar_url) : null,
+    userId:String(row.user_id),
+    isGuest:false,
+    time:Number.isFinite(time) ? time : Date.now(),
+  };
+  if (type === 'image') {
+    message.imageData = String(row.image_data || '');
+    message.imageMime = String(row.image_mime || '');
+  } else {
+    message.text = String(row.text_content || '').slice(0, MAX_MESSAGE_LENGTH);
+  }
+  return message;
 }
 
 function validImageSignature(mimeType, buffer) {
@@ -94,15 +128,37 @@ function parseChatImage(value) {
 }
 
 class ChatService {
-  constructor({ now = () => Date.now() } = {}) {
+  constructor({ now = () => Date.now(), saveMessage = null, listMessages = null } = {}) {
     this.clients = new Map();
     this.messageRates = new Map();
     this.imageRates = new Map();
     this.now = now;
+    this.saveMessage = saveMessage;
+    this.listMessages = listMessages;
   }
 
   onlineCount() {
     return new Set([...this.clients.values()].map(client => client.user.userId)).size;
+  }
+
+  onlineUsers() {
+    const users = new Map();
+    for (const client of this.clients.values()) {
+      const existing = users.get(client.user.userId);
+      if (existing) {
+        existing.connections += 1;
+        existing.connectedAt = Math.min(existing.connectedAt, client.connectedAt);
+        continue;
+      }
+      users.set(client.user.userId, {
+        userId:client.user.userId,
+        displayName:client.user.displayName,
+        avatarUrl:client.user.avatarUrl,
+        connections:1,
+        connectedAt:client.connectedAt,
+      });
+    }
+    return [...users.values()].sort((a, b) => a.connectedAt - b.connectedAt || a.userId.localeCompare(b.userId));
   }
 
   userConnectionCount(userId) {
@@ -185,7 +241,7 @@ class ChatService {
       }
     };
 
-    this.clients.set(clientId, { res, user, cleanup });
+    this.clients.set(clientId, { res, user, cleanup, connectedAt:this.now() });
     res.write(`event: connected\ndata: ${JSON.stringify({
       clientId,
       displayName: user.displayName,
@@ -247,7 +303,7 @@ class ChatService {
       this.checkMessageRate(user.userId);
       const image = imageData ? parseChatImage(imageData) : null;
       if (image) this.checkImageRate(user.userId);
-      const msg = {
+      let msg = {
         id: crypto.randomUUID(),
         type: image ? 'image' : 'text',
         displayName: user.displayName,
@@ -262,13 +318,48 @@ class ChatService {
       } else {
         msg.text = text;
       }
+      if (this.saveMessage) {
+        const saved = storedChatMessage(await this.saveMessage(user.userId, msg));
+        if (!saved) throw Object.assign(new Error('聊天记录保存失败'), { statusCode:503 });
+        msg = saved;
+      }
       this.broadcast('message', msg);
       sendJson(res, 200, { ok: true, id: msg.id });
       return true;
     }
 
     if (pathname === '/api/chat/history' && req.method === 'GET') {
-      sendJson(res, 200, { messages: [], online: this.onlineCount(), ephemeral: true });
+      const before = String(urlObj.searchParams.get('before') || '');
+      if (before && (!/^\d{1,20}$/.test(before) || before === '0')) {
+        throw Object.assign(new Error('聊天记录游标不正确'), { statusCode:400 });
+      }
+      const requestedLimit = Number.parseInt(urlObj.searchParams.get('limit') || '', 10);
+      const limit = Number.isInteger(requestedLimit)
+        ? Math.max(1, Math.min(MAX_HISTORY_LIMIT, requestedLimit))
+        : DEFAULT_HISTORY_LIMIT;
+      const history = this.listMessages
+        ? await this.listMessages({
+          beforeId:before || null,
+          since:before ? null : shanghaiYesterdayStart(this.now()),
+          limit,
+        })
+        : { messages:[], nextCursor:null, hasMore:false };
+      sendJson(res, 200, {
+        messages:(history.messages || []).map(storedChatMessage).filter(Boolean),
+        nextCursor:history.nextCursor || null,
+        hasMore:history.hasMore === true,
+        online:this.onlineCount(),
+        persisted:Boolean(this.listMessages),
+      });
+      return true;
+    }
+
+    if (pathname === '/api/chat/online-users' && req.method === 'GET') {
+      if (!user.isAdmin) {
+        sendJson(res, 403, { error:'仅管理员可以查看在线用户' });
+        return true;
+      }
+      sendJson(res, 200, { users:this.onlineUsers(), online:this.onlineCount() });
       return true;
     }
 
@@ -291,4 +382,12 @@ function createChatService(options) {
   return new ChatService(options);
 }
 
-module.exports = { ChatService, createChatService, chatUser, parseChatImage, MAX_IMAGE_BYTES };
+module.exports = {
+  ChatService,
+  createChatService,
+  chatUser,
+  parseChatImage,
+  shanghaiYesterdayStart,
+  storedChatMessage,
+  MAX_IMAGE_BYTES,
+};

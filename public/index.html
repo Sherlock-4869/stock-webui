@@ -17,8 +17,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;b
 .app-tab{position:relative;display:inline-flex;align-items:center;justify-content:center;min-width:104px;flex:none;border:0;border-radius:7px;background:transparent;color:#8b949e;padding:8px 11px;font-size:13px;font-weight:600;text-decoration:none;white-space:nowrap;cursor:pointer;transition:.15s}
 .app-tab[data-page="notes"]{min-width:82px}.app-tab[data-page="reference"]{min-width:108px;margin-left:auto}
 .app-tab:hover{color:#e6edf3;background:#161b22}.app-tab.active{color:#fff;background:#1f3a5f}.app-tab-badge{display:inline-block;min-width:17px;margin-left:5px;padding:1px 5px;border-radius:9px;background:#30363d;color:#8b949e;font-size:9px;vertical-align:1px}.app-tab.active .app-tab-badge{background:#1f6feb;color:#fff}
-.site-recommendations{position:relative;flex:none}.site-recommendation-trigger{width:auto;min-width:104px;padding:8px 12px}.site-recommendation-menu{position:absolute;z-index:280;top:calc(100% + 7px);left:0;display:none;width:280px;padding:8px;border:1px solid #30363d;border-radius:9px;background:#161b22;box-shadow:0 14px 40px #0009}.site-recommendations:hover .site-recommendation-menu,.site-recommendations:focus-within .site-recommendation-menu,.site-recommendations.open .site-recommendation-menu{display:block}.site-recommendation-title{padding:5px 8px 8px;color:#6e7681;font-size:10px;font-weight:700;letter-spacing:.08em}.site-recommendation-item{display:flex;align-items:center;gap:9px;padding:9px;border-radius:7px;color:#c9d1d9;text-decoration:none;transition:.15s}.site-recommendation-item:hover,.site-recommendation-item:focus-visible{background:#21262d;color:#e6edf3;outline:none}.site-recommendation-icon{display:grid;place-items:center;flex:none;width:30px;height:30px;border-radius:8px;background:#1f6feb20;color:#79c0ff;font-size:15px}.site-recommendation-copy{min-width:0;flex:1}.site-recommendation-name,.site-recommendation-desc{display:block}.site-recommendation-name{font-size:12px;font-weight:650}.site-recommendation-desc{margin-top:2px;overflow:hidden;color:#6e7681;font-size:10px;line-height:1.35;text-overflow:ellipsis;white-space:nowrap}.site-recommendation-external{color:#6e7681;font-size:11px}.site-recommendation-status{padding:16px 9px;color:#6e7681;font-size:11px;text-align:center}
+.site-recommendations{position:relative;flex:none}.site-recommendations::after{content:"";position:absolute;z-index:279;top:100%;left:0;display:none;width:100%;height:8px}.site-recommendations:hover::after,.site-recommendations:focus-within::after,.site-recommendations.open::after{display:block}.site-recommendation-trigger{width:auto;min-width:104px;padding:8px 12px}.site-recommendation-menu{position:absolute;z-index:280;top:calc(100% + 5px);left:0;display:none;width:280px;padding:8px;border:1px solid #30363d;border-radius:9px;background:#161b22;box-shadow:0 14px 40px #0009}.site-recommendations:hover .site-recommendation-menu,.site-recommendations:focus-within .site-recommendation-menu,.site-recommendations.open .site-recommendation-menu{display:block}.site-recommendation-title{padding:5px 8px 8px;color:#6e7681;font-size:10px;font-weight:700;letter-spacing:.08em}.site-recommendation-item{display:flex;align-items:center;gap:9px;padding:9px;border-radius:7px;color:#c9d1d9;text-decoration:none;transition:.15s}.site-recommendation-item:hover,.site-recommendation-item:focus-visible{background:#21262d;color:#e6edf3;outline:none}.site-recommendation-icon{display:grid;place-items:center;flex:none;width:30px;height:30px;border-radius:8px;background:#1f6feb20;color:#79c0ff;font-size:15px}.site-recommendation-copy{min-width:0;flex:1}.site-recommendation-name,.site-recommendation-desc{display:block}.site-recommendation-name{font-size:12px;font-weight:650}.site-recommendation-desc{margin-top:2px;overflow:hidden;color:#6e7681;font-size:10px;line-height:1.35;text-overflow:ellipsis;white-space:nowrap}.site-recommendation-external{color:#6e7681;font-size:11px}.site-recommendation-status{padding:16px 9px;color:#6e7681;font-size:11px;text-align:center}
 .account-area{position:relative;flex:none;margin-left:4px}.account-trigger{display:flex;align-items:center;gap:7px;max-width:150px;height:32px;padding:0 10px;border:1px solid #30363d;border-radius:7px;background:#161b22;color:#c9d1d9;font-size:12px;cursor:pointer;transition:.15s}.account-trigger:hover{border-color:#58a6ff;background:#1c2128}.account-avatar{display:grid;place-items:center;flex:none;width:22px;height:22px;overflow:hidden;border-radius:50%;background:linear-gradient(135deg,#1f6feb,#8957e5);color:#fff;font-size:10px;font-weight:750}.account-avatar img{width:100%;height:100%;object-fit:cover}.account-label{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.account-chevron{color:#6e7681;font-size:9px}.account-menu{position:fixed;z-index:260;top:0;left:0;display:none;width:min(230px,calc(100vw - 24px));padding:7px;border:1px solid #30363d;border-radius:9px;background:#161b22;box-shadow:0 14px 40px #0008}.account-menu.open{display:block}.account-menu-head{display:flex;gap:9px;align-items:center;padding:8px 9px 10px;border-bottom:1px solid #30363d}.account-menu-name{overflow:hidden;text-overflow:ellipsis;font-size:13px;font-weight:650}.account-menu-id{overflow:hidden;text-overflow:ellipsis;margin-top:2px;color:#6e7681;font-size:10px}.account-menu-item{display:flex;width:100%;align-items:center;gap:8px;margin-top:4px;padding:8px 9px;border:0;border-radius:6px;background:transparent;color:#c9d1d9;text-align:left;font-size:12px;cursor:pointer}.account-menu-item:hover{background:#21262d}.account-menu-item.danger{color:#f85149}.account-sync-note{padding:6px 9px 3px;color:#6e7681;font-size:10px}
+.admin-badge{display:inline-flex;margin-left:auto;padding:2px 6px;border:1px solid #d2992266;border-radius:10px;background:#d2992218;color:#e3b341;font-size:9px}.admin-sites-layout{display:grid;grid-template-columns:minmax(280px,360px) minmax(0,1fr);gap:18px;align-items:start}.admin-site-card{padding:18px;border:1px solid #30363d;border-radius:10px;background:#161b22}.admin-site-card h3{margin:0 0 5px;font-size:14px}.admin-site-card-copy{margin:0 0 15px;color:#6e7681;font-size:11px;line-height:1.6}.admin-site-form-actions{display:flex;gap:8px;margin-top:16px}.admin-site-active{display:flex;align-items:center;gap:7px;margin-top:14px;color:#c9d1d9;font-size:12px}.admin-site-list{display:flex;flex-direction:column;gap:8px}.admin-site-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;padding:13px;border:1px solid #30363d;border-radius:8px;background:#0d1117}.admin-site-name{display:flex;flex-wrap:wrap;align-items:center;gap:7px;font-size:13px;font-weight:650}.admin-site-state{padding:2px 6px;border-radius:9px;background:#23863622;color:#3fb950;font-size:9px}.admin-site-state.off{background:#6e768122;color:#8b949e}.admin-site-state.restricted{background:#8957e522;color:#bc8cff}.admin-site-url{display:block;margin-top:4px;overflow:hidden;color:#58a6ff;font-size:10px;text-overflow:ellipsis;white-space:nowrap}.admin-site-desc{margin-top:5px;color:#8b949e;font-size:10px;line-height:1.45}.admin-site-actions{display:flex;align-items:center;gap:6px}.admin-site-empty{padding:34px;color:#6e7681;text-align:center;font-size:12px}.admin-site-status{min-height:16px;margin-top:10px;color:#6e7681;font-size:10px}.admin-site-status.error{color:#f85149}@media(max-width:760px){.admin-sites-layout{grid-template-columns:1fr}.admin-site-card{padding:14px}.admin-site-row{grid-template-columns:1fr}.admin-site-actions{justify-content:flex-end}}
 .app-page{display:none}.app-page.active{display:block;animation:page-in .18s ease-out}@keyframes page-in{from{opacity:.3;transform:translateY(3px)}}
 .refresh-setting{display:flex;align-items:center;gap:6px;color:#8b949e;font-size:11px;white-space:nowrap}
 .refresh-interval-select,.market-row-select{appearance:none;background:#161b22;border:1px solid #30363d;border-radius:5px;color:#c9d1d9;padding:4px 24px 4px 8px;font-size:11px;outline:none;cursor:pointer;background-image:linear-gradient(45deg,transparent 50%,#8b949e 50%),linear-gradient(135deg,#8b949e 50%,transparent 50%);background-position:calc(100% - 11px) 9px,calc(100% - 7px) 9px;background-size:4px 4px,4px 4px;background-repeat:no-repeat}
@@ -28,7 +29,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;b
 .dot.offline{background:#f85149}
 .main{padding:24px;max-width:calc(1100px + var(--optional-metric-width,0px));margin:0 auto;transition:max-width .2s ease}
 html.has-metrics .app-nav-inner{max-width:calc(1240px + var(--optional-metric-width,0px))}
-#page-ipo,#page-alerts,#page-notes,#page-reference{max-width:1100px;margin:0 auto}
+#page-ipo,#page-alerts,#page-notes,#page-reference,#page-admin-sites{max-width:1100px;margin:0 auto}
 .market-page-note{margin:-5px 0 10px;color:#6e7681;font-size:10px;letter-spacing:.2px}
 .module-head{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:18px}.module-title{font-size:22px}.module-desc{margin-top:5px;color:#8b949e;font-size:12px}.module-actions{display:flex;gap:8px;align-items:center}
 .metric-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:18px}.metric-card{padding:15px 16px;border:1px solid #30363d;border-radius:9px;background:linear-gradient(145deg,#1a2028,#161b22)}.metric-label{color:#8b949e;font-size:11px}.metric-value{margin-top:5px;font-size:23px;font-weight:700}.metric-note{margin-top:3px;color:#6e7681;font-size:10px}
@@ -236,7 +237,7 @@ body.stock-sorting,body.stock-sorting *{cursor:grabbing!important;user-select:no
 .chart-info{display:flex;flex-wrap:wrap;align-items:center;gap:4px 12px;min-width:0;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;color:#c9d1d9}
 .chart-info span{white-space:nowrap}
 .chart-info b{font-weight:500;color:#8b949e;margin-right:4px}
-.chart-guide{flex:none;color:#6e7681;font-size:11px;white-space:nowrap;padding-top:1px}
+.chart-guide{flex:none;color:#6e7681;font-size:11px;white-space:nowrap;padding-top:1px}.chart-data-notice{display:none;margin-left:auto;padding:3px 7px;border:1px solid #d2992255;border-radius:10px;background:#d2992214;color:#e3b341;font-size:10px;white-space:nowrap}.chart-data-notice.visible{display:block}
 #chart-canvas{display:block;width:100%;height:290px;border-radius:4px;cursor:crosshair;touch-action:none}
 #chart-canvas.panning{cursor:grabbing}
 .chart-window{display:none;margin-top:8px;user-select:none}
@@ -278,6 +279,7 @@ html[data-theme="light"] .refresh-btn,html[data-theme="light"] .dialog-btn,html[
 html[data-theme="light"] .refresh-btn:hover,html[data-theme="light"] .dialog-btn:hover,html[data-theme="light"] .filter-chip:hover{background:#eaeef2}
 html[data-theme="light"] .dialog-btn.primary{background:#1f883d;border-color:#1f883d;color:#fff}html[data-theme="light"] .dialog-btn.danger{color:#cf222e}html[data-theme="light"] .filter-chip.active,html[data-theme="light"] .period-btn.active{background:#ddf4ff;border-color:#54aeff;color:#0969da}
 html[data-theme="light"] .account-trigger,html[data-theme="light"] .account-menu{background:#fff;border-color:#d0d7de;color:#1f2328}html[data-theme="light"] .account-trigger:hover,html[data-theme="light"] .account-menu-item:hover{background:#f6f8fa}html[data-theme="light"] .account-menu-head,html[data-theme="light"] .auth-hero,html[data-theme="light"] .auth-tabs,html[data-theme="light"] .settings-user,html[data-theme="light"] .config-choice-list{border-color:#d0d7de}html[data-theme="light"] .account-menu-item{color:#1f2328}html[data-theme="light"] .account-menu-item.danger{color:#cf222e}html[data-theme="light"] .auth-hero{background:linear-gradient(135deg,#ddf4ff,#fbefff)}html[data-theme="light"] .auth-divider::before,html[data-theme="light"] .auth-divider::after{background:#d0d7de}html[data-theme="light"] .config-choice-list{background:#f6f8fa;color:#1f2328}html[data-theme="light"] .toast{background:#fff;border-color:#d0d7de;color:#1f2328;box-shadow:0 10px 35px #1f232833}
+html[data-theme="light"] .admin-site-card,html[data-theme="light"] .admin-site-row,html[data-theme="light"] .chat-online-users{background:#fff;border-color:#d0d7de}html[data-theme="light"] .admin-site-active,html[data-theme="light"] .admin-site-name,html[data-theme="light"] .chat-online-user-name{color:#1f2328}html[data-theme="light"] .chat-online-user:hover{background:#f6f8fa}
 html[data-theme="light"] .site-recommendation-menu{background:#fff;border-color:#d0d7de;box-shadow:0 14px 40px #1f232826}html[data-theme="light"] .site-recommendation-item{color:#1f2328}html[data-theme="light"] .site-recommendation-item:hover,html[data-theme="light"] .site-recommendation-item:focus-visible{background:#f6f8fa;color:#0969da}html[data-theme="light"] .site-recommendation-icon{background:#ddf4ff;color:#0969da}
 html[data-theme="light"] .metric-option{background:#f6f8fa;border-color:#d7e0ea}
 html[data-theme="light"] .refresh-interval-select,html[data-theme="light"] .market-row-select,html[data-theme="light"] .form-input,html[data-theme="light"] .form-select,html[data-theme="light"] .search-wrap input{background-color:#fff;border-color:#d0d7de;color:#1f2328}
@@ -406,10 +408,12 @@ html[data-theme="light"] .reference-retry{background:#f6f8fa;border-color:#d0d7d
 .chat-header{display:flex;align-items:center;gap:8px;padding:12px 14px;background:linear-gradient(135deg,#1f6feb18,#8957e514);border-bottom:1px solid #30363d;flex:none;cursor:move;user-select:none}
 .chat-header-icon{font-size:18px}
 .chat-header-title{font-size:13px;font-weight:650;flex:1;color:#e6edf3}
-.chat-online{font-size:10px;color:#3fb950;display:flex;align-items:center;gap:4px}
+.chat-online{position:relative;display:flex;align-items:center;gap:4px;padding:3px 5px;border:0;border-radius:5px;background:transparent;color:#3fb950;font:inherit;font-size:10px;cursor:default}
 .chat-online::before{content:"";width:6px;height:6px;border-radius:50%;background:#3fb950;box-shadow:0 0 6px #3fb95088}
+.chat-online.admin{cursor:pointer}.chat-online.admin:hover,.chat-online.admin[aria-expanded="true"]{background:#2386361c}.chat-online-users{position:absolute;z-index:8;top:42px;right:66px;display:none;width:230px;max-height:270px;overflow:auto;padding:7px;border:1px solid #30363d;border-radius:9px;background:#161b22;box-shadow:0 12px 32px #0009;cursor:default}.chat-online-users.open{display:block}.chat-online-users-title{padding:5px 7px 8px;color:#8b949e;font-size:10px;font-weight:700}.chat-online-user{display:flex;align-items:center;gap:8px;padding:7px;border-radius:6px}.chat-online-user:hover{background:#21262d}.chat-online-user-avatar{display:grid;place-items:center;flex:none;width:26px;height:26px;overflow:hidden;border-radius:50%;background:linear-gradient(135deg,#1f6feb,#8957e5);color:#fff;font-size:10px}.chat-online-user-avatar img{width:100%;height:100%;object-fit:cover}.chat-online-user-copy{min-width:0;flex:1}.chat-online-user-name{overflow:hidden;color:#e6edf3;font-size:11px;text-overflow:ellipsis;white-space:nowrap}.chat-online-user-meta{margin-top:2px;color:#6e7681;font-size:9px}.chat-online-users-empty{padding:20px 8px;color:#6e7681;font-size:10px;text-align:center}
 .chat-header-btn{background:none;border:none;color:#8b949e;font-size:16px;cursor:pointer;padding:2px 4px;border-radius:4px;transition:color .15s,background .15s}
 .chat-header-btn:hover{color:#e6edf3;background:#30363d}
+.chat-history-loader{display:none;flex:none;width:100%;padding:6px 10px;border:0;border-bottom:1px solid #21262d;background:#0d1117;color:#6e7681;font-size:10px;cursor:pointer}.chat-history-loader.visible{display:block}.chat-history-loader:hover:not(:disabled){color:#79c0ff;background:#161b22}.chat-history-loader:disabled{cursor:default}
 .chat-messages{flex:1;overflow-y:auto;padding:10px 12px;display:flex;flex-direction:column;gap:6px;scrollbar-width:thin;scrollbar-color:#484f58 transparent}
 .chat-msg{display:flex;gap:8px;padding:8px 10px;border-radius:8px;background:#21262d;border:1px solid transparent;max-width:88%;animation:msg-in .2s ease-out}
 .chat-msg.self{margin-left:auto;background:#1f3a5f;border-color:#1f6feb44;flex-direction:row-reverse}
@@ -453,7 +457,7 @@ html[data-theme="light"] .reference-retry{background:#f6f8fa;border-color:#d0d7d
     <button class="app-tab" data-page="alerts" onclick="switchAppPage('alerts')">⚡ 自选异动<span class="app-tab-badge" id="alert-badge">0</span></button>
     <button class="app-tab" data-page="notes" onclick="switchAppPage('notes')">📝 笔记</button>
     <button class="app-tab" id="chat-entry-btn" onclick="openChatRoom()" style="width:auto;padding:8px 14px">💬 聊天室</button>
-    <div class="site-recommendations" id="site-recommendations" onmouseenter="loadSiteRecommendations()">
+    <div class="site-recommendations" id="site-recommendations" onmouseenter="handleSiteRecommendationsEnter()" onmouseleave="scheduleSiteRecommendationsClose()">
       <button class="app-tab site-recommendation-trigger" id="site-recommendation-trigger" type="button" aria-haspopup="menu" aria-expanded="false" onclick="toggleSiteRecommendations(event)" onfocus="loadSiteRecommendations()">🌐 站点推荐</button>
       <div class="site-recommendation-menu" id="site-recommendation-menu" role="menu" aria-label="站点推荐"><div class="site-recommendation-status">正在加载推荐站点…</div></div>
     </div>
@@ -582,6 +586,26 @@ html[data-theme="light"] .reference-retry{background:#f6f8fa;border-color:#d0d7d
   <div class="reference-reader">
     <aside class="reference-toc" aria-label="参考文档目录"><div class="reference-toc-title">文档目录</div><div class="reference-toc-links" id="reference-toc-links"><span class="reference-loading">进入页面后加载...</span></div></aside>
     <article class="reference-document" id="reference-document" aria-live="polite"><div class="reference-loading">进入页面后加载参考文档...</div></article>
+  </div>
+</section>
+
+<section class="app-page" id="page-admin-sites">
+  <div class="module-head"><div><div class="market-kicker">Administration</div><h2 class="module-title">站点推荐管理</h2><p class="module-desc">仅管理员可新增、编辑、停用或删除导航栏中的推荐站点</p></div><div class="module-actions"><button class="refresh-btn" type="button" onclick="loadAdminSites(true)">↻ 刷新列表</button></div></div>
+  <div class="admin-sites-layout">
+    <form class="admin-site-card" id="admin-site-form" onsubmit="saveAdminSite(event)">
+      <h3 id="admin-site-form-title">新增推荐站点</h3>
+      <p class="admin-site-card-copy">排序值越小越靠前。停用后任何账号都不可见；设为仅管理员可见后，普通账号和游客都无法读取该站点。</p>
+      <input id="admin-site-id" type="hidden">
+      <div class="form-row"><label for="admin-site-name">站点名称</label><input class="form-input" id="admin-site-name" maxlength="100" required placeholder="例如：Momoyu Pro"></div>
+      <div class="form-row"><label for="admin-site-url">站点地址</label><input class="form-input" id="admin-site-url" type="url" maxlength="500" required placeholder="https://example.com"></div>
+      <div class="form-row"><label for="admin-site-description">简短说明</label><input class="form-input" id="admin-site-description" maxlength="255" placeholder="站点用途说明"></div>
+      <div class="form-row"><label for="admin-site-sort">排序值</label><input class="form-input" id="admin-site-sort" type="number" min="-100000" max="100000" step="1" value="0" required></div>
+      <label class="admin-site-active"><input id="admin-site-active" type="checkbox" checked> 在站点推荐菜单中显示</label>
+      <label class="admin-site-active"><input id="admin-site-admin-only" type="checkbox"> 仅管理员账号可见</label>
+      <div class="admin-site-status" id="admin-site-form-status" aria-live="polite"></div>
+      <div class="admin-site-form-actions"><button class="dialog-btn primary" id="admin-site-save" type="submit">保存站点</button><button class="dialog-btn" type="button" onclick="resetAdminSiteForm()">清空</button></div>
+    </form>
+    <div class="admin-site-card"><h3>推荐站点列表</h3><p class="admin-site-card-copy">编辑会立即生效；删除操作需要再次确认。</p><div class="admin-site-list" id="admin-site-list"><div class="admin-site-empty">进入页面后加载站点列表…</div></div></div>
   </div>
 </section>
 </div>
@@ -717,7 +741,7 @@ html[data-theme="light"] .reference-retry{background:#f6f8fa;border-color:#d0d7d
       </div>
       <div class="chart-readout">
         <div class="chart-info" id="chart-info"></div>
-        <div class="chart-guide">滚轮缩放 · 拖动平移</div>
+        <div class="chart-data-notice" id="chart-data-notice" role="status"></div><div class="chart-guide">滚轮缩放 · 拖动平移</div>
       </div>
       <div class="chart-loading" id="chart-loading">加载中...</div>
       <canvas id="chart-canvas" height="290"></canvas>
@@ -857,6 +881,9 @@ let lastSyncedAccountConfig = '';
 let toastTimer = null;
 let siteRecommendationsLoaded = false;
 let siteRecommendationsLoadPromise = null;
+let siteRecommendationsCloseTimer = null;
+let adminSites = [];
+let adminSitesLoaded = false;
 
 function resolvedTheme() { return themePreference === 'system' ? (systemThemeQuery.matches ? 'light' : 'dark') : themePreference; }
 function applyThemePreference() {
@@ -1778,6 +1805,7 @@ async function loadChart(type) {
   if (!modalSym) return;
   const requestId = ++chartRequestId;
   const loading = document.getElementById('chart-loading');
+  const dataNotice = document.getElementById('chart-data-notice');
   loading.textContent = '加载中...';
   loading.style.display = 'flex';
   chartInfo.innerHTML = '';
@@ -1786,6 +1814,7 @@ async function loadChart(type) {
   chartState.data = [];
   chartState.layout = null;
   chartState.hoverIndex = null;
+  if (dataNotice) { dataNotice.textContent = ''; dataNotice.classList.remove('visible'); }
   try {
     if (type === 'minute') {
       const r = await fetch(`/api/minute?sym=${modalSym}`);
@@ -1814,6 +1843,10 @@ async function loadChart(type) {
       if (!r.ok) throw new Error(d.error || 'fund flow request failed');
       if (requestId !== chartRequestId || currentTab !== type) return;
       drawFundFlow(d.data || []);
+      if (dataNotice && (d.meta?.degraded || d.meta?.stale)) {
+        dataNotice.textContent = d.meta.message || '历史数据正在后台刷新，当前展示已保存数据';
+        dataNotice.classList.add('visible');
+      }
     } else {
       const r = await fetch(`/api/kline?sym=${modalSym}`);
       if (!r.ok) throw new Error('kline request failed');
@@ -2673,9 +2706,10 @@ window.addEventListener('resize', () => {
 });
 
 // --- App pages / IPO calendar ---
-const APP_PAGES = ['market','ipo','alerts','notes','reference'];
+const APP_PAGES = ['market','ipo','alerts','notes','reference','admin-sites'];
 const APP_PAGE_TITLES = {
   market:'自选股行情', ipo:'打新消息', alerts:'自选异动', notes:'我的笔记', reference:'参考文档',
+  'admin-sites':'站点推荐管理',
 };
 const requestedAppPage = new URLSearchParams(location.search).get('page');
 const storedAppPage = localStorage.getItem(APP_PAGE_STORAGE_KEY);
@@ -2719,6 +2753,10 @@ async function loadReferenceDocument(force = false) {
 
 function switchAppPage(page, { historyMode = 'push', scroll = true } = {}) {
   if (!APP_PAGES.includes(page)) return;
+  if (page === 'admin-sites' && !currentUser?.isAdmin) {
+    page = 'market';
+    historyMode = 'replace';
+  }
   const changed = activeAppPage !== page;
   activeAppPage = page; localStorage.setItem(APP_PAGE_STORAGE_KEY, page);
   let activeTab = null;
@@ -2741,6 +2779,7 @@ function switchAppPage(page, { historyMode = 'push', scroll = true } = {}) {
   if (page === 'alerts') { renderAnomalyEvents(); fetchAnomalyQuotes(); }
   if (page === 'notes') { loadNotesList({ reloadFolders:true }); }
   if (page === 'reference') loadReferenceDocument();
+  if (page === 'admin-sites') loadAdminSites();
 }
 
 window.addEventListener('popstate', () => switchAppPage(appPageFromLocation(), { historyMode:'none', scroll:false }));
@@ -3041,7 +3080,10 @@ function renderAccountArea() {
   }
   avatar.innerHTML = avatarMarkup(currentUser);
   label.textContent = currentUser.displayName;
-  menu.innerHTML = `<div class="account-menu-head"><span class="account-avatar">${avatarMarkup(currentUser)}</span><div style="min-width:0"><div class="account-menu-name">${escapeHtml(currentUser.displayName)}</div><div class="account-menu-id">${escapeHtml(currentUser.username ? `@${currentUser.username}` : '微信账号')}</div></div></div><div class="account-sync-note" id="account-sync-note">页面配置已与账号关联</div><button class="account-menu-item" type="button" role="menuitem" onclick="openAccountSettings()">⚙ 账户设置与密码</button><button class="account-menu-item danger" type="button" role="menuitem" onclick="logoutAccount()">↪ 退出登录</button>`;
+  const adminMenuItem = currentUser.isAdmin
+    ? '<button class="account-menu-item" type="button" role="menuitem" onclick="openAdminSiteManagement()">🛠 站点推荐管理<span class="admin-badge">管理员</span></button>'
+    : '';
+  menu.innerHTML = `<div class="account-menu-head"><span class="account-avatar">${avatarMarkup(currentUser)}</span><div style="min-width:0"><div class="account-menu-name">${escapeHtml(currentUser.displayName)}</div><div class="account-menu-id">${escapeHtml(currentUser.username ? `@${currentUser.username}` : '微信账号')}</div></div>${currentUser.isAdmin ? '<span class="admin-badge">管理员</span>' : ''}</div><div class="account-sync-note" id="account-sync-note">页面配置已与账号关联</div>${adminMenuItem}<button class="account-menu-item" type="button" role="menuitem" onclick="openAccountSettings()">⚙ 账户设置与密码</button><button class="account-menu-item danger" type="button" role="menuitem" onclick="logoutAccount()">↪ 退出登录</button>`;
 }
 
 function positionAccountMenu() {
@@ -3341,6 +3383,7 @@ async function loadSiteRecommendations() {
 
 function toggleSiteRecommendations(event) {
   event?.stopPropagation();
+  clearTimeout(siteRecommendationsCloseTimer);
   const container = document.getElementById('site-recommendations');
   const trigger = document.getElementById('site-recommendation-trigger');
   const open = !container.classList.contains('open');
@@ -3349,9 +3392,177 @@ function toggleSiteRecommendations(event) {
   if (open) loadSiteRecommendations();
 }
 
+function handleSiteRecommendationsEnter() {
+  clearTimeout(siteRecommendationsCloseTimer);
+  const container = document.getElementById('site-recommendations');
+  const trigger = document.getElementById('site-recommendation-trigger');
+  container?.classList.add('open');
+  trigger?.setAttribute('aria-expanded', 'true');
+  loadSiteRecommendations();
+}
+
+function scheduleSiteRecommendationsClose() {
+  clearTimeout(siteRecommendationsCloseTimer);
+  siteRecommendationsCloseTimer = setTimeout(closeSiteRecommendations, 320);
+}
+
 function closeSiteRecommendations() {
+  clearTimeout(siteRecommendationsCloseTimer);
   document.getElementById('site-recommendations')?.classList.remove('open');
   document.getElementById('site-recommendation-trigger')?.setAttribute('aria-expanded', 'false');
+}
+
+function openAdminSiteManagement() {
+  closeAccountMenu();
+  if (!currentUser?.isAdmin) { showToast('仅管理员可以管理推荐站点', true); return; }
+  switchAppPage('admin-sites');
+}
+
+function setAdminSiteStatus(message = '', error = false) {
+  const status = document.getElementById('admin-site-form-status');
+  if (!status) return;
+  status.textContent = message;
+  status.classList.toggle('error', error);
+}
+
+function resetAdminSiteForm() {
+  document.getElementById('admin-site-form')?.reset();
+  document.getElementById('admin-site-id').value = '';
+  document.getElementById('admin-site-sort').value = '0';
+  document.getElementById('admin-site-active').checked = true;
+  document.getElementById('admin-site-admin-only').checked = false;
+  document.getElementById('admin-site-form-title').textContent = '新增推荐站点';
+  setAdminSiteStatus();
+}
+
+function editAdminSite(siteId) {
+  const site = adminSites.find(item => String(item.id) === String(siteId));
+  if (!site) return;
+  document.getElementById('admin-site-id').value = site.id;
+  document.getElementById('admin-site-name').value = site.name || '';
+  document.getElementById('admin-site-url').value = site.url || '';
+  document.getElementById('admin-site-description').value = site.description || '';
+  document.getElementById('admin-site-sort').value = String(site.sortOrder || 0);
+  document.getElementById('admin-site-active').checked = site.isActive === true;
+  document.getElementById('admin-site-admin-only').checked = site.isAdminOnly === true;
+  document.getElementById('admin-site-form-title').textContent = '编辑推荐站点';
+  setAdminSiteStatus(`正在编辑：${site.name}`);
+  document.getElementById('admin-site-form')?.scrollIntoView({ behavior:'smooth', block:'start' });
+}
+
+function renderAdminSites() {
+  const list = document.getElementById('admin-site-list');
+  if (!list) return;
+  list.replaceChildren();
+  if (!adminSites.length) {
+    const empty = document.createElement('div');
+    empty.className = 'admin-site-empty';
+    empty.textContent = '暂无推荐站点';
+    list.appendChild(empty);
+    return;
+  }
+  for (const site of adminSites) {
+    const row = document.createElement('div');
+    row.className = 'admin-site-row';
+    const copy = document.createElement('div');
+    const name = document.createElement('div');
+    name.className = 'admin-site-name';
+    name.textContent = site.name || '未命名站点';
+    const state = document.createElement('span');
+    state.className = `admin-site-state${site.isActive ? '' : ' off'}`;
+    state.textContent = site.isActive ? '已启用' : '已停用';
+    name.appendChild(state);
+    if (site.isAdminOnly) {
+      const visibility = document.createElement('span');
+      visibility.className = 'admin-site-state restricted';
+      visibility.textContent = '仅管理员可见';
+      name.appendChild(visibility);
+    }
+    const url = document.createElement('a');
+    url.className = 'admin-site-url';
+    url.href = safeRecommendedSiteUrl(site.url) || '#';
+    url.target = '_blank';
+    url.rel = 'noopener noreferrer';
+    url.textContent = site.url;
+    const description = document.createElement('div');
+    description.className = 'admin-site-desc';
+    description.textContent = `${site.description || '无说明'} · 排序 ${site.sortOrder || 0}`;
+    copy.append(name, url, description);
+    const actions = document.createElement('div');
+    actions.className = 'admin-site-actions';
+    const edit = document.createElement('button');
+    edit.className = 'dialog-btn'; edit.type = 'button'; edit.textContent = '编辑';
+    edit.addEventListener('click', () => editAdminSite(site.id));
+    const remove = document.createElement('button');
+    remove.className = 'dialog-btn danger'; remove.type = 'button'; remove.textContent = '删除';
+    remove.addEventListener('click', () => deleteAdminSite(site.id));
+    actions.append(edit, remove);
+    row.append(copy, actions);
+    list.appendChild(row);
+  }
+}
+
+async function loadAdminSites(force = false) {
+  if (!currentUser?.isAdmin) return;
+  if (adminSitesLoaded && !force) return;
+  const list = document.getElementById('admin-site-list');
+  if (list) list.innerHTML = '<div class="admin-site-empty">正在加载站点列表…</div>';
+  try {
+    const payload = await apiRequest('/api/admin/sites', { method:'GET', headers:{} });
+    adminSites = Array.isArray(payload.sites) ? payload.sites : [];
+    adminSitesLoaded = true;
+    renderAdminSites();
+  } catch (error) {
+    if (list) list.innerHTML = '<div class="admin-site-empty">站点列表加载失败</div>';
+    showToast(error.message, true);
+  }
+}
+
+async function saveAdminSite(event) {
+  event.preventDefault();
+  if (!currentUser?.isAdmin) return;
+  const siteId = document.getElementById('admin-site-id').value;
+  const body = {
+    name:document.getElementById('admin-site-name').value,
+    url:document.getElementById('admin-site-url').value,
+    description:document.getElementById('admin-site-description').value,
+    sortOrder:Number(document.getElementById('admin-site-sort').value),
+    isActive:document.getElementById('admin-site-active').checked,
+    isAdminOnly:document.getElementById('admin-site-admin-only').checked,
+  };
+  setButtonBusy('admin-site-save', true, '保存中…');
+  setAdminSiteStatus();
+  try {
+    await apiRequest(siteId ? `/api/admin/sites/${siteId}` : '/api/admin/sites', {
+      method:siteId ? 'PUT' : 'POST', body:JSON.stringify(body),
+    });
+    resetAdminSiteForm();
+    adminSitesLoaded = false;
+    siteRecommendationsLoaded = false;
+    await loadAdminSites(true);
+    await loadSiteRecommendations();
+    showToast(siteId ? '推荐站点已更新' : '推荐站点已添加');
+  } catch (error) {
+    setAdminSiteStatus(error.message, true);
+  } finally {
+    setButtonBusy('admin-site-save', false, '');
+  }
+}
+
+async function deleteAdminSite(siteId) {
+  const site = adminSites.find(item => String(item.id) === String(siteId));
+  if (!site || !confirm(`确定删除推荐站点“${site.name}”吗？`)) return;
+  try {
+    await apiRequest(`/api/admin/sites/${siteId}`, { method:'DELETE', body:'{}' });
+    if (document.getElementById('admin-site-id').value === String(siteId)) resetAdminSiteForm();
+    adminSitesLoaded = false;
+    siteRecommendationsLoaded = false;
+    await loadAdminSites(true);
+    await loadSiteRecommendations();
+    showToast('推荐站点已删除');
+  } catch (error) {
+    showToast(error.message, true);
+  }
 }
 
 async function initializeApplication() {
@@ -3925,8 +4136,9 @@ document.getElementById('note-title').addEventListener('input', () => {
 // ============================================================
 // Chat Room Module
 // ============================================================
-const CHAT_MAX_RENDERED_MESSAGES = 200;
-const CHAT_MAX_RENDERED_IMAGES = 20;
+const CHAT_MAX_RENDERED_MESSAGES = 500;
+const CHAT_MAX_RENDERED_IMAGES = 50;
+const CHAT_HISTORY_PAGE_SIZE = 50;
 const CHAT_MAX_IMAGE_BYTES = 768 * 1024;
 const CHAT_MAX_SOURCE_IMAGE_BYTES = 12 * 1024 * 1024;
 const CHAT_IMAGE_TYPES = ['image/jpeg','image/png','image/gif','image/webp'];
@@ -3949,6 +4161,9 @@ let chatState = {
   sendingImage: false,
   imageSendToken: 0,
   floatMoved: false,
+  historyCursor: null,
+  historyHasMore: false,
+  historyLoading: false,
 };
 
 async function openChatRoom() {
@@ -3973,10 +4188,12 @@ async function openChatRoom() {
       <div class="chat-header" id="chat-header">
         <span class="chat-header-icon">💬</span>
         <span class="chat-header-title">聊天室</span>
-        <span class="chat-online" id="chat-online">0 在线</span>
+        <button class="chat-online${currentUser?.isAdmin ? ' admin' : ''}" id="chat-online" type="button" aria-expanded="false" aria-label="${currentUser?.isAdmin ? '查看聊天室在线用户' : '聊天室在线人数'}" onclick="toggleChatOnlineUsers(event)">0 在线</button>
+        <div class="chat-online-users" id="chat-online-users" aria-label="聊天室在线用户"></div>
         <button class="chat-header-btn" onclick="minimizeChatRoom()" title="最小化">—</button>
         <button class="chat-header-btn" onclick="closeChatRoom()" title="关闭">✕</button>
       </div>
+      <button class="chat-history-loader" id="chat-history-loader" type="button" onclick="loadMoreChatHistory()">↑ 向上滑动加载更早记录</button>
       <div class="chat-messages" id="chat-messages"></div>
       <div class="chat-composer">
         <div class="chat-emoji-panel" id="chat-emoji-panel" aria-label="选择表情">${CHAT_EMOJIS.map((emoji, index) => `<button class="chat-emoji-btn" type="button" onclick="insertChatEmoji(${index})" aria-label="插入表情 ${emoji}">${emoji}</button>`).join('')}</div>
@@ -4000,6 +4217,9 @@ async function openChatRoom() {
       if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendChatMessage(); }
     });
     document.getElementById('chat-input').addEventListener('paste', handleChatPaste);
+    document.getElementById('chat-messages').addEventListener('scroll', event => {
+      if (event.currentTarget.scrollTop <= 72) loadMoreChatHistory();
+    }, { passive:true });
     document.getElementById('chat-image-input').addEventListener('change', event => {
       const file = event.target.files?.[0];
       event.target.value = '';
@@ -4007,6 +4227,7 @@ async function openChatRoom() {
     });
     document.addEventListener('click', event => {
       if (!event.target.closest('#chat-emoji-panel') && !event.target.closest('#chat-emoji-btn')) closeChatEmojiPicker();
+      if (!event.target.closest('#chat-online') && !event.target.closest('#chat-online-users')) closeChatOnlineUsers();
     });
     document.addEventListener('keydown', event => {
       if (event.key !== 'Escape') return;
@@ -4037,6 +4258,9 @@ function closeChatRoom() {
   chatState.avatarUrl = null;
   chatState.userId = null;
   chatState.floatMoved = false;
+  chatState.historyCursor = null;
+  chatState.historyHasMore = false;
+  chatState.historyLoading = false;
   updateChatBadge();
   const el = document.getElementById('chat-float');
   if (el) el.classList.remove('open');
@@ -4083,11 +4307,16 @@ function clearChatSessionView() {
   chatState.sendingImage = false;
   const messages = document.getElementById('chat-messages');
   if (messages) messages.replaceChildren();
+  chatState.historyCursor = null;
+  chatState.historyHasMore = false;
+  chatState.historyLoading = false;
+  updateChatHistoryLoader();
   const input = document.getElementById('chat-input');
   if (input) input.value = '';
   const imageButton = document.getElementById('chat-image-btn');
   if (imageButton) imageButton.disabled = true;
   updateChatOnline(0);
+  closeChatOnlineUsers();
   closeChatEmojiPicker();
   closeChatImagePreview();
 }
@@ -4097,9 +4326,12 @@ function trimChatMessages() {
   if (!container) return;
   while (container.childElementCount > CHAT_MAX_RENDERED_MESSAGES) container.firstElementChild?.remove();
   while (container.querySelectorAll('.chat-msg-image').length > CHAT_MAX_RENDERED_IMAGES) {
-    const oldestImageMessage = container.querySelector('.chat-msg:has(.chat-msg-image)');
-    if (!oldestImageMessage) break;
-    oldestImageMessage.remove();
+    const oldestImage = container.querySelector('.chat-msg-image');
+    if (!oldestImage) break;
+    const placeholder = document.createElement('div');
+    placeholder.className = 'chat-msg-text';
+    placeholder.textContent = '图片已从当前页面释放，可重新进入聊天室查看';
+    oldestImage.replaceWith(placeholder);
   }
 }
 
@@ -4138,6 +4370,7 @@ function connectChatSSE() {
   es.addEventListener('online', e => {
     const data = JSON.parse(e.data);
     updateChatOnline(data.count);
+    if (document.getElementById('chat-online-users')?.classList.contains('open')) loadChatOnlineUsers();
   });
 
   es.onerror = () => {
@@ -4150,8 +4383,15 @@ function connectChatSSE() {
 
 async function loadChatSession() {
   try {
-    const data = await apiRequest('/api/chat/history', { method:'GET', headers:{} });
+    const data = await apiRequest(`/api/chat/history?limit=${CHAT_HISTORY_PAGE_SIZE}`, { method:'GET', headers:{} });
     updateChatOnline(data.online || 0);
+    chatState.historyCursor = data.nextCursor || null;
+    chatState.historyHasMore = data.hasMore === true;
+    for (const message of Array.isArray(data.messages) ? data.messages : []) {
+      appendChatMessage(message, false);
+    }
+    updateChatHistoryLoader();
+    scrollChatToBottom();
     return true;
   } catch (error) {
     showToast('聊天室加载失败：' + error.message, true);
@@ -4160,15 +4400,123 @@ async function loadChatSession() {
   }
 }
 
+function renderedChatMessageCount() {
+  return document.getElementById('chat-messages')?.childElementCount || 0;
+}
+
+function updateChatHistoryLoader() {
+  const loader = document.getElementById('chat-history-loader');
+  if (!loader) return;
+  const atRenderLimit = renderedChatMessageCount() >= CHAT_MAX_RENDERED_MESSAGES;
+  loader.classList.toggle('visible', chatState.historyHasMore || chatState.historyLoading || atRenderLimit);
+  loader.disabled = chatState.historyLoading || !chatState.historyHasMore || atRenderLimit;
+  loader.textContent = chatState.historyLoading
+    ? '正在加载更早记录…'
+    : atRenderLimit
+      ? `本次最多展示 ${CHAT_MAX_RENDERED_MESSAGES} 条记录，重新进入可从近期记录开始`
+      : '↑ 向上滑动加载更早记录';
+}
+
+async function loadMoreChatHistory() {
+  if (!chatState.open || chatState.historyLoading || !chatState.historyHasMore || !chatState.historyCursor) return;
+  const container = document.getElementById('chat-messages');
+  if (!container) return;
+  const remaining = CHAT_MAX_RENDERED_MESSAGES - renderedChatMessageCount();
+  if (remaining <= 0) { updateChatHistoryLoader(); return; }
+  chatState.historyLoading = true;
+  updateChatHistoryLoader();
+  const previousHeight = container.scrollHeight;
+  const previousTop = container.scrollTop;
+  try {
+    const params = new URLSearchParams({
+      before:chatState.historyCursor,
+      limit:String(Math.min(CHAT_HISTORY_PAGE_SIZE, remaining)),
+    });
+    const data = await apiRequest(`/api/chat/history?${params}`, { method:'GET', headers:{} });
+    const messages = Array.isArray(data.messages) ? data.messages : [];
+    for (const message of [...messages].reverse()) appendChatMessage(message, false, true);
+    chatState.historyCursor = data.nextCursor || null;
+    chatState.historyHasMore = data.hasMore === true;
+    requestAnimationFrame(() => {
+      container.scrollTop = previousTop + Math.max(0, container.scrollHeight - previousHeight);
+    });
+  } catch (error) {
+    showToast('更早聊天记录加载失败：' + error.message, true);
+  } finally {
+    chatState.historyLoading = false;
+    updateChatHistoryLoader();
+  }
+}
+
 function updateChatOnline(count) {
   const el = document.getElementById('chat-online');
   if (el) el.textContent = `${count} 在线`;
 }
 
-function appendChatMessage(msg, scroll = true) {
+function closeChatOnlineUsers() {
+  document.getElementById('chat-online-users')?.classList.remove('open');
+  document.getElementById('chat-online')?.setAttribute('aria-expanded', 'false');
+}
+
+async function toggleChatOnlineUsers(event) {
+  event?.stopPropagation();
+  if (!currentUser?.isAdmin) return;
+  const panel = document.getElementById('chat-online-users');
+  const button = document.getElementById('chat-online');
+  const open = !panel?.classList.contains('open');
+  panel?.classList.toggle('open', open);
+  button?.setAttribute('aria-expanded', String(open));
+  if (open) await loadChatOnlineUsers();
+}
+
+async function loadChatOnlineUsers() {
+  if (!currentUser?.isAdmin) return;
+  const panel = document.getElementById('chat-online-users');
+  if (!panel) return;
+  panel.innerHTML = '<div class="chat-online-users-empty">正在读取在线用户…</div>';
+  try {
+    const payload = await apiRequest('/api/chat/online-users', { method:'GET', headers:{} });
+    panel.replaceChildren();
+    const title = document.createElement('div');
+    title.className = 'chat-online-users-title';
+    title.textContent = `当前在线 ${payload.online || 0} 人`;
+    panel.appendChild(title);
+    for (const user of Array.isArray(payload.users) ? payload.users : []) {
+      const row = document.createElement('div');
+      row.className = 'chat-online-user';
+      const avatar = document.createElement('span');
+      avatar.className = 'chat-online-user-avatar';
+      if (user.avatarUrl && /^(?:https?:\/\/|\/)/i.test(user.avatarUrl)) {
+        const image = document.createElement('img');
+        image.src = user.avatarUrl; image.alt = ''; image.referrerPolicy = 'no-referrer';
+        avatar.appendChild(image);
+      } else {
+        avatar.textContent = String(user.displayName || '?').slice(0, 1);
+      }
+      const copy = document.createElement('div');
+      copy.className = 'chat-online-user-copy';
+      const name = document.createElement('div');
+      name.className = 'chat-online-user-name'; name.textContent = user.displayName || '用户';
+      const meta = document.createElement('div');
+      meta.className = 'chat-online-user-meta';
+      meta.textContent = user.connections > 1 ? `${user.connections} 个连接` : '在线';
+      copy.append(name, meta); row.append(avatar, copy); panel.appendChild(row);
+    }
+    if (!payload.users?.length) {
+      const empty = document.createElement('div');
+      empty.className = 'chat-online-users-empty'; empty.textContent = '当前没有在线用户';
+      panel.appendChild(empty);
+    }
+  } catch (error) {
+    panel.innerHTML = `<div class="chat-online-users-empty">${escapeHtml(error.message)}</div>`;
+  }
+}
+
+function appendChatMessage(msg, scroll = true, prepend = false) {
   const container = document.getElementById('chat-messages');
   if (!container) return;
-  const isSelf = chatState.userId ? msg.userId === chatState.userId : msg.displayName === chatState.displayName;
+  const activeUserId = chatState.userId || currentUser?.id || null;
+  const isSelf = activeUserId ? String(msg.userId) === String(activeUserId) : msg.displayName === chatState.displayName;
   const time = new Date(msg.time).toLocaleTimeString('zh-CN', { hour:'2-digit', minute:'2-digit' });
   const avatarContent = msg.avatarUrl
     ? `<img src="${escapeHtml(msg.avatarUrl)}" alt="">`
@@ -4186,8 +4534,9 @@ function appendChatMessage(msg, scroll = true) {
       ${content}
       <div class="chat-msg-time">${time}</div>
     </div>`;
-  container.appendChild(div);
-  trimChatMessages();
+  if (prepend) container.prepend(div);
+  else container.appendChild(div);
+  if (!prepend) trimChatMessages();
   if (scroll) scrollChatToBottom();
 }
 
@@ -4549,7 +4898,7 @@ function initChatDrag() {
   let dragging = false, startX, startY, startLeft, startTop;
 
   header.addEventListener('mousedown', e => {
-    if (e.target.closest('.chat-header-btn')) return;
+    if (e.target.closest('.chat-header-btn,.chat-online,.chat-online-users')) return;
     dragging = true;
     const rect = float.getBoundingClientRect();
     startX = e.clientX; startY = e.clientY;

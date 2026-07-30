@@ -166,6 +166,7 @@ function publicUser(user) {
     displayName: user.display_name,
     avatarUrl: user.avatar_url || null,
     hasPassword: Boolean(user.password_hash),
+    isAdmin: Number(user.is_admin) === 1,
   };
 }
 
@@ -179,6 +180,48 @@ function publicSiteRecommendation(site) {
     name:String(site.name || '').trim().slice(0, 100),
     url:parsed.href,
     description:String(site.description || '').trim().slice(0, 255),
+  };
+}
+
+function adminSiteRecommendation(site) {
+  const publicSite = publicSiteRecommendation(site);
+  if (!publicSite) return null;
+  return {
+    ...publicSite,
+    sortOrder:Number(site.sort_order) || 0,
+    isActive:Number(site.is_active) === 1,
+    isAdminOnly:Number(site.is_admin_only) === 1,
+    createdAt:site.created_at || null,
+    updatedAt:site.updated_at || null,
+  };
+}
+
+function validateSiteRecommendation(value) {
+  const name = String(value?.name || '').trim();
+  const description = String(value?.description || '').trim();
+  if (!name || name.length > 100) {
+    throw Object.assign(new Error('站点名称不能为空且不能超过 100 个字符'), { statusCode:400 });
+  }
+  if (description.length > 255) {
+    throw Object.assign(new Error('站点说明不能超过 255 个字符'), { statusCode:400 });
+  }
+  let parsed;
+  try { parsed = new URL(String(value?.url || '').trim()); }
+  catch (_) { throw Object.assign(new Error('请输入完整有效的站点地址'), { statusCode:400 }); }
+  if (!['http:', 'https:'].includes(parsed.protocol) || parsed.href.length > 500) {
+    throw Object.assign(new Error('站点地址仅支持 500 个字符以内的 HTTP/HTTPS 链接'), { statusCode:400 });
+  }
+  const sortOrder = Number(value?.sortOrder ?? 0);
+  if (!Number.isInteger(sortOrder) || sortOrder < -100000 || sortOrder > 100000) {
+    throw Object.assign(new Error('排序值必须是 -100000 到 100000 的整数'), { statusCode:400 });
+  }
+  return {
+    name,
+    url:parsed.href,
+    description,
+    sortOrder,
+    isActive:value?.isActive !== false,
+    isAdminOnly:value?.isAdminOnly === true,
   };
 }
 
@@ -263,6 +306,39 @@ class AccountService {
     return session;
   }
 
+  async requireAdmin(req) {
+    const session = await this.requireUser(req);
+    if (Number(session.user.is_admin) !== 1) {
+      throw Object.assign(new Error('仅管理员可以执行此操作'), { statusCode:403 });
+    }
+    return session;
+  }
+
+  async loadFundFlowHistoryCache(symbol) {
+    if (!this.ready || typeof this.database.getFundFlowHistoryCache !== 'function') return null;
+    return this.database.getFundFlowHistoryCache(symbol);
+  }
+
+  async saveFundFlowHistoryCache(symbol, value) {
+    if (!this.ready || typeof this.database.saveFundFlowHistoryCache !== 'function') return false;
+    await this.database.saveFundFlowHistoryCache(symbol, value);
+    return true;
+  }
+
+  async createChatMessage(userId, message) {
+    if (!this.ready || typeof this.database.createChatMessage !== 'function') {
+      throw Object.assign(new Error('聊天记录服务暂不可用'), { statusCode:503 });
+    }
+    return this.database.createChatMessage(userId, message);
+  }
+
+  async listChatMessages(options) {
+    if (!this.ready || typeof this.database.listChatMessages !== 'function') {
+      throw Object.assign(new Error('聊天记录服务暂不可用'), { statusCode:503 });
+    }
+    return this.database.listChatMessages(options);
+  }
+
   async authPayload(user) {
     const config = await this.database.getPreferences(user.id);
     return {
@@ -283,7 +359,7 @@ class AccountService {
 
   async handleRoute(req, res, urlObject) {
     const pathname = urlObject.pathname;
-    if (!pathname.startsWith('/api/auth/') && !pathname.startsWith('/api/notes') && !pathname.startsWith('/api/note-folders') && pathname !== '/api/site-recommendations') return false;
+    if (!pathname.startsWith('/api/auth/') && !pathname.startsWith('/api/notes') && !pathname.startsWith('/api/note-folders') && !pathname.startsWith('/api/admin/') && pathname !== '/api/site-recommendations') return false;
 
     try {
       if (pathname === '/api/site-recommendations') {
@@ -295,7 +371,10 @@ class AccountService {
           sendJson(res, 503, { error:'站点推荐暂不可用' });
           return true;
         }
-        const sites = (await this.database.listSiteRecommendations())
+        const session = await this.sessionFromRequest(req);
+        const includeAdminOnly = Number(session?.user?.is_admin) === 1;
+        const sites = (await this.database.listSiteRecommendations({ includeAdminOnly }))
+          .filter(site => includeAdminOnly || Number(site.is_admin_only) !== 1)
           .map(publicSiteRecommendation)
           .filter(site => site && site.name);
         sendJson(res, 200, { sites });
@@ -324,6 +403,60 @@ class AccountService {
         } else {
           sendJson(res, 503, { error: this.initializationError || '账号服务尚未启用' });
         }
+        return true;
+      }
+
+      const adminSitesMatch = pathname.match(/^\/api\/admin\/sites(?:\/(\d+))?$/);
+      if (adminSitesMatch) {
+        if (req.method !== 'GET') assertSameOrigin(req);
+        await this.requireAdmin(req);
+        const siteId = adminSitesMatch[1];
+
+        if (!siteId && req.method === 'GET') {
+          const sites = (await this.database.listAllSiteRecommendations())
+            .map(adminSiteRecommendation)
+            .filter(Boolean);
+          sendJson(res, 200, { sites });
+          return true;
+        }
+
+        if (!siteId && req.method === 'POST') {
+          const input = validateSiteRecommendation(await readJson(req, 16 * 1024));
+          try {
+            const site = await this.database.createSiteRecommendation(input);
+            sendJson(res, 201, { site:adminSiteRecommendation(site) });
+          } catch (error) {
+            if (error.code === 'ER_DUP_ENTRY') {
+              throw Object.assign(new Error('该站点地址已经存在'), { statusCode:409 });
+            }
+            throw error;
+          }
+          return true;
+        }
+
+        if (siteId && req.method === 'PUT') {
+          const input = validateSiteRecommendation(await readJson(req, 16 * 1024));
+          try {
+            const site = await this.database.updateSiteRecommendation(siteId, input);
+            if (!site) throw Object.assign(new Error('站点不存在'), { statusCode:404 });
+            sendJson(res, 200, { site:adminSiteRecommendation(site) });
+          } catch (error) {
+            if (error.code === 'ER_DUP_ENTRY') {
+              throw Object.assign(new Error('该站点地址已经存在'), { statusCode:409 });
+            }
+            throw error;
+          }
+          return true;
+        }
+
+        if (siteId && req.method === 'DELETE') {
+          const deleted = await this.database.deleteSiteRecommendation(siteId);
+          if (!deleted) throw Object.assign(new Error('站点不存在'), { statusCode:404 });
+          sendJson(res, 200, { deleted:true });
+          return true;
+        }
+
+        sendJson(res, 405, { error:'Method Not Allowed' }, { Allow:siteId ? 'PUT, DELETE' : 'GET, POST' });
         return true;
       }
 

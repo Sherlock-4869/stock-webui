@@ -37,8 +37,24 @@ function parseFundFlowHistoryPayload(payload) {
   return data;
 }
 
+function mergeFundFlowHistory(history, current, limit = 120) {
+  const rows = (Array.isArray(history) ? history : [])
+    .filter(item => item?.date && Number.isFinite(Number(item.mainNet)))
+    .map(item => ({ ...item }));
+  if (current?.date && Number.isFinite(Number(current.mainNet))) {
+    const index = rows.findIndex(item => item.date === current.date);
+    if (index >= 0) rows[index] = { ...rows[index], ...current };
+    else rows.push({ ...current });
+  }
+  return rows
+    .sort((a, b) => String(a.date).localeCompare(String(b.date)))
+    .slice(-Math.max(1, Number(limit) || 120));
+}
+
 function createFundFlowHistoryLoader({
   fetchPayload,
+  loadPersisted = async () => null,
+  savePersisted = async () => {},
   now = () => Date.now(),
   wait = delay => new Promise(resolve => setTimeout(resolve, delay)),
   freshMs = DEFAULT_FRESH_MS,
@@ -46,16 +62,44 @@ function createFundFlowHistoryLoader({
   attempts = DEFAULT_ATTEMPTS,
   maxEntries = DEFAULT_MAX_ENTRIES,
   onBackgroundError = () => {},
+  onPersistenceError = () => {},
 } = {}) {
   if (typeof fetchPayload !== 'function') throw new TypeError('fetchPayload is required');
   const cache = new Map();
   const pending = new Map();
+  const hydrating = new Map();
   const attemptCount = Math.max(1, Math.floor(attempts));
 
-  function store(symbol, data) {
+  function store(symbol, data, { fetchedAt = now(), source = 'upstream', persisted = false } = {}) {
     cache.delete(symbol);
-    cache.set(symbol, { fetchedAt:now(), data });
+    cache.set(symbol, { fetchedAt, data, source, persisted });
     while (cache.size > maxEntries) cache.delete(cache.keys().next().value);
+  }
+
+  function hydrate(symbol) {
+    if (hydrating.has(symbol)) return hydrating.get(symbol);
+    const task = (async () => {
+      try {
+        const saved = await loadPersisted(symbol);
+        const data = Array.isArray(saved?.data)
+          ? saved.data.filter(item => item?.date && Number.isFinite(Number(item.mainNet)))
+          : [];
+        if (!data.length) return null;
+        const fetchedAt = new Date(saved.fetchedAt || 0).getTime();
+        store(symbol, data.map(item => ({ ...item, mainNet:Number(item.mainNet) })), {
+          fetchedAt:Number.isFinite(fetchedAt) && fetchedAt > 0 ? fetchedAt : 0,
+          source:saved.source || 'persistent-cache',
+          persisted:true,
+        });
+        return cache.get(symbol);
+      } catch (error) {
+        onPersistenceError(error, symbol, 'load');
+        return null;
+      }
+    })();
+    hydrating.set(symbol, task);
+    task.finally(() => hydrating.delete(symbol)).catch(() => {});
+    return task;
   }
 
   function refresh(symbol) {
@@ -64,8 +108,16 @@ function createFundFlowHistoryLoader({
       let lastError;
       for (let attempt = 0; attempt < attemptCount; attempt += 1) {
         try {
-          const data = parseFundFlowHistoryPayload(await fetchPayload(symbol));
-          store(symbol, data);
+          const result = await fetchPayload(symbol);
+          const payload = result?.payload || result;
+          const source = result?.source || 'upstream';
+          const data = parseFundFlowHistoryPayload(payload);
+          store(symbol, data, { source });
+          try {
+            await savePersisted(symbol, { data, source, fetchedAt:new Date(now()) });
+          } catch (error) {
+            onPersistenceError(error, symbol, 'save');
+          }
           return data;
         } catch (error) {
           lastError = error;
@@ -80,7 +132,11 @@ function createFundFlowHistoryLoader({
   }
 
   async function load(symbol) {
-    const cached = cache.get(symbol);
+    let cached = cache.get(symbol);
+    if (!cached) {
+      await hydrate(symbol);
+      cached = cache.get(symbol);
+    }
     if (cached && now() - cached.fetchedAt < freshMs) return cached.data;
     if (cached?.data?.length) {
       refresh(symbol).catch(error => onBackgroundError(error, symbol));
@@ -89,11 +145,22 @@ function createFundFlowHistoryLoader({
     return refresh(symbol);
   }
 
-  return { load, cache, pending };
+  function info(symbol) {
+    const item = cache.get(symbol);
+    return item ? {
+      fetchedAt:item.fetchedAt,
+      source:item.source,
+      persisted:item.persisted,
+      stale:now() - item.fetchedAt >= freshMs,
+    } : null;
+  }
+
+  return { load, info, cache, pending, hydrating };
 }
 
 module.exports = {
   createFundFlowHistoryLoader,
+  mergeFundFlowHistory,
   parseFundFlowHistoryPayload,
   DEFAULT_FRESH_MS,
 };

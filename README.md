@@ -8,7 +8,7 @@
 - 支持账号密码注册/登录、微信开放平台扫码登录及安全会话。
 - 登录后按账号同步自选股、分组、主题、指标等页面配置。
 - 登录账号可以创建、编辑、删除、搜索和导入 Markdown 笔记；支持账号级文件夹分类，并可在左侧“文件列表 / 标题导航”之间切换。
-- 登录账号可以进入支持临时消息、图片、剪贴板图片粘贴、表情、缩放和未读数字提示的网页聊天室；游客不可访问。
+- 登录账号可以进入支持持久化历史、图片、剪贴板图片粘贴、表情、缩放和未读数字提示的网页聊天室；游客不可访问。
 - 聊天室右侧提供数据库驱动的站点推荐菜单，推荐链接在新标签页中打开。
 - 参考文档默认在当前页面内阅读，支持目录定位、重新加载、下载 Markdown 和新窗口打开。
 - 通过 `https://stock.sherlock-holmes.cn/?page=ipo` 直接打开打新页面。
@@ -43,15 +43,37 @@ cp .env.example .env
 - 登录前的访客配置会单独备份；退出登录后恢复访客配置，避免把账号数据遗留给未登录页面。
 - 密码使用 Node.js 原生 `scrypt` 加盐哈希。浏览器 Cookie 只保存随机会话令牌，数据库只保存令牌的 SHA-256；Cookie 使用 `HttpOnly`、`SameSite=Lax`，HTTPS 下自动增加 `Secure`。
 
-### 聊天室临时消息规则
+### 聊天室记录与加载规则
 
-- 聊天消息不写入数据库、文件或服务端历史缓存，进入聊天室后只能收到此后实时发送的消息。
-- 关闭聊天室会立即清空当前页面中的聊天内容；重新进入时从空白会话开始。最小化再恢复属于同一次进入，不会清空。
-- 浏览器只渲染当前会话最近 200 条事件，并最多保留其中 20 条图片消息，超过边界时从最早内容开始移除。
+- 登录账号发送的文字和图片消息都会写入账号 MySQL 数据库的 `chat_messages` 表；服务重启或用户重新进入后仍可读取。
+- 每次进入聊天室，默认加载上海时区昨天 `00:00` 至当前的最近 50 条记录；可继续向上滚动按游标加载更早记录，每页最多 50 条，单次页面最多展示 500 条。
+- 关闭聊天室会清空当前页面中的聊天视图，但不会删除数据库记录；重新进入时会重新加载近期记录。最小化再恢复属于同一次进入。
+- 浏览器单次最多渲染 500 条事件，并最多保留其中 50 张已解码图片；超过图片边界时只释放页面里的旧图片，数据库原记录仍保留，重新进入后可以再次查看。
 - 支持 JPEG、PNG、GIF 和 WebP。单张最终图片不超过 768KB，普通图片可由浏览器自动压缩；原图上限 12MB，超限 GIF 不自动压缩。
 - 可以点击图片按钮选择文件，也可以在聊天输入框直接粘贴剪贴板中的截图或图片。
-- 图片仅通过当前 SSE 连接广播，不落盘；服务端会复核 MIME 类型、Base64 编码和文件签名。每个账号 1 分钟最多发送 3 张图片。
+- 图片以 Data URL 写入数据库并通过当前 SSE 连接广播；服务端会复核 MIME 类型、Base64 编码和文件签名。每个账号 1 分钟最多发送 3 张图片。图片记录增长较快，生产环境应按业务需要定期备份并监控数据库容量。
 - 表情按钮使用内置 Unicode 表情，本质上仍是普通文字消息。
+- 管理员可在聊天室在线人数处查看当前在线账号；普通账号只能看到在线人数，不能读取在线账号列表。
+
+### 管理员账号
+
+- `users.is_admin=1` 表示管理员，默认注册账号均为 `0`，前端和公开接口都不提供提权入口。
+- 管理员可从右上角账号菜单进入“站点推荐管理”，新增、编辑、启用、停用或删除推荐站点。
+- 管理员进入聊天室后，可以点击“在线人数”查看当前 Node.js 实例中的在线账号及连接数。
+- 管理员身份仅允许在数据库后台赋值，例如：
+
+```sql
+UPDATE users SET is_admin=1 WHERE username='需要设为管理员的账号';
+-- 如需取消管理员：
+UPDATE users SET is_admin=0 WHERE username='需要取消管理员的账号';
+```
+
+### 主力资金历史数据
+
+- 历史数据优先请求东方财富 `daykline` 路径，失败时自动改用 `kline` 备用路径。
+- 成功取得的最近 120 个交易日数据会写入 `stock_fund_flow_history_cache`；当天实时点也会合并保存。发布或重启后会先读取数据库缓存并在后台刷新，不再因为进程内缓存清空而丢失已经取得的数据。
+- 当两个历史请求路径都失败且数据库尚无该股票缓存时，接口会降级为今日实时数据，并通过响应中的 `meta.coverage=today-only` 明确标记；之后每天的实时点会逐日积累，积累出多个交易日后标记为 `partial-history`，上游恢复时再补全为 120 日历史。
+- 数据库持久化依赖已启用且初始化成功的 MySQL 账号服务；使用测试用 `memory` 驱动或关闭账号服务时，仍会保持原有的进程内缓存降级行为。
 
 ### 账号建表 SQL
 
@@ -67,13 +89,15 @@ CREATE TABLE IF NOT EXISTS users (
   display_name VARCHAR(80) NOT NULL,
   avatar_url VARCHAR(500) NULL,
   status VARCHAR(20) NOT NULL DEFAULT 'active',
+  is_admin TINYINT(1) NOT NULL DEFAULT 0 COMMENT '仅由数据库后台赋值；1=管理员',
   config_decided_at DATETIME NULL COMMENT '首次登录配置关联是否已选择',
   last_login_at DATETIME NULL,
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (id),
   UNIQUE KEY uk_users_username (username),
-  KEY idx_users_status (status)
+  KEY idx_users_status (status),
+  KEY idx_users_admin_status (is_admin, status)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS user_auth_identities (
@@ -137,15 +161,45 @@ CREATE TABLE IF NOT EXISTS site_recommendations (
   description VARCHAR(255) NOT NULL DEFAULT '',
   sort_order INT NOT NULL DEFAULT 0,
   is_active TINYINT(1) NOT NULL DEFAULT 1,
+  is_admin_only TINYINT(1) NOT NULL DEFAULT 0 COMMENT '1=仅管理员账号可见',
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (id),
   UNIQUE KEY uk_site_recommendations_url (url),
-  KEY idx_site_recommendations_active_sort (is_active, sort_order, id)
+  KEY idx_site_recommendations_active_sort (is_active, sort_order, id),
+  KEY idx_site_recommendations_visibility_sort (is_active, is_admin_only, sort_order, id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 INSERT IGNORE INTO site_recommendations (name, url, description, sort_order)
 VALUES ('Momoyu Pro', 'https://pro.momoyu.cc', '效率工具与信息聚合站点', 10);
+
+CREATE TABLE IF NOT EXISTS stock_fund_flow_history_cache (
+  symbol VARCHAR(16) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+  data_json JSON NOT NULL COMMENT '最近 120 个交易日的主力资金历史数据',
+  source VARCHAR(40) CHARACTER SET ascii COLLATE ascii_bin NOT NULL DEFAULT 'unknown',
+  fetched_at DATETIME NOT NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (symbol),
+  KEY idx_fund_flow_cache_fetched (fetched_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS chat_messages (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  user_id BIGINT UNSIGNED NOT NULL,
+  message_type VARCHAR(10) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+  text_content VARCHAR(500) NULL,
+  image_data MEDIUMTEXT NULL COMMENT '图片 Data URL；单张最终图片不超过 768KB',
+  image_mime VARCHAR(32) CHARACTER SET ascii COLLATE ascii_bin NULL,
+  display_name VARCHAR(80) NOT NULL COMMENT '发送时显示名称快照',
+  avatar_url VARCHAR(500) NULL COMMENT '发送时头像快照',
+  created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  PRIMARY KEY (id),
+  KEY idx_chat_messages_created (created_at, id),
+  KEY idx_chat_messages_user (user_id, id),
+  CONSTRAINT fk_chat_messages_user
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS user_note_folders (
   id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -179,6 +233,22 @@ CREATE TABLE IF NOT EXISTS user_notes (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 ```
 
+已有 `users` 表的环境还需要执行以下管理员字段迁移；应用启动时会自动检测并尝试执行，但生产环境仍建议由数据库管理员预先完成：
+
+```sql
+ALTER TABLE users
+  ADD COLUMN is_admin TINYINT(1) NOT NULL DEFAULT 0 AFTER status,
+  ADD KEY idx_users_admin_status (is_admin, status);
+```
+
+已有 `site_recommendations` 表的环境还需要增加站点可见范围字段。现有记录会默认保持所有人可见；应用启动时会自动检测并尝试升级，生产环境也可预先执行：
+
+```sql
+ALTER TABLE site_recommendations
+  ADD COLUMN is_admin_only TINYINT(1) NOT NULL DEFAULT 0 AFTER is_active,
+  ADD KEY idx_site_recommendations_visibility_sort (is_active, is_admin_only, sort_order, id);
+```
+
 已有 `user_notes` 表的环境，先执行上面的 `user_note_folders` 建表语句，再执行一次以下迁移；应用启动时会自动完成这两步检测与升级：
 
 ```sql
@@ -191,7 +261,7 @@ ALTER TABLE user_notes
 
 文件夹按账号隔离，每个账号最多创建 50 个。删除文件夹只会解除分类并把其中笔记移到“未分类”，不会删除笔记内容。新建或导入前可在顶部选择目标文件夹；打开笔记后可通过“归类到”把未分类笔记移入文件夹。
 
-站点推荐读取 `site_recommendations` 中 `is_active=1` 的记录，并按 `sort_order`、`id` 排序。当前默认写入 `Momoyu Pro`；后续可直接新增记录，或将 `is_active` 设为 `0` 隐藏站点。
+站点推荐读取 `site_recommendations` 中 `is_active=1` 的记录，并按 `sort_order`、`id` 排序。`is_admin_only=1` 的记录只会返回给当前已登录的管理员，普通账号和游客无法通过接口读取；默认值 `0` 保证现有站点继续对所有人可见。当前默认写入 `Momoyu Pro`；可在管理员页面维护这些状态。
 
 账号服务需要数据库账号拥有 `SELECT`、`INSERT`、`UPDATE`、`DELETE` 权限。若让应用启动时自动建表和升级旧表，还需要 `CREATE`、`ALTER`、`INDEX`、`REFERENCES`：
 
@@ -309,7 +379,7 @@ account/config.js               账号、会话、微信登录配置
 account/security.js             密码哈希、令牌与页面配置白名单
 account/database.js             MySQL/测试内存数据访问与自动建表
 account/service.js              注册、登录、配置同步、站点推荐、笔记/文件夹和微信 OAuth 路由
-chat/chat.js                    仅登录账号可用、不保留历史的 SSE 实时聊天室
+chat/chat.js                    仅登录账号可用、支持持久化历史分页的 SSE 实时聊天室
 fund-flow-history.js            主力资金历史解析、重试、缓存和并发请求合并
 public/reference-reader.js      站内页和独立页共用的参考文档安全渲染器
 wechat/config.js                配置读取和校验
@@ -320,7 +390,7 @@ wechat/weekly-ipo.js            每周/每日日期筛选及打新汇总
 wechat/xml.js                   微信 XML 消息解析和回复
 test/wechat.test.js             核心逻辑测试
 test/account.test.js            账号、配置、笔记/文件夹归属流程测试
-test/chat.test.js               聊天登录、临时消息、图片安全、限流和连接测试
+test/chat.test.js               聊天登录、历史分页、图片安全、限流和连接测试
 ```
 
 现有文件的调整：

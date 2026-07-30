@@ -130,6 +130,9 @@ test('reference documentation is immediately to the left of theme controls', () 
 test('site recommendation menu loads beside chat and opens safe links in new tabs', () => {
   assert.match(html, /id="site-recommendation-trigger"[^>]*aria-haspopup="menu"/);
   assert.match(html, /\.site-recommendations:hover \.site-recommendation-menu/);
+  assert.match(html, /\.site-recommendations::after\{[^}]*height:8px/);
+  assert.match(html, /onmouseleave="scheduleSiteRecommendationsClose\(\)"/);
+  assert.match(html, /siteRecommendationsCloseTimer = setTimeout\(closeSiteRecommendations, 320\)/);
   assert.match(html, /apiRequest\('\/api\/site-recommendations'/);
   assert.match(html, /link\.target = '_blank'/);
   assert.match(html, /link\.rel = 'noopener noreferrer'/);
@@ -173,23 +176,54 @@ test('standalone and in-page reference views share the same renderer', () => {
 });
 
 test('all app pages support direct URL navigation and browser history', () => {
-  assert.match(html, /const APP_PAGES = \['market','ipo','alerts','notes','reference'\]/);
+  assert.match(html, /const APP_PAGES = \['market','ipo','alerts','notes','reference','admin-sites'\]/);
   assert.match(html, /history\.pushState\(\{ page \}, '', url\)/);
   assert.match(html, /addEventListener\('popstate'/);
   assert.match(html, /aria-current/);
 });
 
-test('chat UI starts each entry empty and bounds temporary rendered content', () => {
-  assert.match(html, /const CHAT_MAX_RENDERED_MESSAGES = 200;/);
-  assert.match(html, /const CHAT_MAX_RENDERED_IMAGES = 20;/);
+test('administrator UI manages recommended sites without exposing a privilege toggle', () => {
+  assert.match(html, /id="page-admin-sites"/);
+  assert.match(html, /onclick="openAdminSiteManagement\(\)"/);
+  assert.match(html, /apiRequest\('\/api\/admin\/sites'/);
+  assert.match(html, /async function saveAdminSite\(event\)/);
+  assert.match(html, /async function deleteAdminSite\(siteId\)/);
+  assert.match(html, /id="admin-site-admin-only"[^>]*type="checkbox"/);
+  assert.match(html, /isAdminOnly:document\.getElementById\('admin-site-admin-only'\)\.checked/);
+  assert.match(html, /site\.isAdminOnly === true/);
+  assert.match(html, /visibility\.textContent = '仅管理员可见'/);
+  assert.match(html, /page === 'admin-sites' && !currentUser\?\.isAdmin/);
+  assert.doesNotMatch(html, /name="isAdmin"|id="admin-user|grantAdmin\(/);
+});
+
+test('fund flow chart clearly marks today-only or stale-cache degradation', () => {
+  assert.match(html, /id="chart-data-notice"/);
+  assert.match(html, /d\.meta\?\.degraded \|\| d\.meta\?\.stale/);
+  assert.match(html, /d\.meta\.message \|\| '历史数据正在后台刷新，当前展示已保存数据'/);
+});
+
+test('chat UI loads persisted history upward while bounding rendered content', () => {
+  assert.match(html, /const CHAT_MAX_RENDERED_MESSAGES = 500;/);
+  assert.match(html, /const CHAT_MAX_RENDERED_IMAGES = 50;/);
+  assert.match(html, /const CHAT_HISTORY_PAGE_SIZE = 50;/);
+  assert.match(html, /id="chat-history-loader"[^>]*onclick="loadMoreChatHistory\(\)"/);
+  assert.match(html, /getElementById\('chat-messages'\)\.addEventListener\('scroll'/);
+  assert.match(html, /scrollTop <= 72\) loadMoreChatHistory\(\)/);
   assert.match(html, /function clearChatSessionView\(\)[\s\S]*?messages\.replaceChildren\(\)/);
   assert.match(html, /while \(container\.childElementCount > CHAT_MAX_RENDERED_MESSAGES\)/);
   assert.match(html, /while \(container\.querySelectorAll\('\.chat-msg-image'\)\.length > CHAT_MAX_RENDERED_IMAGES\)/);
+  assert.match(html, /oldestImage\.replaceWith\(placeholder\)/);
 
   const sessionStart = html.indexOf('async function loadChatSession');
   const sessionEnd = html.indexOf('function updateChatOnline', sessionStart);
   assert.ok(sessionStart >= 0 && sessionEnd > sessionStart);
-  assert.doesNotMatch(html.slice(sessionStart, sessionEnd), /appendChatMessage/);
+  const historyFunctions = html.slice(sessionStart, sessionEnd);
+  assert.match(historyFunctions, /\/api\/chat\/history\?limit=\$\{CHAT_HISTORY_PAGE_SIZE\}/);
+  assert.match(historyFunctions, /appendChatMessage\(message, false\)/);
+  assert.match(historyFunctions, /async function loadMoreChatHistory\(\)/);
+  assert.match(historyFunctions, /before:chatState\.historyCursor/);
+  assert.match(historyFunctions, /appendChatMessage\(message, false, true\)/);
+  assert.match(historyFunctions, /container\.scrollTop = previousTop \+ Math\.max/);
 });
 
 test('minimized chat icon supports bounded pointer dragging without accidental restore', () => {
@@ -271,6 +305,13 @@ test('chat UI exposes emoji and validated image controls', () => {
   assert.equal(context.safeChatImageUrl(png), png);
   assert.equal(context.safeChatImageUrl('data:image/svg+xml;base64,PHN2Zz4='), '');
   assert.equal(context.safeChatImageUrl('javascript:alert(1)'), '');
+});
+
+test('administrator chat UI can request the server-authorized online user list', () => {
+  assert.match(html, /id="chat-online-users"/);
+  assert.match(html, /async function loadChatOnlineUsers\(\)/);
+  assert.match(html, /apiRequest\('\/api\/chat\/online-users'/);
+  assert.match(html, /if \(!currentUser\?\.isAdmin\) return/);
 });
 
 test('fund flow failures expose an in-place retry action', () => {

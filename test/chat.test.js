@@ -4,7 +4,10 @@ const { EventEmitter } = require('events');
 const { Readable } = require('stream');
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { ChatService, parseChatImage, MAX_IMAGE_BYTES } = require('../chat/chat');
+const {
+  ChatService, parseChatImage, shanghaiYesterdayStart, MAX_IMAGE_BYTES,
+} = require('../chat/chat');
+const { MemoryAccountDatabase } = require('../account/database');
 
 const ONE_PIXEL_PNG = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=';
 const ONE_PIXEL_PNG_URL = `data:image/png;base64,${ONE_PIXEL_PNG}`;
@@ -91,14 +94,73 @@ test('chat messages use server session identity and reject cross-origin sends', 
   service.close();
 });
 
-test('chat never returns or retains messages from an earlier entry', async () => {
+test('chat fallback without a persistence adapter does not retain messages', async () => {
   const service = new ChatService();
   const sent = await call(service, '/api/chat/send', { method:'POST', body:{ text:'temporary' } });
   assert.equal(sent.res.status, 200);
   const history = await call(service, '/api/chat/history', {});
   assert.deepEqual(history.payload.messages, []);
-  assert.equal(history.payload.ephemeral, true);
+  assert.equal(history.payload.persisted, false);
   assert.equal(service.messages, undefined);
+});
+
+test('chat history initially loads from Shanghai yesterday and cursor-pages older records', async () => {
+  const database = new MemoryAccountDatabase();
+  const now = Date.parse('2026-07-30T04:00:00.000Z'); // 上海时间 7 月 30 日 12:00
+  assert.equal(shanghaiYesterdayStart(now), '2026-07-29 00:00:00.000');
+
+  const saveMessage = (userId, message) => database.createChatMessage(userId, message);
+  const listMessages = options => database.listChatMessages(options);
+  await saveMessage(7, {
+    type:'text', text:'更早记录', displayName:'Alice', avatarUrl:null,
+    time:Date.parse('2026-07-28T15:59:00.000Z'),
+  });
+  await saveMessage(7, {
+    type:'text', text:'昨天记录', displayName:'Alice', avatarUrl:null,
+    time:Date.parse('2026-07-28T16:00:00.000Z'),
+  });
+  await saveMessage(8, {
+    type:'text', text:'今天记录', displayName:'Bob', avatarUrl:null,
+    time:Date.parse('2026-07-30T03:00:00.000Z'),
+  });
+
+  const service = new ChatService({ now:() => now, saveMessage, listMessages });
+  const initial = await call(service, '/api/chat/history?limit=10', {});
+  assert.equal(initial.payload.persisted, true);
+  assert.deepEqual(initial.payload.messages.map(message => message.text), ['昨天记录', '今天记录']);
+  assert.equal(initial.payload.hasMore, true);
+  assert.equal(initial.payload.nextCursor, '2');
+
+  const older = await call(service, `/api/chat/history?before=${initial.payload.nextCursor}&limit=10`, {});
+  assert.deepEqual(older.payload.messages.map(message => message.text), ['更早记录']);
+  assert.equal(older.payload.hasMore, false);
+  assert.equal(older.payload.nextCursor, null);
+
+  const sent = await call(service, '/api/chat/send', { method:'POST', body:{ text:'已持久化的新消息' } });
+  assert.equal(sent.res.status, 200);
+  assert.equal(sent.payload.id, '4');
+  const reentered = await call(service, '/api/chat/history?limit=10', {});
+  assert.deepEqual(
+    reentered.payload.messages.map(message => message.text),
+    ['昨天记录', '今天记录', '已持久化的新消息']
+  );
+});
+
+test('chat history validates cursors and caps page size', async () => {
+  let receivedOptions = null;
+  const service = new ChatService({
+    listMessages:async options => {
+      receivedOptions = options;
+      return { messages:[], nextCursor:null, hasMore:false };
+    },
+  });
+  await assert.rejects(
+    () => call(service, '/api/chat/history?before=not-a-number', {}),
+    error => error.statusCode === 400
+  );
+  const result = await call(service, '/api/chat/history?before=123&limit=9999', {});
+  assert.equal(result.res.status, 200);
+  assert.deepEqual(receivedOptions, { beforeId:'123', since:null, limit:100 });
 });
 
 test('chat broadcasts validated temporary images and rejects unsafe image data', async () => {
@@ -171,5 +233,33 @@ test('chat applies message rate and per-account connection limits', async () => 
   streams[0].req.emit('close');
   streams[0].req.emit('error', new Error('duplicate cleanup'));
   assert.equal(service.clients.size, 2);
+  service.close();
+});
+
+test('only administrators can list unique online chat accounts', async () => {
+  let now = 1000;
+  const service = new ChatService({ now:() => now++ });
+  const aliceFirst = await call(service, '/api/chat/stream', {}, user);
+  const aliceSecond = await call(service, '/api/chat/stream', {}, user);
+  const bob = { id:8, username:'bob', display_name:'Bob', avatar_url:null };
+  const bobStream = await call(service, '/api/chat/stream', {}, bob);
+
+  const forbidden = await call(service, '/api/chat/online-users', {}, user);
+  assert.equal(forbidden.res.status, 403);
+
+  const admin = { id:99, username:'admin', display_name:'Admin', avatar_url:null, is_admin:1 };
+  const result = await call(service, '/api/chat/online-users', {}, admin);
+  assert.equal(result.res.status, 200);
+  assert.equal(result.payload.online, 2);
+  assert.deepEqual(result.payload.users.map(item => ({
+    userId:item.userId, displayName:item.displayName, connections:item.connections,
+  })), [
+    { userId:'7', displayName:'Alice', connections:2 },
+    { userId:'8', displayName:'Bob', connections:1 },
+  ]);
+
+  aliceFirst.req.emit('close');
+  aliceSecond.req.emit('close');
+  bobStream.req.emit('close');
   service.close();
 });
