@@ -184,3 +184,80 @@ test('notes CRUD is persisted and isolated by account', async t => {
   });
   assert.equal(removed.payload.deleted, true);
 });
+
+test('note folders classify notes without crossing accounts or deleting content', async t => {
+  const app = await startTestService();
+  t.after(app.close);
+
+  const owner = await jsonRequest(app.service, '/api/auth/register', {
+    method:'POST', body:{ username:'folder_owner', password:'password-123', displayName:'分类用户' },
+  });
+  const ownerCookie = cookieFrom(owner);
+  const other = await jsonRequest(app.service, '/api/auth/register', {
+    method:'POST', body:{ username:'folder_other', password:'password-123', displayName:'其他分类用户' },
+  });
+  const otherCookie = cookieFrom(other);
+
+  const createdFolder = await jsonRequest(app.service, '/api/note-folders', {
+    method:'POST', cookie:ownerCookie, body:{ name:'研究资料' },
+  });
+  assert.equal(createdFolder.response.status, 201);
+  assert.equal(createdFolder.payload.folder.name, '研究资料');
+  const folderId = createdFolder.payload.folder.id;
+
+  const duplicate = await jsonRequest(app.service, '/api/note-folders', {
+    method:'POST', cookie:ownerCookie, body:{ name:'研究资料' },
+  });
+  assert.equal(duplicate.response.status, 409);
+
+  const otherFolder = await jsonRequest(app.service, '/api/note-folders', {
+    method:'POST', cookie:otherCookie, body:{ name:'研究资料' },
+  });
+  assert.equal(otherFolder.response.status, 201);
+
+  const forbiddenRead = await jsonRequest(app.service, `/api/note-folders/${folderId}`, { cookie:otherCookie });
+  assert.equal(forbiddenRead.response.status, 404);
+  const forbiddenRename = await jsonRequest(app.service, `/api/note-folders/${folderId}`, {
+    method:'PUT', cookie:otherCookie, body:{ name:'越权分类' },
+  });
+  assert.equal(forbiddenRename.response.status, 404);
+  const forbiddenDelete = await jsonRequest(app.service, `/api/note-folders/${folderId}`, {
+    method:'DELETE', cookie:otherCookie, body:{},
+  });
+  assert.equal(forbiddenDelete.response.status, 404);
+
+  const note = await jsonRequest(app.service, '/api/notes', {
+    method:'POST', cookie:ownerCookie,
+    body:{ title:'归档笔记', content:'# 不应丢失', folderId },
+  });
+  assert.equal(note.response.status, 201);
+  assert.equal(String(note.payload.note.folder_id), String(folderId));
+
+  const crossAccountMove = await jsonRequest(app.service, `/api/notes/${note.payload.note.id}`, {
+    method:'PUT', cookie:ownerCookie, body:{ folderId:otherFolder.payload.folder.id },
+  });
+  assert.equal(crossAccountMove.response.status, 400);
+
+  const folderList = await jsonRequest(app.service, '/api/note-folders', { cookie:ownerCookie });
+  assert.equal(folderList.payload.folders.length, 1);
+  assert.equal(Number(folderList.payload.folders[0].note_count), 1);
+
+  const renamed = await jsonRequest(app.service, `/api/note-folders/${folderId}`, {
+    method:'PUT', cookie:ownerCookie, body:{ name:'长期研究' },
+  });
+  assert.equal(renamed.response.status, 200);
+  assert.equal(renamed.payload.folder.name, '长期研究');
+
+  const deleted = await jsonRequest(app.service, `/api/note-folders/${folderId}`, {
+    method:'DELETE', cookie:ownerCookie, body:{},
+  });
+  assert.equal(deleted.response.status, 200);
+  assert.equal(deleted.payload.notesMovedToUnfiled, true);
+
+  const preservedNote = await jsonRequest(app.service, `/api/notes/${note.payload.note.id}`, { cookie:ownerCookie });
+  assert.equal(preservedNote.response.status, 200);
+  assert.equal(preservedNote.payload.note.content, '# 不应丢失');
+  assert.equal(preservedNote.payload.note.folder_id, null);
+  const emptyFolders = await jsonRequest(app.service, '/api/note-folders', { cookie:ownerCookie });
+  assert.deepEqual(emptyFolders.payload.folders, []);
+});

@@ -26,6 +26,26 @@ function sendJson(res, status, payload, headers = {}) {
 
 const MAX_NOTE_BYTES = 1024 * 1024;
 const MAX_NOTES_PER_USER = 200;
+const MAX_NOTE_FOLDERS_PER_USER = 50;
+
+function validateNoteFolderName(value) {
+  const name = String(value || '').trim();
+  if (!name || name.length > 80) {
+    throw Object.assign(new Error('文件夹名称不能为空且不能超过 80 个字符'), { statusCode:400 });
+  }
+  return name;
+}
+
+async function resolveNoteFolderId(database, userId, value) {
+  if (value == null || value === '') return null;
+  const folderId = String(value);
+  if (!/^\d+$/.test(folderId) || folderId === '0') {
+    throw Object.assign(new Error('文件夹编号不正确'), { statusCode:400 });
+  }
+  const folder = await database.getNoteFolder(userId, folderId);
+  if (!folder) throw Object.assign(new Error('文件夹不存在'), { statusCode:400 });
+  return folder.id;
+}
 
 function sendHtml(res, status, html, headers = {}) {
   res.writeHead(status, {
@@ -250,7 +270,7 @@ class AccountService {
 
   async handleRoute(req, res, urlObject) {
     const pathname = urlObject.pathname;
-    if (!pathname.startsWith('/api/auth/') && !pathname.startsWith('/api/notes')) return false;
+    if (!pathname.startsWith('/api/auth/') && !pathname.startsWith('/api/notes') && !pathname.startsWith('/api/note-folders')) return false;
 
     try {
       if (pathname === '/api/auth/me' && req.method === 'GET') {
@@ -448,8 +468,9 @@ class AccountService {
       // ---- Notes routes ----
       const notesMatch = pathname.match(/^\/api\/notes(?:\/(\d+))?$/);
       const isNotesImport = pathname === '/api/notes/import';
+      const noteFoldersMatch = pathname.match(/^\/api\/note-folders(?:\/(\d+))?$/);
 
-      if (notesMatch || isNotesImport) {
+      if (notesMatch || isNotesImport || noteFoldersMatch) {
         if (!this.config.enabled || !this.ready) {
           sendJson(res, 503, { error: '账号服务尚未启用' });
           return true;
@@ -458,11 +479,68 @@ class AccountService {
         const session = await this.requireUser(req);
         const userId = session.user.id;
         const noteId = notesMatch ? notesMatch[1] : null;
+        const folderRouteId = noteFoldersMatch ? noteFoldersMatch[1] : null;
+
+        if (noteFoldersMatch && !folderRouteId && req.method === 'GET') {
+          const folders = await this.database.listNoteFolders(userId);
+          sendJson(res, 200, { folders });
+          return true;
+        }
+
+        if (noteFoldersMatch && !folderRouteId && req.method === 'POST') {
+          const folders = await this.database.listNoteFolders(userId);
+          if (folders.length >= MAX_NOTE_FOLDERS_PER_USER) {
+            throw Object.assign(new Error(`文件夹数量已达上限（${MAX_NOTE_FOLDERS_PER_USER}个）`), { statusCode:400 });
+          }
+          const body = await readJson(req, 4096);
+          const name = validateNoteFolderName(body.name);
+          try {
+            const folder = await this.database.createNoteFolder(userId, name);
+            sendJson(res, 201, { folder });
+          } catch (error) {
+            if (error.code === 'ER_DUP_ENTRY') {
+              throw Object.assign(new Error('同名文件夹已存在'), { statusCode:409 });
+            }
+            throw error;
+          }
+          return true;
+        }
+
+        if (noteFoldersMatch && folderRouteId && req.method === 'GET') {
+          const folder = await this.database.getNoteFolder(userId, folderRouteId);
+          if (!folder) throw Object.assign(new Error('文件夹不存在'), { statusCode:404 });
+          sendJson(res, 200, { folder });
+          return true;
+        }
+
+        if (noteFoldersMatch && folderRouteId && req.method === 'PUT') {
+          const body = await readJson(req, 4096);
+          const name = validateNoteFolderName(body.name);
+          try {
+            const folder = await this.database.updateNoteFolder(userId, folderRouteId, name);
+            if (!folder) throw Object.assign(new Error('文件夹不存在'), { statusCode:404 });
+            sendJson(res, 200, { folder });
+          } catch (error) {
+            if (error.code === 'ER_DUP_ENTRY') {
+              throw Object.assign(new Error('同名文件夹已存在'), { statusCode:409 });
+            }
+            throw error;
+          }
+          return true;
+        }
+
+        if (noteFoldersMatch && folderRouteId && req.method === 'DELETE') {
+          const deleted = await this.database.deleteNoteFolder(userId, folderRouteId);
+          if (!deleted) throw Object.assign(new Error('文件夹不存在'), { statusCode:404 });
+          sendJson(res, 200, { deleted:true, notesMovedToUnfiled:true });
+          return true;
+        }
 
         if (isNotesImport && req.method === 'POST') {
           const body = await readJson(req, MAX_NOTE_BYTES + 1024);
           const title = String(body.title || '').trim().slice(0, 200) || '导入的笔记';
           const content = String(body.content || '');
+          const folderId = await resolveNoteFolderId(this.database, userId, body.folderId);
           if (Buffer.byteLength(content, 'utf8') > MAX_NOTE_BYTES) {
             throw Object.assign(new Error('笔记内容超过 1MB 限制'), { statusCode: 413 });
           }
@@ -470,7 +548,7 @@ class AccountService {
           if (existing.length >= MAX_NOTES_PER_USER) {
             throw Object.assign(new Error(`笔记数量已达上限（${MAX_NOTES_PER_USER}条）`), { statusCode: 400 });
           }
-          const note = await this.database.createNote(userId, { title, content });
+          const note = await this.database.createNote(userId, { title, content, folderId });
           sendJson(res, 201, { note });
           return true;
         }
@@ -489,10 +567,11 @@ class AccountService {
           const body = await readJson(req, MAX_NOTE_BYTES + 1024);
           const title = String(body.title || '').trim().slice(0, 200);
           const content = String(body.content || '');
+          const folderId = await resolveNoteFolderId(this.database, userId, body.folderId);
           if (Buffer.byteLength(content, 'utf8') > MAX_NOTE_BYTES) {
             throw Object.assign(new Error('笔记内容超过 1MB 限制'), { statusCode: 413 });
           }
-          const note = await this.database.createNote(userId, { title, content });
+          const note = await this.database.createNote(userId, { title, content, folderId });
           sendJson(res, 201, { note });
           return true;
         }
@@ -508,6 +587,9 @@ class AccountService {
           const body = await readJson(req, MAX_NOTE_BYTES + 1024);
           const updates = {};
           if (body.title !== undefined) updates.title = String(body.title).trim().slice(0, 200);
+          if (body.folderId !== undefined) {
+            updates.folderId = await resolveNoteFolderId(this.database, userId, body.folderId);
+          }
           if (body.content !== undefined) {
             updates.content = String(body.content);
             if (Buffer.byteLength(updates.content, 'utf8') > MAX_NOTE_BYTES) {

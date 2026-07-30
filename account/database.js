@@ -65,19 +65,64 @@ const SCHEMA_STATEMENTS = [
     PRIMARY KEY (state_hash),
     KEY idx_user_oauth_states_expires (expires_at)
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
+  `CREATE TABLE IF NOT EXISTS user_note_folders (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    user_id BIGINT UNSIGNED NOT NULL,
+    name VARCHAR(80) NOT NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_user_note_folders_name (user_id, name),
+    KEY idx_user_note_folders_user (user_id),
+    CONSTRAINT fk_user_note_folders_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
   `CREATE TABLE IF NOT EXISTS user_notes (
     id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
     user_id BIGINT UNSIGNED NOT NULL,
+    folder_id BIGINT UNSIGNED NULL,
     title VARCHAR(200) NOT NULL DEFAULT '',
     content MEDIUMTEXT NOT NULL,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
     KEY idx_user_notes_user (user_id),
+    KEY idx_user_notes_folder (user_id, folder_id),
     KEY idx_user_notes_updated (user_id, updated_at),
-    CONSTRAINT fk_user_notes_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    CONSTRAINT fk_user_notes_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    CONSTRAINT fk_user_notes_folder FOREIGN KEY (folder_id) REFERENCES user_note_folders(id) ON DELETE SET NULL
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
 ];
+
+async function ensureNoteFolderSchema(connection, databaseName) {
+  const [columns] = await connection.execute(
+    `SELECT 1 FROM information_schema.COLUMNS
+     WHERE TABLE_SCHEMA=? AND TABLE_NAME='user_notes' AND COLUMN_NAME='folder_id' LIMIT 1`,
+    [databaseName]
+  );
+  if (!columns.length) {
+    await connection.query('ALTER TABLE user_notes ADD COLUMN folder_id BIGINT UNSIGNED NULL AFTER user_id');
+  }
+
+  const [indexes] = await connection.execute(
+    `SELECT 1 FROM information_schema.STATISTICS
+     WHERE TABLE_SCHEMA=? AND TABLE_NAME='user_notes' AND INDEX_NAME='idx_user_notes_folder' LIMIT 1`,
+    [databaseName]
+  );
+  if (!indexes.length) {
+    await connection.query('ALTER TABLE user_notes ADD KEY idx_user_notes_folder (user_id, folder_id)');
+  }
+
+  const [constraints] = await connection.execute(
+    `SELECT 1 FROM information_schema.REFERENTIAL_CONSTRAINTS
+     WHERE CONSTRAINT_SCHEMA=? AND TABLE_NAME='user_notes' AND CONSTRAINT_NAME='fk_user_notes_folder' LIMIT 1`,
+    [databaseName]
+  );
+  if (!constraints.length) {
+    await connection.query(
+      'ALTER TABLE user_notes ADD CONSTRAINT fk_user_notes_folder FOREIGN KEY (folder_id) REFERENCES user_note_folders(id) ON DELETE SET NULL'
+    );
+  }
+}
 
 function parseJson(value) {
   if (value == null || typeof value === 'object') return value;
@@ -106,6 +151,7 @@ class AccountDatabase {
     const connection = await this.pool.getConnection();
     try {
       for (const statement of SCHEMA_STATEMENTS) await connection.query(statement);
+      await ensureNoteFolderSchema(connection, this.config.database);
     } finally {
       connection.release();
     }
@@ -282,17 +328,17 @@ class AccountDatabase {
 
   async listNotes(userId) {
     const [rows] = await this.requirePool().execute(
-      `SELECT id, title, LEFT(content, 200) AS summary, created_at, updated_at
+      `SELECT id, folder_id, title, LEFT(content, 200) AS summary, created_at, updated_at
        FROM user_notes WHERE user_id=? ORDER BY updated_at DESC LIMIT 200`,
       [userId]
     );
     return rows;
   }
 
-  async createNote(userId, { title, content }) {
+  async createNote(userId, { title, content, folderId = null }) {
     const [result] = await this.requirePool().execute(
-      'INSERT INTO user_notes (user_id, title, content) VALUES (?, ?, ?)',
-      [userId, title, content]
+      'INSERT INTO user_notes (user_id, folder_id, title, content) VALUES (?, ?, ?, ?)',
+      [userId, folderId, title, content]
     );
     return this.getNote(userId, result.insertId);
   }
@@ -305,11 +351,12 @@ class AccountDatabase {
     return rows[0] || null;
   }
 
-  async updateNote(userId, noteId, { title, content }) {
+  async updateNote(userId, noteId, { title, content, folderId }) {
     const sets = [];
     const params = [];
     if (title !== undefined) { sets.push('title=?'); params.push(title); }
     if (content !== undefined) { sets.push('content=?'); params.push(content); }
+    if (folderId !== undefined) { sets.push('folder_id=?'); params.push(folderId); }
     if (!sets.length) return this.getNote(userId, noteId);
     params.push(noteId, userId);
     await this.requirePool().execute(
@@ -322,6 +369,51 @@ class AccountDatabase {
     const [result] = await this.requirePool().execute(
       'DELETE FROM user_notes WHERE id=? AND user_id=?',
       [noteId, userId]
+    );
+    return result.affectedRows > 0;
+  }
+
+  async listNoteFolders(userId) {
+    const [rows] = await this.requirePool().execute(
+      `SELECT f.id, f.name, f.created_at, f.updated_at, COUNT(n.id) AS note_count
+       FROM user_note_folders f
+       LEFT JOIN user_notes n ON n.folder_id=f.id AND n.user_id=f.user_id
+       WHERE f.user_id=?
+       GROUP BY f.id, f.name, f.created_at, f.updated_at
+       ORDER BY f.name ASC, f.id ASC`,
+      [userId]
+    );
+    return rows;
+  }
+
+  async getNoteFolder(userId, folderId) {
+    const [rows] = await this.requirePool().execute(
+      'SELECT * FROM user_note_folders WHERE id=? AND user_id=? LIMIT 1',
+      [folderId, userId]
+    );
+    return rows[0] || null;
+  }
+
+  async createNoteFolder(userId, name) {
+    const [result] = await this.requirePool().execute(
+      'INSERT INTO user_note_folders (user_id, name) VALUES (?, ?)',
+      [userId, name]
+    );
+    return this.getNoteFolder(userId, result.insertId);
+  }
+
+  async updateNoteFolder(userId, folderId, name) {
+    const [result] = await this.requirePool().execute(
+      'UPDATE user_note_folders SET name=? WHERE id=? AND user_id=?',
+      [name, folderId, userId]
+    );
+    return result.affectedRows ? this.getNoteFolder(userId, folderId) : null;
+  }
+
+  async deleteNoteFolder(userId, folderId) {
+    const [result] = await this.requirePool().execute(
+      'DELETE FROM user_note_folders WHERE id=? AND user_id=?',
+      [folderId, userId]
     );
     return result.affectedRows > 0;
   }
@@ -341,9 +433,11 @@ class MemoryAccountDatabase {
     this.preferences = new Map();
     this.states = new Map();
     this.notes = new Map();
+    this.noteFolders = new Map();
     this.nextUserId = 1;
     this.nextSessionId = 1;
     this.nextNoteId = 1;
+    this.nextNoteFolderId = 1;
   }
 
   async initialize() {}
@@ -455,11 +549,11 @@ class MemoryAccountDatabase {
     return userNotes.slice(0, 200);
   }
 
-  async createNote(userId, { title, content }) {
+  async createNote(userId, { title, content, folderId = null }) {
     const now = new Date();
     const note = {
       id: this.nextNoteId++, user_id: Number(userId),
-      title, content, created_at: now, updated_at: now,
+      folder_id: folderId == null ? null : Number(folderId), title, content, created_at: now, updated_at: now,
     };
     this.notes.set(note.id, note);
     return { ...note };
@@ -471,11 +565,12 @@ class MemoryAccountDatabase {
     return { ...note };
   }
 
-  async updateNote(userId, noteId, { title, content }) {
+  async updateNote(userId, noteId, { title, content, folderId }) {
     const note = this.notes.get(Number(noteId));
     if (!note || note.user_id !== Number(userId)) return null;
     if (title !== undefined) note.title = title;
     if (content !== undefined) note.content = content;
+    if (folderId !== undefined) note.folder_id = folderId == null ? null : Number(folderId);
     note.updated_at = new Date();
     return { ...note };
   }
@@ -487,6 +582,58 @@ class MemoryAccountDatabase {
     return true;
   }
 
+  async listNoteFolders(userId) {
+    const folders = [];
+    for (const folder of this.noteFolders.values()) {
+      if (folder.user_id !== Number(userId)) continue;
+      let noteCount = 0;
+      for (const note of this.notes.values()) {
+        if (note.user_id === Number(userId) && note.folder_id === folder.id) noteCount += 1;
+      }
+      folders.push({ ...folder, note_count:noteCount });
+    }
+    return folders.sort((a, b) => a.name.localeCompare(b.name, 'zh-CN') || a.id - b.id);
+  }
+
+  async getNoteFolder(userId, folderId) {
+    const folder = this.noteFolders.get(Number(folderId));
+    return folder && folder.user_id === Number(userId) ? { ...folder } : null;
+  }
+
+  async createNoteFolder(userId, name) {
+    const duplicate = [...this.noteFolders.values()].some(folder =>
+      folder.user_id === Number(userId) && folder.name.toLocaleLowerCase() === name.toLocaleLowerCase());
+    if (duplicate) throw Object.assign(new Error('Duplicate folder name'), { code:'ER_DUP_ENTRY' });
+    const now = new Date();
+    const folder = {
+      id:this.nextNoteFolderId++, user_id:Number(userId), name,
+      created_at:now, updated_at:now,
+    };
+    this.noteFolders.set(folder.id, folder);
+    return { ...folder };
+  }
+
+  async updateNoteFolder(userId, folderId, name) {
+    const folder = this.noteFolders.get(Number(folderId));
+    if (!folder || folder.user_id !== Number(userId)) return null;
+    const duplicate = [...this.noteFolders.values()].some(item =>
+      item.id !== folder.id && item.user_id === Number(userId) && item.name.toLocaleLowerCase() === name.toLocaleLowerCase());
+    if (duplicate) throw Object.assign(new Error('Duplicate folder name'), { code:'ER_DUP_ENTRY' });
+    folder.name = name;
+    folder.updated_at = new Date();
+    return { ...folder };
+  }
+
+  async deleteNoteFolder(userId, folderId) {
+    const folder = this.noteFolders.get(Number(folderId));
+    if (!folder || folder.user_id !== Number(userId)) return false;
+    this.noteFolders.delete(folder.id);
+    for (const note of this.notes.values()) {
+      if (note.user_id === Number(userId) && note.folder_id === folder.id) note.folder_id = null;
+    }
+    return true;
+  }
+
   async cleanup() {
     const now = Date.now();
     for (const [key, session] of this.sessions) if (new Date(session.session_expires_at).getTime() <= now) this.sessions.delete(key);
@@ -494,4 +641,4 @@ class MemoryAccountDatabase {
   }
 }
 
-module.exports = { AccountDatabase, MemoryAccountDatabase, SCHEMA_STATEMENTS };
+module.exports = { AccountDatabase, MemoryAccountDatabase, SCHEMA_STATEMENTS, ensureNoteFolderSchema };

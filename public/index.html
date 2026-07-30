@@ -15,7 +15,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;b
 .app-nav-inner{display:flex;align-items:center;gap:4px;max-width:1240px;margin:0 auto;transition:max-width .2s ease}
 .app-brand{display:inline-flex;align-items:center;gap:8px;flex:none;margin-right:12px;color:#e6edf3;text-decoration:none;font-size:15px;font-weight:720;letter-spacing:.5px}.app-brand img{width:28px;height:28px;border-radius:7px;box-shadow:0 4px 14px #1f6feb2b}.app-brand span{white-space:nowrap}
 .app-tab{position:relative;display:inline-flex;align-items:center;justify-content:center;min-width:104px;flex:none;border:0;border-radius:7px;background:transparent;color:#8b949e;padding:8px 11px;font-size:13px;font-weight:600;text-decoration:none;white-space:nowrap;cursor:pointer;transition:.15s}
-.app-tab[data-page="notes"]{min-width:82px}.app-tab[data-page="reference"]{min-width:108px}
+.app-tab[data-page="notes"]{min-width:82px}.app-tab[data-page="reference"]{min-width:108px;margin-left:auto}
 .app-tab:hover{color:#e6edf3;background:#161b22}.app-tab.active{color:#fff;background:#1f3a5f}.app-tab-badge{display:inline-block;min-width:17px;margin-left:5px;padding:1px 5px;border-radius:9px;background:#30363d;color:#8b949e;font-size:9px;vertical-align:1px}.app-tab.active .app-tab-badge{background:#1f6feb;color:#fff}
 .account-area{position:relative;flex:none;margin-left:4px}.account-trigger{display:flex;align-items:center;gap:7px;max-width:150px;height:32px;padding:0 10px;border:1px solid #30363d;border-radius:7px;background:#161b22;color:#c9d1d9;font-size:12px;cursor:pointer;transition:.15s}.account-trigger:hover{border-color:#58a6ff;background:#1c2128}.account-avatar{display:grid;place-items:center;flex:none;width:22px;height:22px;overflow:hidden;border-radius:50%;background:linear-gradient(135deg,#1f6feb,#8957e5);color:#fff;font-size:10px;font-weight:750}.account-avatar img{width:100%;height:100%;object-fit:cover}.account-label{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.account-chevron{color:#6e7681;font-size:9px}.account-menu{position:fixed;z-index:260;top:0;left:0;display:none;width:min(230px,calc(100vw - 24px));padding:7px;border:1px solid #30363d;border-radius:9px;background:#161b22;box-shadow:0 14px 40px #0008}.account-menu.open{display:block}.account-menu-head{display:flex;gap:9px;align-items:center;padding:8px 9px 10px;border-bottom:1px solid #30363d}.account-menu-name{overflow:hidden;text-overflow:ellipsis;font-size:13px;font-weight:650}.account-menu-id{overflow:hidden;text-overflow:ellipsis;margin-top:2px;color:#6e7681;font-size:10px}.account-menu-item{display:flex;width:100%;align-items:center;gap:8px;margin-top:4px;padding:8px 9px;border:0;border-radius:6px;background:transparent;color:#c9d1d9;text-align:left;font-size:12px;cursor:pointer}.account-menu-item:hover{background:#21262d}.account-menu-item.danger{color:#f85149}.account-sync-note{padding:6px 9px 3px;color:#6e7681;font-size:10px}
 .app-page{display:none}.app-page.active{display:block;animation:page-in .18s ease-out}@keyframes page-in{from{opacity:.3;transform:translateY(3px)}}
@@ -255,8 +255,8 @@ body.stock-sorting,body.stock-sorting *{cursor:grabbing!important;user-select:no
 .stat-item{background:#1c2128;padding:10px 14px}
 .stat-label{font-size:11px;color:#8b949e;margin-bottom:3px}
 .stat-value{font-size:13px;font-weight:500}
-.chart-loading{position:absolute;inset:52px 20px 16px;display:flex;align-items:center;justify-content:center;color:#8b949e;font-size:13px;background:#0d1117;border-radius:4px;z-index:2}
-.theme-setting{display:flex;align-items:center;gap:6px;margin-left:auto;color:#8b949e;font-size:11px;white-space:nowrap}.theme-setting select{min-width:94px}
+.chart-loading{position:absolute;inset:52px 20px 16px;display:flex;flex-direction:column;gap:12px;align-items:center;justify-content:center;color:#8b949e;font-size:13px;background:#0d1117;border-radius:4px;z-index:2}.chart-retry-btn{padding:7px 14px;border:1px solid #30363d;border-radius:6px;background:#21262d;color:#e6edf3;font-size:12px;cursor:pointer}.chart-retry-btn:hover{border-color:#58a6ff;color:#79c0ff}
+.theme-setting{display:flex;align-items:center;gap:6px;color:#8b949e;font-size:11px;white-space:nowrap}.theme-setting select{min-width:94px}
 html[data-theme="light"]{color-scheme:light}
 html[data-theme="light"] body{background:#f3f6fa;color:#172033}
 html[data-theme="light"] .app-nav{background:#fffffff2;border-color:#dce3ec;box-shadow:0 1px 8px #1f3b5b0a}
@@ -283,7 +283,7 @@ html[data-theme="light"] .dropdown{background:#fff;border-color:#d0d7de;box-shad
 html[data-theme="light"] .group-tab{background:#fff;border-color:#d0d7de;color:#57606a}html[data-theme="light"] .group-tab.active{background:#ddf4ff;border-color:#54aeff;color:#0969da}
 html[data-theme="light"] .modal-mask{background:#1f232866}html[data-theme="light"] .modal,html[data-theme="light"] .drag-ghost,html[data-theme="light"] .market-drag-ghost{background:#fff;color:#1f2328;box-shadow:0 20px 55px #1f232833}
 html[data-theme="light"] .tab-bar,html[data-theme="light"] .stats-grid,html[data-theme="light"] .chart-range,html[data-theme="light"] .group-list{border-color:#d0d7de}html[data-theme="light"] .chart-range{background:#f6f8fa}
-html[data-theme="light"] .chart-loading{background:#fff;color:#57606a}
+html[data-theme="light"] .chart-loading{background:#fff;color:#57606a}html[data-theme="light"] .chart-retry-btn{background:#f6f8fa;border-color:#d0d7de;color:#1f2328}
 html[data-theme="light"] .market-name,html[data-theme="light"] .market-price,html[data-theme="light"] .market-summary strong,html[data-theme="light"] .chart-info,html[data-theme="light"] .alert-message{color:#1f2328}
 html[data-theme="light"] .market-page-note,html[data-theme="light"] .market-summary,html[data-theme="light"] .market-toolbar,html[data-theme="light"] .sort-note,html[data-theme="light"] .module-desc,html[data-theme="light"] .metric-label,html[data-theme="light"] .panel-status,html[data-theme="light"] .status,html[data-theme="light"] .refresh-setting,html[data-theme="light"] .time{color:#57606a}
 html[data-theme="light"] .ipo-status{border:1px solid transparent;font-weight:650}html[data-theme="light"] .ipo-status.upcoming{background:#e5f3ff;border-color:#b6ddff;color:#0969da}html[data-theme="light"] .ipo-status.today{background:#fff3cd;border-color:#f2d675;color:#8a5a00}html[data-theme="light"] .ipo-status.done{background:#dafbe1;border-color:#aceebb;color:#1a7f37}
@@ -295,8 +295,12 @@ html[data-theme="light"] .note-editor-area{background:#fff;border-color:#d0d7de;
 html[data-theme="light"] .note-title-input{background:#fff;border-color:#d0d7de;color:#1f2328}
 html[data-theme="light"] .note-preview{background:#fff;border-color:#d0d7de;color:#1f2328}
 html[data-theme="light"] .note-toolbar{border-color:#d0d7de;background:#f6f8fa}
-html[data-theme="light"] .note-toc-trigger{background:#fff;border-color:#d0d7de;color:#57606a}
-html[data-theme="light"] .note-toc-popover{background:#fff;border-color:#d0d7de;box-shadow:0 12px 32px #1f232826}
+html[data-theme="light"] .note-sidebar{background:#fff;border-color:#d0d7de}html[data-theme="light"] .note-sidebar-tabs{background:#f6f8fa}html[data-theme="light"] .note-sidebar-tabs,html[data-theme="light"] .note-folder-list{border-color:#d0d7de}
+html[data-theme="light"] .note-sidebar-tab,html[data-theme="light"] .note-folder-main,html[data-theme="light"] .note-folder-action{color:#57606a}
+html[data-theme="light"] .note-sidebar-tab:hover,html[data-theme="light"] .note-folder-row:hover{background:#f6f8fa}html[data-theme="light"] .note-sidebar-tab.active,html[data-theme="light"] .note-folder-row.active{background:#ddf4ff;color:#0969da}
+html[data-theme="light"] .note-folder-create{background:#f6f8fa;border-color:#d0d7de;color:#57606a}
+html[data-theme="light"] .note-folder-action:hover,html[data-theme="light"] .note-folder-action:focus-visible{background:#eaeef2;color:#1f2328}
+html[data-theme="light"] .note-folder-select{background:#fff;border-color:#d0d7de;color:#1f2328}
 html[data-theme="light"] .note-toc-link{color:#57606a}html[data-theme="light"] .note-toc-link:hover,html[data-theme="light"] .note-toc-link:focus-visible{background:#ddf4ff;color:#0969da}
 html[data-theme="light"] .note-toc-empty{color:#8c959f}
 html[data-theme="light"] .note-empty{color:#57606a}
@@ -330,10 +334,20 @@ html[data-theme="light"] .chat-image-preview{background:#ffffffee}html[data-them
 }
 /* ====== Notes styles ====== */
 .notes-layout{display:flex;gap:16px;min-height:calc(100vh - 200px)}
-.note-sidebar{width:300px;flex:none;display:flex;flex-direction:column;gap:10px}
-.note-sidebar-head{display:flex;gap:8px;align-items:center}
+.note-sidebar{width:300px;min-height:520px;max-height:calc(100vh - 200px);flex:none;display:flex;flex-direction:column;overflow:hidden;border:1px solid #30363d;border-radius:8px;background:#161b22}
+.note-sidebar-tabs{display:grid;grid-template-columns:1fr 1fr;border-bottom:1px solid #30363d;background:#1c2128}
+.note-sidebar-tab{padding:10px 8px;border:0;border-right:1px solid #30363d;background:transparent;color:#8b949e;font-size:12px;cursor:pointer}.note-sidebar-tab:last-child{border-right:0}.note-sidebar-tab:hover{background:#21262d}.note-sidebar-tab.active{background:#1f3a5f;color:#79c0ff;font-weight:650}
+.note-sidebar-panel{display:none;min-height:0;flex:1;flex-direction:column}.note-sidebar-panel.active{display:flex}
+.note-sidebar-head{display:flex;gap:8px;align-items:center;padding:10px 10px 8px}
 .note-search-input{flex:1;background:#21262d;border:1px solid #30363d;border-radius:6px;color:#e6edf3;padding:7px 10px;font-size:12px;outline:none}.note-search-input:focus{border-color:#58a6ff}.note-search-input::placeholder{color:#6e7681}
-.note-list{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:6px;max-height:calc(100vh - 280px);scrollbar-width:thin;scrollbar-color:#484f58 transparent}
+.note-folder-create{flex:none;padding:7px 9px;border:1px solid #30363d;border-radius:6px;background:#21262d;color:#8b949e;font-size:11px;cursor:pointer}.note-folder-create:hover,.note-folder-create:focus-visible{border-color:#58a6ff;color:#79c0ff;outline:none}
+.note-folder-list{padding:0 8px 8px;border-bottom:1px solid #30363d;max-height:210px;overflow:auto;scrollbar-width:thin;scrollbar-color:#484f58 transparent}
+.note-folder-row{display:flex;align-items:center;border-radius:6px;color:#8b949e}.note-folder-row:hover{background:#21262d}.note-folder-row.active{background:#1f3a5f;color:#79c0ff}
+.note-folder-main{display:flex;min-width:0;flex:1;align-items:center;gap:6px;padding:7px 8px;border:0;background:transparent;color:inherit;text-align:left;cursor:pointer}.note-folder-name{min-width:0;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.note-folder-count{color:#6e7681;font-size:10px}.note-folder-row.active .note-folder-count{color:#79c0ff}
+.note-folder-actions{display:flex;align-items:center;padding-right:4px;opacity:0;transition:opacity .15s}.note-folder-row:hover .note-folder-actions,.note-folder-row:focus-within .note-folder-actions{opacity:1}.note-folder-action{width:24px;height:24px;padding:0;border:0;border-radius:4px;background:transparent;color:#6e7681;font-size:11px;cursor:pointer}.note-folder-action:hover,.note-folder-action:focus-visible{background:#30363d;color:#e6edf3;outline:none}.note-folder-action.danger:hover{color:#ff7b72}
+.note-file-section-title,.note-toc-title{padding:9px 12px 6px;color:#6e7681;font-size:10px;font-weight:650;letter-spacing:.04em}
+.note-list{min-height:0;flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:6px;padding:0 8px 8px;scrollbar-width:thin;scrollbar-color:#484f58 transparent}
+.note-list .note-empty{padding:28px 10px}
 .note-card{padding:12px 14px;border:1px solid #30363d;border-radius:8px;background:#161b22;cursor:pointer;transition:border-color .15s,background .15s,transform .1s}
 .note-card:hover{border-color:#484f58;transform:translateY(-1px)}
 .note-card.active{border-color:#1f6feb;background:#1f3a5f22}
@@ -341,14 +355,9 @@ html[data-theme="light"] .chat-image-preview{background:#ffffffee}html[data-them
 .note-card-summary{margin-top:4px;font-size:11px;color:#8b949e;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;line-height:1.5}
 .note-card-time{margin-top:6px;font-size:10px;color:#6e7681}
 .note-main{flex:1;min-width:0;display:flex;flex-direction:column}
-.note-toolbar{display:flex;align-items:center;gap:8px;padding:8px 12px;border:1px solid #30363d;border-radius:8px 8px 0 0;background:#1c2128}
+.note-toolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:8px 12px;border:1px solid #30363d;border-radius:8px 8px 0 0;background:#1c2128}
 .note-toolbar .refresh-btn{padding:5px 10px;font-size:11px}
-.note-toc{position:relative;margin-left:auto}
-.note-toc-trigger{display:flex;align-items:center;gap:5px;padding:4px 10px;border:1px solid #30363d;border-radius:5px;background:#21262d;color:#8b949e;font-size:11px;line-height:18px;cursor:pointer}
-.note-toc-trigger:hover,.note-toc-trigger:focus-visible,.note-toc.open .note-toc-trigger{border-color:#58a6ff;color:#79c0ff;outline:none}
-.note-toc-popover{position:absolute;z-index:40;top:calc(100% + 7px);right:0;display:none;width:min(310px,70vw);max-height:340px;overflow-y:auto;padding:7px;border:1px solid #30363d;border-radius:8px;background:#161b22;box-shadow:0 12px 32px #0009;scrollbar-width:thin;scrollbar-color:#484f58 transparent}
-.note-toc:hover .note-toc-popover,.note-toc:focus-within .note-toc-popover,.note-toc.open .note-toc-popover{display:block}
-.note-toc-title{padding:4px 7px 7px;color:#6e7681;font-size:10px;font-weight:650;letter-spacing:.04em}
+.note-toc-list{min-height:0;flex:1;overflow-y:auto;padding:5px 8px 12px;scrollbar-width:thin;scrollbar-color:#484f58 transparent}
 .note-toc-link{display:block;width:100%;padding:6px 8px;border:0;border-radius:5px;background:transparent;color:#c9d1d9;font-size:11px;line-height:1.4;text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer}
 .note-toc-link:hover,.note-toc-link:focus-visible{background:#1f6feb22;color:#79c0ff;outline:none}.note-toc-link.level-2{padding-left:20px}.note-toc-link.level-3{padding-left:34px;color:#8b949e}
 .note-toc-empty{padding:16px 8px;color:#6e7681;font-size:11px;text-align:center}
@@ -369,10 +378,11 @@ html[data-theme="light"] .chat-image-preview{background:#ffffffee}html[data-them
 .note-import-zone{border:2px dashed #30363d;border-radius:8px;padding:20px;text-align:center;color:#8b949e;font-size:12px;cursor:pointer;transition:border-color .15s,background .15s}
 .note-import-zone.dragover{border-color:#1f6feb;background:#1f6feb0a}
 .note-import-zone input{display:none}
-.note-view-toggle{display:flex;border:1px solid #30363d;border-radius:5px;overflow:hidden}
+.note-folder-select-label{display:flex;min-width:0;align-items:center;gap:5px;color:#6e7681;font-size:10px}.note-folder-select{max-width:160px;padding:5px 25px 5px 8px;border:1px solid #30363d;border-radius:5px;background:#21262d;color:#c9d1d9;font-size:11px;outline:none}.note-folder-select:focus{border-color:#58a6ff}
+.note-view-toggle{display:flex;margin-left:auto;border:1px solid #30363d;border-radius:5px;overflow:hidden}
 .note-view-btn{background:#21262d;border:none;color:#8b949e;padding:4px 10px;font-size:11px;cursor:pointer}
 .note-view-btn.active{background:#1f3a5f;color:#79c0ff}
-@media (max-width:768px){.notes-layout{flex-direction:column}.note-sidebar{width:100%;max-height:200px}.note-list{max-height:140px}.note-editor-wrap{min-height:300px}}
+@media (max-width:768px){.notes-layout{flex-direction:column}.note-sidebar{width:100%;min-height:280px;max-height:340px}.note-folder-list{max-height:130px}.note-folder-actions{opacity:1}.note-editor-wrap{min-height:300px}.note-folder-select-label{max-width:150px}.note-folder-select{max-width:115px}}
 /* ====== Reference reader ====== */
 .reference-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.reference-actions .refresh-btn{display:inline-flex;align-items:center;justify-content:center;text-decoration:none;white-space:nowrap}
 .reference-reader{display:grid;grid-template-columns:210px minmax(0,1fr);gap:22px;max-width:1090px;margin:0 auto;align-items:start}
@@ -439,6 +449,7 @@ html[data-theme="light"] .reference-retry{background:#f6f8fa;border-color:#d0d7d
     <button class="app-tab" data-page="alerts" onclick="switchAppPage('alerts')">⚡ 自选异动<span class="app-tab-badge" id="alert-badge">0</span></button>
     <button class="app-tab" data-page="notes" onclick="switchAppPage('notes')">📝 笔记</button>
     <button class="app-tab" id="chat-entry-btn" onclick="openChatRoom()" style="width:auto;padding:8px 14px">💬 聊天室</button>
+    <button class="app-tab" data-page="reference" type="button" onclick="switchAppPage('reference')">📚 参考文档</button>
     <label class="theme-setting" for="theme-select"><span>主题</span><select class="refresh-interval-select" id="theme-select" onchange="setThemePreference(this.value)"><option value="light">浅色</option><option value="dark">深色</option><option value="system">跟随系统</option></select></label>
     <div class="account-area" id="account-area">
       <button class="account-trigger" id="account-trigger" type="button" onclick="toggleAccountMenu(event)" aria-haspopup="menu" aria-expanded="false">
@@ -446,7 +457,6 @@ html[data-theme="light"] .reference-retry{background:#f6f8fa;border-color:#d0d7d
       </button>
       <div class="account-menu" id="account-menu" role="menu"></div>
     </div>
-    <button class="app-tab" data-page="reference" type="button" onclick="switchAppPage('reference')">📚 参考文档</button>
   </div>
 </nav>
 <div class="main">
@@ -530,16 +540,28 @@ html[data-theme="light"] .reference-retry{background:#f6f8fa;border-color:#d0d7d
 </section>
 
 <section class="app-page" id="page-notes">
-  <div class="module-head"><div><div class="market-kicker">Personal Notes</div><h2 class="module-title">我的笔记</h2><p class="module-desc">Markdown 格式笔记，支持实时预览和文档导入</p></div><div class="module-actions"><div class="note-import-zone" id="note-import-zone" onclick="document.getElementById('note-import-input').click()" ondragover="event.preventDefault();this.classList.add('dragover')" ondragleave="this.classList.remove('dragover')" ondrop="handleNoteFileDrop(event)">📄 拖拽 .md/.txt 文件到此处导入<input type="file" id="note-import-input" accept=".md,.txt,.markdown" onchange="handleNoteFileSelect(event)"></div><button class="refresh-btn" onclick="createNewNote()">✏ 新建笔记</button></div></div>
+  <div class="module-head"><div><div class="market-kicker">Personal Notes</div><h2 class="module-title">我的笔记</h2><p class="module-desc">Markdown 格式笔记，支持文件夹分类、标题导航和文档导入</p></div><div class="module-actions"><div class="note-import-zone" id="note-import-zone" onclick="document.getElementById('note-import-input').click()" ondragover="event.preventDefault();this.classList.add('dragover')" ondragleave="this.classList.remove('dragover')" ondrop="handleNoteFileDrop(event)">📄 拖拽 .md/.txt 文件到此处导入<input type="file" id="note-import-input" accept=".md,.txt,.markdown" onchange="handleNoteFileSelect(event)"></div><button class="refresh-btn" onclick="createNewNote()">✏ 新建笔记</button></div></div>
   <div class="notes-layout" id="notes-layout">
-    <div class="note-sidebar">
-      <div class="note-sidebar-head"><input class="note-search-input" id="note-search" type="text" placeholder="搜索笔记..." oninput="filterNotes(this.value)"></div>
-      <div class="note-list" id="note-list"><div class="note-empty"><div class="note-empty-icon">📝</div><div>请先登录以使用笔记功能</div></div></div>
-    </div>
+    <aside class="note-sidebar" aria-label="笔记侧栏">
+      <div class="note-sidebar-tabs" role="tablist" aria-label="笔记导航">
+        <button class="note-sidebar-tab active" id="note-files-tab" type="button" role="tab" aria-selected="true" aria-controls="note-files-panel" onclick="setNoteSidebarTab('files')">文件列表</button>
+        <button class="note-sidebar-tab" id="note-headings-tab" type="button" role="tab" aria-selected="false" aria-controls="note-headings-panel" onclick="setNoteSidebarTab('headings')">标题导航</button>
+      </div>
+      <div class="note-sidebar-panel active" id="note-files-panel" role="tabpanel" aria-labelledby="note-files-tab">
+        <div class="note-sidebar-head"><input class="note-search-input" id="note-search" type="text" placeholder="搜索笔记..." oninput="filterNotes(this.value)"><button class="note-folder-create" type="button" onclick="createNoteFolder()" title="新建文件夹">＋ 文件夹</button></div>
+        <div class="note-folder-list" id="note-folder-list"><div class="note-toc-empty">登录后可管理文件夹</div></div>
+        <div class="note-file-section-title" id="note-file-section-title">全部笔记</div>
+        <div class="note-list" id="note-list"><div class="note-empty"><div class="note-empty-icon">📝</div><div>请先登录以使用笔记功能</div></div></div>
+      </div>
+      <div class="note-sidebar-panel" id="note-headings-panel" role="tabpanel" aria-labelledby="note-headings-tab">
+        <div class="note-toc-title">当前笔记目录</div>
+        <nav class="note-toc-list" id="note-toc-list" aria-label="当前笔记标题导航"><div class="note-toc-empty">选择一篇笔记查看标题</div></nav>
+      </div>
+    </aside>
     <div class="note-main" id="note-main">
       <div class="note-empty" id="note-placeholder"><div class="note-empty-icon">📄</div><div>选择左侧笔记或新建一篇</div></div>
       <div id="note-editor" style="display:none;flex:1;flex-direction:column">
-        <div class="note-toolbar"><button class="refresh-btn" onclick="saveCurrentNote()" id="note-save-btn">💾 保存</button><button class="refresh-btn" onclick="deleteCurrentNote()">🗑 删除</button><div class="note-toc" id="note-toc"><button class="note-toc-trigger" id="note-toc-trigger" type="button" aria-haspopup="true" aria-expanded="false" onclick="toggleNoteToc(event)">☰ 标题导航</button><div class="note-toc-popover" id="note-toc-popover" role="navigation" aria-label="当前笔记标题导航"><div class="note-toc-empty">当前文档没有标题</div></div></div><div class="note-view-toggle"><button class="note-view-btn active" onclick="setNoteView('split')" data-view="split">分栏</button><button class="note-view-btn" onclick="setNoteView('edit')" data-view="edit">编辑</button><button class="note-view-btn" onclick="setNoteView('preview')" data-view="preview">预览</button></div><span id="note-status" style="font-size:10px;color:#6e7681"></span></div>
+        <div class="note-toolbar"><button class="refresh-btn" onclick="saveCurrentNote()" id="note-save-btn">💾 保存</button><button class="refresh-btn" onclick="deleteCurrentNote()">🗑 删除</button><label class="note-folder-select-label">文件夹<select class="note-folder-select" id="note-folder-select" onchange="moveCurrentNoteToFolder(this.value)"><option value="">未分类</option></select></label><span id="note-status" style="font-size:10px;color:#6e7681"></span><div class="note-view-toggle"><button class="note-view-btn active" onclick="setNoteView('split')" data-view="split">分栏</button><button class="note-view-btn" onclick="setNoteView('edit')" data-view="edit">编辑</button><button class="note-view-btn" onclick="setNoteView('preview')" data-view="preview">预览</button></div></div>
         <input class="note-title-input" id="note-title" placeholder="笔记标题..." maxlength="200">
         <div class="note-editor-wrap" id="note-editor-wrap"><textarea class="note-editor-area" id="note-content" placeholder="在此编写 Markdown 内容..."></textarea><div class="note-preview" id="note-preview"></div></div>
       </div>
@@ -1778,8 +1800,8 @@ async function loadChart(type) {
     } else if (type === 'fundFlow') {
       if (!/^(sh|sz)\d{6}$/.test(modalSym)) throw new Error('fund flow is unavailable for this market');
       const r = await fetch(`/api/fund-flow-history?sym=${modalSym}`);
-      if (!r.ok) throw new Error('fund flow request failed');
-      const d = await r.json();
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(d.error || 'fund flow request failed');
       if (requestId !== chartRequestId || currentTab !== type) return;
       drawFundFlow(d.data || []);
     } else {
@@ -1797,11 +1819,20 @@ async function loadChart(type) {
   } catch(e) {
     if (requestId !== chartRequestId) return;
     console.error('loadChart error:', e);
-    loading.textContent = type === 'fundFlow' && !/^(sh|sz)\d{6}$/.test(modalSym || '')
+    const unsupportedFundFlow = type === 'fundFlow' && !/^(sh|sz)\d{6}$/.test(modalSym || '');
+    loading.textContent = unsupportedFundFlow
       ? '主力资金数据目前仅支持 A 股'
       : type === 'minuteK' && !/^(sh|sz)/.test(modalSym || '')
         ? '该市场暂不支持分时 K 线'
-        : type === 'fundFlow' ? '主力资金数据暂不可用' : '图表数据暂不可用';
+        : type === 'fundFlow' ? '主力资金加载失败，请稍后重试' : '图表数据暂不可用';
+    if (type === 'fundFlow' && !unsupportedFundFlow) {
+      const retry = document.createElement('button');
+      retry.type = 'button';
+      retry.className = 'chart-retry-btn';
+      retry.textContent = '重新加载';
+      retry.addEventListener('click', () => loadChart('fundFlow'));
+      loading.appendChild(retry);
+    }
   }
 }
 
@@ -2692,7 +2723,7 @@ function switchAppPage(page, { historyMode = 'push', scroll = true } = {}) {
   activeTab?.scrollIntoView({ block:'nearest', inline:'nearest' });
   if (page === 'ipo' && !ipoRows.length) fetchIpos();
   if (page === 'alerts') { renderAnomalyEvents(); fetchAnomalyQuotes(); }
-  if (page === 'notes') { loadNotesList(); }
+  if (page === 'notes') { loadNotesList({ reloadFolders:true }); }
   if (page === 'reference') loadReferenceDocument();
 }
 
@@ -3269,8 +3300,12 @@ function openFloatWindow() {
 // Notes Module
 // ============================================================
 let notesList = [];
+let noteFolders = [];
 let currentNoteId = null;
+let currentNoteFolderId = null;
 let noteSearchQuery = '';
+let activeNoteFolderFilter = 'all';
+let noteSidebarTab = 'files';
 let noteViewMode = 'split';
 let noteSaveTimer = null;
 let pendingNoteDraft = null;
@@ -3371,31 +3406,21 @@ function renderMarkdown(md) {
 }
 
 function renderNoteToc(content) {
-  const popover = document.getElementById('note-toc-popover');
+  const list = document.getElementById('note-toc-list');
   const headings = extractMarkdownHeadings(content);
   if (!headings.length) {
-    popover.innerHTML = '<div class="note-toc-empty">当前文档没有标题</div>';
+    list.innerHTML = `<div class="note-toc-empty">${currentNoteId ? '当前文档没有标题' : '选择一篇笔记查看标题'}</div>`;
     return;
   }
-  popover.innerHTML = `<div class="note-toc-title">文档目录</div>${headings.map(heading =>
+  list.innerHTML = headings.map(heading =>
     `<button class="note-toc-link level-${heading.level}" type="button" title="${escapeHtml(heading.text)}" onclick="jumpToNoteHeading('${heading.id}')">${escapeHtml(heading.text)}</button>`
-  ).join('')}`;
+  ).join('');
 }
 
 function updateNotePreview() {
   const content = document.getElementById('note-content').value;
   document.getElementById('note-preview').innerHTML = renderMarkdown(content);
   renderNoteToc(content);
-}
-
-function setNoteTocOpen(open) {
-  document.getElementById('note-toc').classList.toggle('open', open);
-  document.getElementById('note-toc-trigger').setAttribute('aria-expanded', String(open));
-}
-
-function toggleNoteToc(event) {
-  event.stopPropagation();
-  setNoteTocOpen(!document.getElementById('note-toc').classList.contains('open'));
 }
 
 function jumpToNoteHeading(id) {
@@ -3405,7 +3430,6 @@ function jumpToNoteHeading(id) {
   if (!heading) return;
   const top = preview.scrollTop + heading.getBoundingClientRect().top - preview.getBoundingClientRect().top - 10;
   preview.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
-  setNoteTocOpen(false);
 }
 
 function setNoteView(mode) {
@@ -3419,15 +3443,138 @@ function setNoteView(mode) {
   if (mode !== 'edit') updateNotePreview();
 }
 
-async function loadNotesList() {
+function setNoteSidebarTab(tab) {
+  noteSidebarTab = tab === 'headings' ? 'headings' : 'files';
+  const filesActive = noteSidebarTab === 'files';
+  document.getElementById('note-files-tab').classList.toggle('active', filesActive);
+  document.getElementById('note-files-tab').setAttribute('aria-selected', String(filesActive));
+  document.getElementById('note-headings-tab').classList.toggle('active', !filesActive);
+  document.getElementById('note-headings-tab').setAttribute('aria-selected', String(!filesActive));
+  document.getElementById('note-files-panel').classList.toggle('active', filesActive);
+  document.getElementById('note-headings-panel').classList.toggle('active', !filesActive);
+}
+
+function noteCreationFolderId() {
+  if (!/^\d+$/.test(activeNoteFolderFilter)) return null;
+  return noteFolders.some(folder => String(folder.id) === activeNoteFolderFilter)
+    ? activeNoteFolderFilter
+    : null;
+}
+
+function renderNoteFolderSelect(folderId = currentNoteFolderId) {
+  const select = document.getElementById('note-folder-select');
+  select.innerHTML = '<option value="">未分类</option>' + noteFolders.map(folder =>
+    `<option value="${folder.id}">${escapeHtml(folder.name)}</option>`
+  ).join('');
+  select.value = folderId == null ? '' : String(folderId);
+}
+
+function renderNoteFolderList() {
+  const container = document.getElementById('note-folder-list');
+  const unfiledCount = notesList.filter(note => note.folder_id == null).length;
+  const folderRows = noteFolders.map(folder => {
+    const id = String(folder.id);
+    const count = notesList.filter(note => String(note.folder_id || '') === id).length;
+    return `<div class="note-folder-row${activeNoteFolderFilter === id ? ' active' : ''}">
+      <button class="note-folder-main" type="button" onclick="setNoteFolderFilter('${id}')" title="${escapeHtml(folder.name)}"><span aria-hidden="true">📁</span><span class="note-folder-name">${escapeHtml(folder.name)}</span><span class="note-folder-count">${count}</span></button>
+      <span class="note-folder-actions"><button class="note-folder-action" type="button" title="重命名" aria-label="重命名 ${escapeHtml(folder.name)}" onclick="renameNoteFolder('${id}')">✎</button><button class="note-folder-action danger" type="button" title="删除文件夹" aria-label="删除 ${escapeHtml(folder.name)}" onclick="deleteNoteFolder('${id}')">×</button></span>
+    </div>`;
+  }).join('');
+  container.innerHTML = `<div class="note-folder-row${activeNoteFolderFilter === 'all' ? ' active' : ''}"><button class="note-folder-main" type="button" onclick="setNoteFolderFilter('all')"><span aria-hidden="true">🗂</span><span class="note-folder-name">全部笔记</span><span class="note-folder-count">${notesList.length}</span></button></div>
+    <div class="note-folder-row${activeNoteFolderFilter === 'unfiled' ? ' active' : ''}"><button class="note-folder-main" type="button" onclick="setNoteFolderFilter('unfiled')"><span aria-hidden="true">📄</span><span class="note-folder-name">未分类</span><span class="note-folder-count">${unfiledCount}</span></button></div>${folderRows}`;
+  renderNoteFolderSelect();
+}
+
+function setNoteFolderFilter(folderId) {
+  activeNoteFolderFilter = String(folderId);
+  setNoteSidebarTab('files');
+  renderNoteFolderList();
+  renderNoteList();
+}
+
+async function createNoteFolder() {
+  if (!currentUser) { openAuthModal(); return; }
+  const name = prompt('请输入新文件夹名称（最多 80 个字符）');
+  if (name == null) return;
+  try {
+    const resp = await apiRequest('/api/note-folders', { method:'POST', body:JSON.stringify({ name }) });
+    activeNoteFolderFilter = String(resp.folder.id);
+    await loadNotesList({ reloadFolders:true });
+    showToast(`文件夹“${resp.folder.name}”已创建`);
+  } catch (error) {
+    showToast('创建文件夹失败：' + error.message, true);
+  }
+}
+
+async function renameNoteFolder(folderId) {
+  const folder = noteFolders.find(item => String(item.id) === String(folderId));
+  if (!folder) return;
+  const name = prompt('请输入新的文件夹名称', folder.name);
+  if (name == null || name.trim() === folder.name) return;
+  try {
+    await apiRequest(`/api/note-folders/${folderId}`, { method:'PUT', body:JSON.stringify({ name }) });
+    await loadNotesList({ reloadFolders:true });
+    showToast('文件夹已重命名');
+  } catch (error) {
+    showToast('重命名失败：' + error.message, true);
+  }
+}
+
+async function deleteNoteFolder(folderId) {
+  const folder = noteFolders.find(item => String(item.id) === String(folderId));
+  if (!folder || !confirm(`确认删除文件夹“${folder.name}”？其中的笔记会移到“未分类”，不会被删除。`)) return;
+  try {
+    await flushPendingNoteSave();
+    await apiRequest(`/api/note-folders/${folderId}`, { method:'DELETE', body:'{}' });
+    if (String(currentNoteFolderId || '') === String(folderId)) currentNoteFolderId = null;
+    if (activeNoteFolderFilter === String(folderId)) activeNoteFolderFilter = 'unfiled';
+    await loadNotesList({ reloadFolders:true });
+    showToast('文件夹已删除，原有笔记已移到未分类');
+  } catch (error) {
+    showToast('删除文件夹失败：' + error.message, true);
+  }
+}
+
+async function moveCurrentNoteToFolder(folderId) {
+  if (!currentNoteId) return;
+  const previousFolderId = currentNoteFolderId;
+  try {
+    await flushPendingNoteSave();
+    const resp = await apiRequest(`/api/notes/${currentNoteId}`, {
+      method:'PUT', body:JSON.stringify({ folderId:folderId || null }),
+    });
+    currentNoteFolderId = resp.note.folder_id == null ? null : resp.note.folder_id;
+    await loadNotesList({ reloadFolders:true });
+    showToast(folderId ? '笔记已移动到所选文件夹' : '笔记已移到未分类');
+  } catch (error) {
+    currentNoteFolderId = previousFolderId;
+    renderNoteFolderSelect();
+    showToast('移动笔记失败：' + error.message, true);
+  }
+}
+
+async function loadNotesList({ reloadFolders = !notesLoaded } = {}) {
   if (!currentUser) {
+    notesList = [];
+    noteFolders = [];
+    notesLoaded = false;
     document.getElementById('note-list').innerHTML = '<div class="note-empty"><div class="note-empty-icon">📝</div><div>请先登录以使用笔记功能</div></div>';
+    document.getElementById('note-folder-list').innerHTML = '<div class="note-toc-empty">登录后可管理文件夹</div>';
+    renderNoteToc('');
     return;
   }
   try {
-    const resp = await apiRequest('/api/notes', { method:'GET', headers:{} });
-    notesList = resp.notes || [];
+    const [notesResp, foldersResp] = await Promise.all([
+      apiRequest('/api/notes', { method:'GET', headers:{} }),
+      reloadFolders ? apiRequest('/api/note-folders', { method:'GET', headers:{} }) : Promise.resolve(null),
+    ]);
+    notesList = notesResp.notes || [];
+    if (foldersResp) noteFolders = foldersResp.folders || [];
+    if (/^\d+$/.test(activeNoteFolderFilter) && !noteFolders.some(folder => String(folder.id) === activeNoteFolderFilter)) {
+      activeNoteFolderFilter = 'all';
+    }
     notesLoaded = true;
+    renderNoteFolderList();
     renderNoteList();
   } catch (error) {
     document.getElementById('note-list').innerHTML = `<div class="note-empty"><div>加载失败：${escapeHtml(error.message)}</div></div>`;
@@ -3437,9 +3584,16 @@ async function loadNotesList() {
 function renderNoteList() {
   const container = document.getElementById('note-list');
   const query = noteSearchQuery.toLowerCase();
-  const filtered = notesList.filter(n =>
-    !query || n.title.toLowerCase().includes(query) || (n.summary || '').toLowerCase().includes(query)
-  );
+  const folder = noteFolders.find(item => String(item.id) === activeNoteFolderFilter);
+  document.getElementById('note-file-section-title').textContent = activeNoteFolderFilter === 'all'
+    ? '全部笔记'
+    : activeNoteFolderFilter === 'unfiled' ? '未分类' : (folder?.name || '文件夹');
+  const filtered = notesList.filter(note => {
+    const folderMatches = activeNoteFolderFilter === 'all'
+      || (activeNoteFolderFilter === 'unfiled' ? note.folder_id == null : String(note.folder_id || '') === activeNoteFolderFilter);
+    const queryMatches = !query || String(note.title || '').toLowerCase().includes(query) || String(note.summary || '').toLowerCase().includes(query);
+    return folderMatches && queryMatches;
+  });
   if (!filtered.length) {
     container.innerHTML = notesList.length
       ? '<div class="note-empty"><div>没有匹配的笔记</div></div>'
@@ -3468,11 +3622,13 @@ async function openNote(noteId) {
     const resp = await apiRequest(`/api/notes/${noteId}`, { method:'GET', headers:{} });
     const note = resp.note;
     currentNoteId = note.id;
+    currentNoteFolderId = note.folder_id == null ? null : note.folder_id;
     document.getElementById('note-title').value = note.title || '';
     document.getElementById('note-content').value = note.content || '';
     document.getElementById('note-placeholder').style.display = 'none';
     document.getElementById('note-editor').style.display = 'flex';
     document.getElementById('note-status').textContent = '';
+    renderNoteFolderSelect();
     updateNotePreview();
     renderNoteList();
   } catch (error) {
@@ -3484,20 +3640,23 @@ async function createNewNote() {
   if (!currentUser) { openAuthModal(); return; }
   try {
     await flushPendingNoteSave();
+    const folderId = noteCreationFolderId();
     const resp = await apiRequest('/api/notes', {
       method:'POST',
-      body: JSON.stringify({ title:'', content:'' }),
+      body: JSON.stringify({ title:'', content:'', folderId }),
     });
     const note = resp.note;
     currentNoteId = note.id;
+    currentNoteFolderId = note.folder_id == null ? null : note.folder_id;
     document.getElementById('note-title').value = '';
     document.getElementById('note-content').value = '';
     document.getElementById('note-placeholder').style.display = 'none';
     document.getElementById('note-editor').style.display = 'flex';
     document.getElementById('note-status').textContent = '已创建';
     document.getElementById('note-title').focus();
+    renderNoteFolderSelect();
     updateNotePreview();
-    await loadNotesList();
+    await loadNotesList({ reloadFolders:true });
   } catch (error) {
     showToast('新建笔记失败：' + error.message, true);
   }
@@ -3574,9 +3733,12 @@ async function deleteCurrentNote() {
     await noteSaveQueue;
     await apiRequest(`/api/notes/${currentNoteId}`, { method:'DELETE', body:'{}' });
     currentNoteId = null;
+    currentNoteFolderId = null;
     document.getElementById('note-placeholder').style.display = '';
     document.getElementById('note-editor').style.display = 'none';
-    await loadNotesList();
+    renderNoteToc('');
+    renderNoteFolderSelect();
+    await loadNotesList({ reloadFolders:true });
     showToast('笔记已删除');
   } catch (error) {
     showToast('删除笔记失败：' + error.message, true);
@@ -3589,12 +3751,13 @@ async function importNoteFile(file) {
     if (file.size > 1024 * 1024) throw new Error('文档超过 1MB 限制');
     const text = await file.text();
     const title = file.name.replace(/\.(md|txt|markdown)$/i, '');
+    const folderId = noteCreationFolderId();
     const resp = await apiRequest('/api/notes/import', {
       method:'POST',
-      body: JSON.stringify({ title, content: text }),
+      body: JSON.stringify({ title, content: text, folderId }),
     });
     showToast(`已导入：${title}`);
-    await loadNotesList();
+    await loadNotesList({ reloadFolders:true });
     await openNote(resp.note.id);
   } catch (error) {
     showToast('导入失败：' + error.message, true);
@@ -3626,9 +3789,6 @@ document.getElementById('note-content').addEventListener('input', () => {
 document.getElementById('note-title').addEventListener('input', () => {
   scheduleNoteAutoSave();
 });
-document.getElementById('note-toc').addEventListener('mouseenter', () => setNoteTocOpen(true));
-document.getElementById('note-toc').addEventListener('mouseleave', () => setNoteTocOpen(false));
-document.addEventListener('click', event => { if (!event.target.closest('#note-toc')) setNoteTocOpen(false); });
 
 // ============================================================
 // Chat Room Module
@@ -3689,9 +3849,9 @@ async function openChatRoom() {
         <div class="chat-emoji-panel" id="chat-emoji-panel" aria-label="选择表情">${CHAT_EMOJIS.map((emoji, index) => `<button class="chat-emoji-btn" type="button" onclick="insertChatEmoji(${index})" aria-label="插入表情 ${emoji}">${emoji}</button>`).join('')}</div>
         <div class="chat-input-area">
           <button class="chat-tool-btn" id="chat-emoji-btn" type="button" onclick="toggleChatEmoji(event)" aria-label="选择表情" aria-expanded="false">☺</button>
-          <button class="chat-tool-btn" id="chat-image-btn" type="button" onclick="document.getElementById('chat-image-input').click()" aria-label="发送图片" title="发送图片（处理后不超过 768KB）" disabled>🖼</button>
+          <button class="chat-tool-btn" id="chat-image-btn" type="button" onclick="document.getElementById('chat-image-input').click()" aria-label="发送图片" title="选择或直接粘贴图片（处理后不超过 768KB）" disabled>🖼</button>
           <input class="chat-image-input" id="chat-image-input" type="file" accept="image/jpeg,image/png,image/gif,image/webp">
-          <textarea class="chat-input" id="chat-input" placeholder="输入消息…" rows="1" maxlength="500"></textarea>
+          <textarea class="chat-input" id="chat-input" placeholder="输入消息，或直接粘贴图片…" rows="1" maxlength="500"></textarea>
           <button class="chat-send-btn" id="chat-send-btn" onclick="sendChatMessage()">发送</button>
         </div>
       </div>
@@ -3706,6 +3866,7 @@ async function openChatRoom() {
     document.getElementById('chat-input').addEventListener('keydown', e => {
       if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendChatMessage(); }
     });
+    document.getElementById('chat-input').addEventListener('paste', handleChatPaste);
     document.getElementById('chat-image-input').addEventListener('change', event => {
       const file = event.target.files?.[0];
       event.target.value = '';
@@ -3973,6 +4134,21 @@ function chatCanvasToBlob(canvas, type, quality) {
   return new Promise((resolve, reject) => {
     canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error('图片压缩失败')), type, quality);
   });
+}
+
+function handleChatPaste(event) {
+  const items = Array.from(event.clipboardData?.items || []);
+  const imageItem = items.find(item => item.kind === 'file' && String(item.type).startsWith('image/'));
+  const imageFile = imageItem?.getAsFile()
+    || Array.from(event.clipboardData?.files || []).find(file => String(file.type).startsWith('image/'));
+  if (!imageFile) return;
+  event.preventDefault();
+  closeChatEmojiPicker();
+  if (!chatState.connected) {
+    showToast('聊天室连接成功后才能发送图片', true);
+    return;
+  }
+  sendChatImage(imageFile);
 }
 
 async function prepareChatImage(file) {

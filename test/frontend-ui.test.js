@@ -52,12 +52,28 @@ test('Markdown heading navigation ignores fenced code and matches preview anchor
   assert.doesNotMatch(preview, /id="note-heading-3"/);
 });
 
-test('reference documentation is the final navigation item', () => {
+test('notes keep file and heading navigation in fixed sidebar tabs with folder controls', () => {
+  assert.match(html, /id="note-files-tab"[^>]*role="tab"[^>]*>文件列表<\/button>/);
+  assert.match(html, /id="note-headings-tab"[^>]*role="tab"[^>]*>标题导航<\/button>/);
+  assert.match(html, /id="note-toc-list"[^>]*aria-label="当前笔记标题导航"/);
+  assert.match(html, /id="note-folder-list"/);
+  assert.match(html, /onclick="createNoteFolder\(\)"/);
+  assert.match(html, /id="note-folder-select"[^>]*onchange="moveCurrentNoteToFolder\(this\.value\)"/);
+  assert.match(html, /async function createNoteFolder\(\)/);
+  assert.match(html, /async function renameNoteFolder\(folderId\)/);
+  assert.match(html, /async function deleteNoteFolder\(folderId\)/);
+  assert.match(html, /笔记会移到“未分类”，不会被删除/);
+  assert.doesNotMatch(html, /note-toc-popover|toggleNoteToc/);
+});
+
+test('reference documentation is immediately to the left of theme controls', () => {
   const navStart = html.indexOf('<div class="app-nav-inner">');
   const navEnd = html.indexOf('</nav>', navStart);
   const nav = html.slice(navStart, navEnd);
-  assert.ok(nav.lastIndexOf('data-page="reference"') > nav.lastIndexOf('id="account-area"'));
-  assert.match(nav.trimEnd(), /<button class="app-tab" data-page="reference"[^>]*>📚 参考文档<\/button>\s*<\/div>$/);
+  const referenceIndex = nav.indexOf('data-page="reference"');
+  assert.ok(referenceIndex > nav.indexOf('id="chat-entry-btn"'));
+  assert.ok(referenceIndex < nav.indexOf('class="theme-setting"'));
+  assert.match(nav, /data-page="reference"[^>]*>📚 参考文档<\/button>\s*<label class="theme-setting"/);
   assert.match(html, /<section class="app-page" id="page-reference">/);
   assert.match(html, /href="\/reference\.html" target="_blank" rel="noopener noreferrer"/);
 });
@@ -115,6 +131,9 @@ test('chat UI exposes emoji and validated image controls', () => {
   assert.match(html, /accept="image\/jpeg,image\/png,image\/gif,image\/webp"/);
   assert.match(html, /async function prepareChatImage\(file\)/);
   assert.match(html, /async function sendChatImage\(file\)/);
+  assert.match(html, /addEventListener\('paste', handleChatPaste\)/);
+  assert.match(html, /function handleChatPaste\(event\)/);
+  assert.match(html, /clipboardData\?\.items/);
 
   const start = html.indexOf('function safeChatImageUrl');
   const end = html.indexOf('function toggleChatEmoji', start);
@@ -126,4 +145,10 @@ test('chat UI exposes emoji and validated image controls', () => {
   assert.equal(context.safeChatImageUrl(png), png);
   assert.equal(context.safeChatImageUrl('data:image/svg+xml;base64,PHN2Zz4='), '');
   assert.equal(context.safeChatImageUrl('javascript:alert(1)'), '');
+});
+
+test('fund flow failures expose an in-place retry action', () => {
+  assert.match(html, /className = 'chart-retry-btn'/);
+  assert.match(html, /retry\.addEventListener\('click', \(\) => loadChart\('fundFlow'\)\)/);
+  assert.match(html, /主力资金加载失败，请稍后重试/);
 });

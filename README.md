@@ -4,11 +4,11 @@
 
 主要能力：
 
-- 浏览自选股、全球指数、K 线和打新日历。
+- 浏览自选股、全球指数、K 线和打新日历；主力资金历史数据支持重试、长缓存及实时数据降级展示。
 - 支持账号密码注册/登录、微信开放平台扫码登录及安全会话。
 - 登录后按账号同步自选股、分组、主题、指标等页面配置。
-- 登录账号可以创建、编辑、删除、搜索和导入 Markdown 笔记，并通过悬浮标题导航快速定位内容。
-- 登录账号可以进入支持临时消息、图片、表情、缩放和未读数字提示的网页聊天室；游客不可访问。
+- 登录账号可以创建、编辑、删除、搜索和导入 Markdown 笔记；支持账号级文件夹分类，并可在左侧“文件列表 / 标题导航”之间切换。
+- 登录账号可以进入支持临时消息、图片、剪贴板图片粘贴、表情、缩放和未读数字提示的网页聊天室；游客不可访问。
 - 参考文档默认在当前页面内阅读，支持目录定位、重新加载、下载 Markdown 和新窗口打开。
 - 通过 `https://stock.sherlock-holmes.cn/?page=ipo` 直接打开打新页面。
 - 接收公众号关注、取消关注、文本消息和自定义菜单事件。
@@ -48,6 +48,7 @@ cp .env.example .env
 - 关闭聊天室会立即清空当前页面中的聊天内容；重新进入时从空白会话开始。最小化再恢复属于同一次进入，不会清空。
 - 浏览器只渲染当前会话最近 200 条事件，并最多保留其中 20 条图片消息，超过边界时从最早内容开始移除。
 - 支持 JPEG、PNG、GIF 和 WebP。单张最终图片不超过 768KB，普通图片可由浏览器自动压缩；原图上限 12MB，超限 GIF 不自动压缩。
+- 可以点击图片按钮选择文件，也可以在聊天输入框直接粘贴剪贴板中的截图或图片。
 - 图片仅通过当前 SSE 连接广播，不落盘；服务端会复核 MIME 类型、Base64 编码和文件签名。每个账号 1 分钟最多发送 3 张图片。
 - 表情按钮使用内置 Unicode 表情，本质上仍是普通文字消息。
 
@@ -128,25 +129,54 @@ CREATE TABLE IF NOT EXISTS user_oauth_states (
   KEY idx_user_oauth_states_expires (expires_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE IF NOT EXISTS user_note_folders (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  user_id BIGINT UNSIGNED NOT NULL,
+  name VARCHAR(80) NOT NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  UNIQUE KEY uk_user_note_folders_name (user_id, name),
+  KEY idx_user_note_folders_user (user_id),
+  CONSTRAINT fk_user_note_folders_user
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE IF NOT EXISTS user_notes (
   id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
   user_id BIGINT UNSIGNED NOT NULL,
+  folder_id BIGINT UNSIGNED NULL,
   title VARCHAR(200) NOT NULL DEFAULT '',
   content MEDIUMTEXT NOT NULL,
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (id),
   KEY idx_user_notes_user (user_id),
+  KEY idx_user_notes_folder (user_id, folder_id),
   KEY idx_user_notes_updated (user_id, updated_at),
   CONSTRAINT fk_user_notes_user
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  CONSTRAINT fk_user_notes_folder
+    FOREIGN KEY (folder_id) REFERENCES user_note_folders(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 ```
 
-账号服务需要数据库账号拥有 `SELECT`、`INSERT`、`UPDATE`、`DELETE` 权限。若让应用启动时自动建表，还需要 `CREATE`、`INDEX`、`REFERENCES`：
+已有 `user_notes` 表的环境，先执行上面的 `user_note_folders` 建表语句，再执行一次以下迁移；应用启动时会自动完成这两步检测与升级：
 
 ```sql
-GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, INDEX, REFERENCES
+ALTER TABLE user_notes
+  ADD COLUMN folder_id BIGINT UNSIGNED NULL AFTER user_id,
+  ADD KEY idx_user_notes_folder (user_id, folder_id),
+  ADD CONSTRAINT fk_user_notes_folder
+    FOREIGN KEY (folder_id) REFERENCES user_note_folders(id) ON DELETE SET NULL;
+```
+
+文件夹按账号隔离，每个账号最多创建 50 个。删除文件夹只会解除分类并把其中笔记移到“未分类”，不会删除笔记内容；新建和导入笔记时会沿用左侧当前选中的文件夹。
+
+账号服务需要数据库账号拥有 `SELECT`、`INSERT`、`UPDATE`、`DELETE` 权限。若让应用启动时自动建表和升级旧表，还需要 `CREATE`、`ALTER`、`INDEX`、`REFERENCES`：
+
+```sql
+GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, ALTER, INDEX, REFERENCES
   ON stock.*
   TO 'stock_wechat'@'<应用服务器私网IP>';
 ```
@@ -258,8 +288,9 @@ database/wechat_schema.sql      微信推送建表 SQL
 account/config.js               账号、会话、微信登录配置
 account/security.js             密码哈希、令牌与页面配置白名单
 account/database.js             MySQL/测试内存数据访问与自动建表
-account/service.js              注册、登录、配置同步、笔记和微信 OAuth 路由
+account/service.js              注册、登录、配置同步、笔记/文件夹和微信 OAuth 路由
 chat/chat.js                    仅登录账号可用、不保留历史的 SSE 实时聊天室
+fund-flow-history.js            主力资金历史解析、重试、缓存和并发请求合并
 public/reference-reader.js      站内页和独立页共用的参考文档安全渲染器
 wechat/config.js                配置读取和校验
 wechat/client.js                access_token、客服消息和自定义菜单 API
@@ -268,7 +299,7 @@ wechat/service.js               回调、内部接口、调度和发送流程
 wechat/weekly-ipo.js            每周/每日日期筛选及打新汇总
 wechat/xml.js                   微信 XML 消息解析和回复
 test/wechat.test.js             核心逻辑测试
-test/account.test.js            账号、配置与笔记归属流程测试
+test/account.test.js            账号、配置、笔记/文件夹归属流程测试
 test/chat.test.js               聊天登录、临时消息、图片安全、限流和连接测试
 ```
 
