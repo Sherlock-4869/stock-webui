@@ -288,6 +288,10 @@ test('minimizing a dragged chat places its icon beside the expanded window', () 
 test('chat UI exposes emoji and validated image controls', () => {
   assert.match(html, /id="chat-emoji-btn"/);
   assert.match(html, /id="chat-emoji-panel"/);
+  const emojiSource = html.match(/const CHAT_EMOJIS = \[([\s\S]*?)\];/);
+  assert.ok(emojiSource, 'chat emoji list should be present');
+  assert.ok((emojiSource[1].match(/'[^']+'/g) || []).length >= 80, 'chat should offer a broad emoji selection');
+  assert.match(html, /chat-emoji-panel\{[^}]*max-height:min\(310px,calc\(100vh - 120px\)\)[^}]*overflow-y:auto/);
   assert.match(html, /id="chat-image-btn"[\s\S]*?<svg class="chat-tool-icon"/);
   assert.match(html, /accept="image\/jpeg,image\/png,image\/gif,image\/webp"/);
   assert.match(html, /async function prepareChatImage\(file\)/);
