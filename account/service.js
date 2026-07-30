@@ -169,6 +169,19 @@ function publicUser(user) {
   };
 }
 
+function publicSiteRecommendation(site) {
+  let parsed;
+  try { parsed = new URL(String(site.url || '')); }
+  catch (_) { return null; }
+  if (!['http:', 'https:'].includes(parsed.protocol)) return null;
+  return {
+    id:String(site.id),
+    name:String(site.name || '').trim().slice(0, 100),
+    url:parsed.href,
+    description:String(site.description || '').trim().slice(0, 255),
+  };
+}
+
 function callbackPage(payload, returnTo = '/') {
   const serialized = JSON.stringify(payload).replace(/</g, '\\u003c').replace(/\u2028/g, '\\u2028').replace(/\u2029/g, '\\u2029');
   const label = payload.ok ? '微信登录成功，正在返回页面…' : `微信登录失败：${payload.error || '请重试'}`;
@@ -270,9 +283,25 @@ class AccountService {
 
   async handleRoute(req, res, urlObject) {
     const pathname = urlObject.pathname;
-    if (!pathname.startsWith('/api/auth/') && !pathname.startsWith('/api/notes') && !pathname.startsWith('/api/note-folders')) return false;
+    if (!pathname.startsWith('/api/auth/') && !pathname.startsWith('/api/notes') && !pathname.startsWith('/api/note-folders') && pathname !== '/api/site-recommendations') return false;
 
     try {
+      if (pathname === '/api/site-recommendations') {
+        if (req.method !== 'GET') {
+          sendJson(res, 405, { error:'Method Not Allowed' }, { Allow:'GET' });
+          return true;
+        }
+        if (!this.config.enabled || !this.ready) {
+          sendJson(res, 503, { error:'站点推荐暂不可用' });
+          return true;
+        }
+        const sites = (await this.database.listSiteRecommendations())
+          .map(publicSiteRecommendation)
+          .filter(site => site && site.name);
+        sendJson(res, 200, { sites });
+        return true;
+      }
+
       if (pathname === '/api/auth/me' && req.method === 'GET') {
         if (!this.config.enabled) {
           sendJson(res, 200, { enabled: false, wechatEnabled: false, user: null, config: null, needsConfigDecision: false });
@@ -633,4 +662,11 @@ function createAccountService(options) {
   return new AccountService(options);
 }
 
-module.exports = { AccountService, createAccountService, publicUser, readJson, assertSameOrigin };
+module.exports = {
+  AccountService,
+  createAccountService,
+  publicUser,
+  publicSiteRecommendation,
+  readJson,
+  assertSameOrigin,
+};

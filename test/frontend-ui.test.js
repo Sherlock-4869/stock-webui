@@ -117,11 +117,32 @@ test('reference documentation is immediately to the left of theme controls', () 
   const navEnd = html.indexOf('</nav>', navStart);
   const nav = html.slice(navStart, navEnd);
   const referenceIndex = nav.indexOf('data-page="reference"');
-  assert.ok(referenceIndex > nav.indexOf('id="chat-entry-btn"'));
+  const chatIndex = nav.indexOf('id="chat-entry-btn"');
+  const recommendationIndex = nav.indexOf('id="site-recommendations"');
+  assert.ok(recommendationIndex > chatIndex);
+  assert.ok(referenceIndex > recommendationIndex);
   assert.ok(referenceIndex < nav.indexOf('class="theme-setting"'));
   assert.match(nav, /data-page="reference"[^>]*>📚 参考文档<\/button>\s*<label class="theme-setting"/);
   assert.match(html, /<section class="app-page" id="page-reference">/);
   assert.match(html, /href="\/reference\.html" target="_blank" rel="noopener noreferrer"/);
+});
+
+test('site recommendation menu loads beside chat and opens safe links in new tabs', () => {
+  assert.match(html, /id="site-recommendation-trigger"[^>]*aria-haspopup="menu"/);
+  assert.match(html, /\.site-recommendations:hover \.site-recommendation-menu/);
+  assert.match(html, /apiRequest\('\/api\/site-recommendations'/);
+  assert.match(html, /link\.target = '_blank'/);
+  assert.match(html, /link\.rel = 'noopener noreferrer'/);
+
+  const start = html.indexOf('function safeRecommendedSiteUrl');
+  const end = html.indexOf('function renderSiteRecommendations', start);
+  assert.ok(start >= 0 && end > start);
+  const context = { URL };
+  vm.createContext(context);
+  vm.runInContext(html.slice(start, end), context);
+  assert.equal(context.safeRecommendedSiteUrl('https://pro.momoyu.cc'), 'https://pro.momoyu.cc/');
+  assert.equal(context.safeRecommendedSiteUrl('javascript:alert(1)'), '');
+  assert.equal(context.safeRecommendedSiteUrl('/relative'), '');
 });
 
 test('reference reader escapes source HTML and generates stable unique anchors', () => {

@@ -9,6 +9,7 @@
 - 登录后按账号同步自选股、分组、主题、指标等页面配置。
 - 登录账号可以创建、编辑、删除、搜索和导入 Markdown 笔记；支持账号级文件夹分类，并可在左侧“文件列表 / 标题导航”之间切换。
 - 登录账号可以进入支持临时消息、图片、剪贴板图片粘贴、表情、缩放和未读数字提示的网页聊天室；游客不可访问。
+- 聊天室右侧提供数据库驱动的站点推荐菜单，推荐链接在新标签页中打开。
 - 参考文档默认在当前页面内阅读，支持目录定位、重新加载、下载 Markdown 和新窗口打开。
 - 通过 `https://stock.sherlock-holmes.cn/?page=ipo` 直接打开打新页面。
 - 接收公众号关注、取消关注、文本消息和自定义菜单事件。
@@ -129,6 +130,23 @@ CREATE TABLE IF NOT EXISTS user_oauth_states (
   KEY idx_user_oauth_states_expires (expires_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE IF NOT EXISTS site_recommendations (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  name VARCHAR(100) NOT NULL,
+  url VARCHAR(500) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+  description VARCHAR(255) NOT NULL DEFAULT '',
+  sort_order INT NOT NULL DEFAULT 0,
+  is_active TINYINT(1) NOT NULL DEFAULT 1,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  UNIQUE KEY uk_site_recommendations_url (url),
+  KEY idx_site_recommendations_active_sort (is_active, sort_order, id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+INSERT IGNORE INTO site_recommendations (name, url, description, sort_order)
+VALUES ('Momoyu Pro', 'https://pro.momoyu.cc', '效率工具与信息聚合站点', 10);
+
 CREATE TABLE IF NOT EXISTS user_note_folders (
   id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
   user_id BIGINT UNSIGNED NOT NULL,
@@ -172,6 +190,8 @@ ALTER TABLE user_notes
 ```
 
 文件夹按账号隔离，每个账号最多创建 50 个。删除文件夹只会解除分类并把其中笔记移到“未分类”，不会删除笔记内容。新建或导入前可在顶部选择目标文件夹；打开笔记后可通过“归类到”把未分类笔记移入文件夹。
+
+站点推荐读取 `site_recommendations` 中 `is_active=1` 的记录，并按 `sort_order`、`id` 排序。当前默认写入 `Momoyu Pro`；后续可直接新增记录，或将 `is_active` 设为 `0` 隐藏站点。
 
 账号服务需要数据库账号拥有 `SELECT`、`INSERT`、`UPDATE`、`DELETE` 权限。若让应用启动时自动建表和升级旧表，还需要 `CREATE`、`ALTER`、`INDEX`、`REFERENCES`：
 
@@ -288,7 +308,7 @@ database/wechat_schema.sql      微信推送建表 SQL
 account/config.js               账号、会话、微信登录配置
 account/security.js             密码哈希、令牌与页面配置白名单
 account/database.js             MySQL/测试内存数据访问与自动建表
-account/service.js              注册、登录、配置同步、笔记/文件夹和微信 OAuth 路由
+account/service.js              注册、登录、配置同步、站点推荐、笔记/文件夹和微信 OAuth 路由
 chat/chat.js                    仅登录账号可用、不保留历史的 SSE 实时聊天室
 fund-flow-history.js            主力资金历史解析、重试、缓存和并发请求合并
 public/reference-reader.js      站内页和独立页共用的参考文档安全渲染器

@@ -71,6 +71,23 @@ CREATE TABLE IF NOT EXISTS user_oauth_states (
   KEY idx_user_oauth_states_expires (expires_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE IF NOT EXISTS site_recommendations (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  name VARCHAR(100) NOT NULL,
+  url VARCHAR(500) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+  description VARCHAR(255) NOT NULL DEFAULT '',
+  sort_order INT NOT NULL DEFAULT 0,
+  is_active TINYINT(1) NOT NULL DEFAULT 1,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  UNIQUE KEY uk_site_recommendations_url (url),
+  KEY idx_site_recommendations_active_sort (is_active, sort_order, id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+INSERT IGNORE INTO site_recommendations (name, url, description, sort_order)
+VALUES ('Momoyu Pro', 'https://pro.momoyu.cc', '效率工具与信息聚合站点', 10);
+
 CREATE TABLE IF NOT EXISTS user_note_folders (
   id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
   user_id BIGINT UNSIGNED NOT NULL,

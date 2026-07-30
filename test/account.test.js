@@ -4,6 +4,7 @@ const { Readable } = require('stream');
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { AccountService } = require('../account/service');
+const { SCHEMA_STATEMENTS, SITE_RECOMMENDATION_SEEDS } = require('../account/database');
 const { hashPassword, verifyPassword, sanitizePageConfig } = require('../account/security');
 
 async function startTestService() {
@@ -76,6 +77,27 @@ test('page config keeps only supported LocalStorage keys', () => {
     watchlist_v1:'["sh600519"]',
     stock_theme_v1:'light',
   } });
+});
+
+test('site recommendations are seeded and publicly readable', async t => {
+  assert.match(SCHEMA_STATEMENTS.join('\n'), /CREATE TABLE IF NOT EXISTS site_recommendations/);
+  assert.equal(SITE_RECOMMENDATION_SEEDS[0].url, 'https://pro.momoyu.cc');
+  const app = await startTestService();
+  t.after(app.close);
+
+  const result = await jsonRequest(app.service, '/api/site-recommendations');
+  assert.equal(result.response.status, 200);
+  assert.deepEqual(result.payload.sites, [{
+    id:'1',
+    name:'Momoyu Pro',
+    url:'https://pro.momoyu.cc/',
+    description:'效率工具与信息聚合站点',
+  }]);
+
+  const rejectedWrite = await jsonRequest(app.service, '/api/site-recommendations', {
+    method:'POST', body:{ name:'不能通过公开接口写入' },
+  });
+  assert.equal(rejectedWrite.response.status, 405);
 });
 
 test('account HTTP flow persists config across logout and password login', async t => {

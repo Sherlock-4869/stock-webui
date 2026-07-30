@@ -17,6 +17,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;b
 .app-tab{position:relative;display:inline-flex;align-items:center;justify-content:center;min-width:104px;flex:none;border:0;border-radius:7px;background:transparent;color:#8b949e;padding:8px 11px;font-size:13px;font-weight:600;text-decoration:none;white-space:nowrap;cursor:pointer;transition:.15s}
 .app-tab[data-page="notes"]{min-width:82px}.app-tab[data-page="reference"]{min-width:108px;margin-left:auto}
 .app-tab:hover{color:#e6edf3;background:#161b22}.app-tab.active{color:#fff;background:#1f3a5f}.app-tab-badge{display:inline-block;min-width:17px;margin-left:5px;padding:1px 5px;border-radius:9px;background:#30363d;color:#8b949e;font-size:9px;vertical-align:1px}.app-tab.active .app-tab-badge{background:#1f6feb;color:#fff}
+.site-recommendations{position:relative;flex:none}.site-recommendation-trigger{width:auto;min-width:104px;padding:8px 12px}.site-recommendation-menu{position:absolute;z-index:280;top:calc(100% + 7px);left:0;display:none;width:280px;padding:8px;border:1px solid #30363d;border-radius:9px;background:#161b22;box-shadow:0 14px 40px #0009}.site-recommendations:hover .site-recommendation-menu,.site-recommendations:focus-within .site-recommendation-menu,.site-recommendations.open .site-recommendation-menu{display:block}.site-recommendation-title{padding:5px 8px 8px;color:#6e7681;font-size:10px;font-weight:700;letter-spacing:.08em}.site-recommendation-item{display:flex;align-items:center;gap:9px;padding:9px;border-radius:7px;color:#c9d1d9;text-decoration:none;transition:.15s}.site-recommendation-item:hover,.site-recommendation-item:focus-visible{background:#21262d;color:#e6edf3;outline:none}.site-recommendation-icon{display:grid;place-items:center;flex:none;width:30px;height:30px;border-radius:8px;background:#1f6feb20;color:#79c0ff;font-size:15px}.site-recommendation-copy{min-width:0;flex:1}.site-recommendation-name,.site-recommendation-desc{display:block}.site-recommendation-name{font-size:12px;font-weight:650}.site-recommendation-desc{margin-top:2px;overflow:hidden;color:#6e7681;font-size:10px;line-height:1.35;text-overflow:ellipsis;white-space:nowrap}.site-recommendation-external{color:#6e7681;font-size:11px}.site-recommendation-status{padding:16px 9px;color:#6e7681;font-size:11px;text-align:center}
 .account-area{position:relative;flex:none;margin-left:4px}.account-trigger{display:flex;align-items:center;gap:7px;max-width:150px;height:32px;padding:0 10px;border:1px solid #30363d;border-radius:7px;background:#161b22;color:#c9d1d9;font-size:12px;cursor:pointer;transition:.15s}.account-trigger:hover{border-color:#58a6ff;background:#1c2128}.account-avatar{display:grid;place-items:center;flex:none;width:22px;height:22px;overflow:hidden;border-radius:50%;background:linear-gradient(135deg,#1f6feb,#8957e5);color:#fff;font-size:10px;font-weight:750}.account-avatar img{width:100%;height:100%;object-fit:cover}.account-label{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.account-chevron{color:#6e7681;font-size:9px}.account-menu{position:fixed;z-index:260;top:0;left:0;display:none;width:min(230px,calc(100vw - 24px));padding:7px;border:1px solid #30363d;border-radius:9px;background:#161b22;box-shadow:0 14px 40px #0008}.account-menu.open{display:block}.account-menu-head{display:flex;gap:9px;align-items:center;padding:8px 9px 10px;border-bottom:1px solid #30363d}.account-menu-name{overflow:hidden;text-overflow:ellipsis;font-size:13px;font-weight:650}.account-menu-id{overflow:hidden;text-overflow:ellipsis;margin-top:2px;color:#6e7681;font-size:10px}.account-menu-item{display:flex;width:100%;align-items:center;gap:8px;margin-top:4px;padding:8px 9px;border:0;border-radius:6px;background:transparent;color:#c9d1d9;text-align:left;font-size:12px;cursor:pointer}.account-menu-item:hover{background:#21262d}.account-menu-item.danger{color:#f85149}.account-sync-note{padding:6px 9px 3px;color:#6e7681;font-size:10px}
 .app-page{display:none}.app-page.active{display:block;animation:page-in .18s ease-out}@keyframes page-in{from{opacity:.3;transform:translateY(3px)}}
 .refresh-setting{display:flex;align-items:center;gap:6px;color:#8b949e;font-size:11px;white-space:nowrap}
@@ -277,6 +278,7 @@ html[data-theme="light"] .refresh-btn,html[data-theme="light"] .dialog-btn,html[
 html[data-theme="light"] .refresh-btn:hover,html[data-theme="light"] .dialog-btn:hover,html[data-theme="light"] .filter-chip:hover{background:#eaeef2}
 html[data-theme="light"] .dialog-btn.primary{background:#1f883d;border-color:#1f883d;color:#fff}html[data-theme="light"] .dialog-btn.danger{color:#cf222e}html[data-theme="light"] .filter-chip.active,html[data-theme="light"] .period-btn.active{background:#ddf4ff;border-color:#54aeff;color:#0969da}
 html[data-theme="light"] .account-trigger,html[data-theme="light"] .account-menu{background:#fff;border-color:#d0d7de;color:#1f2328}html[data-theme="light"] .account-trigger:hover,html[data-theme="light"] .account-menu-item:hover{background:#f6f8fa}html[data-theme="light"] .account-menu-head,html[data-theme="light"] .auth-hero,html[data-theme="light"] .auth-tabs,html[data-theme="light"] .settings-user,html[data-theme="light"] .config-choice-list{border-color:#d0d7de}html[data-theme="light"] .account-menu-item{color:#1f2328}html[data-theme="light"] .account-menu-item.danger{color:#cf222e}html[data-theme="light"] .auth-hero{background:linear-gradient(135deg,#ddf4ff,#fbefff)}html[data-theme="light"] .auth-divider::before,html[data-theme="light"] .auth-divider::after{background:#d0d7de}html[data-theme="light"] .config-choice-list{background:#f6f8fa;color:#1f2328}html[data-theme="light"] .toast{background:#fff;border-color:#d0d7de;color:#1f2328;box-shadow:0 10px 35px #1f232833}
+html[data-theme="light"] .site-recommendation-menu{background:#fff;border-color:#d0d7de;box-shadow:0 14px 40px #1f232826}html[data-theme="light"] .site-recommendation-item{color:#1f2328}html[data-theme="light"] .site-recommendation-item:hover,html[data-theme="light"] .site-recommendation-item:focus-visible{background:#f6f8fa;color:#0969da}html[data-theme="light"] .site-recommendation-icon{background:#ddf4ff;color:#0969da}
 html[data-theme="light"] .metric-option{background:#f6f8fa;border-color:#d7e0ea}
 html[data-theme="light"] .refresh-interval-select,html[data-theme="light"] .market-row-select,html[data-theme="light"] .form-input,html[data-theme="light"] .form-select,html[data-theme="light"] .search-wrap input{background-color:#fff;border-color:#d0d7de;color:#1f2328}
 html[data-theme="light"] .dropdown{background:#fff;border-color:#d0d7de;box-shadow:0 8px 24px #1f23281f}html[data-theme="light"] .dd-item:hover,html[data-theme="light"] .dd-item.active{background:#f0f3f6}html[data-theme="light"] .dd-item.selected{background:#ddf4ff}
@@ -451,6 +453,10 @@ html[data-theme="light"] .reference-retry{background:#f6f8fa;border-color:#d0d7d
     <button class="app-tab" data-page="alerts" onclick="switchAppPage('alerts')">⚡ 自选异动<span class="app-tab-badge" id="alert-badge">0</span></button>
     <button class="app-tab" data-page="notes" onclick="switchAppPage('notes')">📝 笔记</button>
     <button class="app-tab" id="chat-entry-btn" onclick="openChatRoom()" style="width:auto;padding:8px 14px">💬 聊天室</button>
+    <div class="site-recommendations" id="site-recommendations" onmouseenter="loadSiteRecommendations()">
+      <button class="app-tab site-recommendation-trigger" id="site-recommendation-trigger" type="button" aria-haspopup="menu" aria-expanded="false" onclick="toggleSiteRecommendations(event)" onfocus="loadSiteRecommendations()">🌐 站点推荐</button>
+      <div class="site-recommendation-menu" id="site-recommendation-menu" role="menu" aria-label="站点推荐"><div class="site-recommendation-status">正在加载推荐站点…</div></div>
+    </div>
     <button class="app-tab" data-page="reference" type="button" onclick="switchAppPage('reference')">📚 参考文档</button>
     <label class="theme-setting" for="theme-select"><span>主题</span><select class="refresh-interval-select" id="theme-select" onchange="setThemePreference(this.value)"><option value="light">浅色</option><option value="dark">深色</option><option value="system">跟随系统</option></select></label>
     <div class="account-area" id="account-area">
@@ -849,6 +855,8 @@ let accountConfigReady = false;
 let accountConfigSyncTimer = null;
 let lastSyncedAccountConfig = '';
 let toastTimer = null;
+let siteRecommendationsLoaded = false;
+let siteRecommendationsLoadPromise = null;
 
 function resolvedTheme() { return themePreference === 'system' ? (systemThemeQuery.matches ? 'light' : 'dark') : themePreference; }
 function applyThemePreference() {
@@ -3257,8 +3265,98 @@ async function bootstrapAccount() {
   renderAccountArea();
 }
 
+function safeRecommendedSiteUrl(value) {
+  try {
+    const url = new URL(String(value || ''));
+    return ['http:', 'https:'].includes(url.protocol) ? url.href : '';
+  } catch (_) {
+    return '';
+  }
+}
+
+function renderSiteRecommendations(sites) {
+  const menu = document.getElementById('site-recommendation-menu');
+  if (!menu) return;
+  menu.replaceChildren();
+  const title = document.createElement('div');
+  title.className = 'site-recommendation-title';
+  title.textContent = '推荐站点';
+  menu.appendChild(title);
+  let rendered = 0;
+  for (const site of Array.isArray(sites) ? sites : []) {
+    const url = safeRecommendedSiteUrl(site.url);
+    const name = String(site.name || '').trim();
+    if (!url || !name) continue;
+    const link = document.createElement('a');
+    link.className = 'site-recommendation-item';
+    link.href = url;
+    link.target = '_blank';
+    link.rel = 'noopener noreferrer';
+    link.setAttribute('role', 'menuitem');
+    const icon = document.createElement('span');
+    icon.className = 'site-recommendation-icon';
+    icon.textContent = name.slice(0, 1).toUpperCase();
+    const copy = document.createElement('span');
+    copy.className = 'site-recommendation-copy';
+    const nameElement = document.createElement('span');
+    nameElement.className = 'site-recommendation-name';
+    nameElement.textContent = name;
+    const description = document.createElement('span');
+    description.className = 'site-recommendation-desc';
+    description.textContent = String(site.description || new URL(url).hostname);
+    const external = document.createElement('span');
+    external.className = 'site-recommendation-external';
+    external.textContent = '↗';
+    copy.append(nameElement, description);
+    link.append(icon, copy, external);
+    link.addEventListener('click', closeSiteRecommendations);
+    menu.appendChild(link);
+    rendered += 1;
+  }
+  if (!rendered) {
+    const empty = document.createElement('div');
+    empty.className = 'site-recommendation-status';
+    empty.textContent = '暂无推荐站点';
+    menu.appendChild(empty);
+  }
+}
+
+async function loadSiteRecommendations() {
+  if (siteRecommendationsLoaded) return;
+  if (siteRecommendationsLoadPromise) return siteRecommendationsLoadPromise;
+  siteRecommendationsLoadPromise = (async () => {
+    try {
+      const payload = await apiRequest('/api/site-recommendations', { method:'GET', headers:{} });
+      renderSiteRecommendations(payload.sites || []);
+      siteRecommendationsLoaded = true;
+    } catch (_) {
+      const menu = document.getElementById('site-recommendation-menu');
+      if (menu) menu.innerHTML = '<div class="site-recommendation-status">站点列表暂不可用</div>';
+    } finally {
+      siteRecommendationsLoadPromise = null;
+    }
+  })();
+  return siteRecommendationsLoadPromise;
+}
+
+function toggleSiteRecommendations(event) {
+  event?.stopPropagation();
+  const container = document.getElementById('site-recommendations');
+  const trigger = document.getElementById('site-recommendation-trigger');
+  const open = !container.classList.contains('open');
+  container.classList.toggle('open', open);
+  trigger.setAttribute('aria-expanded', String(open));
+  if (open) loadSiteRecommendations();
+}
+
+function closeSiteRecommendations() {
+  document.getElementById('site-recommendations')?.classList.remove('open');
+  document.getElementById('site-recommendation-trigger')?.setAttribute('aria-expanded', 'false');
+}
+
 async function initializeApplication() {
   await bootstrapAccount();
+  loadSiteRecommendations();
   reloadRuntimeConfigFromStorage();
   applyListColorPreference();
   applyThemePreference();
@@ -3279,6 +3377,8 @@ async function initializeApplication() {
 }
 
 document.addEventListener('click', event => { if (!event.target.closest('#account-area') && !event.target.closest('#account-menu')) closeAccountMenu(); });
+document.addEventListener('click', event => { if (!event.target.closest('#site-recommendations')) closeSiteRecommendations(); });
+document.addEventListener('keydown', event => { if (event.key === 'Escape') closeSiteRecommendations(); });
 window.addEventListener('resize', positionAccountMenu);
 document.querySelector('.app-nav').addEventListener('scroll', positionAccountMenu, { passive:true });
 window.addEventListener('message', event => {

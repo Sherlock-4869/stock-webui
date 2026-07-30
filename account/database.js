@@ -2,6 +2,15 @@
 
 const mysql = require('mysql2/promise');
 
+const SITE_RECOMMENDATION_SEEDS = [
+  {
+    name:'Momoyu Pro',
+    url:'https://pro.momoyu.cc',
+    description:'效率工具与信息聚合站点',
+    sortOrder:10,
+  },
+];
+
 const SCHEMA_STATEMENTS = [
   `CREATE TABLE IF NOT EXISTS users (
     id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -64,6 +73,19 @@ const SCHEMA_STATEMENTS = [
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (state_hash),
     KEY idx_user_oauth_states_expires (expires_at)
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
+  `CREATE TABLE IF NOT EXISTS site_recommendations (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    name VARCHAR(100) NOT NULL,
+    url VARCHAR(500) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+    description VARCHAR(255) NOT NULL DEFAULT '',
+    sort_order INT NOT NULL DEFAULT 0,
+    is_active TINYINT(1) NOT NULL DEFAULT 1,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_site_recommendations_url (url),
+    KEY idx_site_recommendations_active_sort (is_active, sort_order, id)
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
   `CREATE TABLE IF NOT EXISTS user_note_folders (
     id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -152,6 +174,13 @@ class AccountDatabase {
     try {
       for (const statement of SCHEMA_STATEMENTS) await connection.query(statement);
       await ensureNoteFolderSchema(connection, this.config.database);
+      for (const site of SITE_RECOMMENDATION_SEEDS) {
+        await connection.execute(
+          `INSERT IGNORE INTO site_recommendations (name, url, description, sort_order)
+           VALUES (?, ?, ?, ?)`,
+          [site.name, site.url, site.description, site.sortOrder]
+        );
+      }
     } finally {
       connection.release();
     }
@@ -165,6 +194,17 @@ class AccountDatabase {
   async close() {
     if (this.pool) await this.pool.end();
     this.pool = null;
+  }
+
+  async listSiteRecommendations() {
+    const [rows] = await this.requirePool().execute(
+      `SELECT id, name, url, description
+       FROM site_recommendations
+       WHERE is_active=1
+       ORDER BY sort_order ASC, id ASC
+       LIMIT 50`
+    );
+    return rows;
   }
 
   async createPasswordUser({ username, passwordHash, displayName }) {
@@ -434,6 +474,14 @@ class MemoryAccountDatabase {
     this.states = new Map();
     this.notes = new Map();
     this.noteFolders = new Map();
+    this.siteRecommendations = SITE_RECOMMENDATION_SEEDS.map((site, index) => ({
+      id:index + 1,
+      name:site.name,
+      url:site.url,
+      description:site.description,
+      sort_order:site.sortOrder,
+      is_active:1,
+    }));
     this.nextUserId = 1;
     this.nextSessionId = 1;
     this.nextNoteId = 1;
@@ -442,6 +490,14 @@ class MemoryAccountDatabase {
 
   async initialize() {}
   async close() {}
+
+  async listSiteRecommendations() {
+    return this.siteRecommendations
+      .filter(site => site.is_active)
+      .sort((a, b) => a.sort_order - b.sort_order || a.id - b.id)
+      .slice(0, 50)
+      .map(({ id, name, url, description }) => ({ id, name, url, description }));
+  }
 
   cloneUser(user) { return user ? { ...user } : null; }
 
@@ -641,4 +697,10 @@ class MemoryAccountDatabase {
   }
 }
 
-module.exports = { AccountDatabase, MemoryAccountDatabase, SCHEMA_STATEMENTS, ensureNoteFolderSchema };
+module.exports = {
+  AccountDatabase,
+  MemoryAccountDatabase,
+  SCHEMA_STATEMENTS,
+  SITE_RECOMMENDATION_SEEDS,
+  ensureNoteFolderSchema,
+};
