@@ -298,7 +298,7 @@ test('chat UI exposes emoji and validated image controls', () => {
     const codePoint = char.codePointAt(0);
     return codePoint >= 0x1F1E6 && codePoint <= 0x1F1FF;
   })), false, 'chat emoji should exclude flags');
-  assert.match(html, /chat-emoji-panel\{[^}]*grid-template-columns:repeat\(8,30px\)[^}]*width:261px[^}]*overflow-x:hidden[^}]*overflow-y:auto/);
+  assert.match(html, /chat-emoji-panel\{[^}]*grid-template-columns:repeat\(8,30px\)[^}]*column-gap:3px[^}]*row-gap:2px[^}]*width:298px[^}]*overflow-x:hidden[^}]*overflow-y:auto/);
   assert.match(html, /id="chat-image-btn"[\s\S]*?<svg class="chat-tool-icon"/);
   assert.match(html, /accept="image\/jpeg,image\/png,image\/gif,image\/webp"/);
   assert.match(html, /async function prepareChatImage\(file\)/);
