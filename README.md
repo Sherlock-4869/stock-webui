@@ -1,17 +1,19 @@
 # Stock Monitor：股票监控与微信公众号打新提醒
 
-这是一个直接运行于 Node.js 的股票监控服务，提供自选股行情、全球市场概览、K 线、异动消息和新股申购日历，并在现有服务中集成微信公众号回调、菜单和每周打新提醒。
+这是一个直接运行于 Node.js 的股票监控服务，提供自选股行情、全球市场概览、K 线、异动消息和新股申购日历，并在现有服务中集成微信公众号回调、菜单以及每周汇总和当日打新提醒。
 
 主要能力：
 
 - 浏览自选股、全球指数、K 线和打新日历。
 - 支持账号密码注册/登录、微信开放平台扫码登录及安全会话。
 - 登录后按账号同步自选股、分组、主题、指标等页面配置。
-- 登录账号可以创建、编辑、删除、搜索和导入 Markdown 笔记。
-- 登录账号可以进入支持实时消息、缩放和未读数字提示的网页聊天室；游客不可访问。
+- 登录账号可以创建、编辑、删除、搜索和导入 Markdown 笔记，并通过悬浮标题导航快速定位内容。
+- 登录账号可以进入支持临时消息、图片、表情、缩放和未读数字提示的网页聊天室；游客不可访问。
+- 参考文档默认在当前页面内阅读，支持目录定位、重新加载、下载 Markdown 和新窗口打开。
 - 通过 `https://stock.sherlock-holmes.cn/?page=ipo` 直接打开打新页面。
 - 接收公众号关注、取消关注、文本消息和自定义菜单事件。
 - 每周一 `09:00` 按上海时区汇总本周可申购新股。
+- 每天 `09:00` 检查当日可申购新股，有数据时追加发送当日提醒，无数据时不推送。
 - 推送内容包含名称、申购代码、所属板块、申购日期和发行价。
 - 使用 MySQL 保存关注者、任务和逐用户发送结果。
 
@@ -39,6 +41,15 @@ cp .env.example .env
 - 已有账号配置时，登录后优先加载账号配置，并在页面发生变化后自动同步。
 - 登录前的访客配置会单独备份；退出登录后恢复访客配置，避免把账号数据遗留给未登录页面。
 - 密码使用 Node.js 原生 `scrypt` 加盐哈希。浏览器 Cookie 只保存随机会话令牌，数据库只保存令牌的 SHA-256；Cookie 使用 `HttpOnly`、`SameSite=Lax`，HTTPS 下自动增加 `Secure`。
+
+### 聊天室临时消息规则
+
+- 聊天消息不写入数据库、文件或服务端历史缓存，进入聊天室后只能收到此后实时发送的消息。
+- 关闭聊天室会立即清空当前页面中的聊天内容；重新进入时从空白会话开始。最小化再恢复属于同一次进入，不会清空。
+- 浏览器只渲染当前会话最近 200 条事件，并最多保留其中 20 条图片消息，超过边界时从最早内容开始移除。
+- 支持 JPEG、PNG、GIF 和 WebP。单张最终图片不超过 768KB，普通图片可由浏览器自动压缩；原图上限 12MB，超限 GIF 不自动压缩。
+- 图片仅通过当前 SSE 连接广播，不落盘；服务端会复核 MIME 类型、Base64 编码和文件签名。每个账号 1 分钟最多发送 3 张图片。
+- 表情按钮使用内置 Unicode 表情，本质上仍是普通文字消息。
 
 ### 账号建表 SQL
 
@@ -248,23 +259,25 @@ account/config.js               账号、会话、微信登录配置
 account/security.js             密码哈希、令牌与页面配置白名单
 account/database.js             MySQL/测试内存数据访问与自动建表
 account/service.js              注册、登录、配置同步、笔记和微信 OAuth 路由
-chat/chat.js                    仅登录账号可用的 SSE 实时聊天室
+chat/chat.js                    仅登录账号可用、不保留历史的 SSE 实时聊天室
+public/reference-reader.js      站内页和独立页共用的参考文档安全渲染器
 wechat/config.js                配置读取和校验
 wechat/client.js                access_token、客服消息和自定义菜单 API
 wechat/database.js              MySQL 数据访问和自动建表
 wechat/service.js               回调、内部接口、调度和发送流程
-wechat/weekly-ipo.js            本周日期及打新汇总
+wechat/weekly-ipo.js            每周/每日日期筛选及打新汇总
 wechat/xml.js                   微信 XML 消息解析和回复
 test/wechat.test.js             核心逻辑测试
 test/account.test.js            账号、配置与笔记归属流程测试
-test/chat.test.js               聊天登录、身份、限流和连接测试
+test/chat.test.js               聊天登录、临时消息、图片安全、限流和连接测试
 ```
 
 现有文件的调整：
 
 - `server.js` 增加账号、聊天室和微信路由，并在服务启动后启动相关模块。
 - `run.sh` 启动时自动读取项目 `.env`，不会修改系统全局环境变量。
-- `public/index.html` 提供行情、打新、异动、账号笔记和浮动聊天室界面。
+- `public/index.html` 提供行情、打新、异动、账号笔记、站内参考文档和浮动聊天室界面；页面标签同步到 `?page=`，支持刷新、分享及浏览器前进/后退。
+- `public/reference.html` 保留独立阅读模式，供用户从站内文档页选择“新窗口打开”。
 - `.gitignore` 排除 `.env`、`node_modules` 和运行日志。
 
 ## 3. 完整逻辑流程
@@ -280,17 +293,17 @@ test/chat.test.js               聊天登录、身份、限流和连接测试
               ↓
 写入 wechat_subscribers
 
-每周一上海时间 09:00
+每周一上海时间 09:00，或每天上海时间 09:00
               ↓
 调用现有 loadIpoCalendar()
               ↓
-筛选本周一至本周日 applyDate
+筛选本周一至本周日，或等于当天的 applyDate
               ↓
 生成一条文本汇总
               ↓
 数据库 GET_LOCK 防止多实例并发
               ↓
-创建 weekly-ipo:YYYY-MM-DD 唯一任务
+创建 weekly-ipo:YYYY-MM-DD 或 daily-ipo:YYYY-MM-DD 唯一任务
               ↓
 读取 subscribed=1 且 ipo_notify_enabled=1 的 OpenID
               ↓
@@ -299,13 +312,15 @@ test/chat.test.js               聊天登录、身份、限流和连接测试
 记录 sent 或 failed 及微信错误码
 ```
 
-即使服务在周一 `09:00` 没有运行，只要 `STOCK_WECHAT_SCHEDULE_CATCHUP=true`，当天稍后恢复运行时仍会补执行。数据库中的周任务唯一键保证同一周不会成功发送两次。
+即使服务在计划时间没有运行，只要 `STOCK_WECHAT_SCHEDULE_CATCHUP=true`，当天稍后恢复运行时仍会补执行。数据库任务唯一键保证同一周的周报、同一天的当日提醒都不会成功发送两次。
 
 如果本周没有新股，系统仍会发送：
 
 ```text
 本周暂无可申购新股。
 ```
+
+每日任务仅在当天存在可申购新股时创建并发送；当天没有新股时不会发送空提醒。
 
 ## 4. 第一步：保护和轮换敏感凭证
 
@@ -360,7 +375,7 @@ USE stock;
 CREATE TABLE IF NOT EXISTS wechat_subscribers (
   openid VARCHAR(128) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
   subscribed TINYINT(1) NOT NULL DEFAULT 1 COMMENT '是否仍关注公众号',
-  ipo_notify_enabled TINYINT(1) NOT NULL DEFAULT 1 COMMENT '是否接收每周打新提醒',
+  ipo_notify_enabled TINYINT(1) NOT NULL DEFAULT 1 COMMENT '是否接收打新提醒',
   source VARCHAR(32) NOT NULL DEFAULT 'callback',
   last_interaction_at DATETIME NULL,
   subscribed_at DATETIME NULL,
@@ -441,6 +456,9 @@ STOCK_WECHAT_SCHEDULE_WEEKDAY=1
 STOCK_WECHAT_SCHEDULE_HOUR=9
 STOCK_WECHAT_SCHEDULE_MINUTE=0
 STOCK_WECHAT_SCHEDULE_CATCHUP=true
+STOCK_WECHAT_DAILY_IPO_ENABLED=true
+STOCK_WECHAT_DAILY_IPO_HOUR=9
+STOCK_WECHAT_DAILY_IPO_MINUTE=0
 
 STOCK_DB_HOST=填写数据库主机名或IP，不要附带端口
 STOCK_DB_PORT=3306
@@ -538,8 +556,8 @@ GET /wechat/callback?signature=...&timestamp=...&nonce=...&echostr=...
 启用消息推送后，平台原有自动回复能力可能受影响。当前代码已经接管以下文本回复：
 
 ```text
-打新 / 开启打新      开启每周提醒
-取消打新 / 关闭打新  关闭每周提醒
+打新 / 开启打新      开启打新提醒
+取消打新 / 关闭打新  关闭打新提醒
 本周打新 / 本周新股  立即被动回复本周新股
 ```
 
@@ -601,7 +619,7 @@ STOCK_NPM_BIN=/root/miniconda3/bin/npm
 
 ```text
 Stock monitor running at http://localhost:3000
-WeChat weekly IPO notification ready (Asia/Shanghai, weekday=1, 09:00)
+WeChat IPO notification ready (Asia/Shanghai, weekly weekday=1 09:00; daily IPO 09:00)
 ```
 
 如果数据库或微信配置不正确，现有股票页面仍会启动，日志会单独显示微信模块初始化失败。
@@ -735,30 +753,52 @@ curl -X POST \
 
 只有确认失败原因已经排除后才应执行重试。
 
+### 12.6 预览或执行当日推送
+
+预览当天内容，不创建任务、不调用微信发送接口：
+
+```bash
+curl -X POST \
+  -H 'X-Admin-Key: <管理密钥>' \
+  'https://stock.sherlock-holmes.cn/internal/wechat/ipo/daily/run?dry_run=1'
+```
+
+手动执行当天推送：
+
+```bash
+curl -X POST \
+  -H 'X-Admin-Key: <管理密钥>' \
+  https://stock.sherlock-holmes.cn/internal/wechat/ipo/daily/run
+```
+
+当天无可申购新股时返回 `accepted=false`，不会创建任务；当天任务已经完成时不会重复发送。失败用户可在确认故障排除后增加 `?retry_failed=1` 重试。
+
 ## 13. 定时规则
 
 默认配置：
 
 ```text
 时区：Asia/Shanghai
-星期：1，即周一
-时间：09:00
+每周汇总：星期 1（周一）09:00
+当日提醒：每天 09:00，且仅在当天有可申购新股时发送
 补执行：开启
 ```
 
-调度器每 30 秒检查一次时间。到达周一 `09:00` 后，数据库创建：
+调度器每 30 秒检查一次时间。到达计划时间且有对应内容后，数据库使用以下任务键：
 
 ```text
 weekly-ipo:本周一日期
+daily-ipo:当天日期
 ```
 
 例如：
 
 ```text
 weekly-ipo:2026-07-27
+daily-ipo:2026-07-30
 ```
 
-该字段具有唯一索引。单进程重启、周一补执行和多实例同时运行都不会创建第二个相同任务；MySQL `GET_LOCK` 还会阻止多实例同时发送。
+该字段具有唯一索引。单进程重启、补执行和多实例同时运行都不会创建第二个相同任务；MySQL `GET_LOCK` 还会阻止多实例同时发送。可通过 `STOCK_WECHAT_DAILY_IPO_ENABLED=false` 单独关闭当日提醒，并用 `STOCK_WECHAT_DAILY_IPO_HOUR`、`STOCK_WECHAT_DAILY_IPO_MINUTE` 调整发送时间。
 
 ## 14. 消息内容示例
 
@@ -778,6 +818,8 @@ weekly-ipo:2026-07-27
 
 最多列出 20 只，文本总长度限制在约 1900 字符内，避免超过微信文本消息长度限制。
 
+当日提醒格式为 `【今日新股申购提醒】`，只列出 `applyDate` 等于当天的股票；其余字段和长度限制与周报一致。
+
 ## 15. 数据库状态说明
 
 ### 15.1 `wechat_subscribers`
@@ -792,7 +834,7 @@ weekly-ipo:2026-07-27
 
 ### 15.2 `wechat_push_jobs`
 
-每周最多一条任务，状态包括：
+每周汇总最多一条任务，每日提醒最多一条任务。每日任务的 `week_start` 和 `week_end` 都保存当天日期。状态包括：
 
 ```text
 pending
@@ -916,8 +958,8 @@ WHERE job_key = 'weekly-ipo:对应周一日期';
 - OpenID 与提醒状态持久化。
 - access_token 缓存和失效刷新。
 - 客服文本消息发送。
-- 本周 IPO 计算和消息生成。
-- 每周一 `09:00` 调度及当天补执行。
+- 每周及当日 IPO 计算和消息生成。
+- 每周一汇总、每日有股提醒及当天补执行。
 - MySQL 分布式锁和唯一键防重。
 - 逐用户发送结果和错误码记录。
 - 手动预览、执行、失败重试和用户同步接口。

@@ -2,7 +2,15 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { weekRange, selectWeekIpos, formatBoard, buildWeeklyMessage, zonedParts } = require('../wechat/weekly-ipo');
+const {
+  weekRange,
+  selectWeekIpos,
+  selectDailyIpos,
+  formatBoard,
+  buildWeeklyMessage,
+  buildDailyMessage,
+  zonedParts,
+} = require('../wechat/weekly-ipo');
 const { parseWechatXml, textReplyXml } = require('../wechat/xml');
 const { buildDefaultMenu, signatureFor } = require('../wechat/service');
 const { loadWechatConfig } = require('../wechat/config');
@@ -39,6 +47,26 @@ test('weekly message contains IPO details and target page', () => {
   assert.match(content, /测试股份/);
   assert.match(content, /板块 科创板/);
   assert.match(content, /12\.50元/);
+  assert.match(content, /https:\/\/stock\.example\/\?page=ipo/);
+});
+
+test('daily IPO selection only includes the requested subscription date', () => {
+  const rows = [
+    { code: '3', applyDate: '2026-07-31 00:00:00' },
+    { code: '2', applyDate: '2026-07-30 09:30:00' },
+    { code: '1', applyDate: '2026-07-30' },
+  ];
+  assert.deepEqual(selectDailyIpos(rows, '2026-07-30').map(item => item.code), ['1', '2']);
+});
+
+test('daily message contains today IPO details and target page', () => {
+  const content = buildDailyMessage([
+    { name: '今日股份', applyCode: '787002', applyDate: '2026-07-30', price: 8.25, board: '科创板' },
+  ], '2026-07-30', 'https://stock.example/?page=ipo');
+  assert.match(content, /今日新股申购提醒/);
+  assert.match(content, /2026-07-30 周四/);
+  assert.match(content, /今日股份/);
+  assert.match(content, /8\.25元/);
   assert.match(content, /https:\/\/stock\.example\/\?page=ipo/);
 });
 
@@ -95,4 +123,19 @@ test('configuration never requires secrets while integration is disabled', () =>
   const enabled = loadWechatConfig({ STOCK_WECHAT_ENABLED: 'true' });
   assert.ok(enabled.missing.includes('STOCK_WECHAT_APP_SECRET'));
   assert.ok(enabled.missing.includes('STOCK_DB_PASSWORD'));
+});
+
+test('daily IPO notification is enabled by default and can be configured', () => {
+  const defaults = loadWechatConfig({});
+  assert.equal(defaults.dailyIpoEnabled, true);
+  assert.equal(defaults.dailyIpoHour, 9);
+  assert.equal(defaults.dailyIpoMinute, 0);
+  const configured = loadWechatConfig({
+    STOCK_WECHAT_DAILY_IPO_ENABLED: 'false',
+    STOCK_WECHAT_DAILY_IPO_HOUR: '8',
+    STOCK_WECHAT_DAILY_IPO_MINUTE: '45',
+  });
+  assert.equal(configured.dailyIpoEnabled, false);
+  assert.equal(configured.dailyIpoHour, 8);
+  assert.equal(configured.dailyIpoMinute, 45);
 });

@@ -38,6 +38,10 @@ function selectWeekIpos(rows, range) {
     .sort((a, b) => String(a.applyDate).localeCompare(String(b.applyDate)) || String(a.code).localeCompare(String(b.code)));
 }
 
+function selectDailyIpos(rows, dateKey) {
+  return selectWeekIpos(rows, { start: dateKey, end: dateKey });
+}
+
 function formatPrice(value) {
   const number = Number(value);
   return Number.isFinite(number) && number > 0 ? `${number.toFixed(2)}元` : '待公布';
@@ -76,4 +80,31 @@ function buildWeeklyMessage(items, range, pageUrl) {
   return content.length <= 1900 ? content : `${content.slice(0, 1870)}\n…\n详情：${pageUrl}`;
 }
 
-module.exports = { zonedParts, shiftDateKey, weekRange, selectWeekIpos, formatBoard, buildWeeklyMessage };
+function buildDailyMessage(items, dateKey, pageUrl) {
+  const weekday = WEEKDAY_NAMES[new Date(`${dateKey}T00:00:00Z`).getUTCDay()];
+  const lines = ['【今日新股申购提醒】', `${dateKey} ${weekday}`];
+  if (!items.length) {
+    lines.push('', '今日暂无可申购新股。');
+  } else {
+    lines.push('', `今日共 ${items.length} 只：`);
+    items.slice(0, 20).forEach((item, index) => {
+      lines.push(`${index + 1}. ${item.name || '--'}（${item.applyCode || item.code || '--'}）`);
+      lines.push(`   板块 ${formatBoard(item)}｜发行价 ${formatPrice(item.price)}`);
+    });
+    if (items.length > 20) lines.push(`另有 ${items.length - 20} 只，请打开页面查看。`);
+  }
+  lines.push('', `详情：${pageUrl}`, '数据以交易所最终公告为准，不构成投资建议。');
+  const content = lines.join('\n');
+  return content.length <= 1900 ? content : `${content.slice(0, 1870)}\n…\n详情：${pageUrl}`;
+}
+
+module.exports = {
+  zonedParts,
+  shiftDateKey,
+  weekRange,
+  selectWeekIpos,
+  selectDailyIpos,
+  formatBoard,
+  buildWeeklyMessage,
+  buildDailyMessage,
+};

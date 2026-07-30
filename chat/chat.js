@@ -3,14 +3,17 @@
 const crypto = require('crypto');
 const { assertSameOrigin } = require('../account/service');
 
-const MAX_MESSAGES = 200;
 const MAX_MESSAGE_LENGTH = 500;
-const MAX_REQUEST_BYTES = 4096;
+const MAX_IMAGE_BYTES = 768 * 1024;
+const MAX_REQUEST_BYTES = Math.ceil(MAX_IMAGE_BYTES * 4 / 3) + 4096;
 const MAX_CONNECTIONS = 200;
 const MAX_CONNECTIONS_PER_USER = 3;
 const MESSAGE_RATE_LIMIT = 8;
 const MESSAGE_RATE_WINDOW_MS = 10 * 1000;
-const MAX_SSE_BUFFER_BYTES = 64 * 1024;
+const IMAGE_RATE_LIMIT = 3;
+const IMAGE_RATE_WINDOW_MS = 60 * 1000;
+const MAX_SSE_BUFFER_BYTES = 2 * 1024 * 1024;
+const CHAT_IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/gif', 'image/webp']);
 
 function sendJson(res, status, payload) {
   res.writeHead(status, {
@@ -60,11 +63,41 @@ function chatUser(sessionUser) {
   };
 }
 
+function validImageSignature(mimeType, buffer) {
+  if (mimeType === 'image/jpeg') return buffer.length >= 3 && buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff;
+  if (mimeType === 'image/png') return buffer.length >= 8 && buffer.subarray(0, 8).equals(Buffer.from('89504e470d0a1a0a', 'hex'));
+  if (mimeType === 'image/gif') return buffer.length >= 6 && ['GIF87a', 'GIF89a'].includes(buffer.subarray(0, 6).toString('ascii'));
+  if (mimeType === 'image/webp') {
+    return buffer.length >= 12
+      && buffer.subarray(0, 4).toString('ascii') === 'RIFF'
+      && buffer.subarray(8, 12).toString('ascii') === 'WEBP';
+  }
+  return false;
+}
+
+function parseChatImage(value) {
+  const match = String(value || '').match(/^data:(image\/(?:jpeg|png|gif|webp));base64,([A-Za-z0-9+/]+={0,2})$/);
+  if (!match || !CHAT_IMAGE_TYPES.has(match[1])) {
+    throw Object.assign(new Error('仅支持 JPEG、PNG、GIF 或 WebP 图片'), { statusCode: 400 });
+  }
+  const buffer = Buffer.from(match[2], 'base64');
+  if (!buffer.length || buffer.length > MAX_IMAGE_BYTES) {
+    throw Object.assign(new Error('图片为空或超过 768KB 限制'), { statusCode: 413 });
+  }
+  if (buffer.toString('base64') !== match[2] || !validImageSignature(match[1], buffer)) {
+    throw Object.assign(new Error('图片内容或格式不正确'), { statusCode: 400 });
+  }
+  return {
+    mimeType: match[1],
+    dataUrl: `data:${match[1]};base64,${match[2]}`,
+  };
+}
+
 class ChatService {
   constructor({ now = () => Date.now() } = {}) {
-    this.messages = [];
     this.clients = new Map();
     this.messageRates = new Map();
+    this.imageRates = new Map();
     this.now = now;
   }
 
@@ -97,12 +130,6 @@ class ChatService {
     }
   }
 
-  addMessage(msg) {
-    this.messages.push(msg);
-    if (this.messages.length > MAX_MESSAGES) this.messages = this.messages.slice(-MAX_MESSAGES);
-    this.broadcast('message', msg);
-  }
-
   checkMessageRate(userId) {
     const now = this.now();
     if (this.messageRates.size > 1000) {
@@ -116,6 +143,16 @@ class ChatService {
     }
     recent.push(now);
     this.messageRates.set(userId, recent);
+  }
+
+  checkImageRate(userId) {
+    const now = this.now();
+    const recent = (this.imageRates.get(userId) || []).filter(time => now - time < IMAGE_RATE_WINDOW_MS);
+    if (recent.length >= IMAGE_RATE_LIMIT) {
+      throw Object.assign(new Error('图片发送过于频繁，请稍后再试'), { statusCode: 429 });
+    }
+    recent.push(now);
+    this.imageRates.set(userId, recent);
   }
 
   openStream(req, res, user) {
@@ -199,27 +236,39 @@ class ChatService {
         throw Object.assign(new Error('仅支持 JSON 请求'), { statusCode: 415 });
       }
       const body = await readJson(req);
-      const text = String(body.text || '').trim();
-      if (!text || text.length > MAX_MESSAGE_LENGTH) {
-        throw Object.assign(new Error('消息为空或超过限制'), { statusCode: 400 });
+      const text = typeof body.text === 'string' ? body.text.trim() : '';
+      const imageData = typeof body.imageData === 'string' ? body.imageData : '';
+      if (Number(Boolean(text)) + Number(Boolean(imageData)) !== 1) {
+        throw Object.assign(new Error('请发送文字或一张图片'), { statusCode: 400 });
+      }
+      if (text.length > MAX_MESSAGE_LENGTH) {
+        throw Object.assign(new Error('文字消息超过 500 字限制'), { statusCode: 400 });
       }
       this.checkMessageRate(user.userId);
+      const image = imageData ? parseChatImage(imageData) : null;
+      if (image) this.checkImageRate(user.userId);
       const msg = {
         id: crypto.randomUUID(),
-        text,
+        type: image ? 'image' : 'text',
         displayName: user.displayName,
         avatarUrl: user.avatarUrl,
         userId: user.userId,
         isGuest: false,
         time: this.now(),
       };
-      this.addMessage(msg);
+      if (image) {
+        msg.imageData = image.dataUrl;
+        msg.imageMime = image.mimeType;
+      } else {
+        msg.text = text;
+      }
+      this.broadcast('message', msg);
       sendJson(res, 200, { ok: true, id: msg.id });
       return true;
     }
 
     if (pathname === '/api/chat/history' && req.method === 'GET') {
-      sendJson(res, 200, { messages: this.messages.slice(-50), online: this.onlineCount() });
+      sendJson(res, 200, { messages: [], online: this.onlineCount(), ephemeral: true });
       return true;
     }
 
@@ -234,6 +283,7 @@ class ChatService {
     }
     this.clients.clear();
     this.messageRates.clear();
+    this.imageRates.clear();
   }
 }
 
@@ -241,4 +291,4 @@ function createChatService(options) {
   return new ChatService(options);
 }
 
-module.exports = { ChatService, createChatService, chatUser };
+module.exports = { ChatService, createChatService, chatUser, parseChatImage, MAX_IMAGE_BYTES };

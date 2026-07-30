@@ -24,6 +24,9 @@ function loadWechatConfig(env = process.env) {
     scheduleHour: integerValue(env.STOCK_WECHAT_SCHEDULE_HOUR, 9, 0, 23),
     scheduleMinute: integerValue(env.STOCK_WECHAT_SCHEDULE_MINUTE, 0, 0, 59),
     scheduleCatchup: booleanValue(env.STOCK_WECHAT_SCHEDULE_CATCHUP, true),
+    dailyIpoEnabled: booleanValue(env.STOCK_WECHAT_DAILY_IPO_ENABLED, true),
+    dailyIpoHour: integerValue(env.STOCK_WECHAT_DAILY_IPO_HOUR, 9, 0, 23),
+    dailyIpoMinute: integerValue(env.STOCK_WECHAT_DAILY_IPO_MINUTE, 0, 0, 59),
     database: {
       host: env.STOCK_DB_HOST || '',
       port: integerValue(env.STOCK_DB_PORT, 3306, 1, 65535),

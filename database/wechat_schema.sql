@@ -4,7 +4,7 @@ USE stock;
 CREATE TABLE IF NOT EXISTS wechat_subscribers (
   openid VARCHAR(128) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
   subscribed TINYINT(1) NOT NULL DEFAULT 1 COMMENT '是否仍关注公众号',
-  ipo_notify_enabled TINYINT(1) NOT NULL DEFAULT 1 COMMENT '是否接收每周打新提醒',
+  ipo_notify_enabled TINYINT(1) NOT NULL DEFAULT 1 COMMENT '是否接收打新提醒',
   source VARCHAR(32) NOT NULL DEFAULT 'callback',
   last_interaction_at DATETIME NULL,
   subscribed_at DATETIME NULL,
