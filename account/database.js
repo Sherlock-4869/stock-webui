@@ -2,16 +2,6 @@
 
 const mysql = require('mysql2/promise');
 
-const SITE_RECOMMENDATION_SEEDS = [
-  {
-    name:'Momoyu Pro',
-    url:'https://pro.momoyu.cc',
-    description:'效率工具与信息聚合站点',
-    sortOrder:10,
-    adminOnly:false,
-  },
-];
-
 const SCHEMA_STATEMENTS = [
   `CREATE TABLE IF NOT EXISTS users (
     id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -279,13 +269,6 @@ class AccountDatabase {
       await ensureSiteRecommendationVisibilitySchema(connection, this.config.database);
       await ensureNoteFolderSchema(connection, this.config.database);
       await ensureAvatarSchema(connection, this.config.database);
-      for (const site of SITE_RECOMMENDATION_SEEDS) {
-        await connection.execute(
-          `INSERT IGNORE INTO site_recommendations (name, url, description, sort_order)
-           VALUES (?, ?, ?, ?)`,
-          [site.name, site.url, site.description, site.sortOrder]
-        );
-      }
     } finally {
       connection.release();
     }
@@ -721,20 +704,12 @@ class MemoryAccountDatabase {
     this.noteFolders = new Map();
     this.fundFlowHistoryCache = new Map();
     this.chatMessages = [];
-    this.siteRecommendations = SITE_RECOMMENDATION_SEEDS.map((site, index) => ({
-      id:index + 1,
-      name:site.name,
-      url:site.url,
-      description:site.description,
-      sort_order:site.sortOrder,
-      is_active:1,
-      is_admin_only:site.adminOnly ? 1 : 0,
-    }));
+    this.siteRecommendations = [];
     this.nextUserId = 1;
     this.nextSessionId = 1;
     this.nextNoteId = 1;
     this.nextNoteFolderId = 1;
-    this.nextSiteRecommendationId = this.siteRecommendations.length + 1;
+    this.nextSiteRecommendationId = 1;
     this.nextChatMessageId = 1;
   }
 
@@ -1058,7 +1033,6 @@ module.exports = {
   AccountDatabase,
   MemoryAccountDatabase,
   SCHEMA_STATEMENTS,
-  SITE_RECOMMENDATION_SEEDS,
   ensureAdminSchema,
   ensureSiteRecommendationVisibilitySchema,
   ensureNoteFolderSchema,

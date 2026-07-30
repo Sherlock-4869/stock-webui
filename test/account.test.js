@@ -7,7 +7,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { AccountService } = require('../account/service');
 const {
-  MemoryAccountDatabase, SCHEMA_STATEMENTS, SITE_RECOMMENDATION_SEEDS, ensureSiteRecommendationVisibilitySchema, ensureAvatarSchema,
+  MemoryAccountDatabase, SCHEMA_STATEMENTS, ensureSiteRecommendationVisibilitySchema, ensureAvatarSchema,
 } = require('../account/database');
 const { hashPassword, verifyPassword, sanitizePageConfig } = require('../account/security');
 
@@ -83,7 +83,7 @@ test('page config keeps only supported LocalStorage keys', () => {
   } });
 });
 
-test('site recommendations are seeded and publicly readable', async t => {
+test('site recommendations start empty and remain publicly readable', async t => {
   const runtimeSchema = SCHEMA_STATEMENTS.join('\n');
   const canonicalSchema = fs.readFileSync(path.join(__dirname, '..', 'database', 'account_schema.sql'), 'utf8');
   const readme = fs.readFileSync(path.join(__dirname, '..', 'README.md'), 'utf8');
@@ -94,18 +94,15 @@ test('site recommendations are seeded and publicly readable', async t => {
     assert.match(schema, /is_admin TINYINT\(1\) NOT NULL DEFAULT 0/);
     assert.match(schema, /is_admin_only TINYINT\(1\) NOT NULL DEFAULT 0/);
   }
-  assert.equal(SITE_RECOMMENDATION_SEEDS[0].url, 'https://pro.momoyu.cc');
+  assert.doesNotMatch(runtimeSchema, /INSERT IGNORE INTO site_recommendations/);
+  assert.doesNotMatch(canonicalSchema, /INSERT IGNORE INTO site_recommendations/);
+  assert.doesNotMatch(readme, /INSERT IGNORE INTO site_recommendations/);
   const app = await startTestService();
   t.after(app.close);
 
   const result = await jsonRequest(app.service, '/api/site-recommendations');
   assert.equal(result.response.status, 200);
-  assert.deepEqual(result.payload.sites, [{
-    id:'1',
-    name:'Momoyu Pro',
-    url:'https://pro.momoyu.cc/',
-    description:'效率工具与信息聚合站点',
-  }]);
+  assert.deepEqual(result.payload.sites, []);
 
   const rejectedWrite = await jsonRequest(app.service, '/api/site-recommendations', {
     method:'POST', body:{ name:'不能通过公开接口写入' },

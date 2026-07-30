@@ -173,9 +173,6 @@ CREATE TABLE IF NOT EXISTS site_recommendations (
   KEY idx_site_recommendations_visibility_sort (is_active, is_admin_only, sort_order, id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-INSERT IGNORE INTO site_recommendations (name, url, description, sort_order)
-VALUES ('Momoyu Pro', 'https://pro.momoyu.cc', '效率工具与信息聚合站点', 10);
-
 CREATE TABLE IF NOT EXISTS stock_fund_flow_history_cache (
   symbol VARCHAR(16) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
   data_json JSON NOT NULL COMMENT '最近 120 个交易日的主力资金历史数据',
@@ -274,7 +271,7 @@ ALTER TABLE user_notes
 
 文件夹按账号隔离，每个账号最多创建 50 个。删除文件夹只会解除分类并把其中笔记移到“未分类”，不会删除笔记内容。新建或导入前可在顶部选择目标文件夹；打开笔记后可通过“归类到”把未分类笔记移入文件夹。
 
-站点推荐读取 `site_recommendations` 中 `is_active=1` 的记录，并按 `sort_order`、`id` 排序。`is_admin_only=1` 的记录只会返回给当前已登录的管理员，普通账号和游客无法通过接口读取；默认值 `0` 保证现有站点继续对所有人可见。当前默认写入 `Momoyu Pro`；可在管理员页面维护这些状态。
+站点推荐读取 `site_recommendations` 中 `is_active=1` 的记录，并按 `sort_order`、`id` 排序。`is_admin_only=1` 的记录只会返回给当前已登录的管理员，普通账号和游客无法通过接口读取；默认值 `0` 保证现有站点继续对所有人可见。新安装不会自动写入任何推荐站点，请由管理员在管理页面自行添加和维护。
 
 账号服务需要数据库账号拥有 `SELECT`、`INSERT`、`UPDATE`、`DELETE` 权限。若让应用启动时自动建表和升级旧表，还需要 `CREATE`、`ALTER`、`INDEX`、`REFERENCES`：
 

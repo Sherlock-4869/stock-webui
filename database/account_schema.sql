@@ -90,9 +90,6 @@ CREATE TABLE IF NOT EXISTS site_recommendations (
   KEY idx_site_recommendations_visibility_sort (is_active, is_admin_only, sort_order, id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-INSERT IGNORE INTO site_recommendations (name, url, description, sort_order)
-VALUES ('Momoyu Pro', 'https://pro.momoyu.cc', '效率工具与信息聚合站点', 10);
-
 CREATE TABLE IF NOT EXISTS stock_fund_flow_history_cache (
   symbol VARCHAR(16) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
   data_json JSON NOT NULL COMMENT '最近 120 个交易日的主力资金历史数据',
