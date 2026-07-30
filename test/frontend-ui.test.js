@@ -54,6 +54,7 @@ test('Markdown heading navigation ignores fenced code and matches preview anchor
 
 test('notes keep file and heading navigation in fixed sidebar tabs with folder controls', () => {
   assert.match(html, /\.note-sidebar\{position:sticky;top:66px/);
+  assert.match(html, /\.note-toolbar\{position:sticky;z-index:25;top:66px/);
   assert.match(html, /id="note-files-tab"[^>]*role="tab"[^>]*>文件列表<\/button>/);
   assert.match(html, /id="note-headings-tab"[^>]*role="tab"[^>]*>标题导航<\/button>/);
   assert.match(html, /id="note-toc-list"[^>]*aria-label="当前笔记标题导航"/);
@@ -201,12 +202,32 @@ test('restored chat window opens beside the dragged minimized icon', () => {
 
   const rightIcon = { left:740, right:792, top:700, height:52 };
   assert.deepEqual(JSON.parse(JSON.stringify(context.calculateChatFloatPosition(rightIcon, 380, 520, 800, 800))), {
-    left:350, top:272, side:'left',
+    left:350, top:232, side:'left',
   });
   const leftIcon = { left:8, right:60, top:200, height:52 };
   assert.deepEqual(JSON.parse(JSON.stringify(context.calculateChatFloatPosition(leftIcon, 380, 520, 800, 800))), {
     left:70, top:8, side:'right',
   });
+});
+
+test('minimizing a dragged chat places its icon beside the expanded window', () => {
+  assert.match(html, /if \(chatState\.floatMoved\) positionChatMinimizedNearFloat\(\)/);
+  assert.match(html, /Math\.hypot\(dx, dy\) >= 4\) chatState\.floatMoved = true/);
+  const start = html.indexOf('function clampChatMinimizedPosition');
+  const end = html.indexOf('function keepChatMinimizedInViewport', start);
+  assert.ok(start >= 0 && end > start);
+  const context = {};
+  vm.createContext(context);
+  vm.runInContext(html.slice(start, end), context);
+
+  const expanded = { left:200, right:580, top:180, bottom:700 };
+  const iconPosition = JSON.parse(JSON.stringify(context.calculateChatMinimizedPositionFromFloat(expanded, 52, 52, 800, 800)));
+  assert.deepEqual(iconPosition, { left:590, top:648, side:'right' });
+  const restored = JSON.parse(JSON.stringify(context.calculateChatFloatPosition(
+    { left:iconPosition.left, right:iconPosition.left + 52, top:iconPosition.top, height:52 },
+    380, 520, 800, 800
+  )));
+  assert.deepEqual(restored, { left:200, top:180, side:'left' });
 });
 
 test('chat UI exposes emoji and validated image controls', () => {

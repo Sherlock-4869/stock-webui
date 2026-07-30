@@ -355,7 +355,7 @@ html[data-theme="light"] .chat-image-preview{background:#ffffffee}html[data-them
 .note-card-summary{margin-top:4px;font-size:11px;color:#8b949e;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;line-height:1.5}
 .note-card-time{margin-top:6px;font-size:10px;color:#6e7681}
 .note-main{flex:1;min-width:0;display:flex;flex-direction:column}
-.note-toolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:8px 12px;border:1px solid #30363d;border-radius:8px 8px 0 0;background:#1c2128}
+.note-toolbar{position:sticky;z-index:25;top:66px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:8px 12px;border:1px solid #30363d;border-radius:8px 8px 0 0;background:#1c2128;box-shadow:0 8px 18px #0004}
 .note-toolbar .refresh-btn{padding:5px 10px;font-size:11px}
 .note-toc-list{min-height:0;flex:1;overflow-y:auto;padding:5px 8px 12px;scrollbar-width:thin;scrollbar-color:#484f58 transparent}
 .note-toc-link{display:block;width:100%;padding:6px 8px;border:0;border-radius:5px;background:transparent;color:#c9d1d9;font-size:11px;line-height:1.4;text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer}
@@ -383,7 +383,7 @@ html[data-theme="light"] .chat-image-preview{background:#ffffffee}html[data-them
 .note-view-toggle{display:flex;margin-left:auto;border:1px solid #30363d;border-radius:5px;overflow:hidden}
 .note-view-btn{background:#21262d;border:none;color:#8b949e;padding:4px 10px;font-size:11px;cursor:pointer}
 .note-view-btn.active{background:#1f3a5f;color:#79c0ff}
-@media (max-width:768px){.notes-layout{flex-direction:column}.note-sidebar{position:static;top:auto;align-self:stretch;width:100%;min-height:280px;max-height:340px}.note-folder-list{max-height:130px}.note-folder-actions{opacity:1}.note-editor-wrap{min-height:300px}.note-folder-select-label{max-width:150px}.note-folder-select{max-width:115px}.note-create-folder-select{max-width:120px}}
+@media (max-width:768px){.notes-layout{flex-direction:column}.note-sidebar{position:static;top:auto;align-self:stretch;width:100%;min-height:280px;max-height:340px}.note-folder-list{max-height:130px}.note-folder-actions{opacity:1}.note-toolbar{top:52px}.note-editor-wrap{min-height:300px}.note-folder-select-label{max-width:150px}.note-folder-select{max-width:115px}.note-create-folder-select{max-width:120px}}
 /* ====== Reference reader ====== */
 .reference-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.reference-actions .refresh-btn{display:inline-flex;align-items:center;justify-content:center;text-decoration:none;white-space:nowrap}
 .reference-reader{display:grid;grid-template-columns:210px minmax(0,1fr);gap:22px;max-width:1090px;margin:0 auto;align-items:start}
@@ -3848,6 +3848,7 @@ let chatState = {
   connected: false,
   sendingImage: false,
   imageSendToken: 0,
+  floatMoved: false,
 };
 
 async function openChatRoom() {
@@ -3935,6 +3936,7 @@ function closeChatRoom() {
   chatState.displayName = null;
   chatState.avatarUrl = null;
   chatState.userId = null;
+  chatState.floatMoved = false;
   updateChatBadge();
   const el = document.getElementById('chat-float');
   if (el) el.classList.remove('open');
@@ -3947,8 +3949,11 @@ function minimizeChatRoom() {
   chatState.minimized = true;
   chatState.unread = 0;
   updateChatBadge();
-  document.getElementById('chat-float').classList.remove('open');
-  document.getElementById('chat-minimized').classList.add('visible');
+  const float = document.getElementById('chat-float');
+  const icon = document.getElementById('chat-minimized');
+  if (chatState.floatMoved) positionChatMinimizedNearFloat();
+  float.classList.remove('open');
+  icon.classList.add('visible');
   requestAnimationFrame(keepChatMinimizedInViewport);
   closeChatEmojiPicker();
   closeChatImagePreview();
@@ -4283,6 +4288,51 @@ function clampChatMinimizedPosition(left, top, width, height, viewportWidth = wi
   };
 }
 
+function calculateChatMinimizedPositionFromFloat(floatRect, iconWidth, iconHeight, viewportWidth, viewportHeight, gap = 10, margin = 8) {
+  const spaceRight = viewportWidth - margin - floatRect.right;
+  const spaceLeft = floatRect.left - margin;
+  let left;
+  let side;
+  if (spaceRight >= iconWidth + gap) {
+    left = floatRect.right + gap;
+    side = 'right';
+  } else if (spaceLeft >= iconWidth + gap) {
+    left = floatRect.left - iconWidth - gap;
+    side = 'left';
+  } else {
+    left = floatRect.right - iconWidth;
+    side = 'overlap';
+  }
+  const position = clampChatMinimizedPosition(
+    left,
+    floatRect.bottom - iconHeight,
+    iconWidth,
+    iconHeight,
+    viewportWidth,
+    viewportHeight
+  );
+  return { ...position, side };
+}
+
+function positionChatMinimizedNearFloat() {
+  const float = document.getElementById('chat-float');
+  const icon = document.getElementById('chat-minimized');
+  if (!float || !icon) return;
+  const floatRect = float.getBoundingClientRect();
+  const iconRect = icon.getBoundingClientRect();
+  const position = calculateChatMinimizedPositionFromFloat(
+    floatRect,
+    iconRect.width || 52,
+    iconRect.height || 52,
+    window.innerWidth,
+    window.innerHeight
+  );
+  icon.style.left = `${position.left}px`;
+  icon.style.top = `${position.top}px`;
+  icon.style.right = 'auto';
+  icon.style.bottom = 'auto';
+}
+
 function calculateChatFloatPosition(iconRect, floatWidth, floatHeight, viewportWidth, viewportHeight, gap = 10, margin = 8) {
   const spaceLeft = iconRect.left - margin;
   const spaceRight = viewportWidth - iconRect.right - margin;
@@ -4290,7 +4340,7 @@ function calculateChatFloatPosition(iconRect, floatWidth, floatHeight, viewportW
   const desiredLeft = placeOnLeft
     ? iconRect.left - floatWidth - gap
     : iconRect.right + gap;
-  const desiredTop = iconRect.top + iconRect.height / 2 - floatHeight / 2;
+  const desiredTop = iconRect.top + iconRect.height - floatHeight;
   return {
     left: Math.max(margin, Math.min(Math.max(margin, viewportWidth - floatWidth - margin), desiredLeft)),
     top: Math.max(margin, Math.min(Math.max(margin, viewportHeight - floatHeight - margin), desiredTop)),
@@ -4411,6 +4461,7 @@ function initChatDrag() {
   document.addEventListener('mousemove', e => {
     if (!dragging) return;
     const dx = e.clientX - startX, dy = e.clientY - startY;
+    if (Math.hypot(dx, dy) >= 4) chatState.floatMoved = true;
     const newLeft = Math.max(0, Math.min(window.innerWidth - 100, startLeft + dx));
     const newTop = Math.max(0, Math.min(window.innerHeight - 100, startTop + dy));
     float.style.left = newLeft + 'px';
