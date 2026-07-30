@@ -10,6 +10,8 @@ const {
   validateUsername,
   validatePassword,
   validateDisplayName,
+  validateAvatarData,
+  safeAvatarUrl,
   sanitizePageConfig,
   randomToken,
   tokenHash,
@@ -164,7 +166,7 @@ function publicUser(user) {
     id: String(user.id),
     username: user.username || null,
     displayName: user.display_name,
-    avatarUrl: user.avatar_url || null,
+    avatarUrl: safeAvatarUrl(user.custom_avatar_data) || safeAvatarUrl(user.avatar_url),
     hasPassword: Boolean(user.password_hash),
     isAdmin: Number(user.is_admin) === 1,
   };
@@ -527,6 +529,30 @@ class AccountService {
           throw error;
         }
         sendJson(res, 200, { user: publicUser(user), changed: true });
+        return true;
+      }
+
+      if (pathname === '/api/auth/avatar' && req.method === 'PUT') {
+        assertSameOrigin(req);
+        const session = await this.requireUser(req);
+        const body = await readJson(req);
+        const avatarData = body.remove === true ? null : validateAvatarData(body.avatarData);
+        const user = await this.database.updateAvatar(session.user.id, avatarData);
+        if (!user) throw Object.assign(new Error('账号不存在'), { statusCode:404 });
+        sendJson(res, 200, { user:publicUser(user), changed:true });
+        return true;
+      }
+
+      if (pathname === '/api/auth/profile' && req.method === 'PUT') {
+        assertSameOrigin(req);
+        const session = await this.requireUser(req);
+        const body = await readJson(req, 4096);
+        const requestedName = String(body.displayName || '').trim();
+        if (!requestedName) throw Object.assign(new Error('显示名称不能为空'), { statusCode:400 });
+        const displayName = validateDisplayName(requestedName, '用户');
+        const user = await this.database.updateProfile(session.user.id, { displayName });
+        if (!user) throw Object.assign(new Error('账号不存在'), { statusCode:404 });
+        sendJson(res, 200, { user:publicUser(user), changed:true });
         return true;
       }
 

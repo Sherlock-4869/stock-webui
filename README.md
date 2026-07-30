@@ -7,6 +7,7 @@
 - 浏览自选股、全球指数、K 线和打新日历；主力资金历史数据支持重试、长缓存及实时数据降级展示。
 - 支持账号密码注册/登录、微信开放平台扫码登录及安全会话。
 - 登录后按账号同步自选股、分组、主题、指标等页面配置。
+- 账户设置支持修改显示名称、上传、裁切和压缩个人头像；未设置自定义头像时继续使用微信头像或名称首字。
 - 登录账号可以创建、编辑、删除、搜索和导入 Markdown 笔记；支持账号级文件夹分类，并可在左侧“文件列表 / 标题导航”之间切换。
 - 登录账号可以进入支持持久化历史、图片、剪贴板图片粘贴、表情、缩放和未读数字提示的网页聊天室；游客不可访问。
 - 聊天室右侧提供数据库驱动的站点推荐菜单，推荐链接在新标签页中打开。
@@ -53,6 +54,7 @@ cp .env.example .env
 - 可以点击图片按钮选择文件，也可以在聊天输入框直接粘贴剪贴板中的截图或图片。
 - 图片以 Data URL 写入数据库并通过当前 SSE 连接广播；服务端会复核 MIME 类型、Base64 编码和文件签名。每个账号 1 分钟最多发送 3 张图片。图片记录增长较快，生产环境应按业务需要定期备份并监控数据库容量。
 - 表情按钮使用内置 Unicode 表情，本质上仍是普通文字消息。
+- 图片按钮使用内置 SVG 图标，不依赖设备的 Emoji 字体，所有浏览器显示一致。
 - 管理员可在聊天室在线人数处查看当前在线账号；普通账号只能看到在线人数，不能读取在线账号列表。
 
 ### 管理员账号
@@ -88,6 +90,7 @@ CREATE TABLE IF NOT EXISTS users (
   password_hash VARCHAR(255) CHARACTER SET ascii COLLATE ascii_bin NULL COMMENT 'scrypt 加盐哈希；不保存明文密码',
   display_name VARCHAR(80) NOT NULL,
   avatar_url VARCHAR(500) NULL,
+  custom_avatar_data MEDIUMTEXT NULL COMMENT '用户上传的头像 Data URL；最大 160KB',
   status VARCHAR(20) NOT NULL DEFAULT 'active',
   is_admin TINYINT(1) NOT NULL DEFAULT 0 COMMENT '仅由数据库后台赋值；1=管理员',
   config_decided_at DATETIME NULL COMMENT '首次登录配置关联是否已选择',
@@ -192,7 +195,7 @@ CREATE TABLE IF NOT EXISTS chat_messages (
   image_data MEDIUMTEXT NULL COMMENT '图片 Data URL；单张最终图片不超过 768KB',
   image_mime VARCHAR(32) CHARACTER SET ascii COLLATE ascii_bin NULL,
   display_name VARCHAR(80) NOT NULL COMMENT '发送时显示名称快照',
-  avatar_url VARCHAR(500) NULL COMMENT '发送时头像快照',
+  avatar_url MEDIUMTEXT NULL COMMENT '发送时头像快照',
   created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
   PRIMARY KEY (id),
   KEY idx_chat_messages_created (created_at, id),
@@ -239,6 +242,16 @@ CREATE TABLE IF NOT EXISTS user_notes (
 ALTER TABLE users
   ADD COLUMN is_admin TINYINT(1) NOT NULL DEFAULT 0 AFTER status,
   ADD KEY idx_users_admin_status (is_admin, status);
+```
+
+已有账号和聊天记录表的环境还需要执行以下头像迁移。它保留原微信头像链接，新增单独的自定义头像字段，并将聊天记录中的头像快照扩容为 `MEDIUMTEXT`；应用启动时会自动检测并尝试执行，但生产环境请由数据库管理员预先完成：
+
+```sql
+ALTER TABLE users
+  ADD COLUMN custom_avatar_data MEDIUMTEXT NULL AFTER avatar_url;
+
+ALTER TABLE chat_messages
+  MODIFY COLUMN avatar_url MEDIUMTEXT NULL;
 ```
 
 已有 `site_recommendations` 表的环境还需要增加站点可见范围字段。现有记录会默认保持所有人可见；应用启动时会自动检测并尝试升级，生产环境也可预先执行：

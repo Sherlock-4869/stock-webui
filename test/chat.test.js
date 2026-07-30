@@ -94,6 +94,18 @@ test('chat messages use server session identity and reject cross-origin sends', 
   service.close();
 });
 
+test('chat preserves a server-validated custom avatar', async () => {
+  const avatarData = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=';
+  const service = new ChatService({ now:() => 12345 });
+  const customUser = { ...user, avatar_url:null, custom_avatar_data:avatarData };
+  const stream = await call(service, '/api/chat/stream', {}, customUser);
+  assert.equal(sseEvent(stream.res.body, 'connected').avatarUrl, avatarData);
+  stream.res.body = '';
+  await call(service, '/api/chat/send', { method:'POST', body:{ text:'with avatar' } }, customUser);
+  assert.equal(sseEvent(stream.res.body, 'message').avatarUrl, avatarData);
+  service.close();
+});
+
 test('chat fallback without a persistence adapter does not retain messages', async () => {
   const service = new ChatService();
   const sent = await call(service, '/api/chat/send', { method:'POST', body:{ text:'temporary' } });

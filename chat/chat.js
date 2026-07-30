@@ -2,6 +2,7 @@
 
 const crypto = require('crypto');
 const { assertSameOrigin } = require('../account/service');
+const { safeAvatarUrl } = require('../account/security');
 
 const MAX_MESSAGE_LENGTH = 500;
 const MAX_IMAGE_BYTES = 768 * 1024;
@@ -57,11 +58,11 @@ function readJson(req, limit = MAX_REQUEST_BYTES) {
 
 function chatUser(sessionUser) {
   if (!sessionUser) return null;
-  const avatarUrl = String(sessionUser.avatar_url || '');
+  const avatarUrl = safeAvatarUrl(sessionUser.custom_avatar_data) || safeAvatarUrl(sessionUser.avatar_url);
   return {
     userId: String(sessionUser.id),
     displayName: String(sessionUser.display_name || sessionUser.username || '用户').slice(0, 80),
-    avatarUrl: /^(?:https?:\/\/|\/)/i.test(avatarUrl) ? avatarUrl : null,
+    avatarUrl,
     isAdmin: Number(sessionUser.is_admin) === 1,
   };
 }
@@ -83,7 +84,7 @@ function storedChatMessage(row) {
     id:String(row.id),
     type,
     displayName:String(row.display_name || '用户').slice(0, 80),
-    avatarUrl:/^(?:https?:\/\/|\/)/i.test(String(row.avatar_url || '')) ? String(row.avatar_url) : null,
+    avatarUrl:safeAvatarUrl(row.avatar_url),
     userId:String(row.user_id),
     isGuest:false,
     time:Number.isFinite(time) ? time : Date.now(),

@@ -9,6 +9,8 @@ const SCRYPT_R = 8;
 const SCRYPT_P = 1;
 const SCRYPT_LENGTH = 64;
 const MAX_CONFIG_BYTES = 256 * 1024;
+const MAX_AVATAR_BYTES = 160 * 1024;
+const AVATAR_IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
 const CONFIG_KEYS = Object.freeze([
   'watchlist_v1',
   'watchlist_groups_v1',
@@ -82,6 +84,38 @@ function validateDisplayName(value, fallback) {
   return displayName;
 }
 
+function validImageSignature(mimeType, buffer) {
+  if (mimeType === 'image/jpeg') return buffer.length >= 3 && buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff;
+  if (mimeType === 'image/png') return buffer.length >= 8 && buffer.subarray(0, 8).equals(Buffer.from('89504e470d0a1a0a', 'hex'));
+  if (mimeType === 'image/webp') {
+    return buffer.length >= 12
+      && buffer.subarray(0, 4).toString('ascii') === 'RIFF'
+      && buffer.subarray(8, 12).toString('ascii') === 'WEBP';
+  }
+  return false;
+}
+
+function validateAvatarData(value) {
+  const match = String(value || '').match(/^data:(image\/(?:jpeg|png|webp));base64,([A-Za-z0-9+/]+={0,2})$/);
+  if (!match || !AVATAR_IMAGE_TYPES.has(match[1])) {
+    throw Object.assign(new Error('头像仅支持 JPEG、PNG 或 WebP 图片'), { statusCode:400 });
+  }
+  const buffer = Buffer.from(match[2], 'base64');
+  if (!buffer.length || buffer.length > MAX_AVATAR_BYTES) {
+    throw Object.assign(new Error('头像为空或超过 160KB 限制'), { statusCode:413 });
+  }
+  if (buffer.toString('base64') !== match[2] || !validImageSignature(match[1], buffer)) {
+    throw Object.assign(new Error('头像内容或格式不正确'), { statusCode:400 });
+  }
+  return `data:${match[1]};base64,${match[2]}`;
+}
+
+function safeAvatarUrl(value) {
+  const avatarUrl = String(value || '');
+  if (/^https?:\/\//i.test(avatarUrl) || /^\/(?!\/)/.test(avatarUrl)) return avatarUrl;
+  try { return validateAvatarData(avatarUrl); } catch (_) { return null; }
+}
+
 function sanitizePageConfig(input) {
   const source = input && typeof input === 'object' && !Array.isArray(input) ? input : {};
   const rawValues = source.values && typeof source.values === 'object' && !Array.isArray(source.values)
@@ -118,6 +152,9 @@ module.exports = {
   validateUsername,
   validatePassword,
   validateDisplayName,
+  MAX_AVATAR_BYTES,
+  validateAvatarData,
+  safeAvatarUrl,
   sanitizePageConfig,
   randomToken,
   tokenHash,

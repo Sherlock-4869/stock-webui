@@ -7,7 +7,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { AccountService } = require('../account/service');
 const {
-  SCHEMA_STATEMENTS, SITE_RECOMMENDATION_SEEDS, ensureSiteRecommendationVisibilitySchema,
+  MemoryAccountDatabase, SCHEMA_STATEMENTS, SITE_RECOMMENDATION_SEEDS, ensureSiteRecommendationVisibilitySchema, ensureAvatarSchema,
 } = require('../account/database');
 const { hashPassword, verifyPassword, sanitizePageConfig } = require('../account/security');
 
@@ -125,6 +125,44 @@ test('existing site recommendation tables receive the visibility migration', asy
   assert.match(queries[1], /ADD KEY idx_site_recommendations_visibility_sort/);
 });
 
+test('existing account tables receive the custom-avatar migration', async () => {
+  const queries = [];
+  const connection = {
+    async execute() { return [[], []]; },
+    async query(sql) { queries.push(sql); return [[], []]; },
+  };
+  await ensureAvatarSchema(connection, 'stock');
+  assert.equal(queries.length, 1);
+  assert.match(queries[0], /ADD COLUMN custom_avatar_data MEDIUMTEXT NULL/);
+});
+
+test('existing chat records expand the avatar snapshot column', async () => {
+  const queries = [];
+  let calls = 0;
+  const connection = {
+    async execute() {
+      calls += 1;
+      return calls === 1 ? [[{ exists:1 }], []] : [[{ DATA_TYPE:'varchar' }], []];
+    },
+    async query(sql) { queries.push(sql); return [[], []]; },
+  };
+  await ensureAvatarSchema(connection, 'stock');
+  assert.deepEqual(queries, ['ALTER TABLE chat_messages MODIFY COLUMN avatar_url MEDIUMTEXT NULL']);
+});
+
+test('manual display names survive later WeChat profile refreshes', async () => {
+  const database = new MemoryAccountDatabase();
+  const created = await database.upsertWechatUser({
+    providerUserId:'wechat-user', openid:'openid', unionid:null, displayName:'微信昵称', avatarUrl:'https://example.test/first.png', profile:{},
+  });
+  await database.updateProfile(created.id, { displayName:'自己设置的名字' });
+  const refreshed = await database.upsertWechatUser({
+    providerUserId:'wechat-user', openid:'openid', unionid:null, displayName:'新的微信昵称', avatarUrl:'https://example.test/second.png', profile:{},
+  });
+  assert.equal(refreshed.display_name, '自己设置的名字');
+  assert.equal(refreshed.avatar_url, 'https://example.test/second.png');
+});
+
 test('only database-designated administrators can manage recommended sites', async t => {
   const app = await startTestService();
   t.after(app.close);
@@ -213,6 +251,31 @@ test('account HTTP flow persists config across logout and password login', async
   assert.equal(registration.payload.needsConfigDecision, true);
   let cookie = cookieFrom(registration);
 
+  const profileChanged = await jsonRequest(app.service, '/api/auth/profile', {
+    method:'PUT', cookie, body:{ displayName:'新名称' },
+  });
+  assert.equal(profileChanged.response.status, 200);
+  assert.equal(profileChanged.payload.user.displayName, '新名称');
+
+  const invalidProfile = await jsonRequest(app.service, '/api/auth/profile', {
+    method:'PUT', cookie, body:{ displayName:'   ' },
+  });
+  assert.equal(invalidProfile.response.status, 400);
+
+  const avatarData = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=';
+  const avatarChanged = await jsonRequest(app.service, '/api/auth/avatar', {
+    method:'PUT', cookie, body:{ avatarData },
+  });
+  assert.equal(avatarChanged.response.status, 200);
+  assert.equal(avatarChanged.payload.changed, true);
+  assert.equal(avatarChanged.payload.user.avatarUrl, avatarData);
+
+  const avatarRemoved = await jsonRequest(app.service, '/api/auth/avatar', {
+    method:'PUT', cookie, body:{ remove:true },
+  });
+  assert.equal(avatarRemoved.response.status, 200);
+  assert.equal(avatarRemoved.payload.user.avatarUrl, null);
+
   const decision = await jsonRequest(app.service, '/api/auth/preferences/decision', {
     method:'POST', cookie,
     body:{ importCurrent:true, config:{ values:{ watchlist_v1:'["sh600519","usAAPL"]', stock_theme_v1:'dark' } } },
@@ -247,7 +310,7 @@ test('account HTTP flow persists config across logout and password login', async
   cookie = cookieFrom(login);
 
   const afterLogin = await jsonRequest(app.service, '/api/auth/me', { cookie });
-  assert.equal(afterLogin.payload.user.displayName, '测试用户');
+  assert.equal(afterLogin.payload.user.displayName, '新名称');
   assert.equal(afterLogin.payload.config.values.watchlist_v1, '["sh600519","usAAPL"]');
 });
 

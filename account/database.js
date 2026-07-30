@@ -19,6 +19,7 @@ const SCHEMA_STATEMENTS = [
     password_hash VARCHAR(255) CHARACTER SET ascii COLLATE ascii_bin NULL,
     display_name VARCHAR(80) NOT NULL,
     avatar_url VARCHAR(500) NULL,
+    custom_avatar_data MEDIUMTEXT NULL,
     status VARCHAR(20) NOT NULL DEFAULT 'active',
     is_admin TINYINT(1) NOT NULL DEFAULT 0,
     config_decided_at DATETIME NULL,
@@ -110,7 +111,7 @@ const SCHEMA_STATEMENTS = [
     image_data MEDIUMTEXT NULL,
     image_mime VARCHAR(32) CHARACTER SET ascii COLLATE ascii_bin NULL,
     display_name VARCHAR(80) NOT NULL,
-    avatar_url VARCHAR(500) NULL,
+    avatar_url MEDIUMTEXT NULL,
     created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     PRIMARY KEY (id),
     KEY idx_chat_messages_created (created_at, id),
@@ -220,6 +221,26 @@ async function ensureNoteFolderSchema(connection, databaseName) {
   }
 }
 
+async function ensureAvatarSchema(connection, databaseName) {
+  const [userColumns] = await connection.execute(
+    `SELECT 1 FROM information_schema.COLUMNS
+     WHERE TABLE_SCHEMA=? AND TABLE_NAME='users' AND COLUMN_NAME='custom_avatar_data' LIMIT 1`,
+    [databaseName]
+  );
+  if (!userColumns.length) {
+    await connection.query('ALTER TABLE users ADD COLUMN custom_avatar_data MEDIUMTEXT NULL AFTER avatar_url');
+  }
+
+  const [chatColumns] = await connection.execute(
+    `SELECT DATA_TYPE FROM information_schema.COLUMNS
+     WHERE TABLE_SCHEMA=? AND TABLE_NAME='chat_messages' AND COLUMN_NAME='avatar_url' LIMIT 1`,
+    [databaseName]
+  );
+  if (chatColumns.length && String(chatColumns[0].DATA_TYPE || '').toLowerCase() !== 'mediumtext') {
+    await connection.query('ALTER TABLE chat_messages MODIFY COLUMN avatar_url MEDIUMTEXT NULL');
+  }
+}
+
 function parseJson(value) {
   if (value == null || typeof value === 'object') return value;
   try { return JSON.parse(value); } catch (_) { return null; }
@@ -257,6 +278,7 @@ class AccountDatabase {
       await ensureAdminSchema(connection, this.config.database);
       await ensureSiteRecommendationVisibilitySchema(connection, this.config.database);
       await ensureNoteFolderSchema(connection, this.config.database);
+      await ensureAvatarSchema(connection, this.config.database);
       for (const site of SITE_RECOMMENDATION_SEEDS) {
         await connection.execute(
           `INSERT IGNORE INTO site_recommendations (name, url, description, sort_order)
@@ -439,6 +461,19 @@ class AccountDatabase {
     await this.requirePool().execute('UPDATE users SET last_login_at=NOW() WHERE id=?', [userId]);
   }
 
+  async updateAvatar(userId, avatarData) {
+    await this.requirePool().execute(
+      'UPDATE users SET custom_avatar_data=? WHERE id=?',
+      [avatarData || null, userId]
+    );
+    return this.findUserById(userId);
+  }
+
+  async updateProfile(userId, { displayName }) {
+    await this.requirePool().execute('UPDATE users SET display_name=? WHERE id=?', [displayName, userId]);
+    return this.findUserById(userId);
+  }
+
   async upsertWechatUser({ providerUserId, openid, unionid, displayName, avatarUrl, profile }) {
     const connection = await this.requirePool().getConnection();
     try {
@@ -450,8 +485,8 @@ class AccountDatabase {
       let userId = identities[0]?.user_id;
       if (userId) {
         await connection.execute(
-          `UPDATE users SET display_name=?, avatar_url=?, last_login_at=NOW() WHERE id=?`,
-          [displayName, avatarUrl || null, userId]
+          `UPDATE users SET avatar_url=?, last_login_at=NOW() WHERE id=?`,
+          [avatarUrl || null, userId]
         );
         await connection.execute(
           `UPDATE user_auth_identities SET openid=?, unionid=?, profile_json=?
@@ -813,7 +848,7 @@ class MemoryAccountDatabase {
     const now = new Date();
     const user = {
       id: this.nextUserId++, username, password_hash: passwordHash, display_name: displayName,
-      avatar_url: null, status: 'active', is_admin:0, config_decided_at: null, last_login_at: now,
+      avatar_url: null, custom_avatar_data: null, status: 'active', is_admin:0, config_decided_at: null, last_login_at: now,
       created_at: now, updated_at: now,
     };
     this.users.set(user.id, user);
@@ -828,18 +863,33 @@ class MemoryAccountDatabase {
     if (user) user.last_login_at = new Date();
   }
 
+  async updateAvatar(userId, avatarData) {
+    const user = this.users.get(Number(userId));
+    if (!user) return null;
+    user.custom_avatar_data = avatarData || null;
+    user.updated_at = new Date();
+    return this.cloneUser(user);
+  }
+
+  async updateProfile(userId, { displayName }) {
+    const user = this.users.get(Number(userId));
+    if (!user) return null;
+    user.display_name = displayName;
+    user.updated_at = new Date();
+    return this.cloneUser(user);
+  }
+
   async upsertWechatUser({ providerUserId, openid, unionid, displayName, avatarUrl, profile }) {
     let user = this.users.get(this.identities.get(providerUserId)?.userId);
     if (!user) {
       const now = new Date();
       user = {
         id: this.nextUserId++, username: null, password_hash: null, display_name: displayName,
-        avatar_url: avatarUrl || null, status: 'active', is_admin:0, config_decided_at: null, last_login_at: now,
+        avatar_url: avatarUrl || null, custom_avatar_data: null, status: 'active', is_admin:0, config_decided_at: null, last_login_at: now,
         created_at: now, updated_at: now,
       };
       this.users.set(user.id, user);
     } else {
-      user.display_name = displayName;
       user.avatar_url = avatarUrl || null;
       user.last_login_at = new Date();
     }
@@ -1012,4 +1062,5 @@ module.exports = {
   ensureAdminSchema,
   ensureSiteRecommendationVisibilitySchema,
   ensureNoteFolderSchema,
+  ensureAvatarSchema,
 };

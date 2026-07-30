@@ -288,6 +288,7 @@ test('minimizing a dragged chat places its icon beside the expanded window', () 
 test('chat UI exposes emoji and validated image controls', () => {
   assert.match(html, /id="chat-emoji-btn"/);
   assert.match(html, /id="chat-emoji-panel"/);
+  assert.match(html, /id="chat-image-btn"[\s\S]*?<svg class="chat-tool-icon"/);
   assert.match(html, /accept="image\/jpeg,image\/png,image\/gif,image\/webp"/);
   assert.match(html, /async function prepareChatImage\(file\)/);
   assert.match(html, /async function sendChatImage\(file\)/);
@@ -305,6 +306,16 @@ test('chat UI exposes emoji and validated image controls', () => {
   assert.equal(context.safeChatImageUrl(png), png);
   assert.equal(context.safeChatImageUrl('data:image/svg+xml;base64,PHN2Zz4='), '');
   assert.equal(context.safeChatImageUrl('javascript:alert(1)'), '');
+});
+
+test('account settings provide a validated custom-avatar control', () => {
+  assert.match(html, /id="profile-display-name" name="displayName"/);
+  assert.match(html, /async function submitProfileChange\(event\)/);
+  assert.match(html, /apiRequest\('\/api\/auth\/profile'/);
+  assert.match(html, /id="account-avatar-input" type="file" accept="image\/jpeg,image\/png,image\/webp"/);
+  assert.match(html, /async function prepareAccountAvatar\(file\)/);
+  assert.match(html, /apiRequest\('\/api\/auth\/avatar'/);
+  assert.match(html, /removeAccountAvatar\(\)/);
 });
 
 test('administrator chat UI can request the server-authorized online user list', () => {
