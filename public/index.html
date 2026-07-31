@@ -34,7 +34,7 @@ html.has-metrics .app-nav-inner{max-width:calc(1240px + var(--optional-metric-wi
 .module-head{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:18px}.module-title{font-size:22px}.module-desc{margin-top:5px;color:#8b949e;font-size:12px}.module-actions{display:flex;gap:8px;align-items:center}
 .metric-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:18px}.metric-card{padding:15px 16px;border:1px solid #30363d;border-radius:9px;background:linear-gradient(145deg,#1a2028,#161b22)}.metric-label{color:#8b949e;font-size:11px}.metric-value{margin-top:5px;font-size:23px;font-weight:700}.metric-note{margin-top:3px;color:#6e7681;font-size:10px}
 .module-panel{border:1px solid #30363d;border-radius:9px;background:#161b22;overflow:hidden}.panel-toolbar{display:flex;align-items:center;gap:7px;padding:10px 12px;border-bottom:1px solid #30363d}.filter-chip{border:1px solid #30363d;border-radius:15px;background:#21262d;color:#8b949e;padding:5px 11px;font-size:11px;cursor:pointer}.filter-chip.active{color:#79c0ff;border-color:#1f6feb;background:#1f3a5f}.panel-status{margin-left:auto;color:#6e7681;font-size:11px}
-.ipo-list,.alert-list{padding:4px 14px}.ipo-row{display:grid;grid-template-columns:92px minmax(150px,1.3fr) repeat(3,minmax(95px,1fr)) 88px;align-items:center;gap:12px;padding:14px 4px;border-top:1px solid #21262d}.ipo-row:first-child{border-top:0}.ipo-date{font:600 13px ui-monospace,SFMono-Regular,monospace}.ipo-date small{display:block;margin-top:3px;color:#6e7681;font:10px sans-serif}.ipo-name{font-weight:650}.ipo-code{margin-top:3px;color:#8b949e;font:11px ui-monospace,SFMono-Regular,monospace}.ipo-field label{display:block;color:#6e7681;font-size:10px;margin-bottom:3px}.ipo-field span{font-size:12px}.ipo-status{justify-self:end;border-radius:12px;padding:4px 9px;background:#21262d;color:#8b949e;font-size:10px}.ipo-status.today{background:#3d2d13;color:#e3b341}.ipo-status.upcoming{background:#1f3a5f;color:#79c0ff}.ipo-status.done{background:#1f2d25;color:#3fb950}
+.ipo-list,.alert-list{padding:4px 14px}.ipo-row{display:grid;grid-template-columns:92px minmax(150px,1.3fr) repeat(3,minmax(95px,1fr)) 88px;align-items:center;gap:12px;padding:14px 4px;border-top:1px solid #21262d}.ipo-row:first-child{border-top:0}.ipo-date{font:600 13px ui-monospace,SFMono-Regular,monospace}.ipo-date small{display:block;margin-top:3px;color:#6e7681;font:10px sans-serif}.ipo-name{font-weight:650}.ipo-board{display:inline-flex;margin-left:7px;vertical-align:middle;border-radius:10px;padding:2px 6px;background:#1f3a5f;color:#79c0ff;font-size:10px;font-weight:650;line-height:1.2}.ipo-code{margin-top:3px;color:#8b949e;font:11px ui-monospace,SFMono-Regular,monospace}.ipo-field label{display:block;color:#6e7681;font-size:10px;margin-bottom:3px}.ipo-field span{font-size:12px}.ipo-status{justify-self:end;border-radius:12px;padding:4px 9px;background:#21262d;color:#8b949e;font-size:10px}.ipo-status.today{background:#3d2d13;color:#e3b341}.ipo-status.upcoming{background:#1f3a5f;color:#79c0ff}.ipo-status.done{background:#1f2d25;color:#3fb950}
 .alert-empty,.module-loading{padding:60px 20px;text-align:center;color:#6e7681}.module-loading::before{content:'◌';display:block;font-size:28px;color:#58a6ff;margin-bottom:8px;animation:market-spin 1s linear infinite}.alert-row{display:grid;grid-template-columns:8px minmax(150px,1fr) minmax(150px,2fr) 80px;gap:12px;align-items:center;padding:13px 4px;border-top:1px solid #21262d}.alert-row:first-child{border-top:0}.alert-mark{width:7px;height:32px;border-radius:4px;background:#8b949e}.alert-mark.up{background:#f85149}.alert-mark.down{background:#3fb950}.alert-stock{font-weight:650}.alert-stock small{display:block;margin-top:3px;color:#6e7681;font:10px ui-monospace,SFMono-Regular,monospace}.alert-message{font-size:12px;color:#c9d1d9}.alert-message strong{margin-right:6px}.alert-time{text-align:right;color:#6e7681;font-size:10px}.live-dot{display:inline-block;width:6px;height:6px;margin-right:5px;border-radius:50%;background:#3fb950;box-shadow:0 0 0 3px #3fb95022}
 .market-overview{margin-bottom:14px}
 .market-overview-head{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:10px}
@@ -292,7 +292,7 @@ html[data-theme="light"] .tab-bar,html[data-theme="light"] .stats-grid,html[data
 html[data-theme="light"] .chart-loading{background:#fff;color:#57606a}html[data-theme="light"] .chart-retry-btn{background:#f6f8fa;border-color:#d0d7de;color:#1f2328}
 html[data-theme="light"] .market-name,html[data-theme="light"] .market-price,html[data-theme="light"] .market-summary strong,html[data-theme="light"] .chart-info,html[data-theme="light"] .alert-message{color:#1f2328}
 html[data-theme="light"] .market-page-note,html[data-theme="light"] .market-summary,html[data-theme="light"] .market-toolbar,html[data-theme="light"] .sort-note,html[data-theme="light"] .module-desc,html[data-theme="light"] .metric-label,html[data-theme="light"] .panel-status,html[data-theme="light"] .status,html[data-theme="light"] .refresh-setting,html[data-theme="light"] .time{color:#57606a}
-html[data-theme="light"] .ipo-status{border:1px solid transparent;font-weight:650}html[data-theme="light"] .ipo-status.upcoming{background:#e5f3ff;border-color:#b6ddff;color:#0969da}html[data-theme="light"] .ipo-status.today{background:#fff3cd;border-color:#f2d675;color:#8a5a00}html[data-theme="light"] .ipo-status.done{background:#dafbe1;border-color:#aceebb;color:#1a7f37}
+html[data-theme="light"] .ipo-board{background:#e5f3ff;color:#0969da}html[data-theme="light"] .ipo-status{border:1px solid transparent;font-weight:650}html[data-theme="light"] .ipo-status.upcoming{background:#e5f3ff;border-color:#b6ddff;color:#0969da}html[data-theme="light"] .ipo-status.today{background:#fff3cd;border-color:#f2d675;color:#8a5a00}html[data-theme="light"] .ipo-status.done{background:#dafbe1;border-color:#aceebb;color:#1a7f37}
 html[data-theme="light"] .market-kicker{color:#0969da}html[data-theme="light"] .metric-value,html[data-theme="light"] .module-title,html[data-theme="light"] .ipo-name{color:#172033}
 /* --- Notes --- */
 html[data-theme="light"] .note-card{background:#fff;border-color:#d7e0ea}html[data-theme="light"] .note-card:hover{border-color:#54aeff;background:#f8fbff}
@@ -2812,6 +2812,27 @@ function ipoStatus(item) {
   if (distance > 0) return { key:'upcoming', label:'即将申购' };
   return { key:'done', label:item.listingDate ? '已申购' : '待上市' };
 }
+function ipoBoard(item = {}) {
+  const board = String(item.board || '').trim();
+  if (board) {
+    if (board.includes('创业')) return '创业板';
+    if (board.includes('科创')) return '科创板';
+    if (board.includes('北交') || board.includes('北京')) return '北交所';
+    if (board.includes('沪深')) return '沪深主板';
+    if (board.includes('上海') || board.includes('沪')) return '沪市主板';
+    if (board.includes('深圳') || board.includes('深')) return '深市主板';
+    if (board.includes('主板')) return '沪深主板';
+    return board;
+  }
+  const code = String(item.code || '').trim();
+  const market = String(item.market || '').trim();
+  if (/^(688|689)/.test(code)) return '科创板';
+  if (/^(300|301)/.test(code)) return '创业板';
+  if (/^(4|8|92)/.test(code) || market.includes('北京') || market.includes('北交')) return '北交所';
+  if (/^(600|601|603|605)/.test(code) || market.includes('上海')) return '沪市主板';
+  if (/^(000|001|002|003)/.test(code) || market.includes('深圳')) return '深市主板';
+  return '待确认';
+}
 async function fetchIpos(force=false) {
   if (ipoRequestPending) return;
   ipoRequestPending = true;
@@ -2847,7 +2868,7 @@ function renderIpos() {
   document.getElementById('ipo-list').innerHTML = rows.length ? rows.map(item => {
     const when = friendlyDate(item.applyDate), status = ipoStatus(item);
     const upper = Number(item.upperLimit), marketCap = Number(item.requiredMarketCap), price = Number(item.price);
-    return `<article class="ipo-row"><div class="ipo-date">${when.date}<small>${when.label}</small></div><div><div class="ipo-name">${escapeHtml(item.name || '--')}</div><div class="ipo-code">${escapeHtml(item.applyCode || item.code)} · ${escapeHtml((item.market || '').replace('证券交易所',''))}</div></div><div class="ipo-field"><label>发行价</label><span>${price ? `¥ ${price.toFixed(2)}` : '待公布'}</span></div><div class="ipo-field"><label>申购上限</label><span>${upper ? `${Math.round(upper/100)/10} 千股` : '--'}</span></div><div class="ipo-field"><label>所需市值</label><span>${marketCap ? `${marketCap} 万` : '--'}</span></div><span class="ipo-status ${status.key}">${status.label}</span></article>`;
+    return `<article class="ipo-row"><div class="ipo-date">${when.date}<small>${when.label}</small></div><div><div class="ipo-name">${escapeHtml(item.name || '--')}<span class="ipo-board">${escapeHtml(ipoBoard(item))}</span></div><div class="ipo-code">${escapeHtml(item.applyCode || item.code)} · ${escapeHtml((item.market || '').replace('证券交易所',''))}</div></div><div class="ipo-field"><label>发行价</label><span>${price ? `¥ ${price.toFixed(2)}` : '待公布'}</span></div><div class="ipo-field"><label>申购上限</label><span>${upper ? `${Math.round(upper/100)/10} 千股` : '--'}</span></div><div class="ipo-field"><label>所需市值</label><span>${marketCap ? `${marketCap} 万` : '--'}</span></div><span class="ipo-status ${status.key}">${status.label}</span></article>`;
   }).join('') : '<div class="alert-empty">当前筛选条件下暂无记录</div>';
 }
 

@@ -49,7 +49,16 @@ function formatPrice(value) {
 
 function formatBoard(item = {}) {
   const board = String(item.board || '').trim();
-  if (board) return board;
+  if (board) {
+    if (board.includes('创业')) return '创业板';
+    if (board.includes('科创')) return '科创板';
+    if (board.includes('北交') || board.includes('北京')) return '北交所';
+    if (board.includes('沪深')) return '沪深主板';
+    if (board.includes('上海') || board.includes('沪')) return '沪市主板';
+    if (board.includes('深圳') || board.includes('深')) return '深市主板';
+    if (board.includes('主板')) return '沪深主板';
+    return board;
+  }
 
   const code = String(item.code || '').trim();
   const market = String(item.market || '').trim();
@@ -63,13 +72,13 @@ function formatBoard(item = {}) {
 
 function appendIpoDetails(lines, items, { includeDate = false } = {}) {
   items.forEach((item, index) => {
-    lines.push(`${index + 1}. ${item.name || '--'}（${item.applyCode || item.code || '--'}）`);
+    lines.push(`${index + 1}. ${item.name || '--'}（${item.applyCode || item.code || '--'}）【${formatBoard(item)}】`);
     if (includeDate) {
       const dateKey = String(item.applyDate || '').slice(0, 10);
       const weekday = WEEKDAY_NAMES[new Date(`${dateKey}T00:00:00Z`).getUTCDay()];
-      lines.push(`   ${dateKey} ${weekday}｜板块 ${formatBoard(item)}｜发行价 ${formatPrice(item.price)}`);
+      lines.push(`   ${dateKey} ${weekday}｜发行价 ${formatPrice(item.price)}`);
     } else {
-      lines.push(`   板块 ${formatBoard(item)}｜发行价 ${formatPrice(item.price)}`);
+      lines.push(`   发行价 ${formatPrice(item.price)}`);
     }
   });
 }

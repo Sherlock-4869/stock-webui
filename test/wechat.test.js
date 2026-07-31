@@ -45,7 +45,7 @@ test('weekly message contains IPO details and target page', () => {
     { name: '测试股份', applyCode: '787001', applyDate: '2026-07-28', price: 12.5, board: '科创板' },
   ], { start: '2026-07-27', end: '2026-08-02' }, 'https://stock.example/?page=ipo');
   assert.match(content, /测试股份/);
-  assert.match(content, /板块 科创板/);
+  assert.match(content, /测试股份（787001）【科创板】/);
   assert.match(content, /12\.50元/);
   assert.match(content, /https:\/\/stock\.example\/\?page=ipo/);
 });
@@ -59,13 +59,13 @@ test('IPO messages label each stock board', () => {
     { name: '北交测试', code: '920001', applyDate: '2026-07-28', price: 14 },
   ];
   const weekly = buildWeeklyMessage(items, { start: '2026-07-27', end: '2026-08-02' }, 'https://stock.example/?page=ipo');
-  assert.match(weekly, /创业测试（301001）\n   2026-07-28 周二｜板块 创业板/);
-  assert.match(weekly, /科创测试（688001）\n   2026-07-28 周二｜板块 科创板/);
-  assert.match(weekly, /沪市测试（603001）\n   2026-07-28 周二｜板块 沪市主板/);
-  assert.match(weekly, /深市测试（001001）\n   2026-07-28 周二｜板块 深市主板/);
-  assert.match(weekly, /北交测试（920001）\n   2026-07-28 周二｜板块 北交所/);
+  assert.match(weekly, /创业测试（301001）【创业板】/);
+  assert.match(weekly, /科创测试（688001）【科创板】/);
+  assert.match(weekly, /沪市测试（603001）【沪市主板】/);
+  assert.match(weekly, /深市测试（001001）【深市主板】/);
+  assert.match(weekly, /北交测试（920001）【北交所】/);
   const daily = buildDailyMessage(items, '2026-07-28', 'https://stock.example/?page=ipo');
-  assert.match(daily, /创业测试（301001）\n   板块 创业板/);
+  assert.match(daily, /创业测试（301001）【创业板】/);
 });
 
 test('daily IPO selection only includes the requested subscription date', () => {
@@ -95,6 +95,8 @@ test('IPO board falls back to stock code and exchange', () => {
   assert.equal(formatBoard({ code: '603001' }), '沪市主板');
   assert.equal(formatBoard({ code: '001001' }), '深市主板');
   assert.equal(formatBoard({ market: '上海证券交易所' }), '沪市主板');
+  assert.equal(formatBoard({ board: '创业板' }), '创业板');
+  assert.equal(formatBoard({ board: '上海证券交易所主板' }), '沪市主板');
 });
 
 test('default WeChat menu connects click actions and IPO page', () => {
