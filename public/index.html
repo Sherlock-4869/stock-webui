@@ -2720,10 +2720,6 @@ window.addEventListener('resize', () => {
 
 // --- App pages / IPO calendar ---
 const APP_PAGES = ['market','ipo','alerts','notes','reference','admin-sites'];
-const APP_PAGE_TITLES = {
-  market:'自选股行情', ipo:'打新消息', alerts:'自选异动', notes:'我的笔记', reference:'参考文档',
-  'admin-sites':'站点推荐管理',
-};
 const requestedAppPage = new URLSearchParams(location.search).get('page');
 const storedAppPage = localStorage.getItem(APP_PAGE_STORAGE_KEY);
 let activeAppPage = APP_PAGES.includes(requestedAppPage)
@@ -2784,7 +2780,7 @@ function switchAppPage(page, { historyMode = 'push', scroll = true } = {}) {
     }
   });
   document.querySelectorAll('.app-page').forEach(section => section.classList.toggle('active', section.id === `page-${page}`));
-  document.title = page === 'market' ? '深度学习' : `${APP_PAGE_TITLES[page]} · 深度学习`;
+  document.title = '深度学习';
   updateAppPageHistory(page, historyMode);
   if (changed && scroll) window.scrollTo({ top:0, behavior:'auto' });
   activeTab?.scrollIntoView({ block:'nearest', inline:'nearest' });

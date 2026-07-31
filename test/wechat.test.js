@@ -50,6 +50,24 @@ test('weekly message contains IPO details and target page', () => {
   assert.match(content, /https:\/\/stock\.example\/\?page=ipo/);
 });
 
+test('IPO messages label each stock board', () => {
+  const items = [
+    { name: '创业测试', code: '301001', applyDate: '2026-07-28', price: 10 },
+    { name: '科创测试', code: '688001', applyDate: '2026-07-28', price: 11 },
+    { name: '沪市测试', code: '603001', applyDate: '2026-07-28', price: 12 },
+    { name: '深市测试', code: '001001', applyDate: '2026-07-28', price: 13 },
+    { name: '北交测试', code: '920001', applyDate: '2026-07-28', price: 14 },
+  ];
+  const weekly = buildWeeklyMessage(items, { start: '2026-07-27', end: '2026-08-02' }, 'https://stock.example/?page=ipo');
+  assert.match(weekly, /创业测试（301001）\n   2026-07-28 周二｜板块 创业板/);
+  assert.match(weekly, /科创测试（688001）\n   2026-07-28 周二｜板块 科创板/);
+  assert.match(weekly, /沪市测试（603001）\n   2026-07-28 周二｜板块 沪市主板/);
+  assert.match(weekly, /深市测试（001001）\n   2026-07-28 周二｜板块 深市主板/);
+  assert.match(weekly, /北交测试（920001）\n   2026-07-28 周二｜板块 北交所/);
+  const daily = buildDailyMessage(items, '2026-07-28', 'https://stock.example/?page=ipo');
+  assert.match(daily, /创业测试（301001）\n   板块 创业板/);
+});
+
 test('daily IPO selection only includes the requested subscription date', () => {
   const rows = [
     { code: '3', applyDate: '2026-07-31 00:00:00' },

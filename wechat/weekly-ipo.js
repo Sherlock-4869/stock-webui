@@ -61,18 +61,26 @@ function formatBoard(item = {}) {
   return '待确认';
 }
 
+function appendIpoDetails(lines, items, { includeDate = false } = {}) {
+  items.forEach((item, index) => {
+    lines.push(`${index + 1}. ${item.name || '--'}（${item.applyCode || item.code || '--'}）`);
+    if (includeDate) {
+      const dateKey = String(item.applyDate || '').slice(0, 10);
+      const weekday = WEEKDAY_NAMES[new Date(`${dateKey}T00:00:00Z`).getUTCDay()];
+      lines.push(`   ${dateKey} ${weekday}｜板块 ${formatBoard(item)}｜发行价 ${formatPrice(item.price)}`);
+    } else {
+      lines.push(`   板块 ${formatBoard(item)}｜发行价 ${formatPrice(item.price)}`);
+    }
+  });
+}
+
 function buildWeeklyMessage(items, range, pageUrl) {
   const lines = [`【本周新股申购】`, `${range.start} 至 ${range.end}`];
   if (!items.length) {
     lines.push('', '本周暂无可申购新股。');
   } else {
     lines.push('', `共 ${items.length} 只：`);
-    items.slice(0, 20).forEach((item, index) => {
-      const dateKey = String(item.applyDate || '').slice(0, 10);
-      const weekday = WEEKDAY_NAMES[new Date(`${dateKey}T00:00:00Z`).getUTCDay()];
-      lines.push(`${index + 1}. ${item.name || '--'}（${item.applyCode || item.code || '--'}）`);
-      lines.push(`   ${dateKey} ${weekday}｜板块 ${formatBoard(item)}｜发行价 ${formatPrice(item.price)}`);
-    });
+    appendIpoDetails(lines, items.slice(0, 20), { includeDate: true });
     if (items.length > 20) lines.push(`另有 ${items.length - 20} 只，请打开页面查看。`);
   }
   lines.push('', `详情：${pageUrl}`, '数据以交易所最终公告为准，不构成投资建议。');
@@ -87,10 +95,7 @@ function buildDailyMessage(items, dateKey, pageUrl) {
     lines.push('', '今日暂无可申购新股。');
   } else {
     lines.push('', `今日共 ${items.length} 只：`);
-    items.slice(0, 20).forEach((item, index) => {
-      lines.push(`${index + 1}. ${item.name || '--'}（${item.applyCode || item.code || '--'}）`);
-      lines.push(`   板块 ${formatBoard(item)}｜发行价 ${formatPrice(item.price)}`);
-    });
+    appendIpoDetails(lines, items.slice(0, 20));
     if (items.length > 20) lines.push(`另有 ${items.length - 20} 只，请打开页面查看。`);
   }
   lines.push('', `详情：${pageUrl}`, '数据以交易所最终公告为准，不构成投资建议。');

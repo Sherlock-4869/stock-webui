@@ -177,6 +177,8 @@ test('standalone and in-page reference views share the same renderer', () => {
 
 test('all app pages support direct URL navigation and browser history', () => {
   assert.match(html, /const APP_PAGES = \['market','ipo','alerts','notes','reference','admin-sites'\]/);
+  assert.match(html, /document\.title = '深度学习';/);
+  assert.doesNotMatch(html, /APP_PAGE_TITLES/);
   assert.match(html, /history\.pushState\(\{ page \}, '', url\)/);
   assert.match(html, /addEventListener\('popstate'/);
   assert.match(html, /aria-current/);
