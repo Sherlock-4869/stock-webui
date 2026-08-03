@@ -119,9 +119,13 @@ test('sidebar groups navigation and supports collapse on desktop plus overlay on
   const referenceIndex = nav.indexOf('data-page="reference"');
   const chatIndex = nav.indexOf('id="chat-entry-btn"');
   const researchGroup = nav.indexOf('id="sidebar-group-research"');
+  const aiGroup = nav.indexOf('id="sidebar-group-ai"');
   const communityGroup = nav.indexOf('id="sidebar-group-community"');
   assert.ok(referenceIndex > researchGroup);
+  assert.ok(nav.indexOf('id="ai-entry-btn"') > aiGroup);
+  assert.ok(nav.indexOf('id="user-ai-models-entry"') > aiGroup);
   assert.ok(chatIndex > communityGroup);
+  assert.ok(nav.indexOf('class="sidebar-collapse"') < nav.indexOf('<div class="sidebar-scroll">'));
   assert.match(nav, /id="admin-navigation" hidden/);
   assert.match(nav, /<svg class="app-tab-icon"/);
   assert.doesNotMatch(nav, /<span class="app-tab-icon">/);
@@ -131,22 +135,26 @@ test('sidebar groups navigation and supports collapse on desktop plus overlay on
   assert.match(html, /body\.sidebar-collapsed/);
   assert.match(html, /@media\(max-width:860px\).*sidebar-open/s);
   assert.match(html, /id="sidebar-mobile-toggle"/);
+  assert.match(html, /id="sidebar-hover-label" role="tooltip"/);
+  assert.match(html, /item\.addEventListener\('pointerenter', showTooltip\)/);
+  assert.match(html, /item\.removeAttribute\('title'\)/);
+  assert.match(html, /body\.sidebar-collapsed \.account-trigger\{width:48px;height:48px/);
   assert.match(html, /<section class="app-page" id="page-reference">/);
   assert.match(html, /href="\/reference\.html" target="_blank" rel="noopener noreferrer"/);
 });
 
-test('site recommendation menu loads beside chat and opens safe links in new tabs', () => {
-  assert.match(html, /id="site-recommendation-trigger"[^>]*aria-haspopup="menu"/);
-  assert.match(html, /\.site-recommendations:hover \.site-recommendation-menu/);
-  assert.match(html, /\.site-recommendations::after\{[^}]*height:8px/);
-  assert.match(html, /onmouseleave="scheduleSiteRecommendationsClose\(\)"/);
-  assert.match(html, /siteRecommendationsCloseTimer = setTimeout\(closeSiteRecommendations, 320\)/);
+test('site recommendations open a searchable right-side directory with safe new-tab links', () => {
+  assert.match(html, /data-page="sites"[^>]*onclick="switchAppPage\('sites'\)"/);
+  assert.match(html, /id="page-sites"/);
+  assert.match(html, /id="site-directory-search"[^>]*oninput="filterSiteDirectory\(\)"/);
+  assert.match(html, /id="site-directory-grid"/);
+  assert.match(html, /\.site-directory-grid\{display:grid/);
   assert.match(html, /apiRequest\('\/api\/site-recommendations'/);
   assert.match(html, /link\.target = '_blank'/);
   assert.match(html, /link\.rel = 'noopener noreferrer'/);
 
   const start = html.indexOf('function safeRecommendedSiteUrl');
-  const end = html.indexOf('function renderSiteRecommendations', start);
+  const end = html.indexOf('function renderSiteDirectory', start);
   assert.ok(start >= 0 && end > start);
   const context = { URL };
   vm.createContext(context);
@@ -184,7 +192,7 @@ test('standalone and in-page reference views share the same renderer', () => {
 });
 
 test('all app pages support direct URL navigation and browser history', () => {
-  assert.match(html, /const APP_PAGES = \['market','ipo','alerts','notes','reference','ai','admin-users','admin-sites','admin-ai'\]/);
+  assert.match(html, /const APP_PAGES = \['market','ipo','alerts','notes','reference','sites','ai','user-ai-models','admin-users','admin-sites','admin-ai'\]/);
   assert.match(html, /document\.title = '深度学习';/);
   assert.doesNotMatch(html, /APP_PAGE_TITLES/);
   assert.match(html, /history\.pushState\(\{ page \}, '', url\)/);
@@ -209,14 +217,15 @@ test('IPO calendar labels each stock board', () => {
   assert.equal(context.ipoBoardForTest({ board:'上海证券交易所主板' }), '沪市主板');
 });
 
-test('administrator UI groups system tools and provides per-user AI access management', () => {
+test('administrator UI keeps system tools in the sidebar and provides per-user AI access management', () => {
   assert.match(html, /id="page-admin-sites"/);
   assert.match(html, /id="page-admin-users"/);
   assert.match(html, /id="admin-users-list"/);
   assert.match(html, /onclick="openAdminUserManagement\(\)"/);
   assert.match(html, /\/api\/admin\/ai\/users/);
   assert.match(html, /function setAdminAiUserPermission\(user, canUse, button\)/);
-  assert.match(html, /onclick="openAdminSiteManagement\(\)"/);
+  assert.match(html, /id="admin-navigation" hidden/);
+  assert.match(html, /data-page="admin-sites" onclick="switchAppPage\('admin-sites'\)"/);
   assert.match(html, /apiRequest\('\/api\/admin\/sites'/);
   assert.match(html, /async function saveAdminSite\(event\)/);
   assert.match(html, /async function deleteAdminSite\(siteId\)/);
@@ -226,20 +235,31 @@ test('administrator UI groups system tools and provides per-user AI access manag
   assert.match(html, /visibility\.textContent = '仅管理员可见'/);
   assert.match(html, /page === 'admin-users' \|\| page === 'admin-sites' \|\| page === 'admin-ai'/);
   assert.match(html, /if \(user\.isAdmin\).*管理员默认可用/s);
+  const accountRenderStart = html.indexOf('function renderAccountArea');
+  const accountRenderEnd = html.indexOf('function positionAccountMenu', accountRenderStart);
+  assert.ok(accountRenderStart >= 0 && accountRenderEnd > accountRenderStart);
+  const accountRender = html.slice(accountRenderStart, accountRenderEnd);
+  assert.doesNotMatch(accountRender, /openAdmin(UserManagement|AiManagement|SiteManagement)|openUserAiModels/);
   assert.doesNotMatch(html, /name="isAdmin"|grantAdmin\(/);
 });
 
 test('AI stock research UI keeps entry permission-gated and renders chat content as text', () => {
   assert.match(html, /id="ai-entry-btn"[^>]*data-page="ai"[^>]*hidden/);
+  assert.match(html, /id="user-ai-models-entry"[^>]*data-page="user-ai-models"/);
   assert.match(html, /id="page-ai"/);
   assert.match(html, /id="page-admin-ai"/);
+  assert.match(html, /id="page-user-ai-models"/);
+  assert.match(html, /id="ai-model-select"[^>]*onchange="setAiModelSelection\(this\.value\)"/);
   assert.match(html, /\/api\/ai\/access/);
+  assert.match(html, /\/api\/ai\/user-models/);
   assert.match(html, /\/api\/ai\/conversations/);
   assert.match(html, /\/api\/admin\/ai\/models/);
   assert.match(html, /\/api\/admin\/ai\/usage/);
   assert.match(html, /\/api\/admin\/ai\/users/);
+  assert.match(html, /modelId:selectedAiModelId \|\| undefined/);
   assert.match(html, /function createAiMessageElement\(message\)[\s\S]*?content\.textContent = message\.content/);
   assert.match(html, /if \(page === 'ai' && !aiAccess\.canUse\)/);
+  assert.match(html, /if \(page === 'user-ai-models' && !currentUser\)/);
 });
 
 test('fund flow chart clearly marks today-only or stale-cache degradation', () => {

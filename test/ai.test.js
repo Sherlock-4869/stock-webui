@@ -90,19 +90,60 @@ test('AI routes require server sessions, enforce per-user grants and scope conve
   result = await aiRequest(accountService, aiService, '/api/ai/access', { cookie:userCookie });
   assert.equal(result.payload.isPublic, false);
   assert.equal(result.payload.isGranted, true);
-  assert.equal(result.payload.canUse, true);
+  assert.equal(result.payload.canUse, false);
+  assert.equal(result.payload.needsUserModel, true);
   result = await aiRequest(accountService, aiService, '/api/ai/access', { cookie:otherCookie });
   assert.equal(result.payload.canUse, false);
+
+  result = await aiRequest(accountService, aiService, '/api/ai/user-models', {
+    method:'POST', body:{ name:'我的模型', modelName:'gpt-private', baseUrl:'https://example.test/v1', apiKey:'private-secret', isActive:true }, cookie:otherCookie,
+  });
+  assert.equal(result.response.status, 201);
+  assert.equal(Object.hasOwn(result.payload.model, 'apiKey'), false);
+  const privateModelId = result.payload.model.id;
+  assert.notEqual(database.userAiModels[0].api_key_encrypted, 'private-secret');
+  result = await aiRequest(accountService, aiService, '/api/ai/access', { cookie:otherCookie });
+  assert.equal(result.payload.hasGlobalModel, false);
+  assert.equal(result.payload.hasUserModel, true);
+  assert.equal(result.payload.modelSource, 'user');
+  assert.equal(result.payload.canUse, true);
+  result = await aiRequest(accountService, aiService, '/api/ai/user-models', {
+    method:'POST', body:{ name:'备用模型', modelName:'gpt-private-backup', baseUrl:'https://example.test/v1', apiKey:'backup-secret', isActive:true }, cookie:otherCookie,
+  });
+  assert.equal(result.response.status, 201);
+  result = await aiRequest(accountService, aiService, '/api/ai/access', { cookie:otherCookie });
+  assert.deepEqual(result.payload.models.map(model => model.name), ['我的模型', '备用模型']);
+  result = await aiRequest(accountService, aiService, `/api/ai/user-models/${privateModelId}`, {
+    method:'DELETE', body:{}, cookie:userCookie,
+  });
+  assert.equal(result.response.status, 404);
 
   result = await aiRequest(accountService, aiService, '/api/admin/ai/models', { method:'POST', body:{ name:'测试模型', modelName:'gpt-test', baseUrl:'https://example.test/v1', apiKey:'secret-key', isActive:true }, cookie:adminCookie });
   assert.equal(result.response.status, 201);
   assert.equal(Object.hasOwn(result.payload.model, 'apiKey'), false);
 
+  result = await aiRequest(accountService, aiService, '/api/ai/access', { cookie:userCookie });
+  assert.equal(result.payload.hasGlobalModel, true);
+  assert.equal(result.payload.modelSource, 'global');
+  assert.equal(result.payload.canUse, true);
+  assert.deepEqual(result.payload.models.map(model => model.name), ['测试模型']);
+  result = await aiRequest(accountService, aiService, '/api/ai/access', { cookie:otherCookie });
+  assert.equal(result.payload.hasGlobalModel, true);
+  assert.equal(result.payload.hasUserModel, true);
+  assert.equal(result.payload.modelSource, 'user');
+  assert.equal(result.payload.canUse, true);
+  assert.deepEqual(result.payload.models.map(model => model.name), ['我的模型', '备用模型']);
+
   result = await aiRequest(accountService, aiService, '/api/ai/conversations', { method:'POST', body:{ title:'我的问股' }, cookie:userCookie });
   assert.equal(result.response.status, 201);
   const conversationId = result.payload.conversation.id;
+  result = await aiRequest(accountService, aiService, `/api/ai/conversations/${conversationId}/messages/stream`, {
+    method:'POST', body:{ message:'分析一下当前走势', modelId:'999999' }, cookie:userCookie,
+  });
+  assert.equal(result.response.status, 400);
+  assert.equal(result.payload.error, '所选 AI 模型不可用');
   result = await aiRequest(accountService, aiService, `/api/ai/conversations/${conversationId}/messages`, { cookie:otherCookie });
-  assert.equal(result.response.status, 403);
+  assert.equal(result.response.status, 404);
 
   result = await aiRequest(accountService, aiService, '/api/admin/ai/settings', { method:'PUT', body:{ isPublic:true }, cookie:adminCookie });
   assert.equal(result.response.status, 200);
@@ -131,8 +172,10 @@ test('AI persistence schema stays aligned across runtime, canonical SQL and oper
     assert.match(schema, /CREATE TABLE IF NOT EXISTS ai_feature_settings/);
     assert.match(schema, /CREATE TABLE IF NOT EXISTS ai_user_permissions/);
     assert.match(schema, /CREATE TABLE IF NOT EXISTS ai_model_configs/);
+    assert.match(schema, /CREATE TABLE IF NOT EXISTS user_ai_model_configs/);
     assert.match(schema, /CREATE TABLE IF NOT EXISTS ai_conversations/);
     assert.match(schema, /CREATE TABLE IF NOT EXISTS ai_messages/);
     assert.match(schema, /CREATE TABLE IF NOT EXISTS ai_usage_records/);
+    assert.match(schema, /user_model_config_id/);
   }
 });

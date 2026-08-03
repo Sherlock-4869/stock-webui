@@ -13,6 +13,7 @@ const AI_RATE_WINDOW_MS = 60 * 1000;
 const AGENT_TIMEOUT_MS = 190 * 1000;
 const CONVERSATION_ID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const SYMBOL_PATTERN = /^[a-zA-Z0-9._-]{2,24}$/;
+const MODEL_ID_PATTERN = /^\d{1,20}$/;
 
 function booleanValue(value, fallback = false) {
   if (value == null || value === '') return fallback;
@@ -42,6 +43,15 @@ function sendJson(res, status, payload) {
 }
 
 function publicModel(row) {
+  if (!row) return null;
+  return {
+    id:Number(row.id), name:String(row.name), modelName:String(row.model_name), baseUrl:String(row.base_url),
+    protocol:String(row.protocol), isActive:Number(row.is_active) === 1,
+    createdAt:row.created_at, updatedAt:row.updated_at,
+  };
+}
+
+function publicUserModel(row) {
   if (!row) return null;
   return {
     id:Number(row.id), name:String(row.name), modelName:String(row.model_name), baseUrl:String(row.base_url),
@@ -152,7 +162,24 @@ class AiService {
     const isPublic = Number(setting.is_public) === 1;
     const isGranted = !isAdmin && await this.accountService.database.hasAiUserPermission(user?.id);
     const configured = Boolean(this.config.enabled && this.config.internalToken && this.config.credentialKey);
-    return { enabled:configured, isPublic, isGranted, canUse:configured && (isPublic || isAdmin || isGranted), isAdmin };
+    const [globalModels, userModels] = await Promise.all([
+      this.accountService.database.listActiveAiModelConfigs(),
+      this.accountService.database.listActiveUserAiModelConfigs(user?.id),
+    ]);
+    const hasGlobalModel = globalModels.length > 0;
+    const hasUserModel = userModels.length > 0;
+    const canUseGlobalModel = isPublic || isAdmin || isGranted;
+    // A user-owned model takes precedence. The site model is the fallback for
+    // users who have not configured a personal model and have site access.
+    const modelSource = hasUserModel ? 'user' : (hasGlobalModel ? 'global' : null);
+    const canUse = configured && (modelSource === 'user' || (modelSource === 'global' && canUseGlobalModel));
+    return {
+      enabled:configured, isPublic, isGranted, isAdmin, canUse,
+      hasGlobalModel, hasUserModel,
+      modelSource,
+      needsUserModel:configured && !hasUserModel && !hasGlobalModel,
+      models:(modelSource === 'user' ? userModels : globalModels).map(modelSource === 'user' ? publicUserModel : publicModel),
+    };
   }
 
   checkRate(userId) {
@@ -188,6 +215,50 @@ class AiService {
         sendJson(res, 200, await this.accessFor(session.user));
         return true;
       }
+
+      if (pathname === '/api/ai/user-models' && req.method === 'GET') {
+        const models = await this.accountService.database.listUserAiModelConfigs(userId);
+        sendJson(res, 200, { models:models.map(publicUserModel) });
+        return true;
+      }
+      if (pathname === '/api/ai/user-models' && req.method === 'POST') {
+        assertSameOrigin(req);
+        const input = validModelInput(await readJson(req, 8192));
+        const model = await this.accountService.database.createUserAiModelConfig(userId, {
+          ...input, apiKeyEncrypted:encryptCredential(input.apiKey, this.config),
+        });
+        sendJson(res, 201, { model:publicUserModel(model) });
+        return true;
+      }
+      const userModelMatch = pathname.match(/^\/api\/ai\/user-models\/(\d{1,20})$/);
+      if (userModelMatch && req.method === 'PUT') {
+        assertSameOrigin(req);
+        const existing = await this.accountService.database.getUserAiModelConfig(userId, userModelMatch[1]);
+        if (!existing) throw Object.assign(new Error('模型配置不存在'), { statusCode:404 });
+        const body = await readJson(req, 8192);
+        const input = validModelInput({ ...body, apiKey:body.apiKey || 'kept' }, { requireKey:false });
+        const model = await this.accountService.database.updateUserAiModelConfig(userId, userModelMatch[1], {
+          ...input, apiKeyEncrypted:body.apiKey ? encryptCredential(body.apiKey, this.config) : null,
+        });
+        sendJson(res, 200, { model:publicUserModel(model) });
+        return true;
+      }
+      if (userModelMatch && req.method === 'DELETE') {
+        assertSameOrigin(req);
+        let deleted;
+        try {
+          deleted = await this.accountService.database.deleteUserAiModelConfig(userId, userModelMatch[1]);
+        } catch (error) {
+          if (error.code === 'ER_ROW_IS_REFERENCED_2' || error.code === 'ER_ROW_IS_REFERENCED') {
+            throw Object.assign(new Error('该模型已有使用记录，为保留审计数据不能删除；请改为停用'), { statusCode:409 });
+          }
+          throw error;
+        }
+        if (!deleted) throw Object.assign(new Error('模型配置不存在'), { statusCode:404 });
+        sendJson(res, 200, { deleted:true });
+        return true;
+      }
+
       const access = await this.accessFor(session.user);
       if (!access.canUse) throw Object.assign(new Error(access.enabled ? '你暂未获得问股页面权限' : '问股服务尚未完成配置'), { statusCode:403 });
 
@@ -238,7 +309,9 @@ class AiService {
         const message = String(body.message || '').trim();
         if (!message || message.length > MAX_MESSAGE_LENGTH) throw Object.assign(new Error(`问题不能为空且不能超过 ${MAX_MESSAGE_LENGTH} 个字符`), { statusCode:400 });
         this.checkRate(userId);
-        await this.streamAgent(req, res, { session, conversation, message, stockContext:normalizedStockContext(body.stockContext) });
+        const modelId = String(body.modelId || '').trim();
+        if (modelId && !MODEL_ID_PATTERN.test(modelId)) throw Object.assign(new Error('所选 AI 模型无效'), { statusCode:400 });
+        await this.streamAgent(req, res, { session, access, conversation, message, modelId, stockContext:normalizedStockContext(body.stockContext) });
         return true;
       }
       sendJson(res, 405, { error:'Method Not Allowed' });
@@ -340,10 +413,17 @@ class AiService {
     return true;
   }
 
-  async streamAgent(req, res, { session, conversation, message, stockContext }) {
+  async streamAgent(req, res, { session, access, conversation, message, modelId, stockContext }) {
     if (!this.config.enabled || !this.config.internalToken) throw Object.assign(new Error('问股服务尚未完成配置'), { statusCode:503 });
-    const model = await this.accountService.database.getActiveAiModelConfig();
-    if (!model) throw Object.assign(new Error('管理员尚未配置可用的智能体模型'), { statusCode:503 });
+    const modelSource = access.modelSource;
+    const availableModels = modelSource === 'user'
+      ? await this.accountService.database.listActiveUserAiModelConfigs(session.user.id)
+      : await this.accountService.database.listActiveAiModelConfigs();
+    const model = modelId
+      ? availableModels.find(item => String(item.id) === modelId)
+      : availableModels[0];
+    if (!model && modelId) throw Object.assign(new Error('所选 AI 模型不可用'), { statusCode:400 });
+    if (!model) throw Object.assign(new Error('请等待管理员配置全局模型，或先在“我的 AI 模型”中配置自己的模型'), { statusCode:503 });
     const apiKey = decryptCredential(model.api_key_encrypted, this.config);
     const previousMessages = await this.accountService.database.listAiMessages(session.user.id, conversation.id, MAX_HISTORY_FOR_AGENT);
     const userMessage = await this.accountService.database.createAiMessage(conversation.id, { role:'user', content:message });
@@ -375,7 +455,9 @@ class AiService {
         const assistant = await this.accountService.database.createAiMessage(conversation.id, { role:'assistant', content:String(event.content || ''), status:event.success === false ? 'failed' : 'complete' });
         const usage = event.usage || {};
         await this.accountService.database.recordAiUsage({
-          userId:session.user.id, conversationId:conversation.id, messageId:assistant.id, modelConfigId:model.id,
+          userId:session.user.id, conversationId:conversation.id, messageId:assistant.id,
+          modelConfigId:modelSource === 'global' ? model.id : null,
+          userModelConfigId:modelSource === 'user' ? model.id : null,
           provider:String(event.provider || 'openai_compatible'), modelName:String(event.model || model.model_name),
           inputTokens:Number(usage.input_tokens) || 0, outputTokens:Number(usage.output_tokens) || 0, totalTokens:Number(usage.total_tokens) || 0,
         });

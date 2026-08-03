@@ -168,6 +168,21 @@ const SCHEMA_STATEMENTS = [
     KEY idx_ai_model_configs_active (is_active, id),
     CONSTRAINT fk_ai_model_configs_user FOREIGN KEY (created_by_user_id) REFERENCES users(id) ON DELETE SET NULL
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
+  `CREATE TABLE IF NOT EXISTS user_ai_model_configs (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    user_id BIGINT UNSIGNED NOT NULL,
+    name VARCHAR(100) NOT NULL,
+    model_name VARCHAR(160) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+    base_url VARCHAR(500) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+    protocol VARCHAR(32) CHARACTER SET ascii COLLATE ascii_bin NOT NULL DEFAULT 'chat_completions',
+    api_key_encrypted TEXT NOT NULL,
+    is_active TINYINT(1) NOT NULL DEFAULT 1,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    KEY idx_user_ai_model_configs_user (user_id, is_active, id),
+    CONSTRAINT fk_user_ai_model_configs_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
   `CREATE TABLE IF NOT EXISTS ai_conversations (
     id CHAR(36) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
     user_id BIGINT UNSIGNED NOT NULL,
@@ -195,7 +210,8 @@ const SCHEMA_STATEMENTS = [
     user_id BIGINT UNSIGNED NOT NULL,
     conversation_id CHAR(36) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
     message_id BIGINT UNSIGNED NULL,
-    model_config_id BIGINT UNSIGNED NOT NULL,
+    model_config_id BIGINT UNSIGNED NULL,
+    user_model_config_id BIGINT UNSIGNED NULL,
     provider VARCHAR(80) CHARACTER SET ascii COLLATE ascii_bin NOT NULL DEFAULT '',
     model_name VARCHAR(160) CHARACTER SET ascii COLLATE ascii_bin NOT NULL DEFAULT '',
     input_tokens INT UNSIGNED NOT NULL DEFAULT 0,
@@ -205,10 +221,12 @@ const SCHEMA_STATEMENTS = [
     PRIMARY KEY (id),
     KEY idx_ai_usage_user_created (user_id, created_at),
     KEY idx_ai_usage_created (created_at),
+    KEY idx_ai_usage_user_model (user_model_config_id),
     CONSTRAINT fk_ai_usage_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
     CONSTRAINT fk_ai_usage_conversation FOREIGN KEY (conversation_id) REFERENCES ai_conversations(id) ON DELETE CASCADE,
     CONSTRAINT fk_ai_usage_message FOREIGN KEY (message_id) REFERENCES ai_messages(id) ON DELETE SET NULL,
-    CONSTRAINT fk_ai_usage_model FOREIGN KEY (model_config_id) REFERENCES ai_model_configs(id) ON DELETE RESTRICT
+    CONSTRAINT fk_ai_usage_model FOREIGN KEY (model_config_id) REFERENCES ai_model_configs(id) ON DELETE RESTRICT,
+    CONSTRAINT fk_ai_usage_user_model FOREIGN KEY (user_model_config_id) REFERENCES user_ai_model_configs(id) ON DELETE RESTRICT
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
 ];
 
@@ -307,6 +325,46 @@ async function ensureAvatarSchema(connection, databaseName) {
   }
 }
 
+async function ensureUserAiModelSchema(connection, databaseName) {
+  const [modelColumn] = await connection.execute(
+    `SELECT IS_NULLABLE FROM information_schema.COLUMNS
+     WHERE TABLE_SCHEMA=? AND TABLE_NAME='ai_usage_records' AND COLUMN_NAME='model_config_id' LIMIT 1`,
+    [databaseName]
+  );
+  if (modelColumn.length && String(modelColumn[0].IS_NULLABLE).toUpperCase() !== 'YES') {
+    await connection.query('ALTER TABLE ai_usage_records MODIFY COLUMN model_config_id BIGINT UNSIGNED NULL');
+  }
+
+  const [userModelColumn] = await connection.execute(
+    `SELECT 1 FROM information_schema.COLUMNS
+     WHERE TABLE_SCHEMA=? AND TABLE_NAME='ai_usage_records' AND COLUMN_NAME='user_model_config_id' LIMIT 1`,
+    [databaseName]
+  );
+  if (!userModelColumn.length) {
+    await connection.query('ALTER TABLE ai_usage_records ADD COLUMN user_model_config_id BIGINT UNSIGNED NULL AFTER model_config_id');
+  }
+
+  const [indexes] = await connection.execute(
+    `SELECT 1 FROM information_schema.STATISTICS
+     WHERE TABLE_SCHEMA=? AND TABLE_NAME='ai_usage_records' AND INDEX_NAME='idx_ai_usage_user_model' LIMIT 1`,
+    [databaseName]
+  );
+  if (!indexes.length) {
+    await connection.query('ALTER TABLE ai_usage_records ADD KEY idx_ai_usage_user_model (user_model_config_id)');
+  }
+
+  const [constraints] = await connection.execute(
+    `SELECT 1 FROM information_schema.REFERENTIAL_CONSTRAINTS
+     WHERE CONSTRAINT_SCHEMA=? AND TABLE_NAME='ai_usage_records' AND CONSTRAINT_NAME='fk_ai_usage_user_model' LIMIT 1`,
+    [databaseName]
+  );
+  if (!constraints.length) {
+    await connection.query(
+      'ALTER TABLE ai_usage_records ADD CONSTRAINT fk_ai_usage_user_model FOREIGN KEY (user_model_config_id) REFERENCES user_ai_model_configs(id) ON DELETE RESTRICT'
+    );
+  }
+}
+
 function parseJson(value) {
   if (value == null || typeof value === 'object') return value;
   try { return JSON.parse(value); } catch (_) { return null; }
@@ -345,6 +403,7 @@ class AccountDatabase {
       await ensureSiteRecommendationVisibilitySchema(connection, this.config.database);
       await ensureNoteFolderSchema(connection, this.config.database);
       await ensureAvatarSchema(connection, this.config.database);
+      await ensureUserAiModelSchema(connection, this.config.database);
     } finally {
       connection.release();
     }
@@ -839,6 +898,14 @@ class AccountDatabase {
     return rows[0] || null;
   }
 
+  async listActiveAiModelConfigs() {
+    const [rows] = await this.requirePool().execute(
+      `SELECT id, name, model_name, base_url, protocol, api_key_encrypted, is_active, created_by_user_id, created_at, updated_at
+       FROM ai_model_configs WHERE is_active=1 ORDER BY id ASC LIMIT 100`
+    );
+    return rows;
+  }
+
   async createAiModelConfig({ name, modelName, baseUrl, protocol, apiKeyEncrypted, isActive, createdByUserId }) {
     const [result] = await this.requirePool().execute(
       `INSERT INTO ai_model_configs (name, model_name, base_url, protocol, api_key_encrypted, is_active, created_by_user_id)
@@ -859,6 +926,68 @@ class AccountDatabase {
 
   async deleteAiModelConfig(id) {
     const [result] = await this.requirePool().execute('DELETE FROM ai_model_configs WHERE id=?', [id]);
+    return result.affectedRows > 0;
+  }
+
+  async listUserAiModelConfigs(userId) {
+    const [rows] = await this.requirePool().execute(
+      `SELECT id, user_id, name, model_name, base_url, protocol, is_active, created_at, updated_at
+       FROM user_ai_model_configs WHERE user_id=? ORDER BY is_active DESC, id ASC LIMIT 20`,
+      [userId]
+    );
+    return rows;
+  }
+
+  async getUserAiModelConfig(userId, id) {
+    const [rows] = await this.requirePool().execute(
+      `SELECT id, user_id, name, model_name, base_url, protocol, api_key_encrypted, is_active, created_at, updated_at
+       FROM user_ai_model_configs WHERE id=? AND user_id=? LIMIT 1`,
+      [id, userId]
+    );
+    return rows[0] || null;
+  }
+
+  async getActiveUserAiModelConfig(userId) {
+    const [rows] = await this.requirePool().execute(
+      `SELECT id, user_id, name, model_name, base_url, protocol, api_key_encrypted, is_active, created_at, updated_at
+       FROM user_ai_model_configs WHERE user_id=? AND is_active=1 ORDER BY id ASC LIMIT 1`,
+      [userId]
+    );
+    return rows[0] || null;
+  }
+
+  async listActiveUserAiModelConfigs(userId) {
+    const [rows] = await this.requirePool().execute(
+      `SELECT id, user_id, name, model_name, base_url, protocol, api_key_encrypted, is_active, created_at, updated_at
+       FROM user_ai_model_configs WHERE user_id=? AND is_active=1 ORDER BY id ASC LIMIT 20`,
+      [userId]
+    );
+    return rows;
+  }
+
+  async createUserAiModelConfig(userId, { name, modelName, baseUrl, protocol, apiKeyEncrypted, isActive }) {
+    const [result] = await this.requirePool().execute(
+      `INSERT INTO user_ai_model_configs (user_id, name, model_name, base_url, protocol, api_key_encrypted, is_active)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [userId, name, modelName, baseUrl, protocol, apiKeyEncrypted, isActive ? 1 : 0]
+    );
+    return this.getUserAiModelConfig(userId, result.insertId);
+  }
+
+  async updateUserAiModelConfig(userId, id, { name, modelName, baseUrl, protocol, apiKeyEncrypted, isActive }) {
+    const sets = ['name=?', 'model_name=?', 'base_url=?', 'protocol=?', 'is_active=?'];
+    const params = [name, modelName, baseUrl, protocol, isActive ? 1 : 0];
+    if (apiKeyEncrypted) { sets.push('api_key_encrypted=?'); params.push(apiKeyEncrypted); }
+    params.push(id, userId);
+    const [result] = await this.requirePool().execute(
+      `UPDATE user_ai_model_configs SET ${sets.join(',')} WHERE id=? AND user_id=?`, params
+    );
+    if (!result.affectedRows) return null;
+    return this.getUserAiModelConfig(userId, id);
+  }
+
+  async deleteUserAiModelConfig(userId, id) {
+    const [result] = await this.requirePool().execute('DELETE FROM user_ai_model_configs WHERE id=? AND user_id=?', [id, userId]);
     return result.affectedRows > 0;
   }
 
@@ -923,11 +1052,11 @@ class AccountDatabase {
     return rows.reverse();
   }
 
-  async recordAiUsage({ userId, conversationId, messageId, modelConfigId, provider, modelName, inputTokens, outputTokens, totalTokens }) {
+  async recordAiUsage({ userId, conversationId, messageId, modelConfigId = null, userModelConfigId = null, provider, modelName, inputTokens, outputTokens, totalTokens }) {
     await this.requirePool().execute(
-      `INSERT INTO ai_usage_records (user_id, conversation_id, message_id, model_config_id, provider, model_name, input_tokens, output_tokens, total_tokens)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [userId, conversationId, messageId || null, modelConfigId, provider || '', modelName || '', inputTokens || 0, outputTokens || 0, totalTokens || 0]
+      `INSERT INTO ai_usage_records (user_id, conversation_id, message_id, model_config_id, user_model_config_id, provider, model_name, input_tokens, output_tokens, total_tokens)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [userId, conversationId, messageId || null, modelConfigId, userModelConfigId, provider || '', modelName || '', inputTokens || 0, outputTokens || 0, totalTokens || 0]
     );
   }
 
@@ -975,6 +1104,7 @@ class MemoryAccountDatabase {
     this.aiFeatureSetting = { is_public:0, updated_by_user_id:null, updated_at:null };
     this.aiUserPermissions = new Map();
     this.aiModels = [];
+    this.userAiModels = [];
     this.aiConversations = new Map();
     this.aiMessages = [];
     this.aiUsageRecords = [];
@@ -985,6 +1115,7 @@ class MemoryAccountDatabase {
     this.nextSiteRecommendationId = 1;
     this.nextChatMessageId = 1;
     this.nextAiModelId = 1;
+    this.nextUserAiModelId = 1;
     this.nextAiMessageId = 1;
     this.nextAiUsageId = 1;
   }
@@ -1354,6 +1485,10 @@ class MemoryAccountDatabase {
     return item ? { ...item } : null;
   }
 
+  async listActiveAiModelConfigs() {
+    return this.aiModels.filter(model => model.is_active).map(model => ({ ...model }));
+  }
+
   async createAiModelConfig({ name, modelName, baseUrl, protocol, apiKeyEncrypted, isActive, createdByUserId }) {
     const item = {
       id:this.nextAiModelId++, name, model_name:modelName, base_url:baseUrl, protocol,
@@ -1376,6 +1511,54 @@ class MemoryAccountDatabase {
     const index = this.aiModels.findIndex(model => model.id === Number(id));
     if (index < 0) return false;
     this.aiModels.splice(index, 1);
+    return true;
+  }
+
+  async listUserAiModelConfigs(userId) {
+    return this.userAiModels
+      .filter(model => model.user_id === Number(userId))
+      .sort((left, right) => Number(right.is_active) - Number(left.is_active) || left.id - right.id)
+      .map(({ api_key_encrypted, ...model }) => ({ ...model }));
+  }
+
+  async getUserAiModelConfig(userId, id) {
+    const item = this.userAiModels.find(model => model.id === Number(id) && model.user_id === Number(userId));
+    return item ? { ...item } : null;
+  }
+
+  async getActiveUserAiModelConfig(userId) {
+    const item = this.userAiModels.find(model => model.user_id === Number(userId) && model.is_active);
+    return item ? { ...item } : null;
+  }
+
+  async listActiveUserAiModelConfigs(userId) {
+    return this.userAiModels
+      .filter(model => model.user_id === Number(userId) && model.is_active)
+      .sort((left, right) => left.id - right.id)
+      .map(model => ({ ...model }));
+  }
+
+  async createUserAiModelConfig(userId, { name, modelName, baseUrl, protocol, apiKeyEncrypted, isActive }) {
+    const item = {
+      id:this.nextUserAiModelId++, user_id:Number(userId), name, model_name:modelName, base_url:baseUrl, protocol,
+      api_key_encrypted:apiKeyEncrypted, is_active:isActive ? 1 : 0, created_at:new Date(), updated_at:new Date(),
+    };
+    this.userAiModels.push(item);
+    return { ...item };
+  }
+
+  async updateUserAiModelConfig(userId, id, { name, modelName, baseUrl, protocol, apiKeyEncrypted, isActive }) {
+    const item = this.userAiModels.find(model => model.id === Number(id) && model.user_id === Number(userId));
+    if (!item) return null;
+    Object.assign(item, { name, model_name:modelName, base_url:baseUrl, protocol, is_active:isActive ? 1 : 0, updated_at:new Date() });
+    if (apiKeyEncrypted) item.api_key_encrypted = apiKeyEncrypted;
+    return { ...item };
+  }
+
+  async deleteUserAiModelConfig(userId, id) {
+    const index = this.userAiModels.findIndex(model => model.id === Number(id) && model.user_id === Number(userId));
+    if (index < 0) return false;
+    this.userAiModels.splice(index, 1);
     return true;
   }
 
@@ -1430,10 +1613,10 @@ class MemoryAccountDatabase {
     return this.aiMessages.filter(message => message.conversation_id === conversationId).slice(-limit).map(message => ({ ...message }));
   }
 
-  async recordAiUsage({ userId, conversationId, messageId, modelConfigId, provider, modelName, inputTokens, outputTokens, totalTokens }) {
+  async recordAiUsage({ userId, conversationId, messageId, modelConfigId = null, userModelConfigId = null, provider, modelName, inputTokens, outputTokens, totalTokens }) {
     this.aiUsageRecords.push({
       id:this.nextAiUsageId++, user_id:Number(userId), conversation_id:conversationId, message_id:messageId || null,
-      model_config_id:Number(modelConfigId), provider:provider || '', model_name:modelName || '',
+      model_config_id:modelConfigId == null ? null : Number(modelConfigId), user_model_config_id:userModelConfigId == null ? null : Number(userModelConfigId), provider:provider || '', model_name:modelName || '',
       input_tokens:Number(inputTokens) || 0, output_tokens:Number(outputTokens) || 0,
       total_tokens:Number(totalTokens) || 0, created_at:new Date(),
     });
@@ -1479,4 +1662,5 @@ module.exports = {
   ensureSiteRecommendationVisibilitySchema,
   ensureNoteFolderSchema,
   ensureAvatarSchema,
+  ensureUserAiModelSchema,
 };

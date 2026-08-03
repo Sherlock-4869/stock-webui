@@ -19,3 +19,13 @@ CREATE TABLE IF NOT EXISTS user_ai_model_configs (
   CONSTRAINT fk_user_ai_model_configs_user
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Existing installations with ai_usage_records need these once. Check the
+-- information_schema first when rerunning this migration, because MySQL does
+-- not support IF NOT EXISTS for all ALTER TABLE clauses on older versions.
+ALTER TABLE ai_usage_records MODIFY COLUMN model_config_id BIGINT UNSIGNED NULL;
+ALTER TABLE ai_usage_records ADD COLUMN user_model_config_id BIGINT UNSIGNED NULL AFTER model_config_id;
+ALTER TABLE ai_usage_records ADD KEY idx_ai_usage_user_model (user_model_config_id);
+ALTER TABLE ai_usage_records
+  ADD CONSTRAINT fk_ai_usage_user_model
+  FOREIGN KEY (user_model_config_id) REFERENCES user_ai_model_configs(id) ON DELETE RESTRICT;

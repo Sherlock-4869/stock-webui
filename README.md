@@ -10,8 +10,8 @@
 - 账户设置支持修改显示名称、上传、裁切和压缩个人头像；未设置自定义头像时继续使用微信头像或名称首字。
 - 登录账号可以创建、编辑、删除、搜索和导入 Markdown 笔记；支持账号级文件夹分类，并可在左侧“文件列表 / 标题导航”之间切换。
 - 登录账号可以进入支持持久化历史、图片、剪贴板图片粘贴、表情、缩放和未读数字提示的网页聊天室；游客不可访问。
-- 管理员可配置 OpenAI 兼容模型、统一控制 AI 问股页面是否向已登录用户公开，或在用户管理中逐个授权，并查看按用户/模型汇总的 Token 用量；问股会话和历史按账号隔离保存。
-- 聊天室右侧提供数据库驱动的站点推荐菜单，推荐链接在新标签页中打开。
+- 管理员可配置网站全局 OpenAI 兼容模型、统一控制 AI 问股页面是否向已登录用户公开，或在用户管理中逐个授权，并查看按用户/模型汇总的 Token 用量；用户已配置个人模型时优先使用个人模型，否则使用有权限访问的网站模型；会话和历史按账号隔离保存。
+- 侧边栏“站点推荐”打开站内资源目录，集中展示数据库驱动的推荐链接，并在新标签页中打开。
 - 参考文档默认在当前页面内阅读，支持目录定位、重新加载、下载 Markdown 和新窗口打开。
 - 通过 `https://stock.sherlock-holmes.cn/?page=ipo` 直接打开打新页面。
 - 接收公众号关注、取消关注、文本消息和自定义菜单事件。
@@ -61,9 +61,9 @@ cp .env.example .env
 ### 管理员账号
 
 - `users.is_admin=1` 表示管理员，默认注册账号均为 `0`，前端和公开接口都不提供提权入口。
-- 管理员可从右上角账号菜单进入“站点推荐管理”，新增、编辑、启用、停用或删除推荐站点。
+- 管理员的右上角账号菜单只保留“账户设置与密码”和退出登录；系统管理功能统一从侧边栏进入。
 - 管理员可从侧边栏“系统管理”进入“用户与权限”，逐个授予或收回 AI 问股权限；管理员天然拥有该权限。
-- 管理员可从侧边栏“系统管理”进入“AI 问股管理”，配置页面公开状态、OpenAI 兼容模型和使用看板；模型 API Key 只显示为输入框，保存后不回显。
+- 管理员可从侧边栏“系统管理”进入“AI 问股管理”，配置页面公开状态、网站全局 OpenAI 兼容模型和使用看板；用户已启用个人模型时优先使用它，未配置个人模型的已获权限用户才使用网站模型。模型 API Key 只显示为输入框，保存后不回显。
 - 管理员进入聊天室后，可以点击“在线人数”查看当前 Node.js 实例中的在线账号及连接数。
 - 管理员身份仅允许在数据库后台赋值，例如：
 
@@ -314,6 +314,22 @@ CREATE TABLE IF NOT EXISTS ai_model_configs (
   CONSTRAINT fk_ai_model_configs_user FOREIGN KEY (created_by_user_id) REFERENCES users(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE IF NOT EXISTS user_ai_model_configs (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  user_id BIGINT UNSIGNED NOT NULL,
+  name VARCHAR(100) NOT NULL,
+  model_name VARCHAR(160) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+  base_url VARCHAR(500) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+  protocol VARCHAR(32) CHARACTER SET ascii COLLATE ascii_bin NOT NULL DEFAULT 'chat_completions',
+  api_key_encrypted TEXT NOT NULL,
+  is_active TINYINT(1) NOT NULL DEFAULT 1,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  KEY idx_user_ai_model_configs_user (user_id, is_active, id),
+  CONSTRAINT fk_user_ai_model_configs_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE IF NOT EXISTS ai_conversations (
   id CHAR(36) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
   user_id BIGINT UNSIGNED NOT NULL,
@@ -343,7 +359,8 @@ CREATE TABLE IF NOT EXISTS ai_usage_records (
   user_id BIGINT UNSIGNED NOT NULL,
   conversation_id CHAR(36) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
   message_id BIGINT UNSIGNED NULL,
-  model_config_id BIGINT UNSIGNED NOT NULL,
+  model_config_id BIGINT UNSIGNED NULL,
+  user_model_config_id BIGINT UNSIGNED NULL,
   provider VARCHAR(80) CHARACTER SET ascii COLLATE ascii_bin NOT NULL DEFAULT '',
   model_name VARCHAR(160) CHARACTER SET ascii COLLATE ascii_bin NOT NULL DEFAULT '',
   input_tokens INT UNSIGNED NOT NULL DEFAULT 0,
@@ -353,14 +370,27 @@ CREATE TABLE IF NOT EXISTS ai_usage_records (
   PRIMARY KEY (id),
   KEY idx_ai_usage_user_created (user_id, created_at),
   KEY idx_ai_usage_created (created_at),
+  KEY idx_ai_usage_user_model (user_model_config_id),
   CONSTRAINT fk_ai_usage_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
   CONSTRAINT fk_ai_usage_conversation FOREIGN KEY (conversation_id) REFERENCES ai_conversations(id) ON DELETE CASCADE,
   CONSTRAINT fk_ai_usage_message FOREIGN KEY (message_id) REFERENCES ai_messages(id) ON DELETE SET NULL,
-  CONSTRAINT fk_ai_usage_model FOREIGN KEY (model_config_id) REFERENCES ai_model_configs(id) ON DELETE RESTRICT
+  CONSTRAINT fk_ai_usage_model FOREIGN KEY (model_config_id) REFERENCES ai_model_configs(id) ON DELETE RESTRICT,
+  CONSTRAINT fk_ai_usage_user_model FOREIGN KEY (user_model_config_id) REFERENCES user_ai_model_configs(id) ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 ```
 
-`ai_feature_settings.ai_chat.is_public=1` 表示向所有已登录用户公开问股入口；为 `0` 时，只有管理员和 `ai_user_permissions` 中 `feature_key='ai_chat'` 的已授权用户可见。管理员在“用户与权限”页面操作单用户授权；该页面及全部管理员接口仅管理员可见。模型有历史使用记录后只能停用，不能删除，以保持使用看板的审计完整性。
+`ai_feature_settings.ai_chat.is_public=1` 表示向所有已登录用户公开问股入口；为 `0` 时，只有管理员和 `ai_user_permissions` 中 `feature_key='ai_chat'` 的已授权用户可使用网站全局模型。管理员在“用户与权限”页面操作单用户授权；该页面及全部管理员接口仅管理员可见。用户已启用个人模型时，问股入口和右上角下拉菜单优先使用个人模型；没有个人模型时，才使用有权限访问的网站全局模型。`user_ai_model_configs` 始终按 `user_id` 查询和修改，不能通过猜测 ID 读取或修改其他用户的密钥配置。模型有历史使用记录后只能停用，不能删除，以保持使用看板的审计完整性。
+
+已有 `ai_usage_records` 表的生产环境还需要让全局模型引用可空，并新增私有模型引用；应用启动时会尝试升级。若应用数据库账号没有 `ALTER` 权限，请由数据库管理员在确认列和约束尚不存在后执行：
+
+```sql
+ALTER TABLE ai_usage_records MODIFY COLUMN model_config_id BIGINT UNSIGNED NULL;
+ALTER TABLE ai_usage_records ADD COLUMN user_model_config_id BIGINT UNSIGNED NULL AFTER model_config_id;
+ALTER TABLE ai_usage_records ADD KEY idx_ai_usage_user_model (user_model_config_id);
+ALTER TABLE ai_usage_records
+  ADD CONSTRAINT fk_ai_usage_user_model
+  FOREIGN KEY (user_model_config_id) REFERENCES user_ai_model_configs(id) ON DELETE RESTRICT;
+```
 
 ### 启用 AI 问股与独立 Python 服务
 
@@ -389,11 +419,11 @@ cd ../stock-api-agent
 ./scripts/run.sh status
 ```
 
-Python 服务会校验 Node 对每个请求生成的 HMAC 签名和时间戳；浏览器永远不会拿到模型 Key。管理员登录后在“AI 问股管理”添加模型即可，首版支持 OpenAI 兼容 Chat Completions：例如 OpenAI 可填写 Base URL `https://api.openai.com/v1`、模型名和对应 API Key；其他兼容供应商也可按其兼容地址填写。问股工具只读取当前 Node 已提供的行情、指标、K 线和资金流接口，不执行任何交易。
+Python 服务会校验 Node 对每个请求生成的 HMAC 签名和时间戳；浏览器永远不会拿到模型 Key。管理员登录后可在“AI 问股管理”添加网站全局模型；登录用户也可从侧边栏“AI / 我的 AI 模型”保存自己的模型，个人模型会优先于网站模型。首版支持 OpenAI 兼容 Chat Completions：例如 OpenAI 可填写 Base URL `https://api.openai.com/v1`、模型名和对应 API Key；其他兼容供应商也可按其兼容地址填写。问股工具只读取当前 Node 已提供的行情、指标、K 线和资金流接口，不执行任何交易。
 
 文件夹按账号隔离，每个账号最多创建 50 个。删除文件夹只会解除分类并把其中笔记移到“未分类”，不会删除笔记内容。新建或导入前可在顶部选择目标文件夹；打开笔记后可通过“归类到”把未分类笔记移入文件夹。
 
-站点推荐读取 `site_recommendations` 中 `is_active=1` 的记录，并按 `sort_order`、`id` 排序。`is_admin_only=1` 的记录只会返回给当前已登录的管理员，普通账号和游客无法通过接口读取；默认值 `0` 保证现有站点继续对所有人可见。新安装不会自动写入任何推荐站点，请由管理员在管理页面自行添加和维护。
+站点推荐读取 `site_recommendations` 中 `is_active=1` 的记录，并按 `sort_order`、`id` 排序。用户点击侧边栏“站点推荐”后，会在右侧资源目录中浏览、搜索并在新标签页打开链接。`is_admin_only=1` 的记录只会返回给当前已登录的管理员，普通账号和游客无法通过接口读取；默认值 `0` 保证现有站点继续对所有人可见。新安装不会自动写入任何推荐站点，请由管理员在系统管理页面自行添加和维护。
 
 账号服务需要数据库账号拥有 `SELECT`、`INSERT`、`UPDATE`、`DELETE` 权限。若让应用启动时自动建表和升级旧表，还需要 `CREATE`、`ALTER`、`INDEX`、`REFERENCES`：
 
