@@ -214,13 +214,6 @@ function modelCatalogModels(payload) {
     .slice(0, MODEL_CATALOG_MAX_RESULTS);
 }
 
-function validProviderModelName(value) {
-  const modelName = String(value || '').trim().slice(0, 160);
-  if (!modelName) return '';
-  if (/[\u0000-\u001f\u007f]/.test(modelName)) throw Object.assign(new Error('所选模型标识无效'), { statusCode:400 });
-  return modelName;
-}
-
 async function fetchModelCatalog({ baseUrl, apiKey }) {
   const url = modelCatalogUrl(baseUrl);
   const target = await resolveModelCatalogTarget(url);
@@ -373,19 +366,6 @@ class AiService {
         sendJson(res, 200, { models });
         return true;
       }
-      const savedModelCatalogMatch = pathname.match(/^\/api\/ai\/models\/(\d{1,20})\/catalog$/);
-      if (savedModelCatalogMatch && req.method === 'POST') {
-        assertSameOrigin(req);
-        await readJson(req, 512);
-        const access = await this.accessFor(session.user);
-        if (!access.canUse) throw Object.assign(new Error('你暂未获得问股页面权限'), { statusCode:403 });
-        const models = await this.activeModelsFor(session.user.id, access);
-        const model = models.find(item => String(item.id) === savedModelCatalogMatch[1]);
-        if (!model) throw Object.assign(new Error('所选 AI 模型不可用'), { statusCode:400 });
-        const catalog = await fetchModelCatalog({ baseUrl:model.base_url, apiKey:decryptCredential(model.api_key_encrypted, this.config) });
-        sendJson(res, 200, { modelId:String(model.id), models:catalog });
-        return true;
-      }
       const userModelMatch = pathname.match(/^\/api\/ai\/user-models\/(\d{1,20})$/);
       if (userModelMatch && req.method === 'PUT') {
         assertSameOrigin(req);
@@ -467,14 +447,13 @@ class AiService {
         this.checkRate(userId);
         const modelId = String(body.modelId || '').trim();
         if (modelId && !MODEL_ID_PATTERN.test(modelId)) throw Object.assign(new Error('所选 AI 模型无效'), { statusCode:400 });
-        const providerModel = validProviderModelName(body.providerModel);
-        await this.streamAgent(req, res, { session, access, conversation, message, modelId, providerModel, stockContext:normalizedStockContext(body.stockContext) });
+        await this.streamAgent(req, res, { session, access, conversation, message, modelId, stockContext:normalizedStockContext(body.stockContext) });
         return true;
       }
       sendJson(res, 405, { error:'Method Not Allowed' });
       return true;
     } catch (error) {
-      const isCatalogRequest = pathname === '/api/ai/model-catalog' || pathname === '/api/admin/ai/model-catalog' || /^\/api\/ai\/models\/\d{1,20}\/catalog$/.test(pathname);
+      const isCatalogRequest = pathname === '/api/ai/model-catalog' || pathname === '/api/admin/ai/model-catalog';
       if (!res.headersSent) sendJson(res, error.statusCode || 500, { error:error.statusCode && (error.statusCode < 500 || isCatalogRequest) ? error.message : '问股服务处理失败' });
       return true;
     }
@@ -578,23 +557,18 @@ class AiService {
     return true;
   }
 
-  async activeModelsFor(userId, access) {
-    return access.modelSource === 'user'
-      ? this.accountService.database.listActiveUserAiModelConfigs(userId)
-      : this.accountService.database.listActiveAiModelConfigs();
-  }
-
-  async streamAgent(req, res, { session, access, conversation, message, modelId, providerModel, stockContext }) {
+  async streamAgent(req, res, { session, access, conversation, message, modelId, stockContext }) {
     if (!this.config.enabled || !this.config.internalToken) throw Object.assign(new Error('问股服务尚未完成配置'), { statusCode:503 });
     const modelSource = access.modelSource;
-    const availableModels = await this.activeModelsFor(session.user.id, access);
+    const availableModels = modelSource === 'user'
+      ? await this.accountService.database.listActiveUserAiModelConfigs(session.user.id)
+      : await this.accountService.database.listActiveAiModelConfigs();
     const model = modelId
       ? availableModels.find(item => String(item.id) === modelId)
       : availableModels[0];
     if (!model && modelId) throw Object.assign(new Error('所选 AI 模型不可用'), { statusCode:400 });
     if (!model) throw Object.assign(new Error('请等待管理员配置全局模型，或先在“我的 AI 模型”中配置自己的模型'), { statusCode:503 });
     const apiKey = decryptCredential(model.api_key_encrypted, this.config);
-    const effectiveModelName = providerModel || model.model_name;
     const previousMessages = await this.accountService.database.listAiMessages(session.user.id, conversation.id, MAX_HISTORY_FOR_AGENT);
     const userMessage = await this.accountService.database.createAiMessage(conversation.id, { role:'user', content:message });
     if (previousMessages.length === 0) {
@@ -604,7 +578,7 @@ class AiService {
       request_id:crypto.randomUUID(), conversation_id:conversation.id, message,
       history:previousMessages.map(item => ({ role:item.role, content:item.content })), summary:String(conversation.summary || ''),
       stock_context:stockContext,
-      model:{ id:String(model.id), name:model.name, model:effectiveModelName, base_url:model.base_url, api_key:apiKey, protocol:model.protocol },
+      model:{ id:String(model.id), name:model.name, model:model.model_name, base_url:model.base_url, api_key:apiKey, protocol:model.protocol },
     }));
     const agentUrl = new URL(`${this.config.agentUrl}/internal/v1/chat/stream`);
     const transport = agentUrl.protocol === 'https:' ? https : http;
@@ -628,7 +602,7 @@ class AiService {
           userId:session.user.id, conversationId:conversation.id, messageId:assistant.id,
           modelConfigId:modelSource === 'global' ? model.id : null,
           userModelConfigId:modelSource === 'user' ? model.id : null,
-          provider:String(event.provider || 'openai_compatible'), modelName:String(event.model || effectiveModelName),
+          provider:String(event.provider || 'openai_compatible'), modelName:String(event.model || model.model_name),
           inputTokens:Number(usage.input_tokens) || 0, outputTokens:Number(usage.output_tokens) || 0, totalTokens:Number(usage.total_tokens) || 0,
         });
       };
@@ -685,5 +659,5 @@ function createAiService(options) { return new AiService(options); }
 
 module.exports = {
   AiService, createAiService, loadAiConfig, encryptCredential, decryptCredential, agentPayloadSignature,
-  validModelCatalogInput, modelCatalogUrl, modelCatalogModels, validProviderModelName,
+  validModelCatalogInput, modelCatalogUrl, modelCatalogModels,
 };
