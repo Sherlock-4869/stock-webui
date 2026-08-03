@@ -673,6 +673,27 @@ html[data-theme="light"] .app-nav{background:#fffffff7;border-color:#dce3ec;box-
   </div>
 </section>
 
+<section class="app-page" id="page-user-ai-models">
+  <div class="module-head"><div><div class="market-kicker">My AI Models</div><h2 class="module-title">我的 AI 模型</h2><p class="module-desc">配置您的私有 AI 模型。如果管理员未配置全局模型，您必须配置自己的模型才能使用 AI 问股功能。</p></div><div class="module-actions"><button class="refresh-btn" type="button" onclick="loadUserAiModels(true)">↻ 刷新</button></div></div>
+  <div class="admin-ai-grid">
+    <form class="admin-ai-card" id="user-ai-model-form" onsubmit="saveUserAiModel(event)">
+      <h3 id="user-ai-model-form-title">配置我的模型</h3><p class="admin-ai-copy">支持 OpenAI 兼容的 Chat Completions 协议。您的 API 密钥将加密存储，仅您可见。</p>
+      <input id="user-ai-model-id" type="hidden">
+      <div class="form-row"><label for="user-ai-model-name">配置名称</label><input class="form-input" id="user-ai-model-name" maxlength="100" required placeholder="例如：我的 GPT-4"></div>
+      <div class="form-row"><label for="user-ai-model-model-name">模型名称</label><input class="form-input" id="user-ai-model-model-name" maxlength="160" required placeholder="例如：gpt-4"></div>
+      <div class="form-row"><label for="user-ai-model-base-url">Base URL</label><input class="form-input" id="user-ai-model-base-url" type="url" maxlength="500" required placeholder="例如：https://api.openai.com/v1"></div>
+      <div class="form-row"><label for="user-ai-model-api-key">API Key</label><input class="form-input" id="user-ai-model-api-key" type="password" maxlength="500" required placeholder="sk-..."></div>
+      <div class="form-row"><label class="admin-site-active"><input id="user-ai-model-active" type="checkbox" checked> 启用此模型</label></div>
+      <div class="admin-site-status" id="user-ai-model-status" aria-live="polite"></div>
+      <div class="admin-site-form-actions"><button class="dialog-btn primary" id="user-ai-model-save" type="submit">保存模型</button><button class="dialog-btn" type="button" onclick="testUserAiModel()">测试连接</button><button class="dialog-btn" type="button" onclick="resetUserAiModelForm()">清空</button></div>
+    </form>
+    <div class="admin-ai-card">
+      <h3>我的模型列表</h3><p class="admin-ai-copy">您可以配置多个模型，启用的模型将在 AI 问股中可用。</p>
+      <div class="admin-ai-models" id="user-ai-models"><div class="admin-site-empty">正在加载模型配置…</div></div>
+    </div>
+  </div>
+</section>
+
 <section class="app-page" id="page-admin-users">
   <div class="module-head"><div><div class="market-kicker">Administration</div><h2 class="module-title">用户与权限</h2><p class="module-desc">仅管理员可查看。可按账号逐个授予或收回 AI 问股入口权限；管理员始终拥有权限。</p></div><div class="module-actions"><button class="refresh-btn" type="button" onclick="loadAdminAiUsers(true)">↻ 刷新用户</button></div></div>
   <div class="admin-users-card">
@@ -3287,7 +3308,7 @@ function renderAccountArea() {
   const adminMenuItem = currentUser.isAdmin
     ? '<button class="account-menu-item" type="button" role="menuitem" onclick="openAdminUserManagement()">👥 用户与权限<span class="admin-badge">管理员</span></button><button class="account-menu-item" type="button" role="menuitem" onclick="openAdminAiManagement()">✨ AI 问股管理</button><button class="account-menu-item" type="button" role="menuitem" onclick="openAdminSiteManagement()">🛠 站点推荐管理</button>'
     : '';
-  menu.innerHTML = `<div class="account-menu-head"><span class="account-avatar">${avatarMarkup(currentUser)}</span><div style="min-width:0"><div class="account-menu-name">${escapeHtml(currentUser.displayName)}</div><div class="account-menu-id">${escapeHtml(currentUser.username ? `@${currentUser.username}` : '微信账号')}</div></div>${currentUser.isAdmin ? '<span class="admin-badge">管理员</span>' : ''}</div><div class="account-sync-note" id="account-sync-note">页面配置已与账号关联</div>${adminMenuItem}<button class="account-menu-item" type="button" role="menuitem" onclick="openAccountSettings()">⚙ 账户设置与密码</button><button class="account-menu-item danger" type="button" role="menuitem" onclick="logoutAccount()">↪ 退出登录</button>`;
+  menu.innerHTML = `<div class="account-menu-head"><span class="account-avatar">${avatarMarkup(currentUser)}</span><div style="min-width:0"><div class="account-menu-name">${escapeHtml(currentUser.displayName)}</div><div class="account-menu-id">${escapeHtml(currentUser.username ? `@${currentUser.username}` : '微信账号')}</div></div>${currentUser.isAdmin ? '<span class="admin-badge">管理员</span>' : ''}</div><div class="account-sync-note" id="account-sync-note">页面配置已与账号关联</div>${adminMenuItem}<button class="account-menu-item" type="button" role="menuitem" onclick="openUserAiModels()">✨ 我的 AI 模型</button><button class="account-menu-item" type="button" role="menuitem" onclick="openAccountSettings()">⚙ 账户设置与密码</button><button class="account-menu-item danger" type="button" role="menuitem" onclick="logoutAccount()">↪ 退出登录</button>`;
 }
 
 function positionAccountMenu() {
@@ -4314,6 +4335,95 @@ async function loadAdminAi(force = false) {
     adminAiIsPublic = settings.isPublic === true;
     const settingStatus = document.getElementById('admin-ai-settings-status'); if (settingStatus) settingStatus.textContent = settings.configured ? '运行环境已配置' : '运行环境尚未完整配置';
     adminAiModels = Array.isArray(models.models) ? models.models : []; adminAiLoaded = true; renderAdminAiModels(); if (adminAiUsersLoaded) renderAdminAiUsers(); await loadAiUsage();
+  } catch (error) { showToast(error.message, true); }
+}
+
+let userAiModels = []; let userAiModelsLoaded = false;
+
+function openUserAiModels() {
+  closeAccountMenu();
+  if (!currentUser) { showToast('请先登录', true); return; }
+  switchAppPage('user-ai-models');
+  if (!userAiModelsLoaded) loadUserAiModels();
+}
+
+function setUserAiStatus(message = '', error = false) {
+  const status = document.getElementById('user-ai-model-status');
+  if (!status) return; status.textContent = message; status.classList.toggle('error', error);
+}
+
+function resetUserAiModelForm() {
+  document.getElementById('user-ai-model-form')?.reset();
+  document.getElementById('user-ai-model-id').value = '';
+  document.getElementById('user-ai-model-active').checked = true;
+  document.getElementById('user-ai-model-api-key').required = true;
+  document.getElementById('user-ai-model-form-title').textContent = '配置我的模型'; setUserAiStatus();
+}
+
+function renderUserAiModels() {
+  const list = document.getElementById('user-ai-models');
+  if (!list) return; list.replaceChildren();
+  if (!userAiModels.length) { const empty = document.createElement('div'); empty.className = 'admin-site-empty'; empty.textContent = '尚未配置私有模型'; list.appendChild(empty); return; }
+  userAiModels.forEach(model => {
+    const row = document.createElement('div'); row.className = 'admin-ai-model';
+    const copy = document.createElement('div'); const name = document.createElement('div'); name.className = 'admin-ai-model-name'; name.textContent = model.name;
+    const meta = document.createElement('div'); meta.className = 'admin-ai-model-meta'; meta.textContent = `${model.modelName} · ${model.baseUrl}`;
+    const state = document.createElement('span'); state.className = `admin-ai-pill${model.isActive ? '' : ' off'}`; state.textContent = model.isActive ? '可用' : '已停用'; copy.append(name, meta, state);
+    const actions = document.createElement('div'); actions.className = 'admin-site-actions';
+    const edit = document.createElement('button'); edit.className = 'dialog-btn'; edit.type = 'button'; edit.textContent = '编辑'; edit.addEventListener('click', () => editUserAiModel(model.id));
+    const remove = document.createElement('button'); remove.className = 'dialog-btn danger'; remove.type = 'button'; remove.textContent = '删除'; remove.addEventListener('click', () => deleteUserAiModel(model.id)); actions.append(edit, remove); row.append(copy, actions); list.appendChild(row);
+  });
+}
+
+function editUserAiModel(id) {
+  const model = userAiModels.find(item => String(item.id) === String(id)); if (!model) return;
+  document.getElementById('user-ai-model-id').value = model.id;
+  document.getElementById('user-ai-model-name').value = model.name || '';
+  document.getElementById('user-ai-model-model-name').value = model.modelName || '';
+  document.getElementById('user-ai-model-base-url').value = model.baseUrl || '';
+  document.getElementById('user-ai-model-api-key').value = ''; document.getElementById('user-ai-model-api-key').required = false;
+  document.getElementById('user-ai-model-active').checked = model.isActive === true;
+  document.getElementById('user-ai-model-form-title').textContent = `编辑模型：${model.name}`; setUserAiStatus('留空 API Key 将保持现有密钥不变');
+  document.getElementById('user-ai-model-form')?.scrollIntoView({ behavior:'smooth', block:'start' });
+}
+
+async function saveUserAiModel(event) {
+  event.preventDefault(); if (!currentUser) return;
+  const id = document.getElementById('user-ai-model-id').value;
+  const body = { name:document.getElementById('user-ai-model-name').value, modelName:document.getElementById('user-ai-model-model-name').value, baseUrl:document.getElementById('user-ai-model-base-url').value, apiKey:document.getElementById('user-ai-model-api-key').value, isActive:document.getElementById('user-ai-model-active').checked };
+  setButtonBusy('user-ai-model-save', true, '保存中…'); setUserAiStatus();
+  try {
+    await apiRequest(id ? `/api/ai/user-models/${encodeURIComponent(id)}` : '/api/ai/user-models', { method:id ? 'PUT' : 'POST', body:JSON.stringify(body) });
+    resetUserAiModelForm(); userAiModelsLoaded = false; await loadUserAiModels(true); showToast(id ? '模型配置已更新' : '模型配置已添加');
+  } catch (error) { setUserAiStatus(error.message, true); } finally { setButtonBusy('user-ai-model-save', false, ''); }
+}
+
+async function deleteUserAiModel(id) {
+  const model = userAiModels.find(item => String(item.id) === String(id)); if (!model || !confirm(`确定删除模型配置"${model.name}"吗？`)) return;
+  try { await apiRequest(`/api/ai/user-models/${encodeURIComponent(id)}`, { method:'DELETE', body:'{}' }); resetUserAiModelForm(); userAiModelsLoaded = false; await loadUserAiModels(true); showToast('模型配置已删除'); }
+  catch (error) { showToast(error.message, true); }
+}
+
+async function testUserAiModel() {
+  const id = document.getElementById('user-ai-model-id').value;
+  const baseUrl = document.getElementById('user-ai-model-base-url').value;
+  const modelName = document.getElementById('user-ai-model-model-name').value;
+  const apiKey = document.getElementById('user-ai-model-api-key').value;
+  if (!baseUrl || !modelName) { setUserAiStatus('请先填写 Base URL 和模型名称', true); return; }
+  if (!id && !apiKey) { setUserAiStatus('新模型需要填写 API Key', true); return; }
+  setUserAiStatus('正在测试连接…'); const payload = { baseUrl, modelName };
+  if (apiKey) payload.apiKey = apiKey;
+  try {
+    const result = await apiRequest(id ? `/api/ai/user-models/${encodeURIComponent(id)}/test` : '/api/ai/user-models/test', { method:'POST', body:JSON.stringify(payload) });
+    setUserAiStatus(result.success ? '✓ 连接成功' : result.error || '连接失败', !result.success);
+  } catch (error) { setUserAiStatus(`✗ ${error.message}`, true); }
+}
+
+async function loadUserAiModels(force = false) {
+  if (!currentUser || (userAiModelsLoaded && !force)) return;
+  try {
+    const result = await apiRequest('/api/ai/user-models', { method:'GET', headers:{} });
+    userAiModels = Array.isArray(result.models) ? result.models : []; userAiModelsLoaded = true; renderUserAiModels();
   } catch (error) { showToast(error.message, true); }
 }
 
