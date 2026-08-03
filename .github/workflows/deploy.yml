@@ -2,6 +2,7 @@ name: Auto Deploy to Server
 
 # 触发条件：当 main 分支收到 push 时自动执行
 on:
+  workflow_dispatch:
   push:
     branches:
       - main
