@@ -9,7 +9,10 @@ const path = require('node:path');
 const { MemoryAccountDatabase, SCHEMA_STATEMENTS } = require('../account/database');
 const { AccountService } = require('../account/service');
 const { tokenHash } = require('../account/security');
-const { AiService, encryptCredential, decryptCredential, loadAiConfig, agentPayloadSignature } = require('../ai/service');
+const {
+  AiService, encryptCredential, decryptCredential, loadAiConfig, agentPayloadSignature,
+  validModelCatalogInput, modelCatalogUrl, modelCatalogModels,
+} = require('../ai/service');
 
 async function aiRequest(service, aiService, pathname, { method = 'GET', body, cookie } = {}) {
   const rawBody = body === undefined ? '' : JSON.stringify(body);
@@ -40,6 +43,20 @@ test('AI model credentials are encrypted at rest and request signatures bind the
   assert.equal(decryptCredential(ciphertext, config), 'sk-test-secret');
   const body = Buffer.from('{"message":"分析 sh600519"}');
   assert.notEqual(agentPayloadSignature('internal-secret', '123', body), agentPayloadSignature('internal-secret', '123', Buffer.from('{}')));
+});
+
+test('model catalog validation safely normalizes OpenAI-compatible choices', () => {
+  assert.deepEqual(
+    validModelCatalogInput({ baseUrl:'http://127.0.0.1:11434/v1/', apiKey:'catalog-secret' }),
+    { baseUrl:'http://127.0.0.1:11434/v1', apiKey:'catalog-secret' },
+  );
+  assert.equal(modelCatalogUrl('https://api.example.test/v1/').href, 'https://api.example.test/v1/models');
+  assert.deepEqual(
+    modelCatalogModels({ data:[{ id:'gpt-catalog' }, { id:'gpt-catalog' }, { model:'reasoning-model' }, { id:'bad\nmodel' }] }),
+    ['gpt-catalog', 'reasoning-model'],
+  );
+  assert.throws(() => validModelCatalogInput({ baseUrl:'http://example.test/v1', apiKey:'catalog-secret' }), /必须使用 HTTPS/);
+  assert.throws(() => validModelCatalogInput({ baseUrl:'https://user:pass@example.test/v1', apiKey:'catalog-secret' }), /不能包含账号信息/);
 });
 
 test('AI conversation and message reads remain scoped to the owning account', async () => {
@@ -122,6 +139,17 @@ test('AI routes require server sessions, enforce per-user grants and scope conve
   result = await aiRequest(accountService, aiService, '/api/admin/ai/models', { method:'POST', body:{ name:'测试模型', modelName:'gpt-test', baseUrl:'https://example.test/v1', apiKey:'secret-key', isActive:true }, cookie:adminCookie });
   assert.equal(result.response.status, 201);
   assert.equal(Object.hasOwn(result.payload.model, 'apiKey'), false);
+  const globalModelId = result.payload.model.id;
+  result = await aiRequest(accountService, aiService, `/api/admin/ai/models/${globalModelId}`, {
+    method:'PUT', body:{ name:'测试模型', modelName:'gpt-test', baseUrl:'https://example.test/v1', apiKey:'', isActive:false }, cookie:adminCookie,
+  });
+  assert.equal(result.response.status, 200);
+  assert.equal(result.payload.model.isActive, false);
+  result = await aiRequest(accountService, aiService, `/api/admin/ai/models/${globalModelId}`, {
+    method:'PUT', body:{ name:'测试模型', modelName:'gpt-test', baseUrl:'https://example.test/v1', apiKey:'', isActive:true }, cookie:adminCookie,
+  });
+  assert.equal(result.response.status, 200);
+  assert.equal(result.payload.model.isActive, true);
 
   result = await aiRequest(accountService, aiService, '/api/admin/ai/models', { method:'POST', body:{ name:'待删除模型', modelName:'gpt-delete', baseUrl:'https://example.test/v1', apiKey:'delete-key', isActive:false }, cookie:adminCookie });
   assert.equal(result.response.status, 201);

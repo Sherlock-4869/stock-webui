@@ -148,6 +148,10 @@ test('site recommendations open a searchable right-side directory with safe new-
   assert.match(html, /id="site-recommendations"[^>]*onmouseenter="showSiteRecommendationsPreview\(\)"/);
   assert.match(html, /id="site-recommendation-menu"[^>]*aria-label="推荐站点预览"/);
   assert.match(html, /function renderSiteRecommendationsPreview\(\)/);
+  assert.match(html, /function positionSiteRecommendationsPreview\(\)/);
+  assert.match(html, /site-recommendation-menu,body\.sidebar-collapsed \.site-recommendation-menu\{position:fixed/);
+  assert.match(html, /document\.body\.appendChild\(siteMenu\)/);
+  assert.match(html, /body\{overflow-x:clip\}/);
   assert.match(html, /\.app-nav:has\(#site-recommendations:hover\)/);
   assert.match(html, /id="page-sites"/);
   assert.match(html, /id="site-directory-search"[^>]*oninput="filterSiteDirectory\(\)"/);
@@ -250,17 +254,19 @@ test('administrator UI keeps system tools in the sidebar and provides per-user A
 test('AI stock research UI keeps entry permission-gated and renders chat content as text', () => {
   assert.match(html, /id="ai-entry-btn"[^>]*data-page="ai"[^>]*hidden/);
   assert.match(html, /id="user-ai-models-entry"[^>]*data-page="user-ai-models"/);
+  assert.match(html, /id="user-ai-models-entry"[^>]*title="AI模型"/);
   assert.match(html, /id="page-ai"/);
   assert.match(html, /id="page-admin-ai"/);
   assert.match(html, /id="page-user-ai-models"/);
   assert.match(html, /id="ai-model-picker"[^>]*aria-label="本次问股可用模型"/);
-  assert.match(html, /id="ai-model-options"/);
-  assert.match(html, /option\.addEventListener\('click', \(\) => setAiModelSelection\(model\.id\)\)/);
+  assert.match(html, /id="ai-model-select"[^>]*onchange="setAiModelSelection\(this\.value\)"/);
+  assert.match(html, /select\.disabled = models\.length < 2 \|\| aiRequestInFlight/);
   assert.match(html, /\.ai-chat-pane\{overflow:hidden\}/);
   assert.match(html, /\.ai-messages\{overflow-y:scroll/);
-  assert.match(html, /\.ai-workspace\{height:calc\(100vh - 118px\);max-height:820px\}/);
+  assert.match(html, /\.ai-workspace\{height:min\(780px,calc\(100vh - 130px\)\);max-height:none/);
   assert.match(html, /\/api\/ai\/access/);
   assert.match(html, /\/api\/ai\/user-models/);
+  assert.match(html, /\/api\/ai\/model-catalog/);
   assert.match(html, /\/api\/ai\/conversations/);
   assert.match(html, /\/api\/admin\/ai\/models/);
   assert.match(html, /\/api\/admin\/ai\/usage/);
@@ -268,10 +274,17 @@ test('AI stock research UI keeps entry permission-gated and renders chat content
   assert.match(html, /modelId:selectedAiModelId \|\| undefined/);
   assert.match(html, /function createAiMessageElement\(message\)[\s\S]*?content\.textContent = message\.content/);
   assert.match(html, /if \(page === 'ai' && !aiAccess\.canUse\)/);
-  assert.match(html, /if \(page === 'user-ai-models' && !currentUser\)/);
+  assert.match(html, /if \(page === 'user-ai-models' && !hasAiMenuAccess\(\)\)/);
   assert.doesNotMatch(html, /id="admin-ai-public"|<h3>页面权限<\/h3>/);
-  assert.match(html, /aiNavigation\.hidden = !Boolean\(currentUser && aiAccess\.canUse\)/);
+  assert.match(html, /function hasAiMenuAccess\(\)/);
+  assert.match(html, /aiNavigation\.hidden = !hasAiMenuAccess\(\)/);
   assert.match(html, /if \(page === 'admin-users'\) loadAdminAiUsers\(true\)/);
+  assert.match(html, /function loadAiModelCatalog\(scope\)/);
+  assert.match(html, /function setAdminAiModelActive\(id, isActive, button\)/);
+  assert.match(html, /function setUserAiModelActive\(id, isActive, button\)/);
+  assert.match(html, /toggle\.textContent = model\.isActive \? '停用' : '启用'/);
+  assert.match(html, /id="user-ai-model-catalog"[^>]*onchange="selectAiModelCatalog\('user', this\.value\)"/);
+  assert.match(html, /id="admin-ai-model-catalog"[^>]*onchange="selectAiModelCatalog\('admin', this\.value\)"/);
 });
 
 test('fund flow chart clearly marks today-only or stale-cache degradation', () => {

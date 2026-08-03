@@ -1,8 +1,10 @@
 'use strict';
 
 const crypto = require('crypto');
+const dns = require('dns');
 const http = require('http');
 const https = require('https');
+const net = require('net');
 const { assertSameOrigin, readJson } = require('../account/service');
 
 const MAX_MESSAGE_BYTES = 12 * 1024;
@@ -11,6 +13,9 @@ const MAX_HISTORY_FOR_AGENT = 16;
 const AI_RATE_LIMIT = 6;
 const AI_RATE_WINDOW_MS = 60 * 1000;
 const AGENT_TIMEOUT_MS = 190 * 1000;
+const MODEL_CATALOG_TIMEOUT_MS = 12 * 1000;
+const MODEL_CATALOG_MAX_BYTES = 512 * 1024;
+const MODEL_CATALOG_MAX_RESULTS = 200;
 const CONVERSATION_ID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const SYMBOL_PATTERN = /^[a-zA-Z0-9._-]{2,24}$/;
 const MODEL_ID_PATTERN = /^\d{1,20}$/;
@@ -132,6 +137,130 @@ function validModelInput(body, { requireKey = true } = {}) {
   return { name, modelName, baseUrl, apiKey, protocol:'chat_completions', isActive:body.isActive !== false };
 }
 
+function normalizedHostname(value) {
+  return String(value || '').trim().toLowerCase().replace(/^\[|\]$/g, '');
+}
+
+function isLoopbackHostname(value) {
+  const hostname = normalizedHostname(value);
+  return hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '::1';
+}
+
+function isPrivateIpAddress(value) {
+  const address = normalizedHostname(value);
+  const family = net.isIP(address);
+  if (family === 4) {
+    const parts = address.split('.').map(Number);
+    return parts[0] === 0 || parts[0] === 10 || parts[0] === 127
+      || (parts[0] === 100 && parts[1] >= 64 && parts[1] <= 127)
+      || (parts[0] === 169 && parts[1] === 254)
+      || (parts[0] === 172 && parts[1] >= 16 && parts[1] <= 31)
+      || (parts[0] === 192 && parts[1] === 168)
+      || (parts[0] === 198 && (parts[1] === 18 || parts[1] === 19));
+  }
+  if (family === 6) {
+    if (address === '::' || address === '::1' || address.startsWith('fe80:') || /^(fc|fd)/.test(address)) return true;
+    const mapped = address.match(/^::ffff:(\d+\.\d+\.\d+\.\d+)$/i);
+    return Boolean(mapped && isPrivateIpAddress(mapped[1]));
+  }
+  return true;
+}
+
+function validModelCatalogInput(body) {
+  const baseUrl = String(body?.baseUrl || '').trim().slice(0, 500).replace(/\/+$/, '');
+  const apiKey = String(body?.apiKey || '').trim();
+  if (!baseUrl || !apiKey) throw Object.assign(new Error('请先填写 Base URL 和 API Key'), { statusCode:400 });
+  if (apiKey.length > 2000) throw Object.assign(new Error('API Key 长度不正确'), { statusCode:400 });
+  let parsed;
+  try { parsed = new URL(baseUrl); } catch (_) { throw Object.assign(new Error('Base URL 格式不正确'), { statusCode:400 }); }
+  if (parsed.username || parsed.password || parsed.hash) throw Object.assign(new Error('Base URL 不能包含账号信息或片段'), { statusCode:400 });
+  if (!['https:', 'http:'].includes(parsed.protocol) || (parsed.protocol === 'http:' && !isLoopbackHostname(parsed.hostname))) {
+    throw Object.assign(new Error('模型目录接口必须使用 HTTPS；本机兼容服务可使用 HTTP'), { statusCode:400 });
+  }
+  return { baseUrl, apiKey };
+}
+
+async function resolveModelCatalogTarget(url) {
+  const hostname = normalizedHostname(url.hostname);
+  if (isLoopbackHostname(hostname)) {
+    return { address:hostname === 'localhost' ? '127.0.0.1' : hostname, family:net.isIP(hostname) || 4 };
+  }
+  if (net.isIP(hostname)) {
+    if (isPrivateIpAddress(hostname)) throw Object.assign(new Error('模型目录接口不能指向内网地址'), { statusCode:400 });
+    return { address:hostname, family:net.isIP(hostname) };
+  }
+  let addresses;
+  try { addresses = await dns.promises.lookup(hostname, { all:true, verbatim:true }); }
+  catch (_) { throw Object.assign(new Error('无法解析模型目录接口地址'), { statusCode:400 }); }
+  if (!addresses.length || addresses.some(item => isPrivateIpAddress(item.address))) {
+    throw Object.assign(new Error('模型目录接口不能指向内网地址'), { statusCode:400 });
+  }
+  return { address:addresses[0].address, family:addresses[0].family };
+}
+
+function modelCatalogUrl(baseUrl) {
+  const url = new URL(`${String(baseUrl).replace(/\/+$/, '')}/models`);
+  url.search = '';
+  url.hash = '';
+  return url;
+}
+
+function modelCatalogModels(payload) {
+  const entries = Array.isArray(payload?.data) ? payload.data : (Array.isArray(payload?.models) ? payload.models : []);
+  const seen = new Set();
+  return entries.map(item => typeof item === 'string' ? item : (item?.id || item?.name || item?.model || ''))
+    .map(item => String(item || '').trim().slice(0, 160))
+    .filter(item => item && !/[\u0000-\u001f\u007f]/.test(item) && !seen.has(item) && seen.add(item))
+    .slice(0, MODEL_CATALOG_MAX_RESULTS);
+}
+
+async function fetchModelCatalog({ baseUrl, apiKey }) {
+  const url = modelCatalogUrl(baseUrl);
+  const target = await resolveModelCatalogTarget(url);
+  const transport = url.protocol === 'https:' ? https : http;
+  return new Promise((resolve, reject) => {
+    const request = transport.request({
+      hostname:target.address,
+      port:url.port || undefined,
+      family:target.family,
+      servername:url.protocol === 'https:' ? normalizedHostname(url.hostname) : undefined,
+      path:`${url.pathname}${url.search}`,
+      method:'GET',
+      headers:{ Accept:'application/json', Authorization:`Bearer ${apiKey}`, Host:url.host, 'User-Agent':'stock-monitor-model-catalog/1.0' },
+      timeout:MODEL_CATALOG_TIMEOUT_MS,
+    }, response => {
+      const chunks = [];
+      let size = 0;
+      response.on('data', chunk => {
+        size += chunk.length;
+        if (size > MODEL_CATALOG_MAX_BYTES) {
+          request.destroy(Object.assign(new Error('模型目录响应过大'), { statusCode:502 }));
+          return;
+        }
+        chunks.push(chunk);
+      });
+      response.on('end', () => {
+        if (response.statusCode < 200 || response.statusCode >= 300) {
+          reject(Object.assign(new Error(`模型目录接口返回 HTTP ${response.statusCode}`), { statusCode:502 }));
+          return;
+        }
+        let payload;
+        try { payload = JSON.parse(Buffer.concat(chunks).toString('utf8')); }
+        catch (_) { reject(Object.assign(new Error('模型目录接口未返回 JSON 数据'), { statusCode:502 })); return; }
+        const models = modelCatalogModels(payload);
+        if (!models.length) {
+          reject(Object.assign(new Error('模型目录接口没有返回可用模型'), { statusCode:502 }));
+          return;
+        }
+        resolve(models);
+      });
+    });
+    request.on('timeout', () => request.destroy(Object.assign(new Error('获取模型目录超时'), { statusCode:504 })));
+    request.on('error', error => reject(error.statusCode ? error : Object.assign(new Error('获取模型目录失败'), { statusCode:502 })));
+    request.end();
+  });
+}
+
 function normalizedStockContext(value) {
   const source = value && typeof value === 'object' ? value : {};
   const symbols = Array.isArray(source.symbols) ? source.symbols : [];
@@ -228,6 +357,13 @@ class AiService {
           ...input, apiKeyEncrypted:encryptCredential(input.apiKey, this.config),
         });
         sendJson(res, 201, { model:publicUserModel(model) });
+        return true;
+      }
+      if (pathname === '/api/ai/model-catalog' && req.method === 'POST') {
+        assertSameOrigin(req);
+        const input = validModelCatalogInput(await readJson(req, 4096));
+        const models = await fetchModelCatalog(input);
+        sendJson(res, 200, { models });
         return true;
       }
       const userModelMatch = pathname.match(/^\/api\/ai\/user-models\/(\d{1,20})$/);
@@ -376,6 +512,13 @@ class AiService {
       sendJson(res, 201, { model:publicModel(model) });
       return true;
     }
+    if (pathname === '/api/admin/ai/model-catalog' && req.method === 'POST') {
+      assertSameOrigin(req);
+      const input = validModelCatalogInput(await readJson(req, 4096));
+      const models = await fetchModelCatalog(input);
+      sendJson(res, 200, { models });
+      return true;
+    }
     const modelMatch = pathname.match(/^\/api\/admin\/ai\/models\/(\d{1,20})$/);
     if (modelMatch && req.method === 'PUT') {
       assertSameOrigin(req);
@@ -513,4 +656,7 @@ class AiService {
 
 function createAiService(options) { return new AiService(options); }
 
-module.exports = { AiService, createAiService, loadAiConfig, encryptCredential, decryptCredential, agentPayloadSignature };
+module.exports = {
+  AiService, createAiService, loadAiConfig, encryptCredential, decryptCredential, agentPayloadSignature,
+  validModelCatalogInput, modelCatalogUrl, modelCatalogModels,
+};
