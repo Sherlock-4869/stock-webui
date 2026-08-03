@@ -484,6 +484,10 @@ html[data-theme-skin="ocean"]{--skin-bg:#071b2b;--skin-surface:#0c2940;--skin-st
 body{overflow-x:clip}.site-recommendation-menu,body.sidebar-collapsed .site-recommendation-menu{position:fixed;z-index:520;top:12px;left:12px;width:min(300px,calc(100vw - 24px));max-height:calc(100vh - 24px);overflow-y:auto;overscroll-behavior:contain}.site-recommendation-menu.is-open{display:block}@media(max-width:860px){.site-recommendation-menu,body.sidebar-collapsed .site-recommendation-menu{top:60px!important;bottom:12px;left:12px!important;width:calc(100vw - 24px);max-width:360px;max-height:none}}
 /* A calmer, denser conversation surface keeps the title, model selection, and composer visible. */
 .ai-workspace{height:min(780px,calc(100vh - 130px));max-height:none;border-color:#2b3744;background:#111820;box-shadow:0 16px 42px #00000024}.ai-sidebar{border-color:#2b3744;background:linear-gradient(180deg,#0d141d,#0b1118)}.ai-sidebar-head,.ai-chat-head,.ai-model-picker,.ai-composer{border-color:#2b3744}.ai-chat-head{min-height:68px;padding:12px 16px;background:linear-gradient(135deg,#151e29,#111820)}.ai-chat-head>div:first-child{min-width:0;flex:1}.ai-chat-head>div:last-child{flex:none;max-width:38%}.ai-chat-title{overflow:hidden;font-size:14px;line-height:1.35;text-overflow:ellipsis;white-space:nowrap}.ai-chat-hint{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.ai-chat-model{display:inline-flex;max-width:100%;padding:4px 7px;border:1px solid #245f98;border-radius:6px;background:#0e2743;color:#79c0ff;font-weight:650}.ai-messages{gap:14px;padding:18px 20px;background:linear-gradient(180deg,#121a24 0%,#101720 100%)}.ai-message{max-width:min(90%,780px)}.ai-message.assistant{align-self:flex-start}.ai-message.user{max-width:min(78%,560px)}.ai-message-body{border-color:#2b3744;background:#0d141d;box-shadow:0 4px 12px #00000012;line-height:1.68}.ai-message.user .ai-message-body{border-color:#2878bf;background:linear-gradient(145deg,#1d548e,#164274)}.ai-message-meta{padding:0 2px}.ai-model-picker{display:grid;grid-template-columns:minmax(130px,1fr) minmax(190px,280px);align-items:center;gap:12px;padding:10px 16px;background:#111a24}.ai-model-picker-head{margin:0}.ai-model-picker .ai-chat-model-select{border-color:#35506a;background:#0c131c;color:#c9e5ff;box-shadow:inset 0 1px #ffffff08}.ai-composer{padding:12px 14px;background:#121a24}.ai-composer textarea{min-height:46px;border-color:#314252;background:#0b121a;box-shadow:inset 0 1px #0005}.ai-send{min-width:52px;border:1px solid #2f9e50;background:linear-gradient(145deg,#2ea44f,#238636);box-shadow:0 4px 12px #23863633}.ai-disclaimer{padding:0 16px 10px;background:#121a24}.admin-site-actions .dialog-btn:disabled{opacity:.62;cursor:wait}html[data-theme="light"] .ai-workspace{border-color:#d5e0ec;background:#fff;box-shadow:0 12px 30px #1f3b5b10}html[data-theme="light"] .ai-sidebar{background:linear-gradient(180deg,#f6f9fd,#eef5fb)}html[data-theme="light"] .ai-chat-head,html[data-theme="light"] .ai-model-picker,html[data-theme="light"] .ai-composer{border-color:#d5e0ec;background:linear-gradient(135deg,#fff,#f8fbff)}html[data-theme="light"] .ai-messages{background:linear-gradient(180deg,#fbfdff,#f4f8fc)}html[data-theme="light"] .ai-chat-model{border-color:#9bcaf4;background:#e8f4ff;color:#0969da}html[data-theme="light"] .ai-message-body{border-color:#d5e0ec;background:#fff;box-shadow:0 4px 12px #1f3b5b0c}html[data-theme="light"] .ai-message.user .ai-message-body{border-color:#76b7ec;background:linear-gradient(145deg,#e2f1ff,#cfe8ff);color:#15466f}html[data-theme="light"] .ai-model-picker .ai-chat-model-select{border-color:#c8d8e7;background:#fff;color:#285276;box-shadow:none}html[data-theme="light"] .ai-composer textarea{border-color:#c8d8e7;background:#fff;box-shadow:none}@media(max-width:760px){.ai-workspace{height:calc(100vh - 108px);max-height:none}.ai-chat-head>div:last-child{max-width:45%}.ai-model-picker{grid-template-columns:1fr;gap:7px;padding:9px 12px}.ai-messages{padding:14px}.ai-message,.ai-message.user{max-width:94%}}
+/* Model discovery belongs to the research flow; configuration forms now only save and test a connection. */
+.ai-model-picker{display:block}.ai-model-picker-head{margin-bottom:7px}.ai-model-picker-controls{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:center}.ai-model-catalog-load{min-height:33px;white-space:nowrap}.ai-provider-model-row{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:8px;align-items:center;margin-top:8px;padding-top:8px;border-top:1px dashed #334657;color:#9cb0c4;font-size:10px}.ai-provider-model-row label{font-weight:650;white-space:nowrap}.ai-provider-model-status{overflow:hidden;max-width:126px;color:#79c0ff;font-size:10px;text-overflow:ellipsis;white-space:nowrap}.model-connection-test{padding:9px 10px;border:1px dashed #3a4b5c;border-radius:8px;background:#101821}.model-connection-test .model-catalog-head{margin-bottom:0}.model-connection-test .model-catalog-hint{margin-top:6px}html[data-theme="light"] .model-connection-test{border-color:#cbdbe9;background:#f7fbff}html[data-theme="light"] .ai-provider-model-row{border-color:#cbdbe9;color:#617287}html[data-theme="light"] .ai-provider-model-status{color:#0969da}@media(max-width:760px){.ai-model-picker-controls{grid-template-columns:1fr}.ai-provider-model-row{grid-template-columns:auto minmax(0,1fr)}.ai-provider-model-status{grid-column:2;max-width:none}.model-connection-test{padding:8px}}
+/* Higher-contrast site cards keep names, domains, and descriptions legible on bright themes. */
+html[data-theme="light"] .site-directory{border-color:#c9d8e8;background:linear-gradient(145deg,#fff,#f7faff);box-shadow:0 12px 30px #1f3b5b0c}html[data-theme="light"] .site-directory-toolbar{border-color:#d6e2ed;background:#fbfdff}html[data-theme="light"] .site-directory-search{border-color:#c5d5e5;background:#fff;color:#64748b;box-shadow:inset 0 1px #fff}html[data-theme="light"] .site-directory-search:focus-within{border-color:#55a6e7;box-shadow:0 0 0 3px #55a6e71c}html[data-theme="light"] .site-directory-count{color:#64748b}html[data-theme="light"] .site-directory-grid{gap:14px;padding:16px}html[data-theme="light"] .site-directory-card{border-color:#d1deeb;background:linear-gradient(145deg,#fff,#f7faff);color:#25364a;box-shadow:0 3px 10px #1f3b5b0a}html[data-theme="light"] .site-directory-card:hover,html[data-theme="light"] .site-directory-card:focus-visible{border-color:#67afea;background:#fff;color:#0969da;box-shadow:0 9px 20px #1f6feb1a}html[data-theme="light"] .site-directory-icon{background:linear-gradient(135deg,#dcebff,#d5e8ff);color:#0969da}html[data-theme="light"] .site-directory-name{color:#24364a}html[data-theme="light"] .site-directory-domain{color:#0969da;font-weight:650}html[data-theme="light"] .site-directory-description,html[data-theme="light"] .site-directory-arrow{color:#64748b}
 button:focus-visible,a:focus-visible,select:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px solid #58a6ff;outline-offset:2px}@media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;transition-duration:.01ms!important;animation-duration:.01ms!important;animation-iteration-count:1!important}}
 </style>
 </head>
@@ -688,7 +692,7 @@ button:focus-visible,a:focus-visible,select:focus-visible,input:focus-visible,te
     <div class="ai-chat-pane">
       <div class="ai-chat-head"><div><div class="ai-chat-title" id="ai-chat-title">新问股会话</div><div class="ai-chat-hint">可问基本面、行情、技术面和风险点</div></div><div style="text-align:right"><span class="ai-chat-model" id="ai-chat-model">等待服务配置</span></div></div>
       <div class="ai-messages" id="ai-messages" aria-live="polite"><div class="ai-empty"><div><strong>开始一次股票研究</strong>例如：分析一下贵州茅台近期走势与需要关注的风险。</div></div></div>
-      <div class="ai-model-picker" id="ai-model-picker" aria-label="本次问股可用模型" hidden><div class="ai-model-picker-head"><span>本次问股可用模型</span><span class="ai-model-picker-source" id="ai-model-picker-source"></span></div><select class="ai-chat-model-select" id="ai-model-select" aria-label="选择本次问股模型" onchange="setAiModelSelection(this.value)"></select></div>
+      <div class="ai-model-picker" id="ai-model-picker" aria-label="本次问股模型" hidden><div class="ai-model-picker-head"><span>本次问股模型</span><span class="ai-model-picker-source" id="ai-model-picker-source"></span></div><div class="ai-model-picker-controls"><select class="ai-chat-model-select" id="ai-model-select" aria-label="选择模型连接" onchange="setAiModelSelection(this.value)"></select><button class="dialog-btn ai-model-catalog-load" id="ai-model-catalog-load" type="button" onclick="loadAiProviderModels()">获取模型</button></div><div class="ai-provider-model-row" id="ai-provider-model-row" hidden><label for="ai-provider-model-select">使用模型</label><select class="ai-chat-model-select" id="ai-provider-model-select" aria-label="选择本次问股的模型标识" onchange="setAiProviderModel(this.value)"></select><span class="ai-provider-model-status" id="ai-provider-model-status" aria-live="polite"></span></div></div>
       <form class="ai-composer" onsubmit="sendAiMessage(event)"><textarea id="ai-message-input" maxlength="6000" placeholder="输入股票问题，Enter 发送，Shift + Enter 换行" onkeydown="handleAiComposerKeydown(event)"></textarea><button class="ai-send" id="ai-send-btn" type="submit">发送</button></form>
       <div class="ai-disclaimer">AI 仅提供信息整理与研究辅助，不提供买卖指令，也不执行交易。</div>
     </div>
@@ -705,7 +709,7 @@ button:focus-visible,a:focus-visible,select:focus-visible,input:focus-visible,te
       <div class="form-row"><label for="admin-ai-model-model">模型标识</label><input class="form-input" id="admin-ai-model-model" maxlength="160" required placeholder="例如：gpt-4.1-mini"></div>
       <div class="form-row"><label for="admin-ai-model-url">Base URL</label><input class="form-input" id="admin-ai-model-url" type="url" maxlength="500" required placeholder="https://api.openai.com/v1"></div>
       <div class="form-row"><label for="admin-ai-model-key">API Key</label><input class="form-input" id="admin-ai-model-key" type="password" maxlength="2000" placeholder="新增时必填；编辑时留空则保持不变"></div>
-      <div class="form-row model-catalog-row"><div class="model-catalog-head"><label for="admin-ai-model-catalog">接口可用模型</label><button class="dialog-btn model-catalog-load" id="admin-ai-model-catalog-load" type="button" onclick="loadAiModelCatalog('admin')">获取模型</button></div><select class="form-select" id="admin-ai-model-catalog" disabled onchange="selectAiModelCatalog('admin', this.value)"><option value="">填写 Base URL 和 API Key 后获取</option></select><p class="model-catalog-hint">从 OpenAI 兼容接口的 <code>/models</code> 读取；选择后会自动填入模型标识。</p></div>
+      <div class="form-row model-connection-test"><div class="model-catalog-head"><label>连接测试</label><button class="dialog-btn model-catalog-load" id="admin-ai-model-test" type="button" onclick="testAiModelConnection('admin')">测试连接</button></div><p class="model-catalog-hint">填写 Base URL 和 API Key 后测试连接与权限；可用模型的获取和本次选择在 <strong>AI 问股</strong> 页完成。</p></div>
       <label class="admin-site-active"><input id="admin-ai-model-active" type="checkbox" checked> 设为可用模型</label>
       <div class="admin-site-status" id="admin-ai-model-status" aria-live="polite"></div>
       <div class="admin-site-form-actions"><button class="dialog-btn primary" id="admin-ai-model-save" type="submit">保存模型</button><button class="dialog-btn" type="button" onclick="resetAiModelForm()">清空</button></div>
@@ -727,7 +731,7 @@ button:focus-visible,a:focus-visible,select:focus-visible,input:focus-visible,te
       <div class="form-row"><label for="user-ai-model-model-name">模型名称</label><input class="form-input" id="user-ai-model-model-name" maxlength="160" required placeholder="例如：gpt-4"></div>
       <div class="form-row"><label for="user-ai-model-base-url">Base URL</label><input class="form-input" id="user-ai-model-base-url" type="url" maxlength="500" required placeholder="例如：https://api.openai.com/v1"></div>
       <div class="form-row"><label for="user-ai-model-api-key">API Key</label><input class="form-input" id="user-ai-model-api-key" type="password" maxlength="2000" required placeholder="sk-..."></div>
-      <div class="form-row model-catalog-row"><div class="model-catalog-head"><label for="user-ai-model-catalog">接口可用模型</label><button class="dialog-btn model-catalog-load" id="user-ai-model-catalog-load" type="button" onclick="loadAiModelCatalog('user')">获取模型</button></div><select class="form-select" id="user-ai-model-catalog" disabled onchange="selectAiModelCatalog('user', this.value)"><option value="">填写 Base URL 和 API Key 后获取</option></select><p class="model-catalog-hint">从 OpenAI 兼容接口的 <code>/models</code> 读取；选择后会自动填入模型名称。</p></div>
+      <div class="form-row model-connection-test"><div class="model-catalog-head"><label>连接测试</label><button class="dialog-btn model-catalog-load" id="user-ai-model-test" type="button" onclick="testAiModelConnection('user')">测试连接</button></div><p class="model-catalog-hint">填写 Base URL 和 API Key 后测试连接与权限；可用模型的获取和本次选择在 <strong>AI 问股</strong> 页完成。</p></div>
       <div class="form-row"><label class="admin-site-active"><input id="user-ai-model-active" type="checkbox" checked> 启用此模型</label></div>
       <div class="admin-site-status" id="user-ai-model-status" aria-live="polite"></div>
       <div class="admin-site-form-actions"><button class="dialog-btn primary" id="user-ai-model-save" type="submit">保存模型</button><button class="dialog-btn" type="button" onclick="resetUserAiModelForm()">清空</button></div>
@@ -1062,6 +1066,7 @@ let activeAiConversationId = null;
 let aiConversationLoaded = false;
 let aiRequestInFlight = false;
 let selectedAiModelId = '';
+let selectedAiProviderModel = '';
 let adminAiModels = [];
 let adminAiLoaded = false;
 let adminAiUsers = [];
@@ -4184,7 +4189,7 @@ function updateAiEntry() {
   if (modelLabel) {
     const model = selectedAiModel();
     modelLabel.textContent = model
-      ? `${aiAccess.modelSource === 'global' ? '全局模型' : '我的模型'}：${model.name}`
+      ? `${aiAccess.modelSource === 'global' ? '全局模型' : '我的模型'}：${selectedAiProviderModel || model.modelName}`
       : '尚未配置可用模型';
   }
   if (!aiAccess.canUse && activeAppPage === 'ai') switchAppPage('market', { historyMode:'replace' });
@@ -4203,9 +4208,15 @@ function renderAiModelSelect() {
   const picker = document.getElementById('ai-model-picker');
   const select = document.getElementById('ai-model-select');
   const source = document.getElementById('ai-model-picker-source');
+  const providerRow = document.getElementById('ai-provider-model-row');
+  const providerSelect = document.getElementById('ai-provider-model-select');
+  const catalogButton = document.getElementById('ai-model-catalog-load');
   if (!picker || !select) return;
   const models = Array.isArray(aiAccess.models) ? aiAccess.models : [];
-  if (!models.some(model => String(model.id) === String(selectedAiModelId))) selectedAiModelId = models[0] ? String(models[0].id) : '';
+  if (!models.some(model => String(model.id) === String(selectedAiModelId))) {
+    selectedAiModelId = models[0] ? String(models[0].id) : '';
+    selectedAiProviderModel = '';
+  }
   picker.hidden = models.length === 0;
   if (source) source.textContent = aiAccess.modelSource === 'user' ? '已启用的个人模型' : '可用的网站模型';
   select.replaceChildren();
@@ -4216,14 +4227,55 @@ function renderAiModelSelect() {
     select.appendChild(option);
   });
   select.disabled = models.length < 2 || aiRequestInFlight;
+  if (catalogButton) catalogButton.disabled = !models.length || aiRequestInFlight;
   if (selectedAiModelId) select.value = selectedAiModelId;
+  if (providerRow && !selectedAiProviderModel) providerRow.hidden = true;
+  if (providerSelect) providerSelect.disabled = aiRequestInFlight;
 }
 
 function setAiModelSelection(value) {
   const models = Array.isArray(aiAccess.models) ? aiAccess.models : [];
   if (!models.some(model => String(model.id) === String(value))) return;
   selectedAiModelId = String(value);
+  selectedAiProviderModel = '';
+  const providerRow = document.getElementById('ai-provider-model-row');
+  const providerSelect = document.getElementById('ai-provider-model-select');
+  const status = document.getElementById('ai-provider-model-status');
+  if (providerRow) providerRow.hidden = true;
+  if (providerSelect) providerSelect.replaceChildren();
+  if (status) status.textContent = '';
   updateAiEntry();
+}
+
+function setAiProviderModel(value) {
+  selectedAiProviderModel = String(value || '').trim();
+  updateAiEntry();
+}
+
+async function loadAiProviderModels() {
+  const model = selectedAiModel();
+  const button = document.getElementById('ai-model-catalog-load');
+  const row = document.getElementById('ai-provider-model-row');
+  const select = document.getElementById('ai-provider-model-select');
+  const status = document.getElementById('ai-provider-model-status');
+  if (!model || !button || !select) return;
+  if (status) status.textContent = '';
+  setButtonBusy(button, true, '获取中…');
+  try {
+    const payload = await apiRequest(`/api/ai/models/${encodeURIComponent(model.id)}/catalog`, { method:'POST', body:'{}' });
+    const models = Array.isArray(payload.models) ? payload.models.filter(item => typeof item === 'string' && item) : [];
+    if (!models.length) throw new Error('接口没有返回可用模型');
+    select.replaceChildren();
+    models.forEach(item => { const option = document.createElement('option'); option.value = item; option.textContent = item; select.appendChild(option); });
+    selectedAiProviderModel = models.includes(model.modelName) ? model.modelName : models[0];
+    select.value = selectedAiProviderModel;
+    if (row) row.hidden = false;
+    if (status) status.textContent = `已获取 ${models.length} 个模型`;
+    updateAiEntry();
+  } catch (error) {
+    if (status) status.textContent = error.message;
+    showToast(`获取可用模型失败：${error.message}`, true);
+  } finally { setButtonBusy(button, false, ''); }
 }
 
 async function loadAiAccess() {
@@ -4419,7 +4471,7 @@ async function sendAiMessage(event) {
   try {
     const response = await fetch(`/api/ai/conversations/${encodeURIComponent(conversationId)}/messages/stream`, {
       method:'POST', headers:{ 'Content-Type':'application/json' },
-      body:JSON.stringify({ message, modelId:selectedAiModelId || undefined, stockContext:stockContextForAi() }),
+      body:JSON.stringify({ message, modelId:selectedAiModelId || undefined, providerModel:selectedAiProviderModel || undefined, stockContext:stockContextForAi() }),
     });
     if (!response.ok) {
       let payload = {}; try { payload = await response.json(); } catch (_) {}
@@ -4451,50 +4503,25 @@ function setAdminAiStatus(message = '', error = false) {
   if (!status) return; status.textContent = message; status.classList.toggle('error', error);
 }
 
-function aiModelCatalogControls(scope) {
+function aiModelConnectionControls(scope) {
   return {
-    admin:{ baseUrl:'admin-ai-model-url', apiKey:'admin-ai-model-key', modelName:'admin-ai-model-model', name:'admin-ai-model-name', select:'admin-ai-model-catalog', button:'admin-ai-model-catalog-load', endpoint:'/api/admin/ai/model-catalog', setStatus:setAdminAiStatus },
-    user:{ baseUrl:'user-ai-model-base-url', apiKey:'user-ai-model-api-key', modelName:'user-ai-model-model-name', name:'user-ai-model-name', select:'user-ai-model-catalog', button:'user-ai-model-catalog-load', endpoint:'/api/ai/model-catalog', setStatus:setUserAiStatus },
+    admin:{ baseUrl:'admin-ai-model-url', apiKey:'admin-ai-model-key', button:'admin-ai-model-test', endpoint:'/api/admin/ai/model-catalog', setStatus:setAdminAiStatus },
+    user:{ baseUrl:'user-ai-model-base-url', apiKey:'user-ai-model-api-key', button:'user-ai-model-test', endpoint:'/api/ai/model-catalog', setStatus:setUserAiStatus },
   }[scope] || null;
 }
 
-function resetAiModelCatalog(scope) {
-  const controls = aiModelCatalogControls(scope);
-  const select = controls && document.getElementById(controls.select);
-  if (!select) return;
-  select.replaceChildren();
-  const option = document.createElement('option'); option.value = ''; option.textContent = '填写 Base URL 和 API Key 后获取'; select.appendChild(option);
-  select.disabled = true;
-}
-
-function selectAiModelCatalog(scope, value) {
-  const controls = aiModelCatalogControls(scope);
-  if (!controls || !value) return;
-  const modelName = document.getElementById(controls.modelName);
-  const name = document.getElementById(controls.name);
-  if (modelName) modelName.value = value;
-  if (name && !name.value.trim()) name.value = value;
-  controls.setStatus(`已选择模型：${value}`);
-}
-
-async function loadAiModelCatalog(scope) {
-  const controls = aiModelCatalogControls(scope);
+async function testAiModelConnection(scope) {
+  const controls = aiModelConnectionControls(scope);
   if (!controls || (scope === 'admin' && !currentUser?.isAdmin) || (scope === 'user' && !currentUser)) return;
   const baseUrl = document.getElementById(controls.baseUrl)?.value.trim() || '';
   const apiKey = document.getElementById(controls.apiKey)?.value.trim() || '';
   if (!baseUrl || !apiKey) { controls.setStatus('请先填写 Base URL 和 API Key', true); return; }
-  controls.setStatus(); setButtonBusy(controls.button, true, '获取中…');
+  controls.setStatus(); setButtonBusy(controls.button, true, '测试中…');
   try {
     const payload = await apiRequest(controls.endpoint, { method:'POST', body:JSON.stringify({ baseUrl, apiKey }) });
     const models = Array.isArray(payload.models) ? payload.models.filter(model => typeof model === 'string' && model) : [];
     if (!models.length) throw new Error('接口没有返回可用模型');
-    const select = document.getElementById(controls.select);
-    if (!select) return;
-    select.replaceChildren();
-    const placeholder = document.createElement('option'); placeholder.value = ''; placeholder.textContent = `请选择模型（共 ${models.length} 个）`; select.appendChild(placeholder);
-    models.forEach(model => { const option = document.createElement('option'); option.value = model; option.textContent = model; select.appendChild(option); });
-    select.disabled = false;
-    controls.setStatus(`已从接口获取 ${models.length} 个模型`);
+    controls.setStatus(`连接成功，可获取 ${models.length} 个模型`);
   } catch (error) { controls.setStatus(error.message, true); }
   finally { setButtonBusy(controls.button, false, ''); }
 }
@@ -4504,7 +4531,7 @@ function resetAiModelForm() {
   document.getElementById('admin-ai-model-id').value = '';
   document.getElementById('admin-ai-model-active').checked = true;
   document.getElementById('admin-ai-model-key').required = true;
-  document.getElementById('admin-ai-model-form-title').textContent = '新增模型连接'; resetAiModelCatalog('admin'); setAdminAiStatus();
+  document.getElementById('admin-ai-model-form-title').textContent = '新增模型连接'; setAdminAiStatus();
 }
 
 function renderAdminAiModels() {
@@ -4531,7 +4558,7 @@ function editAiModel(id) {
   document.getElementById('admin-ai-model-url').value = model.baseUrl || '';
   document.getElementById('admin-ai-model-key').value = ''; document.getElementById('admin-ai-model-key').required = false;
   document.getElementById('admin-ai-model-active').checked = model.isActive === true;
-  document.getElementById('admin-ai-model-form-title').textContent = `编辑模型：${model.name}`; resetAiModelCatalog('admin'); setAdminAiStatus('留空 API Key 将保持现有密钥不变');
+  document.getElementById('admin-ai-model-form-title').textContent = `编辑模型：${model.name}`; setAdminAiStatus('留空 API Key 将保持现有密钥不变');
   document.getElementById('admin-ai-model-form')?.scrollIntoView({ behavior:'smooth', block:'start' });
 }
 
@@ -4610,7 +4637,7 @@ function resetUserAiModelForm() {
   document.getElementById('user-ai-model-id').value = '';
   document.getElementById('user-ai-model-active').checked = true;
   document.getElementById('user-ai-model-api-key').required = true;
-  document.getElementById('user-ai-model-form-title').textContent = '配置我的模型'; resetAiModelCatalog('user'); setUserAiStatus();
+  document.getElementById('user-ai-model-form-title').textContent = '配置我的模型'; setUserAiStatus();
 }
 
 function renderUserAiModels() {
@@ -4637,7 +4664,7 @@ function editUserAiModel(id) {
   document.getElementById('user-ai-model-base-url').value = model.baseUrl || '';
   document.getElementById('user-ai-model-api-key').value = ''; document.getElementById('user-ai-model-api-key').required = false;
   document.getElementById('user-ai-model-active').checked = model.isActive === true;
-  document.getElementById('user-ai-model-form-title').textContent = `编辑模型：${model.name}`; resetAiModelCatalog('user'); setUserAiStatus('留空 API Key 将保持现有密钥不变');
+  document.getElementById('user-ai-model-form-title').textContent = `编辑模型：${model.name}`; setUserAiStatus('留空 API Key 将保持现有密钥不变');
   document.getElementById('user-ai-model-form')?.scrollIntoView({ behavior:'smooth', block:'start' });
 }
 

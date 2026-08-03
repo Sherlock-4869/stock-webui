@@ -258,8 +258,10 @@ test('AI stock research UI keeps entry permission-gated and renders chat content
   assert.match(html, /id="page-ai"/);
   assert.match(html, /id="page-admin-ai"/);
   assert.match(html, /id="page-user-ai-models"/);
-  assert.match(html, /id="ai-model-picker"[^>]*aria-label="本次问股可用模型"/);
+  assert.match(html, /id="ai-model-picker"[^>]*aria-label="本次问股模型"/);
   assert.match(html, /id="ai-model-select"[^>]*onchange="setAiModelSelection\(this\.value\)"/);
+  assert.match(html, /id="ai-model-catalog-load"[^>]*onclick="loadAiProviderModels\(\)"/);
+  assert.match(html, /id="ai-provider-model-select"[^>]*onchange="setAiProviderModel\(this\.value\)"/);
   assert.match(html, /select\.disabled = models\.length < 2 \|\| aiRequestInFlight/);
   assert.match(html, /\.ai-chat-pane\{overflow:hidden\}/);
   assert.match(html, /\.ai-messages\{overflow-y:scroll/);
@@ -267,11 +269,12 @@ test('AI stock research UI keeps entry permission-gated and renders chat content
   assert.match(html, /\/api\/ai\/access/);
   assert.match(html, /\/api\/ai\/user-models/);
   assert.match(html, /\/api\/ai\/model-catalog/);
+  assert.match(html, /\/api\/ai\/models\/\$\{encodeURIComponent\(model\.id\)\}\/catalog/);
   assert.match(html, /\/api\/ai\/conversations/);
   assert.match(html, /\/api\/admin\/ai\/models/);
   assert.match(html, /\/api\/admin\/ai\/usage/);
   assert.match(html, /\/api\/admin\/ai\/users/);
-  assert.match(html, /modelId:selectedAiModelId \|\| undefined/);
+  assert.match(html, /modelId:selectedAiModelId \|\| undefined, providerModel:selectedAiProviderModel \|\| undefined/);
   assert.match(html, /function createAiMessageElement\(message\)[\s\S]*?content\.textContent = message\.content/);
   assert.match(html, /if \(page === 'ai' && !aiAccess\.canUse\)/);
   assert.match(html, /if \(page === 'user-ai-models' && !hasAiMenuAccess\(\)\)/);
@@ -279,12 +282,13 @@ test('AI stock research UI keeps entry permission-gated and renders chat content
   assert.match(html, /function hasAiMenuAccess\(\)/);
   assert.match(html, /aiNavigation\.hidden = !hasAiMenuAccess\(\)/);
   assert.match(html, /if \(page === 'admin-users'\) loadAdminAiUsers\(true\)/);
-  assert.match(html, /function loadAiModelCatalog\(scope\)/);
+  assert.match(html, /function loadAiProviderModels\(\)/);
+  assert.match(html, /function testAiModelConnection\(scope\)/);
   assert.match(html, /function setAdminAiModelActive\(id, isActive, button\)/);
   assert.match(html, /function setUserAiModelActive\(id, isActive, button\)/);
   assert.match(html, /toggle\.textContent = model\.isActive \? '停用' : '启用'/);
-  assert.match(html, /id="user-ai-model-catalog"[^>]*onchange="selectAiModelCatalog\('user', this\.value\)"/);
-  assert.match(html, /id="admin-ai-model-catalog"[^>]*onchange="selectAiModelCatalog\('admin', this\.value\)"/);
+  assert.match(html, /id="user-ai-model-test"[^>]*onclick="testAiModelConnection\('user'\)"/);
+  assert.match(html, /id="admin-ai-model-test"[^>]*onclick="testAiModelConnection\('admin'\)"/);
 });
 
 test('fund flow chart clearly marks today-only or stale-cache degradation', () => {

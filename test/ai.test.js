@@ -11,7 +11,7 @@ const { AccountService } = require('../account/service');
 const { tokenHash } = require('../account/security');
 const {
   AiService, encryptCredential, decryptCredential, loadAiConfig, agentPayloadSignature,
-  validModelCatalogInput, modelCatalogUrl, modelCatalogModels,
+  validModelCatalogInput, modelCatalogUrl, modelCatalogModels, validProviderModelName,
 } = require('../ai/service');
 
 async function aiRequest(service, aiService, pathname, { method = 'GET', body, cookie } = {}) {
@@ -57,6 +57,8 @@ test('model catalog validation safely normalizes OpenAI-compatible choices', () 
   );
   assert.throws(() => validModelCatalogInput({ baseUrl:'http://example.test/v1', apiKey:'catalog-secret' }), /必须使用 HTTPS/);
   assert.throws(() => validModelCatalogInput({ baseUrl:'https://user:pass@example.test/v1', apiKey:'catalog-secret' }), /不能包含账号信息/);
+  assert.equal(validProviderModelName(' gpt-5.5-mini '), 'gpt-5.5-mini');
+  assert.throws(() => validProviderModelName('bad\nmodel'), /所选模型标识无效/);
 });
 
 test('AI conversation and message reads remain scoped to the owning account', async () => {
@@ -172,11 +174,19 @@ test('AI routes require server sessions, enforce per-user grants and scope conve
   result = await aiRequest(accountService, aiService, '/api/ai/conversations', { method:'POST', body:{ title:'我的问股' }, cookie:userCookie });
   assert.equal(result.response.status, 201);
   const conversationId = result.payload.conversation.id;
+  result = await aiRequest(accountService, aiService, '/api/ai/models/999999/catalog', { method:'POST', body:{}, cookie:userCookie });
+  assert.equal(result.response.status, 400);
+  assert.equal(result.payload.error, '所选 AI 模型不可用');
   result = await aiRequest(accountService, aiService, `/api/ai/conversations/${conversationId}/messages/stream`, {
     method:'POST', body:{ message:'分析一下当前走势', modelId:'999999' }, cookie:userCookie,
   });
   assert.equal(result.response.status, 400);
   assert.equal(result.payload.error, '所选 AI 模型不可用');
+  result = await aiRequest(accountService, aiService, `/api/ai/conversations/${conversationId}/messages/stream`, {
+    method:'POST', body:{ message:'分析一下当前走势', providerModel:'bad\nmodel' }, cookie:userCookie,
+  });
+  assert.equal(result.response.status, 400);
+  assert.equal(result.payload.error, '所选模型标识无效');
   result = await aiRequest(accountService, aiService, `/api/ai/conversations/${conversationId}/messages`, { cookie:otherCookie });
   assert.equal(result.response.status, 403);
 
