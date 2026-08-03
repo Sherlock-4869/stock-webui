@@ -279,11 +279,14 @@ test('AI stock research UI keeps entry permission-gated and renders chat content
   assert.match(html, /if \(page === 'user-ai-models' && !hasAiMenuAccess\(\)\)/);
   assert.doesNotMatch(html, /id="admin-ai-public"|<h3>页面权限<\/h3>/);
   assert.match(html, /function hasAiMenuAccess\(\)/);
-  assert.match(html, /aiNavigation\.hidden = !hasAiMenuAccess\(\)/);
+  assert.match(html, /function syncRestrictedNavigation\(\)/);
+  assert.match(html, /sidebar-group-ai'\)\?\.toggleAttribute\('hidden', !aiVisible\)/);
+  assert.match(html, /admin-navigation'\)\?\.toggleAttribute\('hidden', !adminVisible\)/);
+  assert.match(html, /\.sidebar-group\[hidden\]\{display:none!important\}/);
   assert.match(html, /if \(page === 'admin-users'\) loadAdminAiUsers\(true\)/);
   assert.match(html, /function testAiModelConnection\(scope\)/);
   assert.match(html, /if \(!aiAccess\.canUse\) \{[\s\S]*?配置模型后即可创建问股会话/);
-  assert.match(html, /aiButton\.hidden = !hasAiMenuAccess\(\)/);
+  assert.match(html, /ai-entry-btn'\)\?\.toggleAttribute\('hidden', !aiVisible\)/);
   assert.match(html, /function setAdminAiModelActive\(id, isActive, button\)/);
   assert.match(html, /function setUserAiModelActive\(id, isActive, button\)/);
   assert.match(html, /toggle\.textContent = model\.isActive \? '停用' : '启用'/);
