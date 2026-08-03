@@ -142,6 +142,17 @@ const SCHEMA_STATEMENTS = [
     PRIMARY KEY (feature_key),
     CONSTRAINT fk_ai_feature_settings_user FOREIGN KEY (updated_by_user_id) REFERENCES users(id) ON DELETE SET NULL
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
+  `CREATE TABLE IF NOT EXISTS ai_user_permissions (
+    user_id BIGINT UNSIGNED NOT NULL,
+    feature_key VARCHAR(40) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+    granted_by_user_id BIGINT UNSIGNED NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (user_id, feature_key),
+    KEY idx_ai_user_permissions_feature_user (feature_key, user_id),
+    CONSTRAINT fk_ai_user_permissions_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    CONSTRAINT fk_ai_user_permissions_granted_by FOREIGN KEY (granted_by_user_id) REFERENCES users(id) ON DELETE SET NULL
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
   `CREATE TABLE IF NOT EXISTS ai_model_configs (
     id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
     name VARCHAR(100) NOT NULL,
@@ -768,6 +779,42 @@ class AccountDatabase {
     return this.getAiFeatureSetting();
   }
 
+  async hasAiUserPermission(userId) {
+    const [rows] = await this.requirePool().execute(
+      "SELECT 1 FROM ai_user_permissions WHERE user_id=? AND feature_key='ai_chat' LIMIT 1", [userId]
+    );
+    return rows.length > 0;
+  }
+
+  async listAiPermissionUsers() {
+    const [rows] = await this.requirePool().execute(
+      `SELECT u.id, u.username, u.display_name, u.status, u.is_admin,
+              u.last_login_at, u.created_at, p.granted_by_user_id, p.updated_at AS ai_chat_granted_at,
+              CASE WHEN p.user_id IS NULL THEN 0 ELSE 1 END AS ai_chat_granted
+       FROM users u
+       LEFT JOIN ai_user_permissions p ON p.user_id=u.id AND p.feature_key='ai_chat'
+       WHERE u.status='active'
+       ORDER BY u.is_admin DESC, u.created_at DESC, u.id DESC LIMIT 500`
+    );
+    return rows;
+  }
+
+  async setAiUserPermission({ userId, canUse, grantedByUserId }) {
+    if (canUse) {
+      await this.requirePool().execute(
+        `INSERT INTO ai_user_permissions (user_id, feature_key, granted_by_user_id)
+         VALUES (?, 'ai_chat', ?)
+         ON DUPLICATE KEY UPDATE granted_by_user_id=VALUES(granted_by_user_id)`,
+        [userId, grantedByUserId]
+      );
+    } else {
+      await this.requirePool().execute(
+        "DELETE FROM ai_user_permissions WHERE user_id=? AND feature_key='ai_chat'", [userId]
+      );
+    }
+    return this.hasAiUserPermission(userId);
+  }
+
   async listAiModelConfigs() {
     const [rows] = await this.requirePool().execute(
       `SELECT id, name, model_name, base_url, protocol, is_active, created_by_user_id, created_at, updated_at
@@ -926,6 +973,7 @@ class MemoryAccountDatabase {
     this.chatMessages = [];
     this.siteRecommendations = [];
     this.aiFeatureSetting = { is_public:0, updated_by_user_id:null, updated_at:null };
+    this.aiUserPermissions = new Map();
     this.aiModels = [];
     this.aiConversations = new Map();
     this.aiMessages = [];
@@ -1255,6 +1303,41 @@ class MemoryAccountDatabase {
   async setAiFeatureSetting({ isPublic, updatedByUserId }) {
     this.aiFeatureSetting = { is_public:isPublic ? 1 : 0, updated_by_user_id:Number(updatedByUserId), updated_at:new Date() };
     return this.getAiFeatureSetting();
+  }
+
+  async hasAiUserPermission(userId) {
+    return this.aiUserPermissions.has(`ai_chat:${Number(userId)}`);
+  }
+
+  async listAiPermissionUsers() {
+    return [...this.users.values()]
+      .filter(user => user.status === 'active')
+      .sort((left, right) => Number(right.is_admin) - Number(left.is_admin) || right.created_at - left.created_at || right.id - left.id)
+      .slice(0, 500)
+      .map(user => {
+        const permission = this.aiUserPermissions.get(`ai_chat:${user.id}`);
+        return {
+          ...this.cloneUser(user),
+          ai_chat_granted:permission ? 1 : 0,
+          granted_by_user_id:permission?.granted_by_user_id || null,
+          ai_chat_granted_at:permission?.updated_at || null,
+        };
+      });
+  }
+
+  async setAiUserPermission({ userId, canUse, grantedByUserId }) {
+    const key = `ai_chat:${Number(userId)}`;
+    if (canUse) {
+      const now = new Date();
+      const existing = this.aiUserPermissions.get(key);
+      this.aiUserPermissions.set(key, {
+        user_id:Number(userId), feature_key:'ai_chat', granted_by_user_id:Number(grantedByUserId),
+        created_at:existing?.created_at || now, updated_at:now,
+      });
+    } else {
+      this.aiUserPermissions.delete(key);
+    }
+    return this.hasAiUserPermission(userId);
   }
 
   async listAiModelConfigs() {

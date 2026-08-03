@@ -161,6 +161,20 @@ CREATE TABLE IF NOT EXISTS ai_feature_settings (
     FOREIGN KEY (updated_by_user_id) REFERENCES users(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE IF NOT EXISTS ai_user_permissions (
+  user_id BIGINT UNSIGNED NOT NULL,
+  feature_key VARCHAR(40) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+  granted_by_user_id BIGINT UNSIGNED NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (user_id, feature_key),
+  KEY idx_ai_user_permissions_feature_user (feature_key, user_id),
+  CONSTRAINT fk_ai_user_permissions_user
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  CONSTRAINT fk_ai_user_permissions_granted_by
+    FOREIGN KEY (granted_by_user_id) REFERENCES users(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE IF NOT EXISTS ai_model_configs (
   id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
   name VARCHAR(100) NOT NULL,

@@ -55,7 +55,7 @@ test('AI conversation and message reads remain scoped to the owning account', as
   assert.equal(await database.deleteAiConversation(second.id, conversation.id), false);
 });
 
-test('AI routes require server sessions, enforce the global visibility switch and scope conversation URLs', async t => {
+test('AI routes require server sessions, enforce per-user grants and scope conversation URLs', async t => {
   const accountService = new AccountService({ env:{ STOCK_ACCOUNT_ENABLED:'true', STOCK_ACCOUNT_DRIVER:'memory' } });
   await accountService.start(); t.after(() => accountService.close());
   const database = accountService.database;
@@ -76,8 +76,24 @@ test('AI routes require server sessions, enforce the global visibility switch an
   result = await aiRequest(accountService, aiService, '/api/ai/conversations', { method:'POST', body:{}, cookie:userCookie });
   assert.equal(result.response.status, 403);
 
-  result = await aiRequest(accountService, aiService, '/api/admin/ai/settings', { method:'PUT', body:{ isPublic:true }, cookie:adminCookie });
+  result = await aiRequest(accountService, aiService, '/api/admin/ai/users', { cookie:userCookie });
+  assert.equal(result.response.status, 403);
+  result = await aiRequest(accountService, aiService, '/api/admin/ai/users', { cookie:adminCookie });
   assert.equal(result.response.status, 200);
+  const listedUser = result.payload.users.find(item => item.id === String(user.id));
+  assert.equal(listedUser.isGranted, false);
+  assert.equal(Object.hasOwn(listedUser, 'passwordHash'), false);
+
+  result = await aiRequest(accountService, aiService, `/api/admin/ai/users/${user.id}/permission`, { method:'PUT', body:{ canUse:true }, cookie:adminCookie });
+  assert.equal(result.response.status, 200);
+  assert.equal(result.payload.isGranted, true);
+  result = await aiRequest(accountService, aiService, '/api/ai/access', { cookie:userCookie });
+  assert.equal(result.payload.isPublic, false);
+  assert.equal(result.payload.isGranted, true);
+  assert.equal(result.payload.canUse, true);
+  result = await aiRequest(accountService, aiService, '/api/ai/access', { cookie:otherCookie });
+  assert.equal(result.payload.canUse, false);
+
   result = await aiRequest(accountService, aiService, '/api/admin/ai/models', { method:'POST', body:{ name:'测试模型', modelName:'gpt-test', baseUrl:'https://example.test/v1', apiKey:'secret-key', isActive:true }, cookie:adminCookie });
   assert.equal(result.response.status, 201);
   assert.equal(Object.hasOwn(result.payload.model, 'apiKey'), false);
@@ -86,7 +102,25 @@ test('AI routes require server sessions, enforce the global visibility switch an
   assert.equal(result.response.status, 201);
   const conversationId = result.payload.conversation.id;
   result = await aiRequest(accountService, aiService, `/api/ai/conversations/${conversationId}/messages`, { cookie:otherCookie });
+  assert.equal(result.response.status, 403);
+
+  result = await aiRequest(accountService, aiService, '/api/admin/ai/settings', { method:'PUT', body:{ isPublic:true }, cookie:adminCookie });
+  assert.equal(result.response.status, 200);
+  result = await aiRequest(accountService, aiService, `/api/ai/conversations/${conversationId}/messages`, { cookie:otherCookie });
   assert.equal(result.response.status, 404);
+
+  result = await aiRequest(accountService, aiService, '/api/admin/ai/settings', { method:'PUT', body:{ isPublic:false }, cookie:adminCookie });
+  assert.equal(result.response.status, 200);
+
+  result = await aiRequest(accountService, aiService, `/api/admin/ai/users/${user.id}/permission`, { method:'PUT', body:{ canUse:false }, cookie:adminCookie });
+  assert.equal(result.response.status, 200);
+  result = await aiRequest(accountService, aiService, '/api/ai/access', { cookie:userCookie });
+  assert.equal(result.payload.canUse, false);
+
+  result = await aiRequest(accountService, aiService, '/api/admin/ai/settings', { method:'PUT', body:{ isPublic:true }, cookie:adminCookie });
+  assert.equal(result.response.status, 200);
+  result = await aiRequest(accountService, aiService, '/api/ai/access', { cookie:otherCookie });
+  assert.equal(result.payload.canUse, true);
 });
 
 test('AI persistence schema stays aligned across runtime, canonical SQL and operator documentation', () => {
@@ -95,6 +129,7 @@ test('AI persistence schema stays aligned across runtime, canonical SQL and oper
   const readme = fs.readFileSync(path.join(__dirname, '..', 'README.md'), 'utf8');
   for (const schema of [runtimeSchema, canonicalSchema, readme]) {
     assert.match(schema, /CREATE TABLE IF NOT EXISTS ai_feature_settings/);
+    assert.match(schema, /CREATE TABLE IF NOT EXISTS ai_user_permissions/);
     assert.match(schema, /CREATE TABLE IF NOT EXISTS ai_model_configs/);
     assert.match(schema, /CREATE TABLE IF NOT EXISTS ai_conversations/);
     assert.match(schema, /CREATE TABLE IF NOT EXISTS ai_messages/);

@@ -112,17 +112,22 @@ test('note heading navigation scrolls the selected preview heading into view', (
   assert.deepEqual(JSON.parse(JSON.stringify(scrollOptions)), { behavior:'smooth', block:'start', inline:'nearest' });
 });
 
-test('reference documentation is immediately to the left of theme controls', () => {
+test('sidebar groups navigation and supports collapse on desktop plus overlay on mobile', () => {
   const navStart = html.indexOf('<div class="app-nav-inner">');
   const navEnd = html.indexOf('</nav>', navStart);
   const nav = html.slice(navStart, navEnd);
   const referenceIndex = nav.indexOf('data-page="reference"');
   const chatIndex = nav.indexOf('id="chat-entry-btn"');
-  const recommendationIndex = nav.indexOf('id="site-recommendations"');
-  assert.ok(recommendationIndex > chatIndex);
-  assert.ok(referenceIndex > recommendationIndex);
-  assert.ok(referenceIndex < nav.indexOf('class="theme-setting"'));
-  assert.match(nav, /data-page="reference"[^>]*>📚 参考文档<\/button>\s*<label class="theme-setting"/);
+  const researchGroup = nav.indexOf('id="sidebar-group-research"');
+  const communityGroup = nav.indexOf('id="sidebar-group-community"');
+  assert.ok(referenceIndex > researchGroup);
+  assert.ok(chatIndex > communityGroup);
+  assert.match(nav, /id="admin-navigation" hidden/);
+  assert.match(html, /SIDEBAR_COLLAPSED_STORAGE_KEY/);
+  assert.match(html, /function toggleSidebar\(\)/);
+  assert.match(html, /body\.sidebar-collapsed/);
+  assert.match(html, /@media\(max-width:860px\).*sidebar-open/s);
+  assert.match(html, /id="sidebar-mobile-toggle"/);
   assert.match(html, /<section class="app-page" id="page-reference">/);
   assert.match(html, /href="\/reference\.html" target="_blank" rel="noopener noreferrer"/);
 });
@@ -176,7 +181,7 @@ test('standalone and in-page reference views share the same renderer', () => {
 });
 
 test('all app pages support direct URL navigation and browser history', () => {
-  assert.match(html, /const APP_PAGES = \['market','ipo','alerts','notes','reference','ai','admin-sites','admin-ai'\]/);
+  assert.match(html, /const APP_PAGES = \['market','ipo','alerts','notes','reference','ai','admin-users','admin-sites','admin-ai'\]/);
   assert.match(html, /document\.title = '深度学习';/);
   assert.doesNotMatch(html, /APP_PAGE_TITLES/);
   assert.match(html, /history\.pushState\(\{ page \}, '', url\)/);
@@ -201,8 +206,13 @@ test('IPO calendar labels each stock board', () => {
   assert.equal(context.ipoBoardForTest({ board:'上海证券交易所主板' }), '沪市主板');
 });
 
-test('administrator UI manages recommended sites without exposing a privilege toggle', () => {
+test('administrator UI groups system tools and provides per-user AI access management', () => {
   assert.match(html, /id="page-admin-sites"/);
+  assert.match(html, /id="page-admin-users"/);
+  assert.match(html, /id="admin-users-list"/);
+  assert.match(html, /onclick="openAdminUserManagement\(\)"/);
+  assert.match(html, /\/api\/admin\/ai\/users/);
+  assert.match(html, /function setAdminAiUserPermission\(user, canUse, button\)/);
   assert.match(html, /onclick="openAdminSiteManagement\(\)"/);
   assert.match(html, /apiRequest\('\/api\/admin\/sites'/);
   assert.match(html, /async function saveAdminSite\(event\)/);
@@ -211,8 +221,9 @@ test('administrator UI manages recommended sites without exposing a privilege to
   assert.match(html, /isAdminOnly:document\.getElementById\('admin-site-admin-only'\)\.checked/);
   assert.match(html, /site\.isAdminOnly === true/);
   assert.match(html, /visibility\.textContent = '仅管理员可见'/);
-  assert.match(html, /\(page === 'admin-sites' \|\| page === 'admin-ai'\) && !currentUser\?\.isAdmin/);
-  assert.doesNotMatch(html, /name="isAdmin"|id="admin-user|grantAdmin\(/);
+  assert.match(html, /page === 'admin-users' \|\| page === 'admin-sites' \|\| page === 'admin-ai'/);
+  assert.match(html, /if \(user\.isAdmin\).*管理员默认可用/s);
+  assert.doesNotMatch(html, /name="isAdmin"|grantAdmin\(/);
 });
 
 test('AI stock research UI keeps entry permission-gated and renders chat content as text', () => {
@@ -223,6 +234,7 @@ test('AI stock research UI keeps entry permission-gated and renders chat content
   assert.match(html, /\/api\/ai\/conversations/);
   assert.match(html, /\/api\/admin\/ai\/models/);
   assert.match(html, /\/api\/admin\/ai\/usage/);
+  assert.match(html, /\/api\/admin\/ai\/users/);
   assert.match(html, /function createAiMessageElement\(message\)[\s\S]*?content\.textContent = message\.content/);
   assert.match(html, /if \(page === 'ai' && !aiAccess\.canUse\)/);
 });

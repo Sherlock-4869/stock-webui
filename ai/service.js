@@ -63,6 +63,21 @@ function publicMessage(row) {
   return { id:String(row.id), role:String(row.role), content:String(row.content), status:String(row.status), createdAt:row.created_at };
 }
 
+function publicAiPermissionUser(row) {
+  if (!row) return null;
+  return {
+    id:String(row.id),
+    username:row.username || null,
+    displayName:String(row.display_name || '用户'),
+    status:String(row.status || 'active'),
+    isAdmin:Number(row.is_admin) === 1,
+    isGranted:Number(row.ai_chat_granted) === 1,
+    grantedAt:row.ai_chat_granted_at || null,
+    lastLoginAt:row.last_login_at || null,
+    createdAt:row.created_at || null,
+  };
+}
+
 function encryptionError() {
   return Object.assign(new Error('未配置有效的 STOCK_AI_CREDENTIAL_ENCRYPTION_KEY（需要 32 字节 Base64 密钥）'), { statusCode:503 });
 }
@@ -135,8 +150,9 @@ class AiService {
     const setting = await this.featureSetting();
     const isAdmin = Number(user?.is_admin) === 1;
     const isPublic = Number(setting.is_public) === 1;
+    const isGranted = !isAdmin && await this.accountService.database.hasAiUserPermission(user?.id);
     const configured = Boolean(this.config.enabled && this.config.internalToken && this.config.credentialKey);
-    return { enabled:configured, isPublic, canUse:configured && (isPublic || isAdmin), isAdmin };
+    return { enabled:configured, isPublic, isGranted, canUse:configured && (isPublic || isAdmin || isGranted), isAdmin };
   }
 
   checkRate(userId) {
@@ -250,6 +266,28 @@ class AiService {
         sendJson(res, 200, { isPublic:Number(setting.is_public) === 1 });
         return true;
       }
+    }
+    if (pathname === '/api/admin/ai/users' && req.method === 'GET') {
+      const users = await this.accountService.database.listAiPermissionUsers();
+      sendJson(res, 200, { users:users.map(publicAiPermissionUser).filter(Boolean) });
+      return true;
+    }
+    const userPermissionMatch = pathname.match(/^\/api\/admin\/ai\/users\/(\d{1,20})\/permission$/);
+    if (userPermissionMatch && req.method === 'PUT') {
+      assertSameOrigin(req);
+      const userId = userPermissionMatch[1];
+      const targetUser = await this.accountService.database.findUserById(userId);
+      if (!targetUser || targetUser.status !== 'active') throw Object.assign(new Error('用户不存在或已停用'), { statusCode:404 });
+      if (Number(targetUser.is_admin) === 1) {
+        throw Object.assign(new Error('管理员默认拥有问股权限，无需单独授权'), { statusCode:400 });
+      }
+      const body = await readJson(req, 4096);
+      if (typeof body.canUse !== 'boolean') throw Object.assign(new Error('授权状态不正确'), { statusCode:400 });
+      const isGranted = await this.accountService.database.setAiUserPermission({
+        userId, canUse:body.canUse, grantedByUserId:session.user.id,
+      });
+      sendJson(res, 200, { userId:String(userId), isGranted });
+      return true;
     }
     if (pathname === '/api/admin/ai/models' && req.method === 'GET') {
       const models = await this.accountService.database.listAiModelConfigs();

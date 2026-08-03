@@ -10,7 +10,7 @@
 - 账户设置支持修改显示名称、上传、裁切和压缩个人头像；未设置自定义头像时继续使用微信头像或名称首字。
 - 登录账号可以创建、编辑、删除、搜索和导入 Markdown 笔记；支持账号级文件夹分类，并可在左侧“文件列表 / 标题导航”之间切换。
 - 登录账号可以进入支持持久化历史、图片、剪贴板图片粘贴、表情、缩放和未读数字提示的网页聊天室；游客不可访问。
-- 管理员可配置 OpenAI 兼容模型、统一控制 AI 问股页面是否向已登录用户公开，并查看按用户/模型汇总的 Token 用量；问股会话和历史按账号隔离保存。
+- 管理员可配置 OpenAI 兼容模型、统一控制 AI 问股页面是否向已登录用户公开，或在用户管理中逐个授权，并查看按用户/模型汇总的 Token 用量；问股会话和历史按账号隔离保存。
 - 聊天室右侧提供数据库驱动的站点推荐菜单，推荐链接在新标签页中打开。
 - 参考文档默认在当前页面内阅读，支持目录定位、重新加载、下载 Markdown 和新窗口打开。
 - 通过 `https://stock.sherlock-holmes.cn/?page=ipo` 直接打开打新页面。
@@ -62,7 +62,8 @@ cp .env.example .env
 
 - `users.is_admin=1` 表示管理员，默认注册账号均为 `0`，前端和公开接口都不提供提权入口。
 - 管理员可从右上角账号菜单进入“站点推荐管理”，新增、编辑、启用、停用或删除推荐站点。
-- 管理员可从右上角账号菜单进入“AI 问股管理”，配置页面公开状态、OpenAI 兼容模型和使用看板；模型 API Key 只显示为输入框，保存后不回显。
+- 管理员可从侧边栏“系统管理”进入“用户与权限”，逐个授予或收回 AI 问股权限；管理员天然拥有该权限。
+- 管理员可从侧边栏“系统管理”进入“AI 问股管理”，配置页面公开状态、OpenAI 兼容模型和使用看板；模型 API Key 只显示为输入框，保存后不回显。
 - 管理员进入聊天室后，可以点击“在线人数”查看当前 Node.js 实例中的在线账号及连接数。
 - 管理员身份仅允许在数据库后台赋值，例如：
 
@@ -285,6 +286,18 @@ CREATE TABLE IF NOT EXISTS ai_feature_settings (
   CONSTRAINT fk_ai_feature_settings_user FOREIGN KEY (updated_by_user_id) REFERENCES users(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE IF NOT EXISTS ai_user_permissions (
+  user_id BIGINT UNSIGNED NOT NULL,
+  feature_key VARCHAR(40) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+  granted_by_user_id BIGINT UNSIGNED NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (user_id, feature_key),
+  KEY idx_ai_user_permissions_feature_user (feature_key, user_id),
+  CONSTRAINT fk_ai_user_permissions_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  CONSTRAINT fk_ai_user_permissions_granted_by FOREIGN KEY (granted_by_user_id) REFERENCES users(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE IF NOT EXISTS ai_model_configs (
   id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
   name VARCHAR(100) NOT NULL,
@@ -347,7 +360,7 @@ CREATE TABLE IF NOT EXISTS ai_usage_records (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 ```
 
-`ai_feature_settings.ai_chat.is_public=1` 表示向所有已登录用户公开问股入口；为 `0` 时只有管理员可见。这是全局开关，不是单个用户白名单。模型有历史使用记录后只能停用，不能删除，以保持使用看板的审计完整性。
+`ai_feature_settings.ai_chat.is_public=1` 表示向所有已登录用户公开问股入口；为 `0` 时，只有管理员和 `ai_user_permissions` 中 `feature_key='ai_chat'` 的已授权用户可见。管理员在“用户与权限”页面操作单用户授权；该页面及全部管理员接口仅管理员可见。模型有历史使用记录后只能停用，不能删除，以保持使用看板的审计完整性。
 
 ### 启用 AI 问股与独立 Python 服务
 

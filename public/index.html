@@ -450,29 +450,70 @@ html[data-theme="light"] .reference-retry{background:#f6f8fa;border-color:#d0d7d
 .chat-badge.visible{display:flex}
 .chat-image-preview{position:fixed;z-index:520;inset:0;display:none;align-items:center;justify-content:center;padding:30px;background:#0d1117ee;backdrop-filter:blur(8px)}.chat-image-preview.open{display:flex}.chat-image-preview img{max-width:min(100%,1100px);max-height:calc(100vh - 60px);border-radius:10px;box-shadow:0 18px 60px #000c}.chat-image-preview-close{position:absolute;top:18px;right:18px;width:36px;height:36px;border:1px solid #30363d;border-radius:50%;background:#161b22;color:#e6edf3;font-size:18px;cursor:pointer}
 @media(max-width:500px){.chat-float{left:8px!important;right:8px!important;top:auto!important;bottom:8px!important;width:auto;height:min(76vh,560px);min-width:0;resize:none}.chat-input-area{gap:5px;padding:8px}.chat-tool-btn{width:32px;height:34px}.chat-send-btn{padding:8px 11px}.chat-emoji-panel{grid-template-columns:repeat(8,30px);left:8px;width:298px;max-width:calc(100% - 16px)}}
+/* Application shell: grouped, collapsible sidebar navigation. */
+:root{--sidebar-width:246px;--sidebar-collapsed-width:74px}
+body{padding-left:var(--sidebar-width);transition:padding-left .2s ease}
+.app-nav{position:fixed;inset:0 auto 0 0;z-index:350;width:var(--sidebar-width);height:100vh;padding:12px 10px;border:0;border-right:1px solid #21262d;background:#0d1117f7;backdrop-filter:blur(16px);overflow:hidden;transition:width .2s ease,transform .2s ease}
+.app-nav-inner{display:flex;flex-direction:column;align-items:stretch;width:100%;max-width:none;height:100%;margin:0;gap:0}
+.sidebar-header{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:4px 2px 15px;border-bottom:1px solid #21262d}.app-brand{min-width:0;flex:1;margin:0;padding:7px 8px;border-radius:8px}.app-brand:hover{background:#161b22}.app-brand img{width:29px;height:29px}.sidebar-collapse{display:grid;place-items:center;flex:none;width:30px;height:30px;border:1px solid #30363d;border-radius:8px;background:#161b22;color:#8b949e;cursor:pointer;transition:.15s}.sidebar-collapse:hover{color:#e6edf3;border-color:#58a6ff}.sidebar-collapse-icon{font-size:15px;line-height:1;transition:transform .2s ease}
+.sidebar-scroll{display:flex;min-height:0;flex:1;flex-direction:column;gap:4px;overflow-y:auto;padding:13px 0;scrollbar-width:thin;scrollbar-color:#30363d transparent}.sidebar-section-title{padding:8px 10px 4px;color:#6e7681;font-size:10px;font-weight:750;letter-spacing:.08em}.sidebar-group{display:flex;flex-direction:column;gap:3px}.sidebar-group-toggle{display:flex;align-items:center;gap:9px;width:100%;padding:8px 10px;border:0;border-radius:7px;background:transparent;color:#8b949e;font:650 12px inherit;text-align:left;cursor:pointer}.sidebar-group-toggle:hover{background:#161b22;color:#c9d1d9}.sidebar-group-chevron{margin-left:auto;color:#6e7681;font-size:11px;transition:transform .18s ease}.sidebar-group-toggle[aria-expanded="false"] .sidebar-group-chevron{transform:rotate(-90deg)}.sidebar-group-items{display:flex;flex-direction:column;gap:3px;padding-left:8px}.sidebar-group.collapsed .sidebar-group-items{display:none}
+.app-tab{justify-content:flex-start;gap:9px;width:100%;min-width:0;padding:9px 10px;border-radius:7px;font-size:12px}.app-tab[data-page="notes"],.app-tab[data-page="reference"]{min-width:0;margin-left:0}.app-tab.active{background:#1f3a5f}.app-tab-icon{display:inline-grid;place-items:center;flex:none;width:18px;font-size:15px}.app-tab-label{overflow:hidden;text-overflow:ellipsis}.app-tab-badge{margin-left:auto}.site-recommendations{width:100%}.site-recommendation-trigger{width:100%;min-width:0}.site-recommendations::after{top:0;right:-8px;left:auto;width:8px;height:100%}.site-recommendation-menu{top:0;left:calc(100% + 8px);width:280px}
+.sidebar-footer{display:flex;flex-direction:column;gap:9px;padding:11px 2px 2px;border-top:1px solid #21262d}.theme-setting{display:flex;align-items:center;gap:8px;margin:0;padding:0 8px;color:#8b949e}.theme-setting .refresh-interval-select{min-width:0;flex:1}.sidebar-footer-icon{display:inline-grid;place-items:center;width:18px;font-size:14px}.account-area{margin:0}.account-trigger{width:100%;max-width:none;height:38px;justify-content:flex-start}.account-menu{z-index:500}.main{width:100%;max-width:calc(1100px + var(--optional-metric-width,0px));margin:0 auto;padding:26px;transition:max-width .2s ease}.main #page-ipo,.main #page-alerts,.main #page-notes,.main #page-reference,.main #page-admin-sites,.main #page-ai,.main #page-admin-ai,.main #page-admin-users{max-width:1100px;margin:0 auto}.sidebar-mobile-toggle,.sidebar-backdrop{display:none}
+.admin-users-card{padding:18px;border:1px solid #30363d;border-radius:10px;background:#161b22}.admin-users-toolbar{display:flex;align-items:center;gap:10px;margin-bottom:13px}.admin-users-search{min-width:0;flex:1;border:1px solid #30363d;border-radius:7px;background:#0d1117;color:#e6edf3;padding:9px 10px;font:12px inherit;outline:none}.admin-users-search:focus{border-color:#58a6ff}.admin-users-count{color:#8b949e;font-size:11px;white-space:nowrap}.admin-users-list{display:flex;flex-direction:column;gap:8px}.admin-user-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(115px,.55fr) auto;align-items:center;gap:14px;padding:13px;border:1px solid #30363d;border-radius:8px;background:#0d1117}.admin-user-name{display:flex;align-items:center;gap:8px;min-width:0;font-size:13px;font-weight:700}.admin-user-name-copy{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.admin-user-id{margin-top:4px;overflow:hidden;color:#8b949e;font-size:10px;text-overflow:ellipsis;white-space:nowrap}.admin-user-meta{color:#8b949e;font-size:10px;line-height:1.55}.admin-user-access{display:flex;align-items:center;justify-content:flex-end;gap:8px}.admin-user-state{display:inline-flex;padding:3px 7px;border-radius:10px;background:#6e768122;color:#8b949e;font-size:10px;white-space:nowrap}.admin-user-state.granted{background:#23863622;color:#3fb950}.admin-user-state.admin{background:#d2992222;color:#e3b341}.admin-user-toggle{min-width:76px}.admin-user-toggle:disabled{opacity:.62;cursor:not-allowed}@media(max-width:650px){.admin-users-card{padding:14px}.admin-users-toolbar{align-items:stretch;flex-wrap:wrap}.admin-user-row{grid-template-columns:1fr;gap:8px}.admin-user-access{justify-content:space-between}.admin-users-count{width:100%}}
+body.sidebar-collapsed{padding-left:var(--sidebar-collapsed-width)}body.sidebar-collapsed .app-nav{width:var(--sidebar-collapsed-width)}body.sidebar-collapsed .app-brand{flex:none;padding:7px}body.sidebar-collapsed .app-brand span,body.sidebar-collapsed .app-tab-label,body.sidebar-collapsed .sidebar-section-title,body.sidebar-collapsed .sidebar-group-label,body.sidebar-collapsed .sidebar-group-chevron,body.sidebar-collapsed .theme-setting .nav-label,body.sidebar-collapsed .theme-setting select,body.sidebar-collapsed .account-label,body.sidebar-collapsed .account-chevron{display:none}body.sidebar-collapsed .sidebar-header{justify-content:center}body.sidebar-collapsed .sidebar-collapse-icon{transform:rotate(180deg)}body.sidebar-collapsed .sidebar-scroll{align-items:center}body.sidebar-collapsed .sidebar-group,body.sidebar-collapsed .sidebar-group-items{width:100%;padding-left:0}body.sidebar-collapsed .sidebar-group-items{display:flex}body.sidebar-collapsed .sidebar-group-toggle{justify-content:center;padding:9px}body.sidebar-collapsed .app-tab{justify-content:center;padding:10px}body.sidebar-collapsed .app-tab-badge{position:absolute;top:3px;right:2px;min-width:13px;padding:1px 3px;font-size:8px}body.sidebar-collapsed .site-recommendation-menu{left:calc(100% + 10px)}body.sidebar-collapsed .sidebar-footer{align-items:center}body.sidebar-collapsed .theme-setting{padding:7px}body.sidebar-collapsed .account-trigger{width:42px;padding:0;justify-content:center}.app-nav:has(.site-recommendations.open){overflow:visible}
+html[data-theme="light"] .app-nav{background:#fffffff7;border-color:#dce3ec;box-shadow:2px 0 12px #1f3b5b0a}html[data-theme="light"] .sidebar-header,html[data-theme="light"] .sidebar-footer{border-color:#dce3ec}
+@media(max-width:860px){body,body.sidebar-collapsed{padding-left:0}.app-nav,body.sidebar-collapsed .app-nav{width:min(278px,calc(100vw - 54px));transform:translateX(-105%);box-shadow:8px 0 30px #0008}.app-nav-inner{width:100%;margin:0}.sidebar-mobile-toggle{display:grid;position:fixed;z-index:340;top:12px;left:12px;place-items:center;width:38px;height:38px;border:1px solid #30363d;border-radius:9px;background:#161b22ed;color:#c9d1d9;box-shadow:0 5px 18px #0005;cursor:pointer}.sidebar-backdrop{position:fixed;z-index:330;inset:0;background:#0008}.sidebar-open .app-nav{transform:translateX(0)}.sidebar-open .sidebar-backdrop{display:block}.main{padding:62px 12px 16px}.sidebar-collapse{display:grid}body.sidebar-collapsed .app-brand span,body.sidebar-collapsed .app-tab-label,body.sidebar-collapsed .sidebar-section-title,body.sidebar-collapsed .sidebar-group-label,body.sidebar-collapsed .sidebar-group-chevron,body.sidebar-collapsed .theme-setting .nav-label,body.sidebar-collapsed .theme-setting select,body.sidebar-collapsed .account-label,body.sidebar-collapsed .account-chevron{display:inline}body.sidebar-collapsed .sidebar-header{justify-content:space-between}body.sidebar-collapsed .app-brand{flex:1;padding:7px 8px}body.sidebar-collapsed .sidebar-scroll{align-items:stretch}body.sidebar-collapsed .sidebar-group-items{padding-left:8px}body.sidebar-collapsed .sidebar-group-toggle{justify-content:flex-start;padding:8px 10px}body.sidebar-collapsed .app-tab{justify-content:flex-start;padding:9px 10px}body.sidebar-collapsed .app-tab-badge{position:static;margin-left:auto}body.sidebar-collapsed .sidebar-footer{align-items:stretch}body.sidebar-collapsed .theme-setting{padding:0 8px}body.sidebar-collapsed .account-trigger{width:100%;padding:0 10px;justify-content:flex-start}.site-recommendation-menu,body.sidebar-collapsed .site-recommendation-menu{position:fixed;top:60px;bottom:12px;left:12px;width:calc(100vw - 24px);max-width:360px;overflow:auto}.site-recommendations::after{display:none!important}}
 </style>
 </head>
 <body>
-<nav class="app-nav" aria-label="功能导航">
+<button class="sidebar-mobile-toggle" id="sidebar-mobile-toggle" type="button" onclick="toggleSidebar()" aria-label="展开导航" aria-controls="app-navigation" aria-expanded="false">☰</button>
+<div class="sidebar-backdrop" id="sidebar-backdrop" onclick="closeSidebar()"></div>
+<nav class="app-nav" id="app-navigation" aria-label="功能导航">
   <div class="app-nav-inner">
-    <a class="app-brand" href="/" aria-label="深度学习首页" onclick="handleAppBrandClick(event)"><img src="/favicon.svg" alt=""><span>深度学习</span></a>
-    <button class="app-tab active" data-page="market" onclick="switchAppPage('market')">📈 自选股行情</button>
-    <button class="app-tab" data-page="ipo" onclick="switchAppPage('ipo')">🗓 打新消息<span class="app-tab-badge" id="ipo-badge">--</span></button>
-    <button class="app-tab" data-page="alerts" onclick="switchAppPage('alerts')">⚡ 自选异动<span class="app-tab-badge" id="alert-badge">0</span></button>
-    <button class="app-tab" data-page="notes" onclick="switchAppPage('notes')">📝 笔记</button>
-    <button class="app-tab" id="ai-entry-btn" data-page="ai" onclick="switchAppPage('ai')" hidden>✨ AI 问股</button>
-    <button class="app-tab" id="chat-entry-btn" onclick="openChatRoom()" style="width:auto;padding:8px 14px">💬 聊天室</button>
-    <div class="site-recommendations" id="site-recommendations" onmouseenter="handleSiteRecommendationsEnter()" onmouseleave="scheduleSiteRecommendationsClose()">
-      <button class="app-tab site-recommendation-trigger" id="site-recommendation-trigger" type="button" aria-haspopup="menu" aria-expanded="false" onclick="toggleSiteRecommendations(event)" onfocus="loadSiteRecommendations()">🌐 站点推荐</button>
-      <div class="site-recommendation-menu" id="site-recommendation-menu" role="menu" aria-label="站点推荐"><div class="site-recommendation-status">正在加载推荐站点…</div></div>
+    <div class="sidebar-header">
+      <a class="app-brand" href="/" aria-label="深度学习首页" onclick="handleAppBrandClick(event)"><img src="/favicon.svg" alt=""><span>深度学习</span></a>
+      <button class="sidebar-collapse" type="button" onclick="toggleSidebar()" aria-label="收起导航" title="收起导航"><span class="sidebar-collapse-icon">‹</span></button>
     </div>
-    <button class="app-tab" data-page="reference" type="button" onclick="switchAppPage('reference')">📚 参考文档</button>
-    <label class="theme-setting" for="theme-select"><span>主题</span><select class="refresh-interval-select" id="theme-select" onchange="setThemePreference(this.value)"><option value="light">浅色</option><option value="dark">深色</option><option value="system">跟随系统</option></select></label>
-    <div class="account-area" id="account-area">
-      <button class="account-trigger" id="account-trigger" type="button" onclick="toggleAccountMenu(event)" aria-haspopup="menu" aria-expanded="false">
-        <span class="account-avatar" id="account-trigger-avatar">人</span><span class="account-label" id="account-trigger-label">登录 / 注册</span><span class="account-chevron">▼</span>
-      </button>
-      <div class="account-menu" id="account-menu" role="menu"></div>
+    <div class="sidebar-scroll">
+      <div class="sidebar-section-title">市场</div>
+      <button class="app-tab active" data-page="market" onclick="switchAppPage('market')"><span class="app-tab-icon">📈</span><span class="app-tab-label">自选股行情</span></button>
+      <button class="app-tab" data-page="ipo" onclick="switchAppPage('ipo')"><span class="app-tab-icon">🗓</span><span class="app-tab-label">打新消息</span><span class="app-tab-badge" id="ipo-badge">--</span></button>
+      <button class="app-tab" data-page="alerts" onclick="switchAppPage('alerts')"><span class="app-tab-icon">⚡</span><span class="app-tab-label">自选异动</span><span class="app-tab-badge" id="alert-badge">0</span></button>
+      <div class="sidebar-group" id="sidebar-group-research">
+        <button class="sidebar-group-toggle" type="button" onclick="toggleSidebarGroup('research')" aria-expanded="true"><span class="app-tab-icon">◈</span><span class="sidebar-group-label">研究与工具</span><span class="sidebar-group-chevron">⌄</span></button>
+        <div class="sidebar-group-items">
+          <button class="app-tab" data-page="notes" onclick="switchAppPage('notes')"><span class="app-tab-icon">📝</span><span class="app-tab-label">笔记</span></button>
+          <button class="app-tab" id="ai-entry-btn" data-page="ai" onclick="switchAppPage('ai')" hidden><span class="app-tab-icon">✨</span><span class="app-tab-label">AI 问股</span></button>
+          <button class="app-tab" data-page="reference" type="button" onclick="switchAppPage('reference')"><span class="app-tab-icon">📚</span><span class="app-tab-label">参考文档</span></button>
+        </div>
+      </div>
+      <div class="sidebar-group" id="sidebar-group-community">
+        <button class="sidebar-group-toggle" type="button" onclick="toggleSidebarGroup('community')" aria-expanded="true"><span class="app-tab-icon">◌</span><span class="sidebar-group-label">互动与发现</span><span class="sidebar-group-chevron">⌄</span></button>
+        <div class="sidebar-group-items">
+          <button class="app-tab" id="chat-entry-btn" onclick="openChatRoom()"><span class="app-tab-icon">💬</span><span class="app-tab-label">聊天室</span></button>
+          <div class="site-recommendations" id="site-recommendations" onmouseenter="handleSiteRecommendationsEnter()" onmouseleave="scheduleSiteRecommendationsClose()">
+            <button class="app-tab site-recommendation-trigger" id="site-recommendation-trigger" type="button" aria-haspopup="menu" aria-expanded="false" onclick="toggleSiteRecommendations(event)" onfocus="loadSiteRecommendations()"><span class="app-tab-icon">🌐</span><span class="app-tab-label">站点推荐</span></button>
+      <div class="site-recommendation-menu" id="site-recommendation-menu" role="menu" aria-label="站点推荐"><div class="site-recommendation-status">正在加载推荐站点…</div></div>
+          </div>
+        </div>
+      </div>
+      <div class="sidebar-group" id="admin-navigation" hidden>
+        <button class="sidebar-group-toggle" type="button" onclick="toggleSidebarGroup('admin')" aria-expanded="true"><span class="app-tab-icon">⚙</span><span class="sidebar-group-label">系统管理</span><span class="sidebar-group-chevron">⌄</span></button>
+        <div class="sidebar-group-items" id="sidebar-group-admin">
+          <button class="app-tab" data-page="admin-users" onclick="switchAppPage('admin-users')"><span class="app-tab-icon">👥</span><span class="app-tab-label">用户与权限</span></button>
+          <button class="app-tab" data-page="admin-ai" onclick="switchAppPage('admin-ai')"><span class="app-tab-icon">✨</span><span class="app-tab-label">AI 问股管理</span></button>
+          <button class="app-tab" data-page="admin-sites" onclick="switchAppPage('admin-sites')"><span class="app-tab-icon">🛠</span><span class="app-tab-label">站点推荐管理</span></button>
+        </div>
+      </div>
+    </div>
+    <div class="sidebar-footer">
+      <label class="theme-setting" for="theme-select"><span class="sidebar-footer-icon">◐</span><span class="nav-label">主题</span><select class="refresh-interval-select" id="theme-select" onchange="setThemePreference(this.value)"><option value="light">浅色</option><option value="dark">深色</option><option value="system">跟随系统</option></select></label>
+      <div class="account-area" id="account-area">
+        <button class="account-trigger" id="account-trigger" type="button" onclick="toggleAccountMenu(event)" aria-haspopup="menu" aria-expanded="false">
+          <span class="account-avatar" id="account-trigger-avatar">人</span><span class="account-label" id="account-trigger-label">登录 / 注册</span><span class="account-chevron">▼</span>
+        </button>
+        <div class="account-menu" id="account-menu" role="menu"></div>
+      </div>
     </div>
   </div>
 </nav>
@@ -625,10 +666,18 @@ html[data-theme="light"] .reference-retry{background:#f6f8fa;border-color:#d0d7d
       <div class="admin-site-form-actions"><button class="dialog-btn primary" id="admin-ai-model-save" type="submit">保存模型</button><button class="dialog-btn" type="button" onclick="resetAiModelForm()">清空</button></div>
     </form>
     <div style="display:flex;flex-direction:column;gap:18px">
-      <div class="admin-ai-card"><h3>页面权限</h3><p class="admin-ai-copy">关闭公开后，仅管理员可进入问股页面；未配置运行环境或模型时，普通用户也不会看到入口。</p><label class="admin-site-active"><input id="admin-ai-public" type="checkbox" onchange="saveAiFeatureSetting()"> 向已登录用户公开 AI 问股</label><div class="admin-site-status" id="admin-ai-settings-status"></div></div>
+      <div class="admin-ai-card"><h3>页面权限</h3><p class="admin-ai-copy">开启公开后，全部已登录用户均可进入问股页面；关闭后，管理员和“用户与权限”中逐个授权的用户可进入。未配置运行环境或模型时，普通用户也不会看到入口。</p><label class="admin-site-active"><input id="admin-ai-public" type="checkbox" onchange="saveAiFeatureSetting()"> 向已登录用户公开 AI 问股</label><div class="admin-site-form-actions"><button class="dialog-btn" type="button" onclick="openAdminUserManagement()">管理单用户授权</button></div><div class="admin-site-status" id="admin-ai-settings-status"></div></div>
       <div class="admin-ai-card"><h3>模型列表</h3><p class="admin-ai-copy">停用的模型不会被问股服务选用。已产生使用记录的模型为保证审计完整性不可删除。</p><div class="admin-ai-models" id="admin-ai-models"><div class="admin-site-empty">正在加载模型配置…</div></div></div>
       <div class="admin-ai-card"><div class="admin-ai-usage-head"><div><h3>使用看板</h3><p class="admin-ai-copy" style="margin-top:5px">按主服务记录的模型返回 usage 汇总。</p></div><select class="refresh-interval-select" id="admin-ai-usage-days" onchange="loadAiUsage()"><option value="7">近 7 天</option><option value="30" selected>近 30 天</option><option value="90">近 90 天</option></select></div><div class="admin-ai-usage-grid" id="admin-ai-usage-totals"></div><div id="admin-ai-usage-users"></div><div id="admin-ai-usage-models" style="margin-top:16px"></div></div>
     </div>
+  </div>
+</section>
+
+<section class="app-page" id="page-admin-users">
+  <div class="module-head"><div><div class="market-kicker">Administration</div><h2 class="module-title">用户与权限</h2><p class="module-desc">仅管理员可查看。可按账号逐个授予或收回 AI 问股入口权限；管理员始终拥有权限。</p></div><div class="module-actions"><button class="refresh-btn" type="button" onclick="loadAdminAiUsers(true)">↻ 刷新用户</button></div></div>
+  <div class="admin-users-card">
+    <div class="admin-users-toolbar"><input class="admin-users-search" id="admin-users-search" type="search" maxlength="100" autocomplete="off" placeholder="搜索显示名称、账号或用户 ID" oninput="renderAdminAiUsers()"><span class="admin-users-count" id="admin-users-count">正在加载…</span></div>
+    <div class="admin-users-list" id="admin-users-list"><div class="admin-site-empty">进入页面后加载用户列表…</div></div>
   </div>
 </section>
 
@@ -822,6 +871,7 @@ const STORAGE_KEY = 'watchlist_v1';
 const GROUPS_STORAGE_KEY = 'watchlist_groups_v1';
 const ACTIVE_GROUP_STORAGE_KEY = 'watchlist_active_group_v1';
 const APP_PAGE_STORAGE_KEY = 'stock_active_page_v1';
+const SIDEBAR_COLLAPSED_STORAGE_KEY = 'stock_sidebar_collapsed_v1';
 const ANOMALY_STORAGE_KEY = 'stock_anomaly_events_v1';
 const THEME_STORAGE_KEY = 'stock_theme_v1';
 const OPTIONAL_METRICS_STORAGE_KEY = 'stock_optional_metrics_v1';
@@ -937,13 +987,16 @@ let siteRecommendationsLoadPromise = null;
 let siteRecommendationsCloseTimer = null;
 let adminSites = [];
 let adminSitesLoaded = false;
-let aiAccess = { enabled:false, isPublic:false, canUse:false, isAdmin:false };
+let aiAccess = { enabled:false, isPublic:false, isGranted:false, canUse:false, isAdmin:false };
 let aiConversations = [];
 let activeAiConversationId = null;
 let aiConversationLoaded = false;
 let aiRequestInFlight = false;
 let adminAiModels = [];
 let adminAiLoaded = false;
+let adminAiUsers = [];
+let adminAiUsersLoaded = false;
+let adminAiIsPublic = false;
 
 function resolvedTheme() { return themePreference === 'system' ? (systemThemeQuery.matches ? 'light' : 'dark') : themePreference; }
 function applyThemePreference() {
@@ -955,6 +1008,52 @@ function applyThemePreference() {
 function setThemePreference(value) {
   if (!['light','dark','system'].includes(value)) return;
   themePreference = value; localStorage.setItem(THEME_STORAGE_KEY, value); applyThemePreference();
+}
+
+function sidebarUsesOverlay() { return window.matchMedia('(max-width: 860px)').matches; }
+
+function updateSidebarNavigation() {
+  const compact = document.body.classList.contains('sidebar-collapsed');
+  const mobile = sidebarUsesOverlay();
+  const trigger = document.getElementById('sidebar-mobile-toggle');
+  const collapse = document.querySelector('.sidebar-collapse');
+  if (trigger) trigger.setAttribute('aria-expanded', String(document.body.classList.contains('sidebar-open')));
+  if (collapse) {
+    collapse.setAttribute('aria-label', mobile ? '关闭导航' : (compact ? '展开导航' : '收起导航'));
+    collapse.title = mobile ? '关闭导航' : (compact ? '展开导航' : '收起导航');
+  }
+}
+
+function initializeSidebarNavigation() {
+  document.body.classList.toggle('sidebar-collapsed', localStorage.getItem(SIDEBAR_COLLAPSED_STORAGE_KEY) === 'true');
+  updateSidebarNavigation();
+}
+
+function toggleSidebar() {
+  if (sidebarUsesOverlay()) {
+    document.body.classList.toggle('sidebar-open');
+  } else {
+    const compact = !document.body.classList.contains('sidebar-collapsed');
+    document.body.classList.toggle('sidebar-collapsed', compact);
+    localStorage.setItem(SIDEBAR_COLLAPSED_STORAGE_KEY, String(compact));
+  }
+  updateSidebarNavigation();
+}
+
+function closeSidebar() {
+  if (!document.body.classList.contains('sidebar-open')) return;
+  document.body.classList.remove('sidebar-open');
+  updateSidebarNavigation();
+}
+
+function toggleSidebarGroup(groupName) {
+  const group = groupName === 'admin'
+    ? document.getElementById('admin-navigation')
+    : document.getElementById(`sidebar-group-${groupName}`);
+  if (!group) return;
+  const collapsed = !group.classList.contains('collapsed');
+  group.classList.toggle('collapsed', collapsed);
+  group.querySelector('.sidebar-group-toggle')?.setAttribute('aria-expanded', String(!collapsed));
 }
 
 function applyMetricSettings() {
@@ -2766,7 +2865,7 @@ window.addEventListener('resize', () => {
 });
 
 // --- App pages / IPO calendar ---
-const APP_PAGES = ['market','ipo','alerts','notes','reference','ai','admin-sites','admin-ai'];
+const APP_PAGES = ['market','ipo','alerts','notes','reference','ai','admin-users','admin-sites','admin-ai'];
 const requestedAppPage = new URLSearchParams(location.search).get('page');
 const storedAppPage = localStorage.getItem(APP_PAGE_STORAGE_KEY);
 let activeAppPage = APP_PAGES.includes(requestedAppPage)
@@ -2809,7 +2908,7 @@ async function loadReferenceDocument(force = false) {
 
 function switchAppPage(page, { historyMode = 'push', scroll = true } = {}) {
   if (!APP_PAGES.includes(page)) return;
-  if ((page === 'admin-sites' || page === 'admin-ai') && !currentUser?.isAdmin) {
+  if ((page === 'admin-users' || page === 'admin-sites' || page === 'admin-ai') && !currentUser?.isAdmin) {
     page = 'market';
     historyMode = 'replace';
   }
@@ -2835,11 +2934,13 @@ function switchAppPage(page, { historyMode = 'push', scroll = true } = {}) {
   updateAppPageHistory(page, historyMode);
   if (changed && scroll) window.scrollTo({ top:0, behavior:'auto' });
   activeTab?.scrollIntoView({ block:'nearest', inline:'nearest' });
+  if (changed && sidebarUsesOverlay()) closeSidebar();
   if (page === 'ipo' && !ipoRows.length) fetchIpos();
   if (page === 'alerts') { renderAnomalyEvents(); fetchAnomalyQuotes(); }
   if (page === 'notes') { loadNotesList({ reloadFolders:true }); }
   if (page === 'reference') loadReferenceDocument();
   if (page === 'ai') loadAiConversations();
+  if (page === 'admin-users') loadAdminAiUsers();
   if (page === 'admin-sites') loadAdminSites();
   if (page === 'admin-ai') loadAdminAi();
 }
@@ -3169,8 +3270,10 @@ function renderAccountArea() {
   const menu = document.getElementById('account-menu');
   const chatButton = document.getElementById('chat-entry-btn');
   const aiButton = document.getElementById('ai-entry-btn');
+  const adminNavigation = document.getElementById('admin-navigation');
   chatButton.title = currentUser ? '进入聊天室' : '登录后进入聊天室';
   if (aiButton) aiButton.hidden = !Boolean(currentUser && aiAccess.canUse);
+  if (adminNavigation) adminNavigation.hidden = !Boolean(currentUser?.isAdmin);
   if (!currentUser) {
     avatar.innerHTML = '人';
     label.textContent = '登录 / 注册';
@@ -3182,7 +3285,7 @@ function renderAccountArea() {
   avatar.innerHTML = avatarMarkup(currentUser);
   label.textContent = currentUser.displayName;
   const adminMenuItem = currentUser.isAdmin
-    ? '<button class="account-menu-item" type="button" role="menuitem" onclick="openAdminAiManagement()">✨ AI 问股管理<span class="admin-badge">管理员</span></button><button class="account-menu-item" type="button" role="menuitem" onclick="openAdminSiteManagement()">🛠 站点推荐管理</button>'
+    ? '<button class="account-menu-item" type="button" role="menuitem" onclick="openAdminUserManagement()">👥 用户与权限<span class="admin-badge">管理员</span></button><button class="account-menu-item" type="button" role="menuitem" onclick="openAdminAiManagement()">✨ AI 问股管理</button><button class="account-menu-item" type="button" role="menuitem" onclick="openAdminSiteManagement()">🛠 站点推荐管理</button>'
     : '';
   menu.innerHTML = `<div class="account-menu-head"><span class="account-avatar">${avatarMarkup(currentUser)}</span><div style="min-width:0"><div class="account-menu-name">${escapeHtml(currentUser.displayName)}</div><div class="account-menu-id">${escapeHtml(currentUser.username ? `@${currentUser.username}` : '微信账号')}</div></div>${currentUser.isAdmin ? '<span class="admin-badge">管理员</span>' : ''}</div><div class="account-sync-note" id="account-sync-note">页面配置已与账号关联</div>${adminMenuItem}<button class="account-menu-item" type="button" role="menuitem" onclick="openAccountSettings()">⚙ 账户设置与密码</button><button class="account-menu-item danger" type="button" role="menuitem" onclick="logoutAccount()">↪ 退出登录</button>`;
 }
@@ -3633,6 +3736,88 @@ function openAdminSiteManagement() {
   switchAppPage('admin-sites');
 }
 
+function openAdminUserManagement() {
+  closeAccountMenu();
+  if (!currentUser?.isAdmin) { showToast('仅管理员可以管理用户权限', true); return; }
+  switchAppPage('admin-users');
+}
+
+function renderAdminAiUsers() {
+  const list = document.getElementById('admin-users-list');
+  const count = document.getElementById('admin-users-count');
+  if (!list || !count) return;
+  const query = String(document.getElementById('admin-users-search')?.value || '').trim().toLocaleLowerCase();
+  const users = adminAiUsers.filter(user => {
+    if (!query) return true;
+    return [user.displayName, user.username, user.id].some(value => String(value || '').toLocaleLowerCase().includes(query));
+  });
+  count.textContent = `共 ${users.length} 位活跃用户`;
+  list.replaceChildren();
+  if (!users.length) {
+    const empty = document.createElement('div');
+    empty.className = 'admin-site-empty'; empty.textContent = query ? '没有匹配的用户' : '暂无活跃用户'; list.appendChild(empty);
+    return;
+  }
+  users.forEach(user => {
+    const row = document.createElement('article'); row.className = 'admin-user-row';
+    const identity = document.createElement('div');
+    const name = document.createElement('div'); name.className = 'admin-user-name';
+    const avatar = document.createElement('span'); avatar.className = 'account-avatar'; avatar.textContent = String(user.displayName || '人').trim().slice(0, 1).toUpperCase() || '人';
+    const nameCopy = document.createElement('span'); nameCopy.className = 'admin-user-name-copy'; nameCopy.textContent = user.displayName || '未命名用户'; name.append(avatar, nameCopy);
+    const id = document.createElement('div'); id.className = 'admin-user-id'; id.textContent = user.username ? `@${user.username} · ID ${user.id}` : `微信账号 · ID ${user.id}`; identity.append(name, id);
+    const meta = document.createElement('div'); meta.className = 'admin-user-meta';
+    const created = user.createdAt ? `注册 ${formatAiTime(user.createdAt)}` : '注册时间未知';
+    const lastLogin = user.lastLoginAt ? `最近登录 ${formatAiTime(user.lastLoginAt)}` : '尚未登录'; meta.textContent = `${created}\n${lastLogin}`;
+    const access = document.createElement('div'); access.className = 'admin-user-access';
+    const state = document.createElement('span'); state.className = 'admin-user-state';
+    if (user.isAdmin) { state.classList.add('admin'); state.textContent = '管理员默认可用'; }
+    else if (adminAiIsPublic) { state.classList.add('granted'); state.textContent = user.isGranted ? '全员公开 · 已预授权' : '当前全员公开'; }
+    else if (user.isGranted) { state.classList.add('granted'); state.textContent = '已授权'; }
+    else state.textContent = '未授权';
+    const toggle = document.createElement('button'); toggle.type = 'button'; toggle.className = 'dialog-btn admin-user-toggle';
+    toggle.textContent = user.isAdmin ? '默认可用' : (user.isGranted ? '收回授权' : '授予权限');
+    toggle.disabled = user.isAdmin;
+    if (!user.isAdmin) toggle.addEventListener('click', () => setAdminAiUserPermission(user, !user.isGranted, toggle));
+    access.append(state, toggle); row.append(identity, meta, access); list.appendChild(row);
+  });
+}
+
+async function loadAdminAiUsers(force = false) {
+  if (!currentUser?.isAdmin || (adminAiUsersLoaded && !force)) return;
+  const list = document.getElementById('admin-users-list');
+  const count = document.getElementById('admin-users-count');
+  if (list) { list.replaceChildren(); const loading = document.createElement('div'); loading.className = 'admin-site-empty'; loading.textContent = '正在加载用户列表…'; list.appendChild(loading); }
+  if (count) count.textContent = '正在加载…';
+  try {
+    const [usersPayload, settingsPayload] = await Promise.all([
+      apiRequest('/api/admin/ai/users', { method:'GET', headers:{} }),
+      apiRequest('/api/admin/ai/settings', { method:'GET', headers:{} }),
+    ]);
+    adminAiUsers = Array.isArray(usersPayload.users) ? usersPayload.users : [];
+    adminAiIsPublic = settingsPayload.isPublic === true;
+    adminAiUsersLoaded = true;
+    renderAdminAiUsers();
+  } catch (error) {
+    if (list) { list.replaceChildren(); const failed = document.createElement('div'); failed.className = 'admin-site-empty'; failed.textContent = '用户列表加载失败'; list.appendChild(failed); }
+    if (count) count.textContent = '加载失败'; showToast(error.message, true);
+  }
+}
+
+async function setAdminAiUserPermission(user, canUse, button) {
+  if (!currentUser?.isAdmin || user?.isAdmin) return;
+  button.disabled = true; button.textContent = canUse ? '授权中…' : '收回中…';
+  try {
+    const payload = await apiRequest(`/api/admin/ai/users/${encodeURIComponent(user.id)}/permission`, {
+      method:'PUT', body:JSON.stringify({ canUse }),
+    });
+    user.isGranted = payload.isGranted === true;
+    renderAdminAiUsers();
+    showToast(user.isGranted ? `已授予 ${user.displayName} 问股权限` : `已收回 ${user.displayName} 问股权限`);
+  } catch (error) {
+    button.disabled = false; button.textContent = user.isGranted ? '收回授权' : '授予权限'; showToast(error.message, true);
+  }
+}
+
 function setAdminSiteStatus(message = '', error = false) {
   const status = document.getElementById('admin-site-form-status');
   if (!status) return;
@@ -3797,15 +3982,15 @@ function updateAiEntry() {
 
 async function loadAiAccess() {
   if (!currentUser) {
-    aiAccess = { enabled:false, isPublic:false, canUse:false, isAdmin:false };
+    aiAccess = { enabled:false, isPublic:false, isGranted:false, canUse:false, isAdmin:false };
     updateAiEntry();
     return aiAccess;
   }
   try {
     const payload = await apiRequest('/api/ai/access', { method:'GET', headers:{} });
-    aiAccess = { enabled:payload.enabled === true, isPublic:payload.isPublic === true, canUse:payload.canUse === true, isAdmin:payload.isAdmin === true };
+    aiAccess = { enabled:payload.enabled === true, isPublic:payload.isPublic === true, isGranted:payload.isGranted === true, canUse:payload.canUse === true, isAdmin:payload.isAdmin === true };
   } catch (_) {
-    aiAccess = { enabled:false, isPublic:false, canUse:false, isAdmin:Boolean(currentUser.isAdmin) };
+    aiAccess = { enabled:false, isPublic:false, isGranted:false, canUse:false, isAdmin:Boolean(currentUser.isAdmin) };
   }
   updateAiEntry();
   return aiAccess;
@@ -4059,7 +4244,9 @@ async function saveAiFeatureSetting() {
   const checkbox = document.getElementById('admin-ai-public'); const status = document.getElementById('admin-ai-settings-status');
   try {
     const payload = await apiRequest('/api/admin/ai/settings', { method:'PUT', body:JSON.stringify({ isPublic:checkbox.checked }) });
-    checkbox.checked = payload.isPublic === true; if (status) status.textContent = checkbox.checked ? '已向已登录用户公开' : '已限制为仅管理员';
+    checkbox.checked = payload.isPublic === true; adminAiIsPublic = checkbox.checked;
+    if (status) status.textContent = checkbox.checked ? '已向已登录用户公开' : '已启用管理员与单用户授权模式';
+    if (adminAiUsersLoaded) renderAdminAiUsers();
     await loadAiAccess();
   } catch (error) { checkbox.checked = !checkbox.checked; if (status) { status.textContent = error.message; status.classList.add('error'); } }
 }
@@ -4108,12 +4295,14 @@ async function loadAdminAi(force = false) {
       apiRequest('/api/admin/ai/settings', { method:'GET', headers:{} }), apiRequest('/api/admin/ai/models', { method:'GET', headers:{} }),
     ]);
     const checkbox = document.getElementById('admin-ai-public'); if (checkbox) checkbox.checked = settings.isPublic === true;
+    adminAiIsPublic = settings.isPublic === true;
     const settingStatus = document.getElementById('admin-ai-settings-status'); if (settingStatus) settingStatus.textContent = settings.configured ? '运行环境已配置' : '运行环境尚未完整配置';
-    adminAiModels = Array.isArray(models.models) ? models.models : []; adminAiLoaded = true; renderAdminAiModels(); await loadAiUsage();
+    adminAiModels = Array.isArray(models.models) ? models.models : []; adminAiLoaded = true; renderAdminAiModels(); if (adminAiUsersLoaded) renderAdminAiUsers(); await loadAiUsage();
   } catch (error) { showToast(error.message, true); }
 }
 
 async function initializeApplication() {
+  initializeSidebarNavigation();
   await bootstrapAccount();
   loadSiteRecommendations();
   reloadRuntimeConfigFromStorage();
@@ -4138,8 +4327,8 @@ async function initializeApplication() {
 document.addEventListener('click', event => { if (!event.target.closest('#account-area') && !event.target.closest('#account-menu')) closeAccountMenu(); });
 document.addEventListener('click', event => { if (!event.target.closest('#site-recommendations')) closeSiteRecommendations(); });
 document.addEventListener('keydown', event => { if (event.key === 'Escape') closeSiteRecommendations(); });
-window.addEventListener('resize', positionAccountMenu);
-document.querySelector('.app-nav').addEventListener('scroll', positionAccountMenu, { passive:true });
+window.addEventListener('resize', () => { positionAccountMenu(); updateSidebarNavigation(); });
+document.querySelector('.sidebar-scroll').addEventListener('scroll', positionAccountMenu, { passive:true });
 window.addEventListener('message', event => {
   if (event.origin !== location.origin || event.data?.type !== 'stock-auth-complete') return;
   if (event.data.ok) location.reload();
