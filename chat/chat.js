@@ -338,10 +338,12 @@ class ChatService {
       const limit = Number.isInteger(requestedLimit)
         ? Math.max(1, Math.min(MAX_HISTORY_LIMIT, requestedLimit))
         : DEFAULT_HISTORY_LIMIT;
+      // 首次进入只返回上海时区“昨天 00:00 至今”；更早记录只能携带游标手动翻页。
+      const historySince = before ? null : shanghaiYesterdayStart(this.now());
       const history = this.listMessages
         ? await this.listMessages({
           beforeId:before || null,
-          since:before ? null : shanghaiYesterdayStart(this.now()),
+          since:historySince,
           limit,
         })
         : { messages:[], nextCursor:null, hasMore:false };
@@ -349,6 +351,7 @@ class ChatService {
         messages:(history.messages || []).map(storedChatMessage).filter(Boolean),
         nextCursor:history.nextCursor || null,
         hasMore:history.hasMore === true,
+        historySince,
         online:this.onlineCount(),
         persisted:Boolean(this.listMessages),
       });

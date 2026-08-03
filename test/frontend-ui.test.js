@@ -123,6 +123,9 @@ test('sidebar groups navigation and supports collapse on desktop plus overlay on
   assert.ok(referenceIndex > researchGroup);
   assert.ok(chatIndex > communityGroup);
   assert.match(nav, /id="admin-navigation" hidden/);
+  assert.match(nav, /<svg class="app-tab-icon"/);
+  assert.doesNotMatch(nav, /<span class="app-tab-icon">/);
+  assert.match(html, /class="sidebar-mobile-icon"/);
   assert.match(html, /SIDEBAR_COLLAPSED_STORAGE_KEY/);
   assert.match(html, /function toggleSidebar\(\)/);
   assert.match(html, /body\.sidebar-collapsed/);
@@ -262,6 +265,8 @@ test('chat UI loads persisted history upward while bounding rendered content', (
   assert.ok(sessionStart >= 0 && sessionEnd > sessionStart);
   const historyFunctions = html.slice(sessionStart, sessionEnd);
   assert.match(historyFunctions, /\/api\/chat\/history\?limit=\$\{CHAT_HISTORY_PAGE_SIZE\}/);
+  assert.match(historyFunctions, /chatState\.historySince = data\.historySince \|\| null/);
+  assert.match(html, /手动加载昨天之前的记录/);
   assert.match(historyFunctions, /appendChatMessage\(message, false\)/);
   assert.match(historyFunctions, /async function loadMoreChatHistory\(\)/);
   assert.match(historyFunctions, /before:chatState\.historyCursor/);

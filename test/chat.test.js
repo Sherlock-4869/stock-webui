@@ -139,12 +139,14 @@ test('chat history initially loads from Shanghai yesterday and cursor-pages olde
   const service = new ChatService({ now:() => now, saveMessage, listMessages });
   const initial = await call(service, '/api/chat/history?limit=10', {});
   assert.equal(initial.payload.persisted, true);
+  assert.equal(initial.payload.historySince, '2026-07-29 00:00:00.000');
   assert.deepEqual(initial.payload.messages.map(message => message.text), ['昨天记录', '今天记录']);
   assert.equal(initial.payload.hasMore, true);
   assert.equal(initial.payload.nextCursor, '2');
 
   const older = await call(service, `/api/chat/history?before=${initial.payload.nextCursor}&limit=10`, {});
   assert.deepEqual(older.payload.messages.map(message => message.text), ['更早记录']);
+  assert.equal(older.payload.historySince, null);
   assert.equal(older.payload.hasMore, false);
   assert.equal(older.payload.nextCursor, null);
 
