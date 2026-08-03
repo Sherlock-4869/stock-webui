@@ -91,6 +91,9 @@ test('daily message contains today IPO details and target page', () => {
 test('IPO board falls back to stock code and exchange', () => {
   assert.equal(formatBoard({ code: '688001' }), '科创板');
   assert.equal(formatBoard({ code: '301001' }), '创业板');
+  assert.equal(formatBoard({ code: '301001', board: '非科创板' }), '创业板');
+  assert.equal(formatBoard({ code: '001001', board: '非科创板' }), '深市主板');
+  assert.equal(formatBoard({ applyCode: '787001', board: '科创板' }), '科创板');
   assert.equal(formatBoard({ code: '920001' }), '北交所');
   assert.equal(formatBoard({ code: '603001' }), '沪市主板');
   assert.equal(formatBoard({ code: '001001' }), '深市主板');

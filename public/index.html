@@ -2813,24 +2813,34 @@ function ipoStatus(item) {
   return { key:'done', label:item.listingDate ? '已申购' : '待上市' };
 }
 function ipoBoard(item = {}) {
+  const boardFromCode = value => {
+    const digits = String(value || '').replace(/\D/g, '');
+    const code = digits && digits.length < 6 ? digits.padStart(6, '0') : digits;
+    if (/^(688|689|787)/.test(code)) return '科创板';
+    if (/^(300|301)/.test(code)) return '创业板';
+    if (/^(4|8|92)/.test(code)) return '北交所';
+    if (/^(600|601|603|605|730|732|780)/.test(code)) return '沪市主板';
+    if (/^(000|001|002|003)/.test(code)) return '深市主板';
+    return '';
+  };
+  const codeBoard = boardFromCode(item.code) || boardFromCode(item.applyCode);
+  if (codeBoard) return codeBoard;
+
   const board = String(item.board || '').trim();
-  if (board) {
-    if (board.includes('创业')) return '创业板';
-    if (board.includes('科创')) return '科创板';
+  if (board && !board.includes('非科创')) {
+    if (board.includes('创业板')) return '创业板';
+    if (board.includes('科创板')) return '科创板';
     if (board.includes('北交') || board.includes('北京')) return '北交所';
     if (board.includes('沪深')) return '沪深主板';
     if (board.includes('上海') || board.includes('沪')) return '沪市主板';
     if (board.includes('深圳') || board.includes('深')) return '深市主板';
     if (board.includes('主板')) return '沪深主板';
-    return board;
   }
-  const code = String(item.code || '').trim();
+
   const market = String(item.market || '').trim();
-  if (/^(688|689)/.test(code)) return '科创板';
-  if (/^(300|301)/.test(code)) return '创业板';
-  if (/^(4|8|92)/.test(code) || market.includes('北京') || market.includes('北交')) return '北交所';
-  if (/^(600|601|603|605)/.test(code) || market.includes('上海')) return '沪市主板';
-  if (/^(000|001|002|003)/.test(code) || market.includes('深圳')) return '深市主板';
+  if (market.includes('北京') || market.includes('北交')) return '北交所';
+  if (market.includes('上海') || market.includes('沪')) return '沪市主板';
+  if (market.includes('深圳') || market.includes('深')) return '深市主板';
   return '待确认';
 }
 async function fetchIpos(force=false) {

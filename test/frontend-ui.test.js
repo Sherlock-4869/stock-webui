@@ -193,6 +193,8 @@ test('IPO calendar labels each stock board', () => {
   vm.createContext(context);
   vm.runInContext(`${html.slice(start, end)}\nthis.ipoBoardForTest = ipoBoard;`, context);
   assert.equal(context.ipoBoardForTest({ code:'301001' }), '创业板');
+  assert.equal(context.ipoBoardForTest({ code:'301001', board:'非科创板' }), '创业板');
+  assert.equal(context.ipoBoardForTest({ code:'001001', board:'非科创板' }), '深市主板');
   assert.equal(context.ipoBoardForTest({ code:'688001' }), '科创板');
   assert.equal(context.ipoBoardForTest({ code:'603001' }), '沪市主板');
   assert.equal(context.ipoBoardForTest({ code:'001001' }), '深市主板');
