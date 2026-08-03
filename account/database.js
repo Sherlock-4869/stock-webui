@@ -225,7 +225,7 @@ const SCHEMA_STATEMENTS = [
     CONSTRAINT fk_ai_usage_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
     CONSTRAINT fk_ai_usage_conversation FOREIGN KEY (conversation_id) REFERENCES ai_conversations(id) ON DELETE CASCADE,
     CONSTRAINT fk_ai_usage_message FOREIGN KEY (message_id) REFERENCES ai_messages(id) ON DELETE SET NULL,
-    CONSTRAINT fk_ai_usage_model FOREIGN KEY (model_config_id) REFERENCES ai_model_configs(id) ON DELETE RESTRICT,
+    CONSTRAINT fk_ai_usage_model FOREIGN KEY (model_config_id) REFERENCES ai_model_configs(id) ON DELETE SET NULL,
     CONSTRAINT fk_ai_usage_user_model FOREIGN KEY (user_model_config_id) REFERENCES user_ai_model_configs(id) ON DELETE RESTRICT
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
 ];
@@ -342,6 +342,20 @@ async function ensureUserAiModelSchema(connection, databaseName) {
   );
   if (!userModelColumn.length) {
     await connection.query('ALTER TABLE ai_usage_records ADD COLUMN user_model_config_id BIGINT UNSIGNED NULL AFTER model_config_id');
+  }
+
+  const [globalModelConstraints] = await connection.execute(
+    `SELECT DELETE_RULE FROM information_schema.REFERENTIAL_CONSTRAINTS
+     WHERE CONSTRAINT_SCHEMA=? AND TABLE_NAME='ai_usage_records' AND CONSTRAINT_NAME='fk_ai_usage_model' LIMIT 1`,
+    [databaseName]
+  );
+  if (globalModelConstraints.length && String(globalModelConstraints[0].DELETE_RULE).toUpperCase() !== 'SET NULL') {
+    await connection.query('ALTER TABLE ai_usage_records DROP FOREIGN KEY fk_ai_usage_model');
+  }
+  if (!globalModelConstraints.length || String(globalModelConstraints[0].DELETE_RULE).toUpperCase() !== 'SET NULL') {
+    await connection.query(
+      'ALTER TABLE ai_usage_records ADD CONSTRAINT fk_ai_usage_model FOREIGN KEY (model_config_id) REFERENCES ai_model_configs(id) ON DELETE SET NULL'
+    );
   }
 
   const [indexes] = await connection.execute(

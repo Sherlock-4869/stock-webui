@@ -24,6 +24,10 @@ CREATE TABLE IF NOT EXISTS user_ai_model_configs (
 -- information_schema first when rerunning this migration, because MySQL does
 -- not support IF NOT EXISTS for all ALTER TABLE clauses on older versions.
 ALTER TABLE ai_usage_records MODIFY COLUMN model_config_id BIGINT UNSIGNED NULL;
+ALTER TABLE ai_usage_records DROP FOREIGN KEY fk_ai_usage_model;
+ALTER TABLE ai_usage_records
+  ADD CONSTRAINT fk_ai_usage_model
+  FOREIGN KEY (model_config_id) REFERENCES ai_model_configs(id) ON DELETE SET NULL;
 ALTER TABLE ai_usage_records ADD COLUMN user_model_config_id BIGINT UNSIGNED NULL AFTER model_config_id;
 ALTER TABLE ai_usage_records ADD KEY idx_ai_usage_user_model (user_model_config_id);
 ALTER TABLE ai_usage_records

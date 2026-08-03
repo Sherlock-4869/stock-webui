@@ -145,6 +145,10 @@ test('sidebar groups navigation and supports collapse on desktop plus overlay on
 
 test('site recommendations open a searchable right-side directory with safe new-tab links', () => {
   assert.match(html, /data-page="sites"[^>]*onclick="switchAppPage\('sites'\)"/);
+  assert.match(html, /id="site-recommendations"[^>]*onmouseenter="showSiteRecommendationsPreview\(\)"/);
+  assert.match(html, /id="site-recommendation-menu"[^>]*aria-label="推荐站点预览"/);
+  assert.match(html, /function renderSiteRecommendationsPreview\(\)/);
+  assert.match(html, /\.app-nav:has\(#site-recommendations:hover\)/);
   assert.match(html, /id="page-sites"/);
   assert.match(html, /id="site-directory-search"[^>]*oninput="filterSiteDirectory\(\)"/);
   assert.match(html, /id="site-directory-grid"/);
@@ -221,7 +225,7 @@ test('administrator UI keeps system tools in the sidebar and provides per-user A
   assert.match(html, /id="page-admin-sites"/);
   assert.match(html, /id="page-admin-users"/);
   assert.match(html, /id="admin-users-list"/);
-  assert.match(html, /onclick="openAdminUserManagement\(\)"/);
+  assert.match(html, /data-page="admin-users" onclick="switchAppPage\('admin-users'\)"/);
   assert.match(html, /\/api\/admin\/ai\/users/);
   assert.match(html, /function setAdminAiUserPermission\(user, canUse, button\)/);
   assert.match(html, /id="admin-navigation" hidden/);
@@ -249,7 +253,12 @@ test('AI stock research UI keeps entry permission-gated and renders chat content
   assert.match(html, /id="page-ai"/);
   assert.match(html, /id="page-admin-ai"/);
   assert.match(html, /id="page-user-ai-models"/);
-  assert.match(html, /id="ai-model-select"[^>]*onchange="setAiModelSelection\(this\.value\)"/);
+  assert.match(html, /id="ai-model-picker"[^>]*aria-label="本次问股可用模型"/);
+  assert.match(html, /id="ai-model-options"/);
+  assert.match(html, /option\.addEventListener\('click', \(\) => setAiModelSelection\(model\.id\)\)/);
+  assert.match(html, /\.ai-chat-pane\{overflow:hidden\}/);
+  assert.match(html, /\.ai-messages\{overflow-y:scroll/);
+  assert.match(html, /\.ai-workspace\{height:calc\(100vh - 118px\);max-height:820px\}/);
   assert.match(html, /\/api\/ai\/access/);
   assert.match(html, /\/api\/ai\/user-models/);
   assert.match(html, /\/api\/ai\/conversations/);
@@ -260,6 +269,9 @@ test('AI stock research UI keeps entry permission-gated and renders chat content
   assert.match(html, /function createAiMessageElement\(message\)[\s\S]*?content\.textContent = message\.content/);
   assert.match(html, /if \(page === 'ai' && !aiAccess\.canUse\)/);
   assert.match(html, /if \(page === 'user-ai-models' && !currentUser\)/);
+  assert.doesNotMatch(html, /id="admin-ai-public"|<h3>页面权限<\/h3>/);
+  assert.match(html, /aiNavigation\.hidden = !Boolean\(currentUser && aiAccess\.canUse\)/);
+  assert.match(html, /if \(page === 'admin-users'\) loadAdminAiUsers\(true\)/);
 });
 
 test('fund flow chart clearly marks today-only or stale-cache degradation', () => {
@@ -271,6 +283,7 @@ test('fund flow chart clearly marks today-only or stale-cache degradation', () =
 test('chat UI loads persisted history upward while bounding rendered content', () => {
   assert.match(html, /const CHAT_MAX_RENDERED_MESSAGES = 500;/);
   assert.match(html, /const CHAT_MAX_RENDERED_IMAGES = 50;/);
+  assert.match(html, /const CHAT_INITIAL_HISTORY_PAGE_SIZE = 20;/);
   assert.match(html, /const CHAT_HISTORY_PAGE_SIZE = 50;/);
   assert.match(html, /id="chat-history-loader"[^>]*onclick="loadMoreChatHistory\(\)"/);
   assert.match(html, /getElementById\('chat-messages'\)\.addEventListener\('scroll'/);
@@ -284,14 +297,24 @@ test('chat UI loads persisted history upward while bounding rendered content', (
   const sessionEnd = html.indexOf('function updateChatOnline', sessionStart);
   assert.ok(sessionStart >= 0 && sessionEnd > sessionStart);
   const historyFunctions = html.slice(sessionStart, sessionEnd);
-  assert.match(historyFunctions, /\/api\/chat\/history\?limit=\$\{CHAT_HISTORY_PAGE_SIZE\}/);
+  assert.match(historyFunctions, /\/api\/chat\/history\?limit=\$\{CHAT_INITIAL_HISTORY_PAGE_SIZE\}/);
   assert.match(historyFunctions, /chatState\.historySince = data\.historySince \|\| null/);
-  assert.match(html, /手动加载昨天之前的记录/);
+  assert.match(html, /展开更早聊天记录/);
   assert.match(historyFunctions, /appendChatMessage\(message, false\)/);
   assert.match(historyFunctions, /async function loadMoreChatHistory\(\)/);
   assert.match(historyFunctions, /before:chatState\.historyCursor/);
   assert.match(historyFunctions, /appendChatMessage\(message, false, true\)/);
   assert.match(historyFunctions, /container\.scrollTop = previousTop \+ Math\.max/);
+});
+
+test('theme picker supports bright and dark skins while retaining system preference', () => {
+  assert.match(html, /const THEME_PREFERENCES = \['light','paper','dark','ocean','forest','violet','system'\]/);
+  assert.match(html, /data-theme-skin/);
+  assert.match(html, /<option value="paper">暖纸<\/option>/);
+  assert.match(html, /<option value="ocean">深海<\/option>/);
+  assert.match(html, /<option value="forest">松林<\/option>/);
+  assert.match(html, /<option value="violet">暮紫<\/option>/);
+  assert.match(html, /Complete the bright surface treatment for chat, account, AI, and administration pages/);
 });
 
 test('minimized chat icon supports bounded pointer dragging without accidental restore', () => {

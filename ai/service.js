@@ -168,16 +168,16 @@ class AiService {
     ]);
     const hasGlobalModel = globalModels.length > 0;
     const hasUserModel = userModels.length > 0;
-    const canUseGlobalModel = isPublic || isAdmin || isGranted;
-    // A user-owned model takes precedence. The site model is the fallback for
-    // users who have not configured a personal model and have site access.
+    const hasFeaturePermission = isPublic || isAdmin || isGranted;
+    // A user-owned model takes precedence, but every model source still
+    // requires the AI feature to be granted to the current account.
     const modelSource = hasUserModel ? 'user' : (hasGlobalModel ? 'global' : null);
-    const canUse = configured && (modelSource === 'user' || (modelSource === 'global' && canUseGlobalModel));
+    const canUse = configured && hasFeaturePermission && Boolean(modelSource);
     return {
       enabled:configured, isPublic, isGranted, isAdmin, canUse,
       hasGlobalModel, hasUserModel,
       modelSource,
-      needsUserModel:configured && !hasUserModel && !hasGlobalModel,
+      needsUserModel:configured && hasFeaturePermission && !hasUserModel && !hasGlobalModel,
       models:(modelSource === 'user' ? userModels : globalModels).map(modelSource === 'user' ? publicUserModel : publicModel),
     };
   }
@@ -396,7 +396,7 @@ class AiService {
         deleted = await this.accountService.database.deleteAiModelConfig(modelMatch[1]);
       } catch (error) {
         if (error.code === 'ER_ROW_IS_REFERENCED_2' || error.code === 'ER_ROW_IS_REFERENCED') {
-          throw Object.assign(new Error('该模型已有使用记录，为保留审计数据不能删除；请改为停用'), { statusCode:409 });
+          throw Object.assign(new Error('模型仍被历史记录关联，请完成数据库迁移后重试'), { statusCode:409 });
         }
         throw error;
       }

@@ -7,7 +7,7 @@
 <meta name="application-name" content="深度学习">
 <meta name="theme-color" content="#0d1117">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
-<script>try{const t=localStorage.getItem('stock_theme_v1')||'dark';document.documentElement.dataset.theme=t==='system'?(matchMedia('(prefers-color-scheme: light)').matches?'light':'dark'):t}catch(_){}</script>
+<script>try{const t=localStorage.getItem('stock_theme_v1')||'dark';const r=t==='system'?(matchMedia('(prefers-color-scheme: light)').matches?'light':'dark'):t;document.documentElement.dataset.theme=['light','paper'].includes(r)?'light':'dark';document.documentElement.dataset.themeSkin=r}catch(_){}</script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:#0d1117;color:#e6edf3;min-height:100vh;-webkit-text-size-adjust:100%}
@@ -465,6 +465,21 @@ body.sidebar-collapsed{padding-left:var(--sidebar-collapsed-width)}body.sidebar-
 #sidebar-hover-label{position:fixed;z-index:700;display:none;max-width:220px;padding:7px 10px;border:1px solid #30363d;border-radius:7px;background:#161b22;color:#e6edf3;box-shadow:0 8px 24px #0008;font-size:12px;font-weight:650;pointer-events:none;white-space:nowrap}#sidebar-hover-label.visible{display:block}html[data-theme="light"] #sidebar-hover-label{border-color:#d0d7de;background:#fff;color:#1f2328;box-shadow:0 8px 24px #1f232826}
 html[data-theme="light"] .app-nav{background:#fffffff7;border-color:#dce3ec;box-shadow:2px 0 12px #1f3b5b0a}html[data-theme="light"] .sidebar-header,html[data-theme="light"] .sidebar-footer{border-color:#dce3ec}
 @media(max-width:860px){body,body.sidebar-collapsed{padding-left:0}.app-nav,body.sidebar-collapsed .app-nav{width:min(278px,calc(100vw - 54px));transform:translateX(-105%);box-shadow:8px 0 30px #0008}.app-nav-inner{width:100%;margin:0}.sidebar-mobile-toggle{display:grid;position:fixed;z-index:340;top:12px;left:12px;place-items:center;width:38px;height:38px;border:1px solid #30363d;border-radius:9px;background:#161b22ed;color:#c9d1d9;box-shadow:0 5px 18px #0005;cursor:pointer}.sidebar-backdrop{position:fixed;z-index:330;inset:0;background:#0008}.sidebar-open .app-nav{transform:translateX(0)}.sidebar-open .sidebar-backdrop{display:block}.main{padding:62px 12px 16px}.sidebar-collapse{display:grid;width:38px}body.sidebar-collapsed .app-brand{display:inline-flex;flex:1;padding:7px 8px}body.sidebar-collapsed .app-brand span,body.sidebar-collapsed .app-tab-label,body.sidebar-collapsed .sidebar-section-title,body.sidebar-collapsed .sidebar-group-label,body.sidebar-collapsed .sidebar-group-chevron,body.sidebar-collapsed .theme-setting .nav-label,body.sidebar-collapsed .theme-setting select,body.sidebar-collapsed .account-label,body.sidebar-collapsed .account-chevron{display:inline}body.sidebar-collapsed .sidebar-header{justify-content:flex-start}body.sidebar-collapsed .sidebar-scroll{align-items:stretch}body.sidebar-collapsed .sidebar-group-items{padding-left:8px}body.sidebar-collapsed .sidebar-group-toggle{justify-content:flex-start;padding:8px 10px}body.sidebar-collapsed .app-tab{justify-content:flex-start;padding:9px 10px}body.sidebar-collapsed .app-tab-badge{position:static;margin-left:auto}body.sidebar-collapsed .sidebar-footer{align-items:stretch}body.sidebar-collapsed .theme-setting{padding:0 8px}body.sidebar-collapsed .account-trigger{width:100%;height:46px;padding:7px;justify-content:flex-start}body.sidebar-collapsed .sidebar-collapse{width:38px;height:38px}.site-recommendation-menu,body.sidebar-collapsed .site-recommendation-menu{position:fixed;top:60px;bottom:12px;left:12px;width:calc(100vw - 24px);max-width:360px;overflow:auto}.site-recommendations::after{display:none!important}}
+/* Keep the composer visible while long AI replies scroll inside the chat pane. */
+.ai-workspace,.ai-sidebar,.ai-chat-pane{min-height:0}.ai-chat-pane{overflow:hidden}.ai-messages{overflow-y:scroll;overscroll-behavior:contain;scrollbar-gutter:stable;scrollbar-width:thin;scrollbar-color:#484f58 #0d1117}.ai-messages::-webkit-scrollbar{width:10px}.ai-messages::-webkit-scrollbar-track{background:#0d1117}.ai-messages::-webkit-scrollbar-thumb{border:3px solid #0d1117;border-radius:999px;background:#484f58}.ai-messages::-webkit-scrollbar-thumb:hover{background:#6e7681}.ai-model-picker{flex:none;padding:10px 14px;border-top:1px solid #30363d;background:#111820}.ai-model-picker-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:7px;color:#8b949e;font-size:10px}.ai-model-picker-source{overflow:hidden;color:#79c0ff;text-overflow:ellipsis;white-space:nowrap}.ai-model-options{display:flex;max-height:64px;gap:6px;overflow-x:auto;overflow-y:hidden;padding-bottom:2px;scrollbar-width:thin;scrollbar-color:#484f58 transparent}.ai-model-option{display:flex;min-width:max-content;align-items:center;gap:6px;border:1px solid #30363d;border-radius:7px;background:#0d1117;color:#8b949e;padding:7px 9px;font:11px inherit;cursor:pointer;transition:.15s}.ai-model-option:hover{border-color:#58a6ff;color:#c9d1d9}.ai-model-option.active{border-color:#1f6feb;background:#1f3a5f;color:#fff}.ai-model-option-name{font-weight:700}.ai-model-option-meta{color:inherit;opacity:.72;font:9px ui-monospace,SFMono-Regular,monospace}@media(max-width:760px){.ai-model-picker{padding:9px 12px}.ai-model-options{max-height:58px}.ai-model-option{padding:6px 8px}}
+.ai-workspace{height:calc(100vh - 118px);max-height:820px}.app-nav:has(#site-recommendations:hover),.app-nav:has(#site-recommendations:focus-within){overflow:visible}.site-recommendation-menu{max-height:calc(100vh - 24px);overflow-y:auto}.site-recommendation-menu button.site-recommendation-item{width:100%;border:0;background:transparent;text-align:left;cursor:pointer}@media(max-width:760px){.ai-workspace{height:calc(100vh - 108px);max-height:none}}
+/* Refined controls and light-theme sidebar contrast. */
+.refresh-btn.market-tool-btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:34px;padding:6px 10px;border-radius:8px;background:linear-gradient(145deg,#252c35,#1b222b);border-color:#38424d;box-shadow:inset 0 1px #ffffff08,0 2px 5px #0002;color:#c9d1d9;font-size:12px;font-weight:650;white-space:nowrap;transition:border-color .16s ease,background .16s ease,color .16s ease,transform .16s ease,box-shadow .16s ease}.refresh-btn.market-tool-btn:hover{border-color:#58a6ff;background:linear-gradient(145deg,#293848,#202a35);color:#f0f6fc;box-shadow:inset 0 1px #ffffff0d,0 5px 13px #0003;transform:translateY(-1px)}.refresh-btn.market-tool-btn:active{transform:translateY(0);box-shadow:inset 0 1px 3px #0004}.market-tool-icon{display:block;flex:none;width:16px;height:16px;fill:none;stroke:currentColor;stroke-linecap:round;stroke-linejoin:round;stroke-width:1.8}.market-tool-label{line-height:1}.market-tool-state{display:inline-flex;min-width:19px;align-items:center;justify-content:center;border-radius:5px;background:#6e768133;padding:2px 4px;color:#8b949e;font-size:9px;font-weight:750;line-height:1.1}.market-tool-btn.is-active .market-tool-state,.market-tool-btn.has-selection .market-tool-state{background:#1f6feb33;color:#79c0ff}.market-tool-btn.color-toggle[aria-pressed="false"] .market-tool-state{background:#6e768122;color:#8b949e}
+html[data-theme="light"] .app-nav{background:linear-gradient(180deg,#fffffff7 0%,#f8fbfffa 100%);border-color:#d9e3ee;box-shadow:3px 0 18px #1f3b5b0d}html[data-theme="light"] .sidebar-header,html[data-theme="light"] .sidebar-footer,html[data-theme="light"] .sidebar-group{border-color:#dce5ef}html[data-theme="light"] .sidebar-section-title{color:#6c7a8c}html[data-theme="light"] .sidebar-group-toggle{border-color:#e0e8f0;background:#f4f7fa;color:#526379;box-shadow:inset 0 1px #fff}.sidebar-group-toggle:hover{transition:border-color .16s ease,background .16s ease,color .16s ease}html[data-theme="light"] .sidebar-group-toggle:hover{border-color:#b8d9f5;background:#eaf4ff;color:#0969da}html[data-theme="light"] .sidebar-group-toggle .sidebar-group-chevron{color:#718096}html[data-theme="light"] .sidebar-group-items{border-color:#cbd9e7}html[data-theme="light"] .sidebar-group-items .app-tab{color:#56677b}html[data-theme="light"] .sidebar-group-items .app-tab:hover{background:#eaf4ff;color:#0969da}html[data-theme="light"] .theme-setting{color:#607086}html[data-theme="light"] .theme-setting:hover{background:#edf4fb}html[data-theme="light"] .sidebar-collapse{border-color:#cbd9e7;background:linear-gradient(145deg,#fff,#edf4fb);color:#0969da;box-shadow:0 4px 12px #1f3b5b17}html[data-theme="light"] .sidebar-collapse:hover{border-color:#54aeff;background:#e1f1ff;color:#0759b3;box-shadow:0 6px 16px #1f3b5b23}html[data-theme="light"] .account-trigger{border-color:#cedbe8;background:linear-gradient(145deg,#fff,#edf4fb);box-shadow:0 4px 12px #1f3b5b14}html[data-theme="light"] .account-trigger:hover{border-color:#79b8ff;background:#f4f9ff;box-shadow:0 6px 16px #1f3b5b20}html[data-theme="light"] body.sidebar-collapsed .account-trigger{border-color:#c8dbef;background:linear-gradient(145deg,#eef7ff,#dceeff)}html[data-theme="light"] .sidebar-mobile-toggle{border-color:#cbd9e7;background:#fffffff2;color:#0969da;box-shadow:0 5px 18px #1f3b5b1c}
+html[data-theme="light"] .refresh-btn.market-tool-btn{border-color:#ccd9e6;background:linear-gradient(145deg,#fff,#f0f6fb);box-shadow:inset 0 1px #fff,0 2px 6px #1f3b5b12;color:#42546a}html[data-theme="light"] .refresh-btn.market-tool-btn:hover{border-color:#79b8ff;background:linear-gradient(145deg,#fff,#e7f3ff);color:#0969da;box-shadow:0 5px 13px #1f3b5b1c}.refresh-btn.market-tool-btn.is-active,.refresh-btn.market-tool-btn.has-selection{border-color:#387dd8;background:linear-gradient(145deg,#1f6feb,#1859aa);color:#fff;box-shadow:inset 0 1px #ffffff24,0 4px 11px #1f6feb3d}html[data-theme="light"] .refresh-btn.market-tool-btn.is-active,html[data-theme="light"] .refresh-btn.market-tool-btn.has-selection{border-color:#0969da;background:linear-gradient(145deg,#2188ff,#0969da);color:#fff}.refresh-btn.market-tool-btn.is-active .market-tool-state,.refresh-btn.market-tool-btn.has-selection .market-tool-state,html[data-theme="light"] .refresh-btn.market-tool-btn.is-active .market-tool-state,html[data-theme="light"] .refresh-btn.market-tool-btn.has-selection .market-tool-state{background:#ffffff2e;color:inherit}html[data-theme="light"] .market-tool-state{background:#dce6f0;color:#617287}html[data-theme="light"] .market-tool-btn.color-toggle[aria-pressed="false"]{color:#687789}html[data-theme="light"] .market-tool-btn.color-toggle[aria-pressed="false"] .market-tool-state{background:#e5ebf1;color:#718096}
+/* Complete the bright surface treatment for chat, account, AI, and administration pages. */
+html[data-theme="light"] .admin-users-card,html[data-theme="light"] .admin-ai-card{border-color:#d7e1eb;background:linear-gradient(145deg,#fff,#f8fbff);box-shadow:0 4px 16px #1f3b5b0c}html[data-theme="light"] .admin-users-search,html[data-theme="light"] .admin-user-row,html[data-theme="light"] .admin-ai-model{border-color:#d7e1eb;background:#fff;color:#1f2937}html[data-theme="light"] .admin-users-search::placeholder{color:#8b98a8}html[data-theme="light"] .admin-user-id,html[data-theme="light"] .admin-user-meta,html[data-theme="light"] .admin-users-count,html[data-theme="light"] .admin-ai-copy,html[data-theme="light"] .admin-ai-model-meta,html[data-theme="light"] .admin-ai-table th{color:#64748b}html[data-theme="light"] .admin-ai-table th,html[data-theme="light"] .admin-ai-table td{border-color:#dbe4ed}html[data-theme="light"] .admin-site-empty{color:#64748b}html[data-theme="light"] .admin-site-status{color:#64748b}
+html[data-theme="light"] .ai-workspace{border-color:#d7e1eb;background:#fff;box-shadow:0 5px 18px #1f3b5b0d}html[data-theme="light"] .ai-sidebar{border-color:#d7e1eb;background:#f7faff}html[data-theme="light"] .ai-sidebar-head,html[data-theme="light"] .ai-chat-head,html[data-theme="light"] .ai-composer,html[data-theme="light"] .ai-model-picker{border-color:#d7e1eb;background:#fff}html[data-theme="light"] .ai-conversation{color:#475569}html[data-theme="light"] .ai-conversation:hover,html[data-theme="light"] .ai-conversation.active{background:#e8f3ff;color:#0969da}html[data-theme="light"] .ai-conversation-time,html[data-theme="light"] .ai-chat-hint,html[data-theme="light"] .ai-message-meta,html[data-theme="light"] .ai-disclaimer,html[data-theme="light"] .ai-model-picker-head{color:#718096}html[data-theme="light"] .ai-empty strong{color:#172033}html[data-theme="light"] .ai-message-avatar{background:#e8edf3;color:#526273}html[data-theme="light"] .ai-message-body{border-color:#d7e1eb;background:#fff;color:#243244}html[data-theme="light"] .ai-composer textarea,html[data-theme="light"] .ai-chat-model-select,html[data-theme="light"] .ai-model-option{border-color:#d1dce8;background:#f8fafc;color:#475569}html[data-theme="light"] .ai-model-option:hover{border-color:#79b8ff;color:#0969da}html[data-theme="light"] .ai-messages{scrollbar-color:#9eabb9 #f0f4f8}html[data-theme="light"] .ai-messages::-webkit-scrollbar-track{background:#f0f4f8}html[data-theme="light"] .ai-messages::-webkit-scrollbar-thumb{border-color:#f0f4f8;background:#9eabb9}
+html[data-theme="light"] .chat-header-title{color:#1f2937}html[data-theme="light"] .chat-header-btn{color:#64748b}html[data-theme="light"] .chat-header-btn:hover{background:#dbeafe;color:#0969da}html[data-theme="light"] .chat-history-loader{border-color:#d7e1eb;background:#f7faff;color:#64748b}html[data-theme="light"] .chat-history-loader:hover:not(:disabled){background:#eaf4ff;color:#0969da}html[data-theme="light"] .chat-online-users-title,html[data-theme="light"] .chat-online-user-meta,html[data-theme="light"] .chat-online-users-empty{color:#64748b}html[data-theme="light"] .chat-online.admin:hover,html[data-theme="light"] .chat-online.admin[aria-expanded="true"]{background:#dff7e7}html[data-theme="light"] .settings-avatar-row{border-color:#d0dbe6;background:#f8fbff}html[data-theme="light"] .settings-avatar-btn{border-color:#d0dbe6;background:#fff;color:#475569}html[data-theme="light"] .settings-avatar-btn:hover{border-color:#79b8ff;background:#eaf4ff;color:#0969da}html[data-theme="light"] .form-row label,html[data-theme="light"] .settings-hint{color:#64748b}
+/* Additional skins inherit the reliable light/dark layouts while changing their palette. */
+html[data-theme-skin="paper"] body{background:#f8f2e8;color:#3d3025}html[data-theme-skin="paper"] .app-nav{background:linear-gradient(180deg,#fffdf8f5,#f6ecdfed);border-color:#e6d6c0;box-shadow:3px 0 18px #6d4c2b13}html[data-theme-skin="paper"] .app-brand,html[data-theme-skin="paper"] .module-title,html[data-theme-skin="paper"] .metric-value{color:#3d3025}html[data-theme-skin="paper"] .app-tab{color:#7d6958}html[data-theme-skin="paper"] .app-tab:hover{background:#f4e6d7;color:#6b3e24}html[data-theme-skin="paper"] .app-tab.active{background:#f1dfcb;box-shadow:inset 0 0 0 1px #d9b898;color:#8a4f28}html[data-theme-skin="paper"] .sidebar-group-toggle{border-color:#eadbc9;background:#fbf5ec;color:#756252}html[data-theme-skin="paper"] .sidebar-group-toggle:hover,html[data-theme-skin="paper"] .sidebar-group-items .app-tab:hover{border-color:#e2c19e;background:#f4e6d7;color:#8a4f28}html[data-theme-skin="paper"] .sidebar-group-items{border-color:#dfc9b1}html[data-theme-skin="paper"] .account-trigger{border-color:#e2d0bb;background:linear-gradient(145deg,#fffdf8,#f4e8da)}html[data-theme-skin="paper"] .market-kicker,html[data-theme-skin="paper"] .site-directory-domain{color:#a85a2a}html[data-theme-skin="paper"] .refresh-btn.market-tool-btn.is-active,html[data-theme-skin="paper"] .refresh-btn.market-tool-btn.has-selection{border-color:#a85a2a;background:linear-gradient(145deg,#c77436,#9c5427)}
+html[data-theme-skin="ocean"]{--skin-bg:#071b2b;--skin-surface:#0c2940;--skin-strong:#081f33;--skin-border:#24506d;--skin-accent:#35b6de;--skin-accent-strong:#136e9a;--skin-muted:#9ab6c8}html[data-theme-skin="forest"]{--skin-bg:#10261f;--skin-surface:#18392e;--skin-strong:#112d24;--skin-border:#386451;--skin-accent:#5ac792;--skin-accent-strong:#237b54;--skin-muted:#a6c3b5}html[data-theme-skin="violet"]{--skin-bg:#20172f;--skin-surface:#302348;--skin-strong:#251a39;--skin-border:#665184;--skin-accent:#b18cff;--skin-accent-strong:#7350b5;--skin-muted:#c5b8da}html[data-theme-skin="ocean"] body,html[data-theme-skin="forest"] body,html[data-theme-skin="violet"] body{background:radial-gradient(circle at 88% -10%,color-mix(in srgb,var(--skin-accent) 18%,transparent),transparent 36%),var(--skin-bg)}html[data-theme-skin="ocean"] .app-nav,html[data-theme-skin="forest"] .app-nav,html[data-theme-skin="violet"] .app-nav{border-color:var(--skin-border);background:color-mix(in srgb,var(--skin-bg) 92%,transparent);box-shadow:3px 0 20px #0003}html[data-theme-skin="ocean"] .market-card,html[data-theme-skin="forest"] .market-card,html[data-theme-skin="violet"] .market-card,html[data-theme-skin="ocean"] .metric-card,html[data-theme-skin="forest"] .metric-card,html[data-theme-skin="violet"] .metric-card,html[data-theme-skin="ocean"] .module-panel,html[data-theme-skin="forest"] .module-panel,html[data-theme-skin="violet"] .module-panel,html[data-theme-skin="ocean"] .admin-site-card,html[data-theme-skin="forest"] .admin-site-card,html[data-theme-skin="violet"] .admin-site-card,html[data-theme-skin="ocean"] .admin-ai-card,html[data-theme-skin="forest"] .admin-ai-card,html[data-theme-skin="violet"] .admin-ai-card,html[data-theme-skin="ocean"] .admin-users-card,html[data-theme-skin="forest"] .admin-users-card,html[data-theme-skin="violet"] .admin-users-card,html[data-theme-skin="ocean"] .ai-workspace,html[data-theme-skin="forest"] .ai-workspace,html[data-theme-skin="violet"] .ai-workspace,html[data-theme-skin="ocean"] .site-directory,html[data-theme-skin="forest"] .site-directory,html[data-theme-skin="violet"] .site-directory{border-color:var(--skin-border);background:var(--skin-surface)}html[data-theme-skin="ocean"] .admin-site-row,html[data-theme-skin="forest"] .admin-site-row,html[data-theme-skin="violet"] .admin-site-row,html[data-theme-skin="ocean"] .admin-ai-model,html[data-theme-skin="forest"] .admin-ai-model,html[data-theme-skin="violet"] .admin-ai-model,html[data-theme-skin="ocean"] .admin-user-row,html[data-theme-skin="forest"] .admin-user-row,html[data-theme-skin="violet"] .admin-user-row,html[data-theme-skin="ocean"] .ai-sidebar,html[data-theme-skin="forest"] .ai-sidebar,html[data-theme-skin="violet"] .ai-sidebar,html[data-theme-skin="ocean"] .ai-message-body,html[data-theme-skin="forest"] .ai-message-body,html[data-theme-skin="violet"] .ai-message-body,html[data-theme-skin="ocean"] .ai-model-option,html[data-theme-skin="forest"] .ai-model-option,html[data-theme-skin="violet"] .ai-model-option,html[data-theme-skin="ocean"] .chat-history-loader,html[data-theme-skin="forest"] .chat-history-loader,html[data-theme-skin="violet"] .chat-history-loader{border-color:var(--skin-border);background:var(--skin-strong)}html[data-theme-skin="ocean"] .app-tab.active,html[data-theme-skin="forest"] .app-tab.active,html[data-theme-skin="violet"] .app-tab.active,html[data-theme-skin="ocean"] .ai-conversation.active,html[data-theme-skin="forest"] .ai-conversation.active,html[data-theme-skin="violet"] .ai-conversation.active{background:var(--skin-accent-strong)}html[data-theme-skin="ocean"] .market-kicker,html[data-theme-skin="forest"] .market-kicker,html[data-theme-skin="violet"] .market-kicker,html[data-theme-skin="ocean"] .ai-model-picker-source,html[data-theme-skin="forest"] .ai-model-picker-source,html[data-theme-skin="violet"] .ai-model-picker-source{color:var(--skin-accent)}html[data-theme-skin="ocean"] .app-tab:hover,html[data-theme-skin="forest"] .app-tab:hover,html[data-theme-skin="violet"] .app-tab:hover,html[data-theme-skin="ocean"] .sidebar-group-toggle:hover,html[data-theme-skin="forest"] .sidebar-group-toggle:hover,html[data-theme-skin="violet"] .sidebar-group-toggle:hover{color:#fff;background:color-mix(in srgb,var(--skin-accent-strong) 58%,var(--skin-surface))}html[data-theme-skin="ocean"] .sidebar-group,html[data-theme-skin="forest"] .sidebar-group,html[data-theme-skin="violet"] .sidebar-group,html[data-theme-skin="ocean"] .sidebar-header,html[data-theme-skin="forest"] .sidebar-header,html[data-theme-skin="violet"] .sidebar-header,html[data-theme-skin="ocean"] .sidebar-footer,html[data-theme-skin="forest"] .sidebar-footer,html[data-theme-skin="violet"] .sidebar-footer{border-color:var(--skin-border)}html[data-theme-skin="ocean"] .sidebar-group-toggle,html[data-theme-skin="forest"] .sidebar-group-toggle,html[data-theme-skin="violet"] .sidebar-group-toggle,html[data-theme-skin="ocean"] .theme-setting,html[data-theme-skin="forest"] .theme-setting,html[data-theme-skin="violet"] .theme-setting{color:var(--skin-muted);background:color-mix(in srgb,var(--skin-strong) 58%,transparent)}
+button:focus-visible,a:focus-visible,select:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px solid #58a6ff;outline-offset:2px}@media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;transition-duration:.01ms!important;animation-duration:.01ms!important;animation-iteration-count:1!important}}
 </style>
 </head>
 <body>
@@ -500,7 +515,7 @@ html[data-theme="light"] .app-nav{background:#fffffff7;border-color:#dce3ec;box-
         <button class="sidebar-group-toggle" type="button" onclick="toggleSidebarGroup('community')" aria-expanded="true" title="互动与发现"><svg class="app-tab-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v11H9l-5 4z"/><path d="M8 9h8M8 12h5"/></svg><span class="sidebar-group-label">互动与发现</span><svg class="sidebar-group-chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button>
         <div class="sidebar-group-items">
           <button class="app-tab" id="chat-entry-btn" onclick="openChatRoom()" title="聊天室"><svg class="app-tab-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v11H9l-5 4z"/><path d="M8 9h8M8 12h5"/></svg><span class="app-tab-label">聊天室</span></button>
-          <button class="app-tab" data-page="sites" type="button" onclick="switchAppPage('sites')" title="站点推荐"><svg class="app-tab-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg><span class="app-tab-label">站点推荐</span></button>
+          <div class="site-recommendations" id="site-recommendations" onmouseenter="showSiteRecommendationsPreview()" onfocusin="showSiteRecommendationsPreview()"><button class="app-tab site-recommendation-trigger" data-page="sites" type="button" onclick="switchAppPage('sites')" title="站点推荐" aria-haspopup="menu" aria-controls="site-recommendation-menu"><svg class="app-tab-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg><span class="app-tab-label">站点推荐</span></button><div class="site-recommendation-menu" id="site-recommendation-menu" role="menu" aria-label="推荐站点预览"></div></div>
         </div>
       </div>
       <div class="sidebar-group" id="admin-navigation" hidden>
@@ -513,7 +528,7 @@ html[data-theme="light"] .app-nav{background:#fffffff7;border-color:#dce3ec;box-
       </div>
     </div>
     <div class="sidebar-footer">
-      <label class="theme-setting" for="theme-select"><svg class="sidebar-footer-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg><span class="nav-label">主题</span><select class="refresh-interval-select" id="theme-select" onchange="setThemePreference(this.value)"><option value="light">浅色</option><option value="dark">深色</option><option value="system">跟随系统</option></select></label>
+      <label class="theme-setting" for="theme-select"><svg class="sidebar-footer-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg><span class="nav-label">主题</span><select class="refresh-interval-select" id="theme-select" onchange="setThemePreference(this.value)"><optgroup label="明亮"><option value="light">云白</option><option value="paper">暖纸</option></optgroup><optgroup label="深色"><option value="dark">石墨</option><option value="ocean">深海</option><option value="forest">松林</option><option value="violet">暮紫</option></optgroup><option value="system">跟随系统</option></select></label>
       <div class="account-area" id="account-area">
         <button class="account-trigger" id="account-trigger" type="button" onclick="toggleAccountMenu(event)" aria-haspopup="menu" aria-expanded="false" title="账号菜单">
           <span class="account-avatar" id="account-trigger-avatar">人</span><span class="account-label" id="account-trigger-label">登录 / 注册</span><span class="account-chevron">▼</span>
@@ -571,9 +586,18 @@ html[data-theme="light"] .app-nav{background:#fffffff7;border-color:#dce3ec;box-
       <div class="dropdown" id="dropdown"></div>
     </div>
     <button class="add-btn" id="add-btn" onclick="confirmAdd()">添加自选</button>
-    <button class="refresh-btn color-toggle" id="color-toggle" type="button" aria-pressed="true" onclick="toggleListColors()" title="切换股票列表和全球市场的涨跌颜色">🎨 行情颜色：开</button>
-    <button class="refresh-btn" id="metrics-btn" type="button" onclick="openMetricSettings()">📊 自定义指标</button>
-    <button class="refresh-btn" id="pip-btn" onclick="openFloatWindow()">📺 浮窗</button>
+    <button class="refresh-btn market-tool-btn color-toggle is-active" id="color-toggle" type="button" aria-pressed="true" onclick="toggleListColors()" title="切换股票列表和全球市场的涨跌颜色">
+      <svg class="market-tool-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 9 0 1 0 9 9c0-1.1-.9-2-2-2h-1.2a1.8 1.8 0 0 1-1.8-1.8c0-1 .8-1.8 1.8-1.8H18A6 6 0 0 0 12 3Z"/><circle cx="7.5" cy="12" r=".8"/><circle cx="10" cy="7.7" r=".8"/><circle cx="14.8" cy="7.7" r=".8"/></svg>
+      <span class="market-tool-label">行情颜色</span><span class="market-tool-state" id="color-toggle-state">开</span>
+    </button>
+    <button class="refresh-btn market-tool-btn" id="metrics-btn" type="button" onclick="openMetricSettings()" title="配置自选股列表指标">
+      <svg class="market-tool-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19V10M10 19V5M16 19v-7M22 19H2"/><path d="M4 7.5 9 3l4 3 7-4"/></svg>
+      <span class="market-tool-label">指标</span><span class="market-tool-state" id="metrics-btn-state">自定义</span>
+    </button>
+    <button class="refresh-btn market-tool-btn" id="pip-btn" type="button" onclick="openFloatWindow()" title="打开行情浮窗">
+      <svg class="market-tool-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="14" height="14" rx="2"/><path d="M12 3h7a2 2 0 0 1 2 2v7M12 12l9-9"/></svg>
+      <span class="market-tool-label">浮窗</span>
+    </button>
   </div>
   <div class="sort-note"><span class="drag-handle" aria-hidden="true">⠿</span><span>长按股票行后拖动，可调整自选股顺序</span><div class="group-refresh-controls"><button class="refresh-btn" type="button" onclick="refreshAll()">↻ 刷新</button><label class="refresh-setting" for="refresh-interval"><span>刷新频率</span><select class="refresh-interval-select" id="refresh-interval" title="自选股刷新间隔；全球指数固定每 5 秒刷新" onchange="setRefreshInterval(this.value)"><option value="1000">1 秒（高频）</option><option value="3000">3 秒</option><option value="5000" selected>5 秒</option><option value="10000">10 秒</option><option value="30000">30 秒</option><option value="60000">60 秒</option></select></label><div class="status"><span class="dot" id="dot"></span><span id="status-text">连接中...</span></div></div></div>
   <div class="table-wrapper">
@@ -657,8 +681,9 @@ html[data-theme="light"] .app-nav{background:#fffffff7;border-color:#dce3ec;box-
       <div class="ai-conversation-list" id="ai-conversation-list"><div class="admin-site-empty">正在加载会话…</div></div>
     </aside>
     <div class="ai-chat-pane">
-      <div class="ai-chat-head"><div><div class="ai-chat-title" id="ai-chat-title">新问股会话</div><div class="ai-chat-hint">可问基本面、行情、技术面和风险点</div></div><div style="text-align:right"><span class="ai-chat-model" id="ai-chat-model">等待服务配置</span><select class="ai-chat-model-select" id="ai-model-select" aria-label="选择 AI 模型" onchange="setAiModelSelection(this.value)" hidden></select></div></div>
+      <div class="ai-chat-head"><div><div class="ai-chat-title" id="ai-chat-title">新问股会话</div><div class="ai-chat-hint">可问基本面、行情、技术面和风险点</div></div><div style="text-align:right"><span class="ai-chat-model" id="ai-chat-model">等待服务配置</span></div></div>
       <div class="ai-messages" id="ai-messages" aria-live="polite"><div class="ai-empty"><div><strong>开始一次股票研究</strong>例如：分析一下贵州茅台近期走势与需要关注的风险。</div></div></div>
+      <div class="ai-model-picker" id="ai-model-picker" aria-label="本次问股可用模型" hidden><div class="ai-model-picker-head"><span>本次问股可用模型</span><span class="ai-model-picker-source" id="ai-model-picker-source"></span></div><div class="ai-model-options" id="ai-model-options"></div></div>
       <form class="ai-composer" onsubmit="sendAiMessage(event)"><textarea id="ai-message-input" maxlength="6000" placeholder="输入股票问题，Enter 发送，Shift + Enter 换行" onkeydown="handleAiComposerKeydown(event)"></textarea><button class="ai-send" id="ai-send-btn" type="submit">发送</button></form>
       <div class="ai-disclaimer">AI 仅提供信息整理与研究辅助，不提供买卖指令，也不执行交易。</div>
     </div>
@@ -680,7 +705,6 @@ html[data-theme="light"] .app-nav{background:#fffffff7;border-color:#dce3ec;box-
       <div class="admin-site-form-actions"><button class="dialog-btn primary" id="admin-ai-model-save" type="submit">保存模型</button><button class="dialog-btn" type="button" onclick="resetAiModelForm()">清空</button></div>
     </form>
     <div style="display:flex;flex-direction:column;gap:18px">
-      <div class="admin-ai-card"><h3>页面权限</h3><p class="admin-ai-copy">开启公开后，全部已登录用户均可进入问股页面；关闭后，管理员和“用户与权限”中逐个授权的用户可进入。未配置运行环境或模型时，普通用户也不会看到入口。</p><label class="admin-site-active"><input id="admin-ai-public" type="checkbox" onchange="saveAiFeatureSetting()"> 向已登录用户公开 AI 问股</label><div class="admin-site-form-actions"><button class="dialog-btn" type="button" onclick="openAdminUserManagement()">管理单用户授权</button></div><div class="admin-site-status" id="admin-ai-settings-status"></div></div>
       <div class="admin-ai-card"><h3>全局模型列表</h3><p class="admin-ai-copy">这些是管理员配置的网站模型。当用户未启用个人模型时，已获权限的用户可从这里选择模型。</p><div class="admin-ai-models" id="admin-ai-models"><div class="admin-site-empty">正在加载模型配置…</div></div></div>
       <div class="admin-ai-card"><div class="admin-ai-usage-head"><div><h3>使用看板</h3><p class="admin-ai-copy" style="margin-top:5px">按主服务记录的模型返回 usage 汇总。</p></div><select class="refresh-interval-select" id="admin-ai-usage-days" onchange="loadAiUsage()"><option value="7">近 7 天</option><option value="30" selected>近 30 天</option><option value="90">近 90 天</option></select></div><div class="admin-ai-usage-grid" id="admin-ai-usage-totals"></div><div id="admin-ai-usage-users"></div><div id="admin-ai-usage-models" style="margin-top:16px"></div></div>
     </div>
@@ -688,7 +712,7 @@ html[data-theme="light"] .app-nav{background:#fffffff7;border-color:#dce3ec;box-
 </section>
 
 <section class="app-page" id="page-user-ai-models">
-  <div class="module-head"><div><div class="market-kicker">My AI Models</div><h2 class="module-title">我的 AI 模型</h2><p class="module-desc">配置您的私有 AI 模型。启用后，AI 问股会优先使用个人模型；未配置个人模型时，才使用已获权限的网站全局模型。</p></div><div class="module-actions"><button class="refresh-btn" type="button" onclick="loadUserAiModels(true)">↻ 刷新</button></div></div>
+  <div class="module-head"><div><div class="market-kicker">My AI Models</div><h2 class="module-title">我的 AI 模型</h2><p class="module-desc">获得问股权限后可配置私有 AI 模型。启用后，AI 问股会优先使用个人模型；未配置个人模型时，才使用网站全局模型。</p></div><div class="module-actions"><button class="refresh-btn" type="button" onclick="loadUserAiModels(true)">↻ 刷新</button></div></div>
   <div class="admin-ai-grid">
     <form class="admin-ai-card" id="user-ai-model-form" onsubmit="saveUserAiModel(event)">
       <h3 id="user-ai-model-form-title">配置我的模型</h3><p class="admin-ai-copy">支持 OpenAI 兼容的 Chat Completions 协议。您的 API 密钥将加密存储，仅您可见。</p>
@@ -702,7 +726,7 @@ html[data-theme="light"] .app-nav{background:#fffffff7;border-color:#dce3ec;box-
       <div class="admin-site-form-actions"><button class="dialog-btn primary" id="user-ai-model-save" type="submit">保存模型</button><button class="dialog-btn" type="button" onclick="resetUserAiModelForm()">清空</button></div>
     </form>
     <div class="admin-ai-card">
-      <h3>我的模型列表</h3><p class="admin-ai-copy">个人模型优先于网站全局模型。可启用多个模型，并在问股页右上角选择本次对话使用的模型。</p>
+      <h3>我的模型列表</h3><p class="admin-ai-copy">个人模型优先于网站全局模型。可启用多个模型，并在问股消息区下方选择本次对话使用的模型。</p>
       <div class="admin-ai-models" id="user-ai-models"><div class="admin-site-empty">正在加载模型配置…</div></div>
     </div>
   </div>
@@ -909,6 +933,9 @@ const APP_PAGE_STORAGE_KEY = 'stock_active_page_v1';
 const SIDEBAR_COLLAPSED_STORAGE_KEY = 'stock_sidebar_collapsed_v1';
 const ANOMALY_STORAGE_KEY = 'stock_anomaly_events_v1';
 const THEME_STORAGE_KEY = 'stock_theme_v1';
+const THEME_PREFERENCES = ['light','paper','dark','ocean','forest','violet','system'];
+const LIGHT_THEME_PREFERENCES = new Set(['light','paper']);
+const THEME_META_COLORS = { light:'#f3f6fa', paper:'#f8f2e8', dark:'#0d1117', ocean:'#071b2b', forest:'#10261f', violet:'#20172f' };
 const OPTIONAL_METRICS_STORAGE_KEY = 'stock_optional_metrics_v1';
 const COLOR_STORAGE_KEY = 'stock_list_colors_v1';
 const MARKET_ORDER_STORAGE_KEY = 'global_market_order_v1';
@@ -1008,7 +1035,7 @@ try {
   selectedMetrics = new Set(Array.isArray(storedMetrics) ? storedMetrics.filter(item => OPTIONAL_METRIC_KEYS.includes(item)) : []);
 } catch (_) {}
 const systemThemeQuery = window.matchMedia('(prefers-color-scheme: light)');
-let themePreference = ['light','dark','system'].includes(localStorage.getItem(THEME_STORAGE_KEY)) ? localStorage.getItem(THEME_STORAGE_KEY) : 'dark';
+let themePreference = THEME_PREFERENCES.includes(localStorage.getItem(THEME_STORAGE_KEY)) ? localStorage.getItem(THEME_STORAGE_KEY) : 'dark';
 let currentUser = null;
 let accountServiceEnabled = null;
 let wechatLoginEnabled = false;
@@ -1035,14 +1062,18 @@ let adminAiUsersLoaded = false;
 let adminAiIsPublic = false;
 
 function resolvedTheme() { return themePreference === 'system' ? (systemThemeQuery.matches ? 'light' : 'dark') : themePreference; }
+function isLightTheme(theme = resolvedTheme()) { return LIGHT_THEME_PREFERENCES.has(theme); }
 function applyThemePreference() {
-  document.documentElement.dataset.theme = resolvedTheme();
-  document.documentElement.style.colorScheme = resolvedTheme();
+  const theme = resolvedTheme();
+  document.documentElement.dataset.theme = isLightTheme(theme) ? 'light' : 'dark';
+  document.documentElement.dataset.themeSkin = theme;
+  document.documentElement.style.colorScheme = isLightTheme(theme) ? 'light' : 'dark';
+  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', THEME_META_COLORS[theme] || THEME_META_COLORS.dark);
   const select = document.getElementById('theme-select'); if (select) select.value = themePreference;
   if (typeof renderChart === 'function' && document.getElementById('modal-mask')?.classList.contains('open') && chartState?.data?.length) renderChart();
 }
 function setThemePreference(value) {
-  if (!['light','dark','system'].includes(value)) return;
+  if (!THEME_PREFERENCES.includes(value)) return;
   themePreference = value; localStorage.setItem(THEME_STORAGE_KEY, value); applyThemePreference();
 }
 
@@ -1129,7 +1160,10 @@ function applyMetricSettings() {
   document.documentElement.style.setProperty('--optional-metric-width', `${Math.min(1500, Math.min(metricCount, 7) * 105)}px`);
   document.documentElement.style.setProperty('--metric-table-width', `${Math.min(1500, metricCount * 105)}px`);
   const button = document.getElementById('metrics-btn');
-  button.textContent = metricCount ? `📊 指标：${metricCount}` : '📊 自定义指标';
+  const state = document.getElementById('metrics-btn-state');
+  if (state) state.textContent = metricCount ? `${metricCount} 项` : '自定义';
+  button?.classList.toggle('has-selection', metricCount > 0);
+  button?.setAttribute('aria-label', metricCount ? `已显示 ${metricCount} 项自定义指标` : '配置自选股列表指标');
 }
 function openMetricSettings() {
   document.querySelectorAll('#metrics-mask input[type="checkbox"]').forEach(input => { input.checked = selectedMetrics.has(input.value); });
@@ -1170,8 +1204,10 @@ function applyListColorPreference() {
   document.getElementById('stock-table').classList.toggle('market-colors-off', !showListColors);
   document.getElementById('market-grid').classList.toggle('market-colors-off', !showListColors);
   const button = document.getElementById('color-toggle');
-  button.setAttribute('aria-pressed', String(showListColors));
-  button.textContent = `🎨 行情颜色：${showListColors ? '开' : '关'}`;
+  const state = document.getElementById('color-toggle-state');
+  button?.setAttribute('aria-pressed', String(showListColors));
+  button?.classList.toggle('is-active', showListColors);
+  if (state) state.textContent = showListColors ? '开' : '关';
 }
 
 function toggleListColors() {
@@ -1186,7 +1222,7 @@ window.addEventListener('storage', event => {
     applyMetricSettings(); if (Object.keys(lastRawQuoteData).length) renderTable(lastRawQuoteData); fetchExtendedMetrics(); return;
   }
   if (event.key === THEME_STORAGE_KEY) {
-    themePreference = ['light','dark','system'].includes(event.newValue) ? event.newValue : 'dark'; applyThemePreference(); return;
+    themePreference = THEME_PREFERENCES.includes(event.newValue) ? event.newValue : 'dark'; applyThemePreference(); return;
   }
   if (event.key === COLOR_STORAGE_KEY) {
     showListColors = event.newValue !== 'false';
@@ -3008,7 +3044,7 @@ function switchAppPage(page, { historyMode = 'push', scroll = true } = {}) {
   if (page === 'sites') loadSiteRecommendations();
   if (page === 'ai') loadAiConversations();
   if (page === 'user-ai-models') loadUserAiModels();
-  if (page === 'admin-users') loadAdminAiUsers();
+  if (page === 'admin-users') loadAdminAiUsers(true);
   if (page === 'admin-sites') loadAdminSites();
   if (page === 'admin-ai') loadAdminAi();
 }
@@ -3300,7 +3336,7 @@ function reloadRuntimeConfigFromStorage() {
     const metrics = JSON.parse(localStorage.getItem(OPTIONAL_METRICS_STORAGE_KEY) || '[]');
     selectedMetrics = new Set(Array.isArray(metrics) ? metrics.filter(item => OPTIONAL_METRIC_KEYS.includes(item)) : []);
   } catch (_) { selectedMetrics = new Set(); }
-  themePreference = ['light','dark','system'].includes(localStorage.getItem(THEME_STORAGE_KEY))
+  themePreference = THEME_PREFERENCES.includes(localStorage.getItem(THEME_STORAGE_KEY))
     ? localStorage.getItem(THEME_STORAGE_KEY)
     : 'dark';
   activeAppPage = APP_PAGES.includes(requestedAppPage)
@@ -3345,7 +3381,7 @@ function renderAccountArea() {
   chatButton.setAttribute('aria-label', chatLabel);
   chatButton.removeAttribute('title');
   if (aiButton) aiButton.hidden = !Boolean(currentUser && aiAccess.canUse);
-  if (aiNavigation) aiNavigation.hidden = !Boolean(currentUser);
+  if (aiNavigation) aiNavigation.hidden = !Boolean(currentUser && aiAccess.canUse);
   if (adminNavigation) adminNavigation.hidden = !Boolean(currentUser?.isAdmin);
   const accountMenuLabel = currentUser ? `${currentUser.displayName}的账号菜单` : '登录或注册';
   trigger.dataset.sidebarLabel = accountMenuLabel;
@@ -3724,6 +3760,41 @@ function safeRecommendedSiteUrl(value) {
   }
 }
 
+function renderSiteRecommendationsPreview() {
+  const menu = document.getElementById('site-recommendation-menu');
+  if (!menu) return;
+  menu.replaceChildren();
+  const sites = siteRecommendations.filter(site => safeRecommendedSiteUrl(site.url) && String(site.name || '').trim());
+  const title = document.createElement('div'); title.className = 'site-recommendation-title'; title.textContent = '推荐站点'; menu.appendChild(title);
+  if (!siteRecommendationsLoaded) {
+    const status = document.createElement('div'); status.className = 'site-recommendation-status'; status.textContent = '正在加载推荐站点…'; menu.appendChild(status);
+    return;
+  }
+  if (!sites.length) {
+    const status = document.createElement('div'); status.className = 'site-recommendation-status'; status.textContent = '暂无推荐站点'; menu.appendChild(status);
+    return;
+  }
+  sites.slice(0, 5).forEach(site => {
+    const url = safeRecommendedSiteUrl(site.url);
+    const name = String(site.name || '').trim();
+    const link = document.createElement('a'); link.className = 'site-recommendation-item'; link.href = url; link.target = '_blank'; link.rel = 'noopener noreferrer'; link.role = 'menuitem';
+    const icon = document.createElement('span'); icon.className = 'site-recommendation-icon'; icon.textContent = name.slice(0, 1).toUpperCase();
+    const copy = document.createElement('span'); copy.className = 'site-recommendation-copy';
+    const nameElement = document.createElement('span'); nameElement.className = 'site-recommendation-name'; nameElement.textContent = name;
+    const description = document.createElement('span'); description.className = 'site-recommendation-desc'; description.textContent = String(site.description || '点击访问此推荐资源');
+    const external = document.createElement('span'); external.className = 'site-recommendation-external'; external.textContent = '↗';
+    copy.append(nameElement, description); link.append(icon, copy, external); menu.appendChild(link);
+  });
+  const all = document.createElement('button'); all.type = 'button'; all.className = 'site-recommendation-item'; all.role = 'menuitem';
+  const allCopy = document.createElement('span'); allCopy.className = 'site-recommendation-copy'; allCopy.textContent = `查看全部 ${sites.length} 个推荐站点`;
+  all.append(allCopy); all.addEventListener('click', () => switchAppPage('sites')); menu.appendChild(all);
+}
+
+function showSiteRecommendationsPreview() {
+  renderSiteRecommendationsPreview();
+  loadSiteRecommendations().then(renderSiteRecommendationsPreview);
+}
+
 function renderSiteDirectory() {
   const grid = document.getElementById('site-directory-grid');
   const count = document.getElementById('site-directory-count');
@@ -3781,6 +3852,7 @@ function filterSiteDirectory() {
 async function loadSiteRecommendations() {
   if (siteRecommendationsLoaded) {
     renderSiteDirectory();
+    renderSiteRecommendationsPreview();
     return;
   }
   if (siteRecommendationsLoadPromise) return siteRecommendationsLoadPromise;
@@ -3790,12 +3862,14 @@ async function loadSiteRecommendations() {
       siteRecommendations = Array.isArray(payload.sites) ? payload.sites : [];
       siteRecommendationsLoaded = true;
       renderSiteDirectory();
+      renderSiteRecommendationsPreview();
     } catch (_) {
       siteRecommendations = [];
       const grid = document.getElementById('site-directory-grid');
       const count = document.getElementById('site-directory-count');
       if (grid) grid.textContent = '站点列表暂不可用，请稍后重试。';
       if (count) count.textContent = '加载失败';
+      renderSiteRecommendationsPreview();
     } finally {
       siteRecommendationsLoadPromise = null;
     }
@@ -4067,26 +4141,34 @@ function selectedAiModel() {
 }
 
 function renderAiModelSelect() {
-  const select = document.getElementById('ai-model-select');
-  if (!select) return;
+  const picker = document.getElementById('ai-model-picker');
+  const options = document.getElementById('ai-model-options');
+  const source = document.getElementById('ai-model-picker-source');
+  if (!picker || !options) return;
   const models = Array.isArray(aiAccess.models) ? aiAccess.models : [];
   if (!models.some(model => String(model.id) === String(selectedAiModelId))) selectedAiModelId = models[0] ? String(models[0].id) : '';
-  select.replaceChildren();
+  picker.hidden = models.length === 0;
+  if (source) source.textContent = aiAccess.modelSource === 'user' ? '已启用的个人模型' : '可用的网站模型';
+  options.replaceChildren();
   models.forEach(model => {
-    const option = document.createElement('option');
-    option.value = String(model.id);
-    option.textContent = `${model.name} · ${model.modelName}`;
-    select.appendChild(option);
+    const option = document.createElement('button');
+    option.type = 'button';
+    option.className = `ai-model-option${String(model.id) === selectedAiModelId ? ' active' : ''}`;
+    option.setAttribute('aria-pressed', String(String(model.id) === selectedAiModelId));
+    option.disabled = aiRequestInFlight;
+    const name = document.createElement('span'); name.className = 'ai-model-option-name'; name.textContent = model.name;
+    const meta = document.createElement('span'); meta.className = 'ai-model-option-meta'; meta.textContent = model.modelName;
+    option.append(name, meta);
+    option.addEventListener('click', () => setAiModelSelection(model.id));
+    options.appendChild(option);
   });
-  select.hidden = models.length === 0;
-  select.disabled = models.length < 2 || aiRequestInFlight;
-  if (selectedAiModelId) select.value = selectedAiModelId;
 }
 
 function setAiModelSelection(value) {
   const models = Array.isArray(aiAccess.models) ? aiAccess.models : [];
   if (!models.some(model => String(model.id) === String(value))) return;
   selectedAiModelId = String(value);
+  updateAiEntry();
 }
 
 async function loadAiAccess() {
@@ -4349,18 +4431,6 @@ function editAiModel(id) {
   document.getElementById('admin-ai-model-form')?.scrollIntoView({ behavior:'smooth', block:'start' });
 }
 
-async function saveAiFeatureSetting() {
-  if (!currentUser?.isAdmin) return;
-  const checkbox = document.getElementById('admin-ai-public'); const status = document.getElementById('admin-ai-settings-status');
-  try {
-    const payload = await apiRequest('/api/admin/ai/settings', { method:'PUT', body:JSON.stringify({ isPublic:checkbox.checked }) });
-    checkbox.checked = payload.isPublic === true; adminAiIsPublic = checkbox.checked;
-    if (status) status.textContent = checkbox.checked ? '已向已登录用户公开' : '已启用管理员与单用户授权模式';
-    if (adminAiUsersLoaded) renderAdminAiUsers();
-    await loadAiAccess();
-  } catch (error) { checkbox.checked = !checkbox.checked; if (status) { status.textContent = error.message; status.classList.add('error'); } }
-}
-
 async function saveAiModel(event) {
   event.preventDefault(); if (!currentUser?.isAdmin) return;
   const id = document.getElementById('admin-ai-model-id').value;
@@ -4401,12 +4471,7 @@ async function loadAiUsage() {
 async function loadAdminAi(force = false) {
   if (!currentUser?.isAdmin || (adminAiLoaded && !force)) return;
   try {
-    const [settings, models] = await Promise.all([
-      apiRequest('/api/admin/ai/settings', { method:'GET', headers:{} }), apiRequest('/api/admin/ai/models', { method:'GET', headers:{} }),
-    ]);
-    const checkbox = document.getElementById('admin-ai-public'); if (checkbox) checkbox.checked = settings.isPublic === true;
-    adminAiIsPublic = settings.isPublic === true;
-    const settingStatus = document.getElementById('admin-ai-settings-status'); if (settingStatus) settingStatus.textContent = settings.configured ? '运行环境已配置' : '运行环境尚未完整配置';
+    const models = await apiRequest('/api/admin/ai/models', { method:'GET', headers:{} });
     adminAiModels = Array.isArray(models.models) ? models.models : []; adminAiLoaded = true; renderAdminAiModels(); if (adminAiUsersLoaded) renderAdminAiUsers(); await loadAiUsage();
   } catch (error) { showToast(error.message, true); }
 }
@@ -5056,6 +5121,7 @@ document.getElementById('note-title').addEventListener('input', () => {
 // ============================================================
 const CHAT_MAX_RENDERED_MESSAGES = 500;
 const CHAT_MAX_RENDERED_IMAGES = 50;
+const CHAT_INITIAL_HISTORY_PAGE_SIZE = 20;
 const CHAT_HISTORY_PAGE_SIZE = 50;
 const CHAT_MAX_IMAGE_BYTES = 768 * 1024;
 const CHAT_MAX_SOURCE_IMAGE_BYTES = 12 * 1024 * 1024;
@@ -5326,7 +5392,7 @@ function connectChatSSE() {
 
 async function loadChatSession() {
   try {
-    const data = await apiRequest(`/api/chat/history?limit=${CHAT_HISTORY_PAGE_SIZE}`, { method:'GET', headers:{} });
+    const data = await apiRequest(`/api/chat/history?limit=${CHAT_INITIAL_HISTORY_PAGE_SIZE}`, { method:'GET', headers:{} });
     updateChatOnline(data.online || 0);
     chatState.historyCursor = data.nextCursor || null;
     chatState.historyHasMore = data.hasMore === true;
@@ -5358,9 +5424,7 @@ function updateChatHistoryLoader() {
     ? '正在加载更早记录…'
     : atRenderLimit
       ? `本次最多展示 ${CHAT_MAX_RENDERED_MESSAGES} 条记录，重新进入可从近期记录开始`
-      : chatState.historySince
-        ? '↑ 手动加载昨天之前的记录'
-        : '↑ 向上滑动加载更早记录';
+      : '↑ 展开更早聊天记录';
 }
 
 async function loadMoreChatHistory() {

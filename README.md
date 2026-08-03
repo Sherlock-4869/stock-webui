@@ -6,7 +6,7 @@
 
 - 浏览自选股、全球指数、K 线和打新日历；主力资金历史数据支持重试、长缓存及实时数据降级展示。
 - 支持账号密码注册/登录、微信开放平台扫码登录及安全会话。
-- 登录后按账号同步自选股、分组、主题、指标等页面配置。
+- 登录后按账号同步自选股、分组、主题、指标等页面配置；主题提供云白、暖纸、石墨、深海、松林、暮紫及跟随系统。
 - 账户设置支持修改显示名称、上传、裁切和压缩个人头像；未设置自定义头像时继续使用微信头像或名称首字。
 - 登录账号可以创建、编辑、删除、搜索和导入 Markdown 笔记；支持账号级文件夹分类，并可在左侧“文件列表 / 标题导航”之间切换。
 - 登录账号可以进入支持持久化历史、图片、剪贴板图片粘贴、表情、缩放和未读数字提示的网页聊天室；游客不可访问。
@@ -48,7 +48,7 @@ cp .env.example .env
 ### 聊天室记录与加载规则
 
 - 登录账号发送的文字和图片消息都会写入账号 MySQL 数据库的 `chat_messages` 表；服务重启或用户重新进入后仍可读取。
-- 每次进入聊天室，默认加载上海时区昨天 `00:00` 至当前的最近 50 条记录；可继续向上滚动按游标加载更早记录，每页最多 50 条，单次页面最多展示 500 条。
+- 每次进入聊天室，默认只展示上海时区昨天 `00:00` 至当前的最近 20 条记录，不会直接展开全部历史；点击顶部提示或向上滚动后，才按游标继续加载更早记录，每页最多 50 条，单次页面最多展示 500 条。
 - 关闭聊天室会清空当前页面中的聊天视图，但不会删除数据库记录；重新进入时会重新加载近期记录。最小化再恢复属于同一次进入。
 - 浏览器单次最多渲染 500 条事件，并最多保留其中 50 张已解码图片；超过图片边界时只释放页面里的旧图片，数据库原记录仍保留，重新进入后可以再次查看。
 - 支持 JPEG、PNG、GIF 和 WebP。单张最终图片不超过 768KB，普通图片可由浏览器自动压缩；原图上限 12MB，超限 GIF 不自动压缩。
@@ -374,17 +374,21 @@ CREATE TABLE IF NOT EXISTS ai_usage_records (
   CONSTRAINT fk_ai_usage_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
   CONSTRAINT fk_ai_usage_conversation FOREIGN KEY (conversation_id) REFERENCES ai_conversations(id) ON DELETE CASCADE,
   CONSTRAINT fk_ai_usage_message FOREIGN KEY (message_id) REFERENCES ai_messages(id) ON DELETE SET NULL,
-  CONSTRAINT fk_ai_usage_model FOREIGN KEY (model_config_id) REFERENCES ai_model_configs(id) ON DELETE RESTRICT,
+  CONSTRAINT fk_ai_usage_model FOREIGN KEY (model_config_id) REFERENCES ai_model_configs(id) ON DELETE SET NULL,
   CONSTRAINT fk_ai_usage_user_model FOREIGN KEY (user_model_config_id) REFERENCES user_ai_model_configs(id) ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 ```
 
-`ai_feature_settings.ai_chat.is_public=1` 表示向所有已登录用户公开问股入口；为 `0` 时，只有管理员和 `ai_user_permissions` 中 `feature_key='ai_chat'` 的已授权用户可使用网站全局模型。管理员在“用户与权限”页面操作单用户授权；该页面及全部管理员接口仅管理员可见。用户已启用个人模型时，问股入口和右上角下拉菜单优先使用个人模型；没有个人模型时，才使用有权限访问的网站全局模型。`user_ai_model_configs` 始终按 `user_id` 查询和修改，不能通过猜测 ID 读取或修改其他用户的密钥配置。模型有历史使用记录后只能停用，不能删除，以保持使用看板的审计完整性。
+`ai_feature_settings.ai_chat.is_public=1` 表示向所有已登录用户公开问股入口；为 `0` 时，只有管理员和 `ai_user_permissions` 中 `feature_key='ai_chat'` 的已授权用户可使用问股。管理员在“用户与权限”页面操作单用户授权；未获问股权限的用户不会看到整个 AI 菜单。已授权用户启用个人模型时，问股入口会优先使用个人模型；没有个人模型时，才使用网站全局模型。问股对话区下方会列出当前可选的所有模型。`user_ai_model_configs` 始终按 `user_id` 查询和修改，不能通过猜测 ID 读取或修改其他用户的密钥配置。管理员可以删除全局模型；历史使用记录会保留模型名称等审计字段，并将全局模型外键置空。个人模型有历史使用记录后只能停用，不能删除，以保持使用看板的审计完整性。
 
 已有 `ai_usage_records` 表的生产环境还需要让全局模型引用可空，并新增私有模型引用；应用启动时会尝试升级。若应用数据库账号没有 `ALTER` 权限，请由数据库管理员在确认列和约束尚不存在后执行：
 
 ```sql
 ALTER TABLE ai_usage_records MODIFY COLUMN model_config_id BIGINT UNSIGNED NULL;
+ALTER TABLE ai_usage_records DROP FOREIGN KEY fk_ai_usage_model;
+ALTER TABLE ai_usage_records
+  ADD CONSTRAINT fk_ai_usage_model
+  FOREIGN KEY (model_config_id) REFERENCES ai_model_configs(id) ON DELETE SET NULL;
 ALTER TABLE ai_usage_records ADD COLUMN user_model_config_id BIGINT UNSIGNED NULL AFTER model_config_id;
 ALTER TABLE ai_usage_records ADD KEY idx_ai_usage_user_model (user_model_config_id);
 ALTER TABLE ai_usage_records
@@ -419,7 +423,7 @@ cd ../stock-api-agent
 ./scripts/run.sh status
 ```
 
-Python 服务会校验 Node 对每个请求生成的 HMAC 签名和时间戳；浏览器永远不会拿到模型 Key。管理员登录后可在“AI 问股管理”添加网站全局模型；登录用户也可从侧边栏“AI / 我的 AI 模型”保存自己的模型，个人模型会优先于网站模型。首版支持 OpenAI 兼容 Chat Completions：例如 OpenAI 可填写 Base URL `https://api.openai.com/v1`、模型名和对应 API Key；其他兼容供应商也可按其兼容地址填写。问股工具只读取当前 Node 已提供的行情、指标、K 线和资金流接口，不执行任何交易。
+Python 服务会校验 Node 对每个请求生成的 HMAC 签名和时间戳；浏览器永远不会拿到模型 Key。管理员登录后可在“AI 问股管理”添加网站全局模型；获得问股权限的用户也可从侧边栏“AI / 我的 AI 模型”保存自己的模型，个人模型会优先于网站模型。首版支持 OpenAI 兼容 Chat Completions：例如 OpenAI 可填写 Base URL `https://api.openai.com/v1`、模型名和对应 API Key；其他兼容供应商也可按其兼容地址填写。问股工具只读取当前 Node 已提供的行情、指标、K 线和资金流接口，不执行任何交易。
 
 文件夹按账号隔离，每个账号最多创建 50 个。删除文件夹只会解除分类并把其中笔记移到“未分类”，不会删除笔记内容。新建或导入前可在顶部选择目标文件夹；打开笔记后可通过“归类到”把未分类笔记移入文件夹。
 

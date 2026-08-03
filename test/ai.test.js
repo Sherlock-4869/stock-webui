@@ -106,13 +106,14 @@ test('AI routes require server sessions, enforce per-user grants and scope conve
   assert.equal(result.payload.hasGlobalModel, false);
   assert.equal(result.payload.hasUserModel, true);
   assert.equal(result.payload.modelSource, 'user');
-  assert.equal(result.payload.canUse, true);
+  assert.equal(result.payload.canUse, false);
   result = await aiRequest(accountService, aiService, '/api/ai/user-models', {
     method:'POST', body:{ name:'备用模型', modelName:'gpt-private-backup', baseUrl:'https://example.test/v1', apiKey:'backup-secret', isActive:true }, cookie:otherCookie,
   });
   assert.equal(result.response.status, 201);
   result = await aiRequest(accountService, aiService, '/api/ai/access', { cookie:otherCookie });
   assert.deepEqual(result.payload.models.map(model => model.name), ['我的模型', '备用模型']);
+  assert.equal(result.payload.canUse, false);
   result = await aiRequest(accountService, aiService, `/api/ai/user-models/${privateModelId}`, {
     method:'DELETE', body:{}, cookie:userCookie,
   });
@@ -121,6 +122,12 @@ test('AI routes require server sessions, enforce per-user grants and scope conve
   result = await aiRequest(accountService, aiService, '/api/admin/ai/models', { method:'POST', body:{ name:'测试模型', modelName:'gpt-test', baseUrl:'https://example.test/v1', apiKey:'secret-key', isActive:true }, cookie:adminCookie });
   assert.equal(result.response.status, 201);
   assert.equal(Object.hasOwn(result.payload.model, 'apiKey'), false);
+
+  result = await aiRequest(accountService, aiService, '/api/admin/ai/models', { method:'POST', body:{ name:'待删除模型', modelName:'gpt-delete', baseUrl:'https://example.test/v1', apiKey:'delete-key', isActive:false }, cookie:adminCookie });
+  assert.equal(result.response.status, 201);
+  result = await aiRequest(accountService, aiService, `/api/admin/ai/models/${result.payload.model.id}`, { method:'DELETE', body:{}, cookie:adminCookie });
+  assert.equal(result.response.status, 200);
+  assert.equal(result.payload.deleted, true);
 
   result = await aiRequest(accountService, aiService, '/api/ai/access', { cookie:userCookie });
   assert.equal(result.payload.hasGlobalModel, true);
@@ -131,7 +138,7 @@ test('AI routes require server sessions, enforce per-user grants and scope conve
   assert.equal(result.payload.hasGlobalModel, true);
   assert.equal(result.payload.hasUserModel, true);
   assert.equal(result.payload.modelSource, 'user');
-  assert.equal(result.payload.canUse, true);
+  assert.equal(result.payload.canUse, false);
   assert.deepEqual(result.payload.models.map(model => model.name), ['我的模型', '备用模型']);
 
   result = await aiRequest(accountService, aiService, '/api/ai/conversations', { method:'POST', body:{ title:'我的问股' }, cookie:userCookie });
@@ -143,7 +150,7 @@ test('AI routes require server sessions, enforce per-user grants and scope conve
   assert.equal(result.response.status, 400);
   assert.equal(result.payload.error, '所选 AI 模型不可用');
   result = await aiRequest(accountService, aiService, `/api/ai/conversations/${conversationId}/messages`, { cookie:otherCookie });
-  assert.equal(result.response.status, 404);
+  assert.equal(result.response.status, 403);
 
   result = await aiRequest(accountService, aiService, '/api/admin/ai/settings', { method:'PUT', body:{ isPublic:true }, cookie:adminCookie });
   assert.equal(result.response.status, 200);
@@ -177,5 +184,6 @@ test('AI persistence schema stays aligned across runtime, canonical SQL and oper
     assert.match(schema, /CREATE TABLE IF NOT EXISTS ai_messages/);
     assert.match(schema, /CREATE TABLE IF NOT EXISTS ai_usage_records/);
     assert.match(schema, /user_model_config_id/);
+    assert.match(schema, /fk_ai_usage_model[\s\S]*?ON DELETE SET NULL/);
   }
 });
