@@ -4,6 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const { createWechatService } = require('./wechat/service');
 const { createAccountService } = require('./account/service');
+const { createAiService } = require('./ai/service');
 const { createChatService } = require('./chat/chat');
 const { createFundFlowHistoryLoader, mergeFundFlowHistory } = require('./fund-flow-history');
 
@@ -640,6 +641,7 @@ function oneYearAgoDate() {
 
 const wechatService = createWechatService({ loadIpoCalendar });
 const accountService = createAccountService();
+const aiService = createAiService({ accountService });
 const chatService = createChatService({
   saveMessage:(userId, message) => accountService.createChatMessage(userId, message),
   listMessages:options => accountService.listChatMessages(options),
@@ -657,6 +659,17 @@ const server = http.createServer(async (req, res) => {
       res.writeHead(error.statusCode || 500, { 'Content-Type':'application/json; charset=utf-8', 'Cache-Control':'no-store' });
     }
     if (!res.writableEnded) res.end(JSON.stringify({ error:'账号服务处理失败' }));
+    return;
+  }
+
+  try {
+    if (await aiService.handleRoute(req, res, urlObj)) return;
+  } catch (error) {
+    console.error('AI request error:', error.message);
+    if (!res.headersSent) {
+      res.writeHead(error.statusCode || 500, { 'Content-Type':'application/json; charset=utf-8', 'Cache-Control':'no-store' });
+    }
+    if (!res.writableEnded) res.end(JSON.stringify({ error:'问股服务处理失败' }));
     return;
   }
 

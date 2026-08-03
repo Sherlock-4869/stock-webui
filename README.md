@@ -10,6 +10,7 @@
 - 账户设置支持修改显示名称、上传、裁切和压缩个人头像；未设置自定义头像时继续使用微信头像或名称首字。
 - 登录账号可以创建、编辑、删除、搜索和导入 Markdown 笔记；支持账号级文件夹分类，并可在左侧“文件列表 / 标题导航”之间切换。
 - 登录账号可以进入支持持久化历史、图片、剪贴板图片粘贴、表情、缩放和未读数字提示的网页聊天室；游客不可访问。
+- 管理员可配置 OpenAI 兼容模型、统一控制 AI 问股页面是否向已登录用户公开，并查看按用户/模型汇总的 Token 用量；问股会话和历史按账号隔离保存。
 - 聊天室右侧提供数据库驱动的站点推荐菜单，推荐链接在新标签页中打开。
 - 参考文档默认在当前页面内阅读，支持目录定位、重新加载、下载 Markdown 和新窗口打开。
 - 通过 `https://stock.sherlock-holmes.cn/?page=ipo` 直接打开打新页面。
@@ -31,7 +32,7 @@ cp .env.example .env
 ./run.sh check
 ```
 
-不开启账号或微信公众号功能时，分别保持 `.env` 中 `STOCK_ACCOUNT_ENABLED=false`、`STOCK_WECHAT_ENABLED=false`，原有未登录股票页面仍按之前方式运行。账号体系和微信公众号的完整配置步骤见下文。
+不开启账号、微信公众号或 AI 问股功能时，分别保持 `.env` 中对应开关为 `false`，原有未登录股票页面仍按之前方式运行。AI 问股还需启动独立的 `stock-api-agent` Python 服务，完整配置见下文。
 
 ## 账号体系
 
@@ -61,6 +62,7 @@ cp .env.example .env
 
 - `users.is_admin=1` 表示管理员，默认注册账号均为 `0`，前端和公开接口都不提供提权入口。
 - 管理员可从右上角账号菜单进入“站点推荐管理”，新增、编辑、启用、停用或删除推荐站点。
+- 管理员可从右上角账号菜单进入“AI 问股管理”，配置页面公开状态、OpenAI 兼容模型和使用看板；模型 API Key 只显示为输入框，保存后不回显。
 - 管理员进入聊天室后，可以点击“在线人数”查看当前 Node.js 实例中的在线账号及连接数。
 - 管理员身份仅允许在数据库后台赋值，例如：
 
@@ -268,6 +270,113 @@ ALTER TABLE user_notes
   ADD CONSTRAINT fk_user_notes_folder
     FOREIGN KEY (folder_id) REFERENCES user_note_folders(id) ON DELETE SET NULL;
 ```
+
+### AI 问股附加建表 SQL
+
+启用问股前，生产环境请由数据库管理员执行以下新增表；同一份完整定义也在 `database/account_schema.sql`。应用可自动执行 `CREATE TABLE IF NOT EXISTS`，但生产数据库若未向应用账号授予建表权限，应先手工执行。`ai_messages` 与 `ai_conversations` 只通过 `user_id` 关联查询，用户不能通过猜测会话 ID 读取其他账号历史。
+
+```sql
+CREATE TABLE IF NOT EXISTS ai_feature_settings (
+  feature_key VARCHAR(40) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+  is_public TINYINT(1) NOT NULL DEFAULT 0,
+  updated_by_user_id BIGINT UNSIGNED NULL,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (feature_key),
+  CONSTRAINT fk_ai_feature_settings_user FOREIGN KEY (updated_by_user_id) REFERENCES users(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS ai_model_configs (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  name VARCHAR(100) NOT NULL,
+  model_name VARCHAR(160) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+  base_url VARCHAR(500) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+  protocol VARCHAR(32) CHARACTER SET ascii COLLATE ascii_bin NOT NULL DEFAULT 'chat_completions',
+  api_key_encrypted TEXT NOT NULL,
+  is_active TINYINT(1) NOT NULL DEFAULT 1,
+  created_by_user_id BIGINT UNSIGNED NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  KEY idx_ai_model_configs_active (is_active, id),
+  CONSTRAINT fk_ai_model_configs_user FOREIGN KEY (created_by_user_id) REFERENCES users(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS ai_conversations (
+  id CHAR(36) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+  user_id BIGINT UNSIGNED NOT NULL,
+  title VARCHAR(160) NOT NULL DEFAULT '新问股会话',
+  summary MEDIUMTEXT NULL,
+  created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  updated_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+  PRIMARY KEY (id),
+  KEY idx_ai_conversations_user_updated (user_id, updated_at, id),
+  CONSTRAINT fk_ai_conversations_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS ai_messages (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  conversation_id CHAR(36) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+  role VARCHAR(12) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+  content MEDIUMTEXT NOT NULL,
+  status VARCHAR(16) CHARACTER SET ascii COLLATE ascii_bin NOT NULL DEFAULT 'complete',
+  created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  PRIMARY KEY (id),
+  KEY idx_ai_messages_conversation (conversation_id, id),
+  CONSTRAINT fk_ai_messages_conversation FOREIGN KEY (conversation_id) REFERENCES ai_conversations(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS ai_usage_records (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  user_id BIGINT UNSIGNED NOT NULL,
+  conversation_id CHAR(36) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+  message_id BIGINT UNSIGNED NULL,
+  model_config_id BIGINT UNSIGNED NOT NULL,
+  provider VARCHAR(80) CHARACTER SET ascii COLLATE ascii_bin NOT NULL DEFAULT '',
+  model_name VARCHAR(160) CHARACTER SET ascii COLLATE ascii_bin NOT NULL DEFAULT '',
+  input_tokens INT UNSIGNED NOT NULL DEFAULT 0,
+  output_tokens INT UNSIGNED NOT NULL DEFAULT 0,
+  total_tokens INT UNSIGNED NOT NULL DEFAULT 0,
+  created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  PRIMARY KEY (id),
+  KEY idx_ai_usage_user_created (user_id, created_at),
+  KEY idx_ai_usage_created (created_at),
+  CONSTRAINT fk_ai_usage_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  CONSTRAINT fk_ai_usage_conversation FOREIGN KEY (conversation_id) REFERENCES ai_conversations(id) ON DELETE CASCADE,
+  CONSTRAINT fk_ai_usage_message FOREIGN KEY (message_id) REFERENCES ai_messages(id) ON DELETE SET NULL,
+  CONSTRAINT fk_ai_usage_model FOREIGN KEY (model_config_id) REFERENCES ai_model_configs(id) ON DELETE RESTRICT
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+```
+
+`ai_feature_settings.ai_chat.is_public=1` 表示向所有已登录用户公开问股入口；为 `0` 时只有管理员可见。这是全局开关，不是单个用户白名单。模型有历史使用记录后只能停用，不能删除，以保持使用看板的审计完整性。
+
+### 启用 AI 问股与独立 Python 服务
+
+问股由两个服务组成：Node 服务仍是浏览器唯一入口，负责登录态、权限、数据库会话历史和模型密钥加密；`stock-api-agent`（建议与本仓库同级部署）仅编排模型工具调用。Python 服务不对公网开放，建议绑定 `127.0.0.1:8001` 或受认证的私网。
+
+Node `.env` 需要：
+
+```env
+STOCK_AI_ENABLED=true
+STOCK_AI_AGENT_URL=http://127.0.0.1:8001
+STOCK_AI_AGENT_INTERNAL_TOKEN=<与 Python 服务相同的长随机密钥>
+# 必须是 32 字节随机数的 Base64，例如：openssl rand -base64 32
+STOCK_AI_CREDENTIAL_ENCRYPTION_KEY=<Base64 密钥>
+```
+
+在 `stock-api-agent` 项目中复制 `.env.example` 为 `.env`，将 `AGENT_INTERNAL_TOKEN` 设成同一个值，并设置 `AGENT_NODE_BASE_URL=http://127.0.0.1:3000`。然后分别启动：
+
+```bash
+# Node 项目
+./run.sh restart
+
+# Python 项目（首次会创建 Conda Python 3.11 环境）
+cd ../stock-api-agent
+./scripts/run.sh install
+./scripts/run.sh restart
+./scripts/run.sh status
+```
+
+Python 服务会校验 Node 对每个请求生成的 HMAC 签名和时间戳；浏览器永远不会拿到模型 Key。管理员登录后在“AI 问股管理”添加模型即可，首版支持 OpenAI 兼容 Chat Completions：例如 OpenAI 可填写 Base URL `https://api.openai.com/v1`、模型名和对应 API Key；其他兼容供应商也可按其兼容地址填写。问股工具只读取当前 Node 已提供的行情、指标、K 线和资金流接口，不执行任何交易。
 
 文件夹按账号隔离，每个账号最多创建 50 个。删除文件夹只会解除分类并把其中笔记移到“未分类”，不会删除笔记内容。新建或导入前可在顶部选择目标文件夹；打开笔记后可通过“归类到”把未分类笔记移入文件夹。
 

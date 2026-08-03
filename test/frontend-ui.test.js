@@ -176,7 +176,7 @@ test('standalone and in-page reference views share the same renderer', () => {
 });
 
 test('all app pages support direct URL navigation and browser history', () => {
-  assert.match(html, /const APP_PAGES = \['market','ipo','alerts','notes','reference','admin-sites'\]/);
+  assert.match(html, /const APP_PAGES = \['market','ipo','alerts','notes','reference','ai','admin-sites','admin-ai'\]/);
   assert.match(html, /document\.title = '深度学习';/);
   assert.doesNotMatch(html, /APP_PAGE_TITLES/);
   assert.match(html, /history\.pushState\(\{ page \}, '', url\)/);
@@ -211,8 +211,20 @@ test('administrator UI manages recommended sites without exposing a privilege to
   assert.match(html, /isAdminOnly:document\.getElementById\('admin-site-admin-only'\)\.checked/);
   assert.match(html, /site\.isAdminOnly === true/);
   assert.match(html, /visibility\.textContent = '仅管理员可见'/);
-  assert.match(html, /page === 'admin-sites' && !currentUser\?\.isAdmin/);
+  assert.match(html, /\(page === 'admin-sites' \|\| page === 'admin-ai'\) && !currentUser\?\.isAdmin/);
   assert.doesNotMatch(html, /name="isAdmin"|id="admin-user|grantAdmin\(/);
+});
+
+test('AI stock research UI keeps entry permission-gated and renders chat content as text', () => {
+  assert.match(html, /id="ai-entry-btn"[^>]*data-page="ai"[^>]*hidden/);
+  assert.match(html, /id="page-ai"/);
+  assert.match(html, /id="page-admin-ai"/);
+  assert.match(html, /\/api\/ai\/access/);
+  assert.match(html, /\/api\/ai\/conversations/);
+  assert.match(html, /\/api\/admin\/ai\/models/);
+  assert.match(html, /\/api\/admin\/ai\/usage/);
+  assert.match(html, /function createAiMessageElement\(message\)[\s\S]*?content\.textContent = message\.content/);
+  assert.match(html, /if \(page === 'ai' && !aiAccess\.canUse\)/);
 });
 
 test('fund flow chart clearly marks today-only or stale-cache degradation', () => {

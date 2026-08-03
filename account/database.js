@@ -134,6 +134,71 @@ const SCHEMA_STATEMENTS = [
     CONSTRAINT fk_user_notes_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
     CONSTRAINT fk_user_notes_folder FOREIGN KEY (folder_id) REFERENCES user_note_folders(id) ON DELETE SET NULL
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
+  `CREATE TABLE IF NOT EXISTS ai_feature_settings (
+    feature_key VARCHAR(40) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+    is_public TINYINT(1) NOT NULL DEFAULT 0,
+    updated_by_user_id BIGINT UNSIGNED NULL,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (feature_key),
+    CONSTRAINT fk_ai_feature_settings_user FOREIGN KEY (updated_by_user_id) REFERENCES users(id) ON DELETE SET NULL
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
+  `CREATE TABLE IF NOT EXISTS ai_model_configs (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    name VARCHAR(100) NOT NULL,
+    model_name VARCHAR(160) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+    base_url VARCHAR(500) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+    protocol VARCHAR(32) CHARACTER SET ascii COLLATE ascii_bin NOT NULL DEFAULT 'chat_completions',
+    api_key_encrypted TEXT NOT NULL,
+    is_active TINYINT(1) NOT NULL DEFAULT 1,
+    created_by_user_id BIGINT UNSIGNED NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    KEY idx_ai_model_configs_active (is_active, id),
+    CONSTRAINT fk_ai_model_configs_user FOREIGN KEY (created_by_user_id) REFERENCES users(id) ON DELETE SET NULL
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
+  `CREATE TABLE IF NOT EXISTS ai_conversations (
+    id CHAR(36) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+    user_id BIGINT UNSIGNED NOT NULL,
+    title VARCHAR(160) NOT NULL DEFAULT '新问股会话',
+    summary MEDIUMTEXT NULL,
+    created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    updated_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+    PRIMARY KEY (id),
+    KEY idx_ai_conversations_user_updated (user_id, updated_at, id),
+    CONSTRAINT fk_ai_conversations_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
+  `CREATE TABLE IF NOT EXISTS ai_messages (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    conversation_id CHAR(36) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+    role VARCHAR(12) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+    content MEDIUMTEXT NOT NULL,
+    status VARCHAR(16) CHARACTER SET ascii COLLATE ascii_bin NOT NULL DEFAULT 'complete',
+    created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    PRIMARY KEY (id),
+    KEY idx_ai_messages_conversation (conversation_id, id),
+    CONSTRAINT fk_ai_messages_conversation FOREIGN KEY (conversation_id) REFERENCES ai_conversations(id) ON DELETE CASCADE
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
+  `CREATE TABLE IF NOT EXISTS ai_usage_records (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    user_id BIGINT UNSIGNED NOT NULL,
+    conversation_id CHAR(36) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+    message_id BIGINT UNSIGNED NULL,
+    model_config_id BIGINT UNSIGNED NOT NULL,
+    provider VARCHAR(80) CHARACTER SET ascii COLLATE ascii_bin NOT NULL DEFAULT '',
+    model_name VARCHAR(160) CHARACTER SET ascii COLLATE ascii_bin NOT NULL DEFAULT '',
+    input_tokens INT UNSIGNED NOT NULL DEFAULT 0,
+    output_tokens INT UNSIGNED NOT NULL DEFAULT 0,
+    total_tokens INT UNSIGNED NOT NULL DEFAULT 0,
+    created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    PRIMARY KEY (id),
+    KEY idx_ai_usage_user_created (user_id, created_at),
+    KEY idx_ai_usage_created (created_at),
+    CONSTRAINT fk_ai_usage_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    CONSTRAINT fk_ai_usage_conversation FOREIGN KEY (conversation_id) REFERENCES ai_conversations(id) ON DELETE CASCADE,
+    CONSTRAINT fk_ai_usage_message FOREIGN KEY (message_id) REFERENCES ai_messages(id) ON DELETE SET NULL,
+    CONSTRAINT fk_ai_usage_model FOREIGN KEY (model_config_id) REFERENCES ai_model_configs(id) ON DELETE RESTRICT
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
 ];
 
 async function ensureAdminSchema(connection, databaseName) {
@@ -686,6 +751,161 @@ class AccountDatabase {
     return result.affectedRows > 0;
   }
 
+  async getAiFeatureSetting() {
+    const [rows] = await this.requirePool().execute(
+      "SELECT is_public, updated_by_user_id, updated_at FROM ai_feature_settings WHERE feature_key='ai_chat' LIMIT 1"
+    );
+    return rows[0] || { is_public:0, updated_by_user_id:null, updated_at:null };
+  }
+
+  async setAiFeatureSetting({ isPublic, updatedByUserId }) {
+    await this.requirePool().execute(
+      `INSERT INTO ai_feature_settings (feature_key, is_public, updated_by_user_id)
+       VALUES ('ai_chat', ?, ?)
+       ON DUPLICATE KEY UPDATE is_public=VALUES(is_public), updated_by_user_id=VALUES(updated_by_user_id)`,
+      [isPublic ? 1 : 0, updatedByUserId]
+    );
+    return this.getAiFeatureSetting();
+  }
+
+  async listAiModelConfigs() {
+    const [rows] = await this.requirePool().execute(
+      `SELECT id, name, model_name, base_url, protocol, is_active, created_by_user_id, created_at, updated_at
+       FROM ai_model_configs ORDER BY is_active DESC, id ASC LIMIT 100`
+    );
+    return rows;
+  }
+
+  async getAiModelConfig(id) {
+    const [rows] = await this.requirePool().execute(
+      `SELECT id, name, model_name, base_url, protocol, api_key_encrypted, is_active, created_by_user_id, created_at, updated_at
+       FROM ai_model_configs WHERE id=? LIMIT 1`, [id]
+    );
+    return rows[0] || null;
+  }
+
+  async getActiveAiModelConfig() {
+    const [rows] = await this.requirePool().execute(
+      `SELECT id, name, model_name, base_url, protocol, api_key_encrypted, is_active, created_by_user_id, created_at, updated_at
+       FROM ai_model_configs WHERE is_active=1 ORDER BY id ASC LIMIT 1`
+    );
+    return rows[0] || null;
+  }
+
+  async createAiModelConfig({ name, modelName, baseUrl, protocol, apiKeyEncrypted, isActive, createdByUserId }) {
+    const [result] = await this.requirePool().execute(
+      `INSERT INTO ai_model_configs (name, model_name, base_url, protocol, api_key_encrypted, is_active, created_by_user_id)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [name, modelName, baseUrl, protocol, apiKeyEncrypted, isActive ? 1 : 0, createdByUserId]
+    );
+    return this.getAiModelConfig(result.insertId);
+  }
+
+  async updateAiModelConfig(id, { name, modelName, baseUrl, protocol, apiKeyEncrypted, isActive }) {
+    const sets = ['name=?', 'model_name=?', 'base_url=?', 'protocol=?', 'is_active=?'];
+    const params = [name, modelName, baseUrl, protocol, isActive ? 1 : 0];
+    if (apiKeyEncrypted) { sets.push('api_key_encrypted=?'); params.push(apiKeyEncrypted); }
+    params.push(id);
+    const [result] = await this.requirePool().execute(`UPDATE ai_model_configs SET ${sets.join(',')} WHERE id=?`, params);
+    return result.affectedRows ? this.getAiModelConfig(id) : null;
+  }
+
+  async deleteAiModelConfig(id) {
+    const [result] = await this.requirePool().execute('DELETE FROM ai_model_configs WHERE id=?', [id]);
+    return result.affectedRows > 0;
+  }
+
+  async createAiConversation(userId, { id, title }) {
+    await this.requirePool().execute('INSERT INTO ai_conversations (id, user_id, title) VALUES (?, ?, ?)', [id, userId, title]);
+    return this.getAiConversation(userId, id);
+  }
+
+  async listAiConversations(userId, limit = 100) {
+    const safeLimit = Math.max(1, Math.min(100, Number(limit) || 100));
+    const [rows] = await this.requirePool().execute(
+      `SELECT c.id, c.title, c.summary, c.created_at, c.updated_at, COUNT(m.id) AS message_count
+       FROM ai_conversations c LEFT JOIN ai_messages m ON m.conversation_id=c.id
+       WHERE c.user_id=? GROUP BY c.id, c.title, c.summary, c.created_at, c.updated_at
+       ORDER BY c.updated_at DESC, c.id DESC LIMIT ${safeLimit}`,
+      [userId]
+    );
+    return rows;
+  }
+
+  async getAiConversation(userId, id) {
+    const [rows] = await this.requirePool().execute(
+      'SELECT id, user_id, title, summary, created_at, updated_at FROM ai_conversations WHERE id=? AND user_id=? LIMIT 1', [id, userId]
+    );
+    return rows[0] || null;
+  }
+
+  async updateAiConversation(userId, id, { title, summary }) {
+    const sets = [];
+    const params = [];
+    if (title !== undefined) { sets.push('title=?'); params.push(title); }
+    if (summary !== undefined) { sets.push('summary=?'); params.push(summary); }
+    if (!sets.length) return this.getAiConversation(userId, id);
+    params.push(id, userId);
+    const [result] = await this.requirePool().execute(`UPDATE ai_conversations SET ${sets.join(',')} WHERE id=? AND user_id=?`, params);
+    return result.affectedRows ? this.getAiConversation(userId, id) : null;
+  }
+
+  async deleteAiConversation(userId, id) {
+    const [result] = await this.requirePool().execute('DELETE FROM ai_conversations WHERE id=? AND user_id=?', [id, userId]);
+    return result.affectedRows > 0;
+  }
+
+  async createAiMessage(conversationId, { role, content, status = 'complete' }) {
+    const [result] = await this.requirePool().execute(
+      'INSERT INTO ai_messages (conversation_id, role, content, status) VALUES (?, ?, ?, ?)', [conversationId, role, content, status]
+    );
+    const [rows] = await this.requirePool().execute(
+      'SELECT id, conversation_id, role, content, status, created_at FROM ai_messages WHERE id=? LIMIT 1', [result.insertId]
+    );
+    return rows[0] || null;
+  }
+
+  async listAiMessages(userId, conversationId, limit = 100) {
+    const safeLimit = Math.max(1, Math.min(100, Number(limit) || 100));
+    const [rows] = await this.requirePool().execute(
+      `SELECT m.id, m.conversation_id, m.role, m.content, m.status, m.created_at
+       FROM ai_messages m JOIN ai_conversations c ON c.id=m.conversation_id
+       WHERE m.conversation_id=? AND c.user_id=? ORDER BY m.id DESC LIMIT ${safeLimit}`,
+      [conversationId, userId]
+    );
+    return rows.reverse();
+  }
+
+  async recordAiUsage({ userId, conversationId, messageId, modelConfigId, provider, modelName, inputTokens, outputTokens, totalTokens }) {
+    await this.requirePool().execute(
+      `INSERT INTO ai_usage_records (user_id, conversation_id, message_id, model_config_id, provider, model_name, input_tokens, output_tokens, total_tokens)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [userId, conversationId, messageId || null, modelConfigId, provider || '', modelName || '', inputTokens || 0, outputTokens || 0, totalTokens || 0]
+    );
+  }
+
+  async getAiUsageDashboard({ days = 30 } = {}) {
+    const safeDays = Math.max(1, Math.min(365, Number(days) || 30));
+    const [totals] = await this.requirePool().execute(
+      `SELECT COUNT(*) AS request_count, COUNT(DISTINCT user_id) AS user_count, SUM(input_tokens) AS input_tokens,
+              SUM(output_tokens) AS output_tokens, SUM(total_tokens) AS total_tokens
+       FROM ai_usage_records WHERE created_at>=DATE_SUB(NOW(), INTERVAL ${safeDays} DAY)`
+    );
+    const [users] = await this.requirePool().execute(
+      `SELECT u.id AS user_id, u.display_name, COUNT(r.id) AS request_count, SUM(r.total_tokens) AS total_tokens,
+              MAX(r.created_at) AS last_used_at
+       FROM ai_usage_records r JOIN users u ON u.id=r.user_id
+       WHERE r.created_at>=DATE_SUB(NOW(), INTERVAL ${safeDays} DAY)
+       GROUP BY u.id, u.display_name ORDER BY total_tokens DESC, last_used_at DESC LIMIT 100`
+    );
+    const [models] = await this.requirePool().execute(
+      `SELECT model_name, provider, COUNT(*) AS request_count, SUM(total_tokens) AS total_tokens
+       FROM ai_usage_records WHERE created_at>=DATE_SUB(NOW(), INTERVAL ${safeDays} DAY)
+       GROUP BY model_name, provider ORDER BY total_tokens DESC LIMIT 50`
+    );
+    return { totals:totals[0] || {}, users, models };
+  }
+
   async cleanup() {
     await this.requirePool().query('DELETE FROM user_sessions WHERE expires_at<=NOW()');
     await this.requirePool().query('DELETE FROM user_oauth_states WHERE expires_at<=NOW() OR consumed_at IS NOT NULL');
@@ -705,12 +925,20 @@ class MemoryAccountDatabase {
     this.fundFlowHistoryCache = new Map();
     this.chatMessages = [];
     this.siteRecommendations = [];
+    this.aiFeatureSetting = { is_public:0, updated_by_user_id:null, updated_at:null };
+    this.aiModels = [];
+    this.aiConversations = new Map();
+    this.aiMessages = [];
+    this.aiUsageRecords = [];
     this.nextUserId = 1;
     this.nextSessionId = 1;
     this.nextNoteId = 1;
     this.nextNoteFolderId = 1;
     this.nextSiteRecommendationId = 1;
     this.nextChatMessageId = 1;
+    this.nextAiModelId = 1;
+    this.nextAiMessageId = 1;
+    this.nextAiUsageId = 1;
   }
 
   async initialize() {}
@@ -1020,6 +1248,137 @@ class MemoryAccountDatabase {
       if (note.user_id === Number(userId) && note.folder_id === folder.id) note.folder_id = null;
     }
     return true;
+  }
+
+  async getAiFeatureSetting() { return { ...this.aiFeatureSetting }; }
+
+  async setAiFeatureSetting({ isPublic, updatedByUserId }) {
+    this.aiFeatureSetting = { is_public:isPublic ? 1 : 0, updated_by_user_id:Number(updatedByUserId), updated_at:new Date() };
+    return this.getAiFeatureSetting();
+  }
+
+  async listAiModelConfigs() {
+    return this.aiModels.map(({ api_key_encrypted, ...item }) => ({ ...item }));
+  }
+
+  async getAiModelConfig(id) {
+    const item = this.aiModels.find(model => model.id === Number(id));
+    return item ? { ...item } : null;
+  }
+
+  async getActiveAiModelConfig() {
+    const item = this.aiModels.find(model => model.is_active);
+    return item ? { ...item } : null;
+  }
+
+  async createAiModelConfig({ name, modelName, baseUrl, protocol, apiKeyEncrypted, isActive, createdByUserId }) {
+    const item = {
+      id:this.nextAiModelId++, name, model_name:modelName, base_url:baseUrl, protocol,
+      api_key_encrypted:apiKeyEncrypted, is_active:isActive ? 1 : 0,
+      created_by_user_id:Number(createdByUserId), created_at:new Date(), updated_at:new Date(),
+    };
+    this.aiModels.push(item);
+    return { ...item };
+  }
+
+  async updateAiModelConfig(id, { name, modelName, baseUrl, protocol, apiKeyEncrypted, isActive }) {
+    const item = this.aiModels.find(model => model.id === Number(id));
+    if (!item) return null;
+    Object.assign(item, { name, model_name:modelName, base_url:baseUrl, protocol, is_active:isActive ? 1 : 0, updated_at:new Date() });
+    if (apiKeyEncrypted) item.api_key_encrypted = apiKeyEncrypted;
+    return { ...item };
+  }
+
+  async deleteAiModelConfig(id) {
+    const index = this.aiModels.findIndex(model => model.id === Number(id));
+    if (index < 0) return false;
+    this.aiModels.splice(index, 1);
+    return true;
+  }
+
+  async createAiConversation(userId, { id, title }) {
+    const row = { id, user_id:Number(userId), title, summary:null, created_at:new Date(), updated_at:new Date() };
+    this.aiConversations.set(id, row);
+    return { ...row };
+  }
+
+  async listAiConversations(userId, limit = 100) {
+    return [...this.aiConversations.values()]
+      .filter(row => row.user_id === Number(userId))
+      .sort((a, b) => b.updated_at - a.updated_at)
+      .slice(0, limit)
+      .map(row => ({ ...row, message_count:this.aiMessages.filter(message => message.conversation_id === row.id).length }));
+  }
+
+  async getAiConversation(userId, id) {
+    const row = this.aiConversations.get(id);
+    return row?.user_id === Number(userId) ? { ...row } : null;
+  }
+
+  async updateAiConversation(userId, id, { title, summary }) {
+    const row = this.aiConversations.get(id);
+    if (!row || row.user_id !== Number(userId)) return null;
+    if (title !== undefined) row.title = title;
+    if (summary !== undefined) row.summary = summary;
+    row.updated_at = new Date();
+    return { ...row };
+  }
+
+  async deleteAiConversation(userId, id) {
+    const row = this.aiConversations.get(id);
+    if (!row || row.user_id !== Number(userId)) return false;
+    this.aiConversations.delete(id);
+    this.aiMessages = this.aiMessages.filter(message => message.conversation_id !== id);
+    this.aiUsageRecords = this.aiUsageRecords.filter(record => record.conversation_id !== id);
+    return true;
+  }
+
+  async createAiMessage(conversationId, { role, content, status = 'complete' }) {
+    const row = { id:this.nextAiMessageId++, conversation_id:conversationId, role, content, status, created_at:new Date() };
+    this.aiMessages.push(row);
+    const conversation = this.aiConversations.get(conversationId);
+    if (conversation) conversation.updated_at = new Date();
+    return { ...row };
+  }
+
+  async listAiMessages(userId, conversationId, limit = 100) {
+    const conversation = this.aiConversations.get(conversationId);
+    if (!conversation || conversation.user_id !== Number(userId)) return [];
+    return this.aiMessages.filter(message => message.conversation_id === conversationId).slice(-limit).map(message => ({ ...message }));
+  }
+
+  async recordAiUsage({ userId, conversationId, messageId, modelConfigId, provider, modelName, inputTokens, outputTokens, totalTokens }) {
+    this.aiUsageRecords.push({
+      id:this.nextAiUsageId++, user_id:Number(userId), conversation_id:conversationId, message_id:messageId || null,
+      model_config_id:Number(modelConfigId), provider:provider || '', model_name:modelName || '',
+      input_tokens:Number(inputTokens) || 0, output_tokens:Number(outputTokens) || 0,
+      total_tokens:Number(totalTokens) || 0, created_at:new Date(),
+    });
+  }
+
+  async getAiUsageDashboard({ days = 30 } = {}) {
+    const after = Date.now() - Math.max(1, Math.min(365, Number(days) || 30)) * 86400000;
+    const rows = this.aiUsageRecords.filter(row => row.created_at.getTime() >= after);
+    const total = key => rows.reduce((sum, row) => sum + (Number(row[key]) || 0), 0);
+    const userMap = new Map();
+    rows.forEach(row => {
+      const user = this.users.get(row.user_id);
+      const item = userMap.get(row.user_id) || { user_id:row.user_id, display_name:user?.display_name || '用户', request_count:0, total_tokens:0, last_used_at:null };
+      item.request_count += 1; item.total_tokens += row.total_tokens;
+      if (!item.last_used_at || item.last_used_at < row.created_at) item.last_used_at = row.created_at;
+      userMap.set(row.user_id, item);
+    });
+    const modelMap = new Map();
+    rows.forEach(row => {
+      const key = `${row.provider}:${row.model_name}`;
+      const item = modelMap.get(key) || { provider:row.provider, model_name:row.model_name, request_count:0, total_tokens:0 };
+      item.request_count += 1; item.total_tokens += row.total_tokens; modelMap.set(key, item);
+    });
+    return {
+      totals:{ request_count:rows.length, user_count:userMap.size, input_tokens:total('input_tokens'), output_tokens:total('output_tokens'), total_tokens:total('total_tokens') },
+      users:[...userMap.values()].sort((a, b) => b.total_tokens - a.total_tokens),
+      models:[...modelMap.values()].sort((a, b) => b.total_tokens - a.total_tokens),
+    };
   }
 
   async cleanup() {

@@ -148,3 +148,79 @@ CREATE TABLE IF NOT EXISTS user_notes (
   CONSTRAINT fk_user_notes_folder
     FOREIGN KEY (folder_id) REFERENCES user_note_folders(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- AI 问股：页面公开状态、管理员模型配置、用户会话与可审计的使用量。
+-- `api_key_encrypted` 只保存由 STOCK_AI_CREDENTIAL_ENCRYPTION_KEY 加密后的值。
+CREATE TABLE IF NOT EXISTS ai_feature_settings (
+  feature_key VARCHAR(40) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+  is_public TINYINT(1) NOT NULL DEFAULT 0,
+  updated_by_user_id BIGINT UNSIGNED NULL,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (feature_key),
+  CONSTRAINT fk_ai_feature_settings_user
+    FOREIGN KEY (updated_by_user_id) REFERENCES users(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS ai_model_configs (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  name VARCHAR(100) NOT NULL,
+  model_name VARCHAR(160) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+  base_url VARCHAR(500) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+  protocol VARCHAR(32) CHARACTER SET ascii COLLATE ascii_bin NOT NULL DEFAULT 'chat_completions',
+  api_key_encrypted TEXT NOT NULL,
+  is_active TINYINT(1) NOT NULL DEFAULT 1,
+  created_by_user_id BIGINT UNSIGNED NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  KEY idx_ai_model_configs_active (is_active, id),
+  CONSTRAINT fk_ai_model_configs_user
+    FOREIGN KEY (created_by_user_id) REFERENCES users(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS ai_conversations (
+  id CHAR(36) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+  user_id BIGINT UNSIGNED NOT NULL,
+  title VARCHAR(160) NOT NULL DEFAULT '新问股会话',
+  summary MEDIUMTEXT NULL,
+  created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  updated_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+  PRIMARY KEY (id),
+  KEY idx_ai_conversations_user_updated (user_id, updated_at, id),
+  CONSTRAINT fk_ai_conversations_user
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS ai_messages (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  conversation_id CHAR(36) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+  role VARCHAR(12) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+  content MEDIUMTEXT NOT NULL,
+  status VARCHAR(16) CHARACTER SET ascii COLLATE ascii_bin NOT NULL DEFAULT 'complete',
+  created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  PRIMARY KEY (id),
+  KEY idx_ai_messages_conversation (conversation_id, id),
+  CONSTRAINT fk_ai_messages_conversation
+    FOREIGN KEY (conversation_id) REFERENCES ai_conversations(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS ai_usage_records (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  user_id BIGINT UNSIGNED NOT NULL,
+  conversation_id CHAR(36) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+  message_id BIGINT UNSIGNED NULL,
+  model_config_id BIGINT UNSIGNED NOT NULL,
+  provider VARCHAR(80) CHARACTER SET ascii COLLATE ascii_bin NOT NULL DEFAULT '',
+  model_name VARCHAR(160) CHARACTER SET ascii COLLATE ascii_bin NOT NULL DEFAULT '',
+  input_tokens INT UNSIGNED NOT NULL DEFAULT 0,
+  output_tokens INT UNSIGNED NOT NULL DEFAULT 0,
+  total_tokens INT UNSIGNED NOT NULL DEFAULT 0,
+  created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  PRIMARY KEY (id),
+  KEY idx_ai_usage_user_created (user_id, created_at),
+  KEY idx_ai_usage_created (created_at),
+  CONSTRAINT fk_ai_usage_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  CONSTRAINT fk_ai_usage_conversation FOREIGN KEY (conversation_id) REFERENCES ai_conversations(id) ON DELETE CASCADE,
+  CONSTRAINT fk_ai_usage_message FOREIGN KEY (message_id) REFERENCES ai_messages(id) ON DELETE SET NULL,
+  CONSTRAINT fk_ai_usage_model FOREIGN KEY (model_config_id) REFERENCES ai_model_configs(id) ON DELETE RESTRICT
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

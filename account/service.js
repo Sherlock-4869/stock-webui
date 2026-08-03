@@ -361,6 +361,9 @@ class AccountService {
 
   async handleRoute(req, res, urlObject) {
     const pathname = urlObject.pathname;
+    // AI administration has its own service, but keeps this account service as
+    // the authentication and persistence authority.
+    if (pathname.startsWith('/api/admin/ai/')) return false;
     if (!pathname.startsWith('/api/auth/') && !pathname.startsWith('/api/notes') && !pathname.startsWith('/api/note-folders') && !pathname.startsWith('/api/admin/') && pathname !== '/api/site-recommendations') return false;
 
     try {

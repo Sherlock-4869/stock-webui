@@ -31,5 +31,8 @@ jobs:
             # 4. 使用项目指定的 Node/npm 安装锁定依赖
             ./run.sh install
 
-            # 5. 执行重启脚本
+            # 5. 重启前执行语法与回归检查，避免将不可用版本发布到线上
+            ./run.sh verify
+
+            # 6. 执行重启脚本
             ./run.sh restart
