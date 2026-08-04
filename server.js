@@ -586,11 +586,11 @@ async function loadIpoCalendar() {
   if (ipoCache && Date.now() - ipoCache.fetchedAt < IPO_CACHE_MS) return ipoCache;
   if (ipoRefreshPromise) return ipoRefreshPromise;
   ipoRefreshPromise = (async () => {
-    const columns = [
-      'SECURITY_CODE','SECURITY_NAME','APPLY_CODE','APPLY_DATE','LISTING_DATE',
-      'BALLOT_NUM_DATE','ISSUE_PRICE','ONLINE_APPLY_UPPER','TOP_APPLY_MARKETCAP',
-      'TRADE_MARKET','MARKET_TYPE','ISSUE_NUM','INDUSTRY_NAME'
-    ].join(',');
+    // The calendar endpoint carries the public offering fields used by the expanded
+    // detail card. Asking for ALL lets the upstream add newly available public
+    // fields without requiring a release here; only the allowlisted fields below
+    // are returned to the browser.
+    const columns = 'ALL';
     const url = 'https://datacenter-web.eastmoney.com/api/data/v1/get?' + new URLSearchParams({
       reportName:'RPTA_APP_IPOAPPLY', columns, pageNumber:'1', pageSize:'100',
       sortColumns:'APPLY_DATE', sortTypes:'-1', source:'WEB', client:'WEB',
@@ -607,6 +607,16 @@ async function loadIpoCalendar() {
       price:row.ISSUE_PRICE, upperLimit:row.ONLINE_APPLY_UPPER,
       requiredMarketCap:row.TOP_APPLY_MARKETCAP, market:row.TRADE_MARKET,
       board:row.MARKET_TYPE, issueShares:row.ISSUE_NUM, industry:row.INDUSTRY_NAME,
+      onlineIssueShares:row.ONLINE_ISSUE_NUM, onlineApplyLower:row.ONLINE_APPLY_LOWER,
+      onlineFundUpper:row.ONLINE_FUND_UPPER, ballotShares:row.EACHBALLOT_SHARES,
+      issuePe:row.AFTER_ISSUE_PE, industryPe:row.INDUSTRY_PE_NEW ?? row.INDUSTRY_PE,
+      totalRaiseFunds:row.TOTAL_RAISE_FUNDS ?? row.PREDICT_RAISE_FUNDS,
+      issueWay:row.ISSUE_WAY_EXPLAIN || row.ISSUE_WAY,
+      recommendOrg:row.RECOMMEND_ORG, underwriterOrg:row.UNDERWRITER_ORG,
+      companyName:row.SECURITY_NAME_FULL, mainBusiness:row.MAIN_BUSINESS,
+      assignDate:row.ASSIGN_DATE, onlinePayDate:row.ONLINE_PAY_DATE,
+      ballotPayDate:row.BALLOT_PAY_DATE, marketCapConfirmDate:row.MARKET_CAP_CONFIRMDATE,
+      totalShares:row.TOTAL_SHARES,
     })).filter(item => {
       const date = new Date(item.applyDate);
       return Number.isFinite(date.getTime()) && date >= minDate && date <= maxDate;

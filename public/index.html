@@ -36,7 +36,7 @@ html.has-metrics .app-nav-inner{max-width:calc(1240px + var(--optional-metric-wi
 .module-head{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:18px}.module-title{font-size:22px}.module-desc{margin-top:5px;color:#8b949e;font-size:12px}.module-actions{display:flex;gap:8px;align-items:center}
 .metric-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:18px}.metric-card{padding:15px 16px;border:1px solid #30363d;border-radius:9px;background:linear-gradient(145deg,#1a2028,#161b22)}.metric-label{color:#8b949e;font-size:11px}.metric-value{margin-top:5px;font-size:23px;font-weight:700}.metric-note{margin-top:3px;color:#6e7681;font-size:10px}
 .module-panel{border:1px solid #30363d;border-radius:9px;background:#161b22;overflow:hidden}.panel-toolbar{display:flex;align-items:center;gap:7px;padding:10px 12px;border-bottom:1px solid #30363d}.filter-chip{border:1px solid #30363d;border-radius:15px;background:#21262d;color:#8b949e;padding:5px 11px;font-size:11px;cursor:pointer}.filter-chip.active{color:#79c0ff;border-color:#1f6feb;background:#1f3a5f}.panel-status{margin-left:auto;color:#6e7681;font-size:11px}
-.ipo-list,.alert-list{padding:4px 14px}.ipo-row{display:grid;grid-template-columns:92px minmax(150px,1.3fr) repeat(3,minmax(95px,1fr)) 88px;align-items:center;gap:12px;padding:14px 4px;border-top:1px solid #21262d}.ipo-row:first-child{border-top:0}.ipo-date{font:600 13px ui-monospace,SFMono-Regular,monospace}.ipo-date small{display:block;margin-top:3px;color:#6e7681;font:10px sans-serif}.ipo-name{font-weight:650}.ipo-board{display:inline-flex;margin-left:7px;vertical-align:middle;border-radius:10px;padding:2px 6px;background:#1f3a5f;color:#79c0ff;font-size:10px;font-weight:650;line-height:1.2}.ipo-code{margin-top:3px;color:#8b949e;font:11px ui-monospace,SFMono-Regular,monospace}.ipo-field label{display:block;color:#6e7681;font-size:10px;margin-bottom:3px}.ipo-field span{font-size:12px}.ipo-status{justify-self:end;border-radius:12px;padding:4px 9px;background:#21262d;color:#8b949e;font-size:10px}.ipo-status.today{background:#3d2d13;color:#e3b341}.ipo-status.upcoming{background:#1f3a5f;color:#79c0ff}.ipo-status.done{background:#1f2d25;color:#3fb950}
+.ipo-list,.alert-list{padding:4px 14px}.ipo-row{border-top:1px solid #21262d}.ipo-row:first-child{border-top:0}.ipo-row-summary{display:grid;grid-template-columns:92px minmax(150px,1.3fr) repeat(3,minmax(95px,1fr)) 136px;align-items:center;gap:12px;width:100%;border:0;background:transparent;color:inherit;padding:14px 4px;text-align:left;cursor:pointer;transition:background .15s}.ipo-row-summary:hover{background:#161b22}.ipo-row-summary:focus-visible{position:relative;z-index:1;outline:2px solid #58a6ff;outline-offset:-2px}.ipo-row.open .ipo-row-summary{background:#161b22}.ipo-date{font:600 13px ui-monospace,SFMono-Regular,monospace}.ipo-date small{display:block;margin-top:3px;color:#6e7681;font:10px sans-serif}.ipo-name{font-weight:650}.ipo-board{display:inline-flex;margin-left:7px;vertical-align:middle;border-radius:10px;padding:2px 6px;background:#1f3a5f;color:#79c0ff;font-size:10px;font-weight:650;line-height:1.2}.ipo-code{margin-top:3px;color:#8b949e;font:11px ui-monospace,SFMono-Regular,monospace}.ipo-field label{display:block;color:#6e7681;font-size:10px;margin-bottom:3px}.ipo-field span{font-size:12px}.ipo-row-action{display:flex;align-items:center;justify-content:flex-end;gap:8px}.ipo-status{border-radius:12px;padding:4px 9px;background:#21262d;color:#8b949e;font-size:10px;white-space:nowrap}.ipo-status.today{background:#3d2d13;color:#e3b341}.ipo-status.upcoming{background:#1f3a5f;color:#79c0ff}.ipo-status.done{background:#1f2d25;color:#3fb950}.ipo-expand-hint{display:inline-flex;align-items:center;gap:3px;color:#6e7681;font-size:10px;white-space:nowrap}.ipo-expand-hint svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;transition:transform .16s ease}.ipo-row.open .ipo-expand-hint{color:#79c0ff}.ipo-row.open .ipo-expand-hint svg{transform:rotate(180deg)}.ipo-details{margin:0 4px 14px;padding:14px;border:1px solid #30363d;border-radius:9px;background:linear-gradient(145deg,#111820,#0d1117);box-shadow:inset 0 1px #ffffff05}.ipo-details[hidden]{display:none!important}.ipo-detail-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px}.ipo-detail-cell{min-width:0;padding:9px 10px;border:1px solid #30363d;border-radius:7px;background:#161b22}.ipo-detail-cell.wide{grid-column:span 2}.ipo-detail-cell span{display:block;margin-bottom:4px;color:#6e7681;font-size:10px}.ipo-detail-cell strong{display:block;overflow:hidden;color:#c9d1d9;font-size:12px;font-weight:650;line-height:1.45;text-overflow:ellipsis;white-space:nowrap}.ipo-detail-cell.wide strong{display:-webkit-box;overflow:visible;text-overflow:clip;white-space:normal;-webkit-line-clamp:3;-webkit-box-orient:vertical}.ipo-detail-section+.ipo-detail-section{margin-top:13px}.ipo-detail-section h3{margin-bottom:8px;color:#8b949e;font-size:10px;font-weight:750;letter-spacing:.08em;text-transform:uppercase}.ipo-detail-source{margin-top:11px;color:#6e7681;font-size:10px;line-height:1.5}
 .alert-empty,.module-loading{padding:60px 20px;text-align:center;color:#6e7681}.module-loading::before{content:'◌';display:block;font-size:28px;color:#58a6ff;margin-bottom:8px;animation:market-spin 1s linear infinite}.alert-row{display:grid;grid-template-columns:8px minmax(150px,1fr) minmax(150px,2fr) 80px;gap:12px;align-items:center;padding:13px 4px;border-top:1px solid #21262d}.alert-row:first-child{border-top:0}.alert-mark{width:7px;height:32px;border-radius:4px;background:#8b949e}.alert-mark.up{background:#f85149}.alert-mark.down{background:#3fb950}.alert-stock{font-weight:650}.alert-stock small{display:block;margin-top:3px;color:#6e7681;font:10px ui-monospace,SFMono-Regular,monospace}.alert-message{font-size:12px;color:#c9d1d9}.alert-message strong{margin-right:6px}.alert-time{text-align:right;color:#6e7681;font-size:10px}.live-dot{display:inline-block;width:6px;height:6px;margin-right:5px;border-radius:50%;background:#3fb950;box-shadow:0 0 0 3px #3fb95022}
 .market-overview{margin-bottom:14px}
 .market-overview-head{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:10px}
@@ -104,7 +104,7 @@ body.market-sorting,body.market-sorting *{cursor:grabbing!important;user-select:
   .market-title{font-size:15px}
   .market-summary{max-width:180px;font-size:10px}
   .market-toolbar{font-size:10px;margin-bottom:8px}
-  .app-nav{overflow-x:auto;padding:7px 12px}.app-nav-inner{width:max-content;margin:0}.app-tab{flex:none;padding:8px 12px}.market-page-note{margin-top:-1px}.group-bar{flex-wrap:wrap}.group-tabs{flex-basis:100%}.sort-note{flex-wrap:wrap;margin-top:-3px}.group-refresh-controls{width:100%;margin-left:0;flex-wrap:wrap}.group-refresh-controls .status{padding-left:0;border-left:0}.module-head{align-items:flex-start}.module-title{font-size:19px}.metric-grid{grid-template-columns:1fr}.ipo-row{grid-template-columns:74px 1fr 72px}.ipo-field{display:none}.alert-row{grid-template-columns:7px 1fr 58px}.alert-message{grid-column:2/4}.module-actions{flex:none}
+  .app-nav{overflow-x:auto;padding:7px 12px}.app-nav-inner{width:max-content;margin:0}.app-tab{flex:none;padding:8px 12px}.market-page-note{margin-top:-1px}.group-bar{flex-wrap:wrap}.group-tabs{flex-basis:100%}.sort-note{flex-wrap:wrap;margin-top:-3px}.group-refresh-controls{width:100%;margin-left:0;flex-wrap:wrap}.group-refresh-controls .status{padding-left:0;border-left:0}.module-head{align-items:flex-start}.module-title{font-size:19px}.metric-grid{grid-template-columns:1fr}.ipo-row-summary{grid-template-columns:74px 1fr 82px}.ipo-row-summary .ipo-field{display:none}.ipo-row-action{gap:4px}.ipo-expand-hint{font-size:0}.ipo-expand-hint svg{width:16px;height:16px}.ipo-details{margin:0 0 12px;padding:11px}.ipo-detail-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}.ipo-detail-cell{padding:8px}.ipo-detail-cell.wide{grid-column:span 2}.alert-row{grid-template-columns:7px 1fr 58px}.alert-message{grid-column:2/4}.module-actions{flex:none}
   .search-row{flex-direction:column;align-items:stretch}
   .search-wrap{width:100%}
   .search-row .add-btn,.search-row .refresh-btn{width:100%}
@@ -295,6 +295,7 @@ html[data-theme="light"] .chart-loading{background:#fff;color:#57606a}html[data-
 html[data-theme="light"] .market-name,html[data-theme="light"] .market-price,html[data-theme="light"] .market-summary strong,html[data-theme="light"] .chart-info,html[data-theme="light"] .alert-message{color:#1f2328}
 html[data-theme="light"] .market-page-note,html[data-theme="light"] .market-summary,html[data-theme="light"] .market-toolbar,html[data-theme="light"] .sort-note,html[data-theme="light"] .module-desc,html[data-theme="light"] .metric-label,html[data-theme="light"] .panel-status,html[data-theme="light"] .status,html[data-theme="light"] .refresh-setting,html[data-theme="light"] .time{color:#57606a}
 html[data-theme="light"] .ipo-board{background:#e5f3ff;color:#0969da}html[data-theme="light"] .ipo-status{border:1px solid transparent;font-weight:650}html[data-theme="light"] .ipo-status.upcoming{background:#e5f3ff;border-color:#b6ddff;color:#0969da}html[data-theme="light"] .ipo-status.today{background:#fff3cd;border-color:#f2d675;color:#8a5a00}html[data-theme="light"] .ipo-status.done{background:#dafbe1;border-color:#aceebb;color:#1a7f37}
+html[data-theme="light"] .ipo-row-summary:hover,html[data-theme="light"] .ipo-row.open .ipo-row-summary{background:#f5f9fd}html[data-theme="light"] .ipo-details{border-color:#d7e1eb;background:linear-gradient(145deg,#f8fbff,#fff);box-shadow:inset 0 1px #fff}html[data-theme="light"] .ipo-detail-cell{border-color:#d7e1eb;background:#fff}html[data-theme="light"] .ipo-detail-cell span,html[data-theme="light"] .ipo-detail-section h3,html[data-theme="light"] .ipo-detail-source,html[data-theme="light"] .ipo-expand-hint{color:#64748b}html[data-theme="light"] .ipo-detail-cell strong{color:#243244}html[data-theme="light"] .ipo-row.open .ipo-expand-hint{color:#0969da}
 html[data-theme="light"] .market-kicker{color:#0969da}html[data-theme="light"] .metric-value,html[data-theme="light"] .module-title,html[data-theme="light"] .ipo-name{color:#172033}
 /* --- Notes --- */
 html[data-theme="light"] .note-card{background:#fff;border-color:#d7e0ea}html[data-theme="light"] .note-card:hover{border-color:#54aeff;background:#f8fbff}
@@ -462,6 +463,7 @@ body{padding-left:var(--sidebar-width);transition:padding-left .2s ease}
 .sidebar-footer{display:flex;flex-direction:column;gap:9px;padding:11px 2px 2px;border-top:1px solid #21262d}.theme-setting{display:flex;align-items:center;gap:8px;margin:0;padding:6px 8px;border-radius:6px;color:#8b949e;transition:.15s}.theme-setting:hover{background:#161b22}.theme-setting .refresh-interval-select{min-width:0;flex:1}.sidebar-footer-icon{display:block;flex:none;width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}.account-area{margin:0;padding:2px}.account-trigger{width:100%;max-width:none;height:46px;justify-content:flex-start;border:1px solid #30363d;background:linear-gradient(145deg,#161b22,#0d1117);padding:7px;border-radius:9px;box-shadow:0 5px 14px #0003;transition:.15s}.account-trigger:hover{border-color:#58a6ff;background:#1c2734;box-shadow:0 7px 18px #0005}.account-trigger:focus-visible{outline:2px solid #58a6ff;outline-offset:2px}.account-trigger .account-avatar{width:30px;height:30px;font-size:11px}.account-menu{z-index:500}.main{width:100%;max-width:calc(1100px + var(--optional-metric-width,0px));margin:0 auto;padding:26px;transition:max-width .2s ease}.main #page-ipo,.main #page-alerts,.main #page-notes,.main #page-reference,.main #page-sites,.main #page-admin-sites,.main #page-ai,.main #page-admin-ai,.main #page-admin-users,.main #page-user-ai-models{max-width:1100px;margin:0 auto}.sidebar-mobile-toggle,.sidebar-backdrop{display:none}
 .admin-users-card{padding:18px;border:1px solid #30363d;border-radius:10px;background:#161b22}.admin-users-toolbar{display:flex;align-items:center;gap:10px;margin-bottom:13px}.admin-users-search{min-width:0;flex:1;border:1px solid #30363d;border-radius:7px;background:#0d1117;color:#e6edf3;padding:9px 10px;font:12px inherit;outline:none}.admin-users-search:focus{border-color:#58a6ff}.admin-users-count{color:#8b949e;font-size:11px;white-space:nowrap}.admin-users-list{display:flex;flex-direction:column;gap:8px}.admin-user-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(115px,.55fr) auto;align-items:center;gap:14px;padding:13px;border:1px solid #30363d;border-radius:8px;background:#0d1117}.admin-user-name{display:flex;align-items:center;gap:8px;min-width:0;font-size:13px;font-weight:700}.admin-user-name-copy{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.admin-user-id{margin-top:4px;overflow:hidden;color:#8b949e;font-size:10px;text-overflow:ellipsis;white-space:nowrap}.admin-user-meta{color:#8b949e;font-size:10px;line-height:1.55}.admin-user-access{display:flex;align-items:center;justify-content:flex-end;gap:8px}.admin-user-state{display:inline-flex;padding:3px 7px;border-radius:10px;background:#6e768122;color:#8b949e;font-size:10px;white-space:nowrap}.admin-user-state.granted{background:#23863622;color:#3fb950}.admin-user-state.admin{background:#d2992222;color:#e3b341}.admin-user-toggle{min-width:76px}.admin-user-toggle:disabled{opacity:.62;cursor:not-allowed}@media(max-width:650px){.admin-users-card{padding:14px}.admin-users-toolbar{align-items:stretch;flex-wrap:wrap}.admin-user-row{grid-template-columns:1fr;gap:8px}.admin-user-access{justify-content:space-between}.admin-users-count{width:100%}}
 body.sidebar-collapsed{padding-left:var(--sidebar-collapsed-width)}body.sidebar-collapsed .app-nav{width:var(--sidebar-collapsed-width)}body.sidebar-collapsed .app-brand{display:none}body.sidebar-collapsed .app-brand span,body.sidebar-collapsed .app-tab-label,body.sidebar-collapsed .sidebar-section-title,body.sidebar-collapsed .sidebar-group-label,body.sidebar-collapsed .sidebar-group-chevron,body.sidebar-collapsed .theme-setting .nav-label,body.sidebar-collapsed .theme-setting select,body.sidebar-collapsed .account-label,body.sidebar-collapsed .account-chevron{display:none}body.sidebar-collapsed .sidebar-header{justify-content:center}body.sidebar-collapsed .sidebar-collapse{width:46px;height:42px}.sidebar-collapsed .sidebar-collapse-icon{transform:rotate(180deg)}body.sidebar-collapsed .sidebar-scroll{align-items:center}body.sidebar-collapsed .sidebar-group{width:100%;margin-top:2px;padding-top:0;border-top:0}body.sidebar-collapsed .sidebar-group-items{display:flex;width:100%;margin:0;padding-left:0;border-left:0}body.sidebar-collapsed .sidebar-group-toggle{justify-content:center;padding:9px}body.sidebar-collapsed .app-tab,body.sidebar-collapsed .sidebar-group-items .app-tab{justify-content:center;padding:10px;font-size:12px}body.sidebar-collapsed .app-tab-badge{position:absolute;top:3px;right:2px;min-width:13px;padding:1px 3px;font-size:8px}body.sidebar-collapsed .site-recommendation-menu{left:calc(100% + 10px)}body.sidebar-collapsed .sidebar-footer{align-items:center}body.sidebar-collapsed .theme-setting{padding:7px}body.sidebar-collapsed .account-area{padding:2px}body.sidebar-collapsed .account-trigger{width:48px;height:48px;padding:0;justify-content:center;border-color:#3a4654;border-radius:12px;background:linear-gradient(145deg,#1c2b3e,#161b22)}body.sidebar-collapsed .account-trigger .account-avatar{width:32px;height:32px;font-size:12px}.app-nav:has(.site-recommendations.open),.app-nav:has(.account-menu.open){overflow:visible}
+@media(min-width:861px){body.sidebar-collapsed .sidebar-scroll{gap:7px;padding-top:15px}body.sidebar-collapsed .sidebar-scroll>.app-tab{width:52px;min-height:42px;border:1px solid transparent;border-radius:10px}body.sidebar-collapsed .sidebar-group{position:relative;width:52px;margin:1px 0 3px;padding:5px 0 0;border-top:1px solid #30363d}body.sidebar-collapsed .sidebar-group-toggle{position:relative;width:52px;min-height:42px;border:1px solid #30363d;border-radius:10px;background:linear-gradient(145deg,#1c2734,#141a21);color:#79c0ff;box-shadow:inset 0 1px #ffffff0a,0 3px 9px #0002}body.sidebar-collapsed .sidebar-group-toggle::after{content:"";position:absolute;right:7px;bottom:7px;width:4px;height:4px;border-radius:50%;background:currentColor;box-shadow:0 0 0 2px #0d1117}body.sidebar-collapsed .sidebar-group-toggle:hover{border-color:#58a6ff;background:linear-gradient(145deg,#22384f,#172331);color:#fff}body.sidebar-collapsed .sidebar-group-items{position:relative;align-items:center;gap:2px;margin:3px 0 0;padding:2px 0 1px}body.sidebar-collapsed .sidebar-group-items::before{content:"";position:absolute;top:3px;bottom:3px;left:50%;width:1px;background:#30363d}body.sidebar-collapsed .sidebar-group-items .app-tab{z-index:1;width:40px;min-height:34px;padding:7px;border:1px solid transparent;border-radius:8px;background:#0d1117;color:#8b949e;box-shadow:0 1px 3px #0002}body.sidebar-collapsed .sidebar-group-items .app-tab:hover{border-color:#3d566e;background:#161f29;color:#c9d1d9}body.sidebar-collapsed .sidebar-group-items .app-tab.active{border-color:#1f6feb;background:#173a63;color:#fff;box-shadow:0 3px 10px #1f6feb33}body.sidebar-collapsed .sidebar-group-items .app-tab-icon{width:16px;height:16px}body.sidebar-collapsed .sidebar-group-items .site-recommendations{z-index:1;width:40px}body.sidebar-collapsed .sidebar-group-items .site-recommendation-trigger{width:40px;min-width:0}html[data-theme="light"] body.sidebar-collapsed .sidebar-group{border-color:#d3deea}html[data-theme="light"] body.sidebar-collapsed .sidebar-group-toggle{border-color:#c6d7e7;background:linear-gradient(145deg,#fff,#eaf2fa);color:#0969da;box-shadow:inset 0 1px #fff,0 3px 9px #1f3b5b12}html[data-theme="light"] body.sidebar-collapsed .sidebar-group-toggle::after{box-shadow:0 0 0 2px #f6f9fc}html[data-theme="light"] body.sidebar-collapsed .sidebar-group-items::before{background:#cbd9e7}html[data-theme="light"] body.sidebar-collapsed .sidebar-group-items .app-tab{border-color:#e2eaf2;background:#fff;color:#64748b;box-shadow:0 1px 3px #1f3b5b0c}html[data-theme="light"] body.sidebar-collapsed .sidebar-group-items .app-tab:hover{border-color:#9dcaef;background:#eef7ff;color:#0969da}html[data-theme="light"] body.sidebar-collapsed .sidebar-group-items .app-tab.active{border-color:#54aeff;background:#e1f1ff;color:#0969da;box-shadow:0 3px 10px #1f6feb20}}
 #sidebar-hover-label{position:fixed;z-index:700;display:none;max-width:220px;padding:7px 10px;border:1px solid #30363d;border-radius:7px;background:#161b22;color:#e6edf3;box-shadow:0 8px 24px #0008;font-size:12px;font-weight:650;pointer-events:none;white-space:nowrap}#sidebar-hover-label.visible{display:block}html[data-theme="light"] #sidebar-hover-label{border-color:#d0d7de;background:#fff;color:#1f2328;box-shadow:0 8px 24px #1f232826}
 html[data-theme="light"] .app-nav{background:#fffffff7;border-color:#dce3ec;box-shadow:2px 0 12px #1f3b5b0a}html[data-theme="light"] .sidebar-header,html[data-theme="light"] .sidebar-footer{border-color:#dce3ec}
 @media(max-width:860px){body,body.sidebar-collapsed{padding-left:0}.app-nav,body.sidebar-collapsed .app-nav{width:min(278px,calc(100vw - 54px));transform:translateX(-105%);box-shadow:8px 0 30px #0008}.app-nav-inner{width:100%;margin:0}.sidebar-mobile-toggle{display:grid;position:fixed;z-index:340;top:12px;left:12px;place-items:center;width:38px;height:38px;border:1px solid #30363d;border-radius:9px;background:#161b22ed;color:#c9d1d9;box-shadow:0 5px 18px #0005;cursor:pointer}.sidebar-backdrop{position:fixed;z-index:330;inset:0;background:#0008}.sidebar-open .app-nav{transform:translateX(0)}.sidebar-open .sidebar-backdrop{display:block}.main{padding:62px 12px 16px}.sidebar-collapse{display:grid;width:38px}body.sidebar-collapsed .app-brand{display:inline-flex;flex:1;padding:7px 8px}body.sidebar-collapsed .app-brand span,body.sidebar-collapsed .app-tab-label,body.sidebar-collapsed .sidebar-section-title,body.sidebar-collapsed .sidebar-group-label,body.sidebar-collapsed .sidebar-group-chevron,body.sidebar-collapsed .theme-setting .nav-label,body.sidebar-collapsed .theme-setting select,body.sidebar-collapsed .account-label,body.sidebar-collapsed .account-chevron{display:inline}body.sidebar-collapsed .sidebar-header{justify-content:flex-start}body.sidebar-collapsed .sidebar-scroll{align-items:stretch}body.sidebar-collapsed .sidebar-group-items{padding-left:8px}body.sidebar-collapsed .sidebar-group-toggle{justify-content:flex-start;padding:8px 10px}body.sidebar-collapsed .app-tab{justify-content:flex-start;padding:9px 10px}body.sidebar-collapsed .app-tab-badge{position:static;margin-left:auto}body.sidebar-collapsed .sidebar-footer{align-items:stretch}body.sidebar-collapsed .theme-setting{padding:0 8px}body.sidebar-collapsed .account-trigger{width:100%;height:46px;padding:7px;justify-content:flex-start}body.sidebar-collapsed .sidebar-collapse{width:38px;height:38px}.site-recommendation-menu,body.sidebar-collapsed .site-recommendation-menu{position:fixed;top:60px;bottom:12px;left:12px;width:calc(100vw - 24px);max-width:360px;overflow:auto}.site-recommendations::after{display:none!important}}
@@ -3125,6 +3127,98 @@ function ipoBoard(item = {}) {
   if (market.includes('深圳') || market.includes('深')) return '深市主板';
   return '待确认';
 }
+function ipoPresent(value) {
+  if (value === null || value === undefined) return false;
+  const text = String(value).trim();
+  return Boolean(text && text !== '--' && text !== 'null' && text !== 'undefined');
+}
+function formatIpoDate(value) {
+  return ipoPresent(value) ? dateKey(value).replaceAll('-', '/') : '';
+}
+function formatIpoNumber(value, fractionDigits = 2) {
+  const number = Number(value);
+  if (!Number.isFinite(number) || number === 0) return '';
+  return number.toLocaleString('zh-CN', { maximumFractionDigits:fractionDigits });
+}
+function formatIpoWanShares(value) {
+  const amount = formatIpoNumber(value, 2);
+  return amount ? `${amount} 万股` : '';
+}
+function formatIpoShares(value) {
+  const number = Number(value);
+  if (!Number.isFinite(number) || number === 0) return '';
+  return number >= 10000
+    ? `${(number / 10000).toLocaleString('zh-CN', { maximumFractionDigits:2 })} 万股`
+    : `${number.toLocaleString('zh-CN')} 股`;
+}
+function formatIpoLargeShares(value) {
+  const number = Number(value);
+  if (!Number.isFinite(number) || number === 0) return '';
+  return number >= 100000000
+    ? `${(number / 100000000).toLocaleString('zh-CN', { maximumFractionDigits:2 })} 亿股`
+    : formatIpoShares(number);
+}
+function formatIpoMoney(value) {
+  const amount = formatIpoNumber(value, 2);
+  return amount ? `${amount} 亿元` : '';
+}
+function formatIpoCurrency(value) {
+  const number = Number(value);
+  if (!Number.isFinite(number) || number === 0) return '';
+  return number >= 10000
+    ? `${(number / 10000).toLocaleString('zh-CN', { maximumFractionDigits:2 })} 万元`
+    : `${number.toLocaleString('zh-CN', { maximumFractionDigits:2 })} 元`;
+}
+function ipoDetailCell(label, value, wide = false) {
+  if (!ipoPresent(value)) return '';
+  return `<div class="ipo-detail-cell${wide ? ' wide' : ''}"><span>${escapeHtml(label)}</span><strong>${escapeHtml(value)}</strong></div>`;
+}
+function ipoDetailSection(title, cells) {
+  const content = cells.filter(Boolean).join('');
+  return content ? `<section class="ipo-detail-section"><h3>${escapeHtml(title)}</h3><div class="ipo-detail-grid">${content}</div></section>` : '';
+}
+function ipoDetailsMarkup(item) {
+  const price = Number(item.price);
+  const offer = ipoDetailSection('发行与申购', [
+    ipoDetailCell('发行价格', Number.isFinite(price) && price > 0 ? `¥ ${price.toFixed(2)}` : ''),
+    ipoDetailCell('发行市盈率', formatIpoNumber(item.issuePe) ? `${formatIpoNumber(item.issuePe)} 倍` : ''),
+    ipoDetailCell('行业市盈率', formatIpoNumber(item.industryPe) ? `${formatIpoNumber(item.industryPe)} 倍` : ''),
+    ipoDetailCell('预计募资', formatIpoMoney(item.totalRaiseFunds)),
+    ipoDetailCell('发行数量', formatIpoWanShares(item.issueShares)),
+    ipoDetailCell('网上发行', formatIpoShares(item.onlineIssueShares)),
+    ipoDetailCell('最低申购数量', formatIpoShares(item.onlineApplyLower)),
+    ipoDetailCell('申购上限', formatIpoShares(item.upperLimit)),
+    ipoDetailCell('顶格所需市值', formatIpoNumber(item.requiredMarketCap) ? `${formatIpoNumber(item.requiredMarketCap)} 万元` : ''),
+    ipoDetailCell('网上申购资金上限', formatIpoCurrency(item.onlineFundUpper)),
+    ipoDetailCell('中签一签', formatIpoShares(item.ballotShares)),
+    ipoDetailCell('总股本', formatIpoLargeShares(item.totalShares)),
+  ]);
+  const timeline = ipoDetailSection('关键日期', [
+    ipoDetailCell('网上申购', formatIpoDate(item.applyDate)),
+    ipoDetailCell('配号日期', formatIpoDate(item.assignDate)),
+    ipoDetailCell('缴款日期', formatIpoDate(item.onlinePayDate || item.ballotPayDate)),
+    ipoDetailCell('中签公布', formatIpoDate(item.ballotDate)),
+    ipoDetailCell('预计上市', formatIpoDate(item.listingDate)),
+    ipoDetailCell('市值计算口径', item.marketCapConfirmDate),
+  ]);
+  const company = ipoDetailSection('公司与承销', [
+    ipoDetailCell('所属行业', item.industry),
+    ipoDetailCell('保荐机构', item.recommendOrg),
+    ipoDetailCell('主承销商', item.underwriterOrg && item.underwriterOrg !== item.recommendOrg ? item.underwriterOrg : ''),
+    ipoDetailCell('公司全称', item.companyName, true),
+    ipoDetailCell('主营业务', item.mainBusiness, true),
+    ipoDetailCell('发行方式', item.issueWay, true),
+  ]);
+  return `${offer}${timeline}${company}<p class="ipo-detail-source">数据来自公开新股日历；部分字段会在公告发布后补齐，请以交易所及招股说明书为准。</p>`;
+}
+function toggleIpoDetails(detailId, control) {
+  const detail = document.getElementById(detailId);
+  if (!detail) return;
+  const expanded = detail.hidden;
+  detail.hidden = !expanded;
+  control?.setAttribute('aria-expanded', String(expanded));
+  control?.closest('.ipo-row')?.classList.toggle('open', expanded);
+}
 async function fetchIpos(force=false) {
   if (ipoRequestPending) return;
   ipoRequestPending = true;
@@ -3157,10 +3251,11 @@ function renderIpos() {
     const status = ipoStatus(item);
     return ipoFilter === 'all' || ipoFilter === status.key || (ipoFilter === 'listed' && status.key === 'done');
   }).sort((a,b) => new Date(b.applyDate) - new Date(a.applyDate));
-  document.getElementById('ipo-list').innerHTML = rows.length ? rows.map(item => {
+  document.getElementById('ipo-list').innerHTML = rows.length ? rows.map((item, index) => {
     const when = friendlyDate(item.applyDate), status = ipoStatus(item);
     const upper = Number(item.upperLimit), marketCap = Number(item.requiredMarketCap), price = Number(item.price);
-    return `<article class="ipo-row"><div class="ipo-date">${when.date}<small>${when.label}</small></div><div><div class="ipo-name">${escapeHtml(item.name || '--')}<span class="ipo-board">${escapeHtml(ipoBoard(item))}</span></div><div class="ipo-code">${escapeHtml(item.applyCode || item.code)} · ${escapeHtml((item.market || '').replace('证券交易所',''))}</div></div><div class="ipo-field"><label>发行价</label><span>${price ? `¥ ${price.toFixed(2)}` : '待公布'}</span></div><div class="ipo-field"><label>申购上限</label><span>${upper ? `${Math.round(upper/100)/10} 千股` : '--'}</span></div><div class="ipo-field"><label>所需市值</label><span>${marketCap ? `${marketCap} 万` : '--'}</span></div><span class="ipo-status ${status.key}">${status.label}</span></article>`;
+    const detailId = `ipo-detail-${index}`;
+    return `<article class="ipo-row"><button class="ipo-row-summary" type="button" onclick="toggleIpoDetails('${detailId}', this)" aria-expanded="false" aria-controls="${detailId}"><div class="ipo-date">${when.date}<small>${when.label}</small></div><div><div class="ipo-name">${escapeHtml(item.name || '--')}<span class="ipo-board">${escapeHtml(ipoBoard(item))}</span></div><div class="ipo-code">${escapeHtml(item.applyCode || item.code)} · ${escapeHtml((item.market || '').replace('证券交易所',''))}</div></div><div class="ipo-field"><label>发行价</label><span>${price ? `¥ ${price.toFixed(2)}` : '待公布'}</span></div><div class="ipo-field"><label>申购上限</label><span>${upper ? `${Math.round(upper/100)/10} 千股` : '--'}</span></div><div class="ipo-field"><label>所需市值</label><span>${marketCap ? `${marketCap} 万` : '--'}</span></div><div class="ipo-row-action"><span class="ipo-status ${status.key}">${status.label}</span><span class="ipo-expand-hint">详情<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></span></div></button><div class="ipo-details" id="${detailId}" hidden>${ipoDetailsMarkup(item)}</div></article>`;
   }).join('') : '<div class="alert-empty">当前筛选条件下暂无记录</div>';
 }
 

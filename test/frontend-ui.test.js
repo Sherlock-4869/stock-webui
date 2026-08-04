@@ -9,6 +9,7 @@ const vm = require('node:vm');
 const html = fs.readFileSync(path.join(__dirname, '..', 'public', 'index.html'), 'utf8');
 const referenceHtml = fs.readFileSync(path.join(__dirname, '..', 'public', 'reference.html'), 'utf8');
 const referenceReaderScript = fs.readFileSync(path.join(__dirname, '..', 'public', 'reference-reader.js'), 'utf8');
+const serverSource = fs.readFileSync(path.join(__dirname, '..', 'server.js'), 'utf8');
 
 function markdownFunctions() {
   const start = html.indexOf('function safeMarkdownUrl');
@@ -223,6 +224,40 @@ test('IPO calendar labels each stock board', () => {
   assert.equal(context.ipoBoardForTest({ code:'603001' }), '沪市主板');
   assert.equal(context.ipoBoardForTest({ code:'001001' }), '深市主板');
   assert.equal(context.ipoBoardForTest({ board:'上海证券交易所主板' }), '沪市主板');
+});
+
+test('IPO calendar expands a sanitized offering detail card using public fields', () => {
+  assert.match(html, /class="ipo-row-summary" type="button" onclick="toggleIpoDetails/);
+  assert.match(html, /function toggleIpoDetails\(detailId, control\)/);
+  assert.match(html, /class="ipo-details" id="\$\{detailId\}" hidden/);
+  assert.match(html, /\.ipo-details\[hidden\]\{display:none!important\}/);
+  assert.match(html, /body\.sidebar-collapsed \.sidebar-group-toggle\{[^}]*border:1px solid #30363d/);
+  assert.match(serverSource, /const columns = 'ALL';/);
+  assert.match(serverSource, /recommendOrg:row\.RECOMMEND_ORG/);
+  assert.match(serverSource, /mainBusiness:row\.MAIN_BUSINESS/);
+
+  const start = html.indexOf('function ipoPresent');
+  const end = html.indexOf('async function fetchIpos', start);
+  assert.ok(start >= 0 && end > start);
+  const context = {
+    escapeHtml(value) {
+      return String(value).replace(/[&<>"']/g, character => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+      })[character]);
+    },
+    dateKey(value) { return String(value).slice(0, 10); },
+  };
+  vm.createContext(context);
+  vm.runInContext(`${html.slice(start, end)}\nthis.ipoDetailsMarkupForTest = ipoDetailsMarkup;`, context);
+  const detail = context.ipoDetailsMarkupForTest({
+    price: 12.34, issuePe: 20, industryPe: 25, issueShares: 3000,
+    onlineIssueShares: 1000000, upperLimit: 20000, requiredMarketCap: 15,
+    recommendOrg: '测试保荐机构', mainBusiness: '<img src=x onerror=alert(1)>',
+  });
+  assert.match(detail, /发行与申购/);
+  assert.match(detail, /测试保荐机构/);
+  assert.match(detail, /&lt;img src=x onerror=alert\(1\)&gt;/);
+  assert.doesNotMatch(detail, /<img/);
 });
 
 test('administrator UI keeps system tools in the sidebar and provides per-user AI access management', () => {
