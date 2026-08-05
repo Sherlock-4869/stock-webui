@@ -51,10 +51,28 @@ let ipoRefreshPromise = null;
 const FUNDAMENTAL_CACHE_MS = 6 * 60 * 60 * 1000;
 const REALTIME_FUND_FLOW_CACHE_MS = 4500;
 const REALTIME_VALUATION_CACHE_MS = 4500;
+const BOARD_LIST_CACHE_MS = 12 * 1000;
+const BOARD_DETAIL_CACHE_MS = 8 * 1000;
+const STOCK_BOARD_CACHE_MS = 6 * 60 * 60 * 1000;
+const BOARD_LIST_PAGE_SIZE = 1000;
+const BOARD_COMPONENT_PAGE_SIZE = 1000;
 const fundamentalCache = new Map();
 const realtimeFundFlowCache = new Map();
 const realtimeValuationCache = new Map();
+const boardListCache = new Map();
+const boardDetailCache = new Map();
+const stockBoardCache = new Map();
+const boardListRefreshes = new Map();
+const boardDetailRefreshes = new Map();
+const stockBoardRefreshes = new Map();
 const fundFlowHistoryRequestQueue = createAsyncTaskQueue({ concurrency:4, maxQueued:120 });
+const boardRequestQueue = createAsyncTaskQueue({ concurrency:3, maxQueued:30 });
+
+const BOARD_TYPES = {
+  industry: { label:'行业板块', fs:'m:90+t:2+f:!50' },
+  concept: { label:'概念板块', fs:'m:90+t:3+f:!50' },
+  region: { label:'地域板块', fs:'m:90+t:1+f:!50' },
+};
 
 function serveFile(res, filePath) {
   fs.readFile(filePath, (err, data) => {
@@ -491,6 +509,194 @@ async function proxyStockMetrics(urlObj, res) {
   sendJson(res, 200, { data, fetchedAt:Date.now() });
 }
 
+function eastmoneyNumber(value) {
+  const number = Number(value);
+  return Number.isFinite(number) ? number : null;
+}
+
+function eastmoneyBoardUrl({ fs, fields, pageSize, pageNumber = 1 }) {
+  return 'https://push2.eastmoney.com/api/qt/clist/get?' + new URLSearchParams({
+    pn:String(pageNumber), pz:String(pageSize), po:'1', np:'1', fltt:'2', invt:'2', fid:'f3', fs, fields,
+  });
+}
+
+async function fetchEastmoneyBoardRows({ fs, fields, pageSize }) {
+  const upstreamPageSize = 100;
+  const requestedRows = Math.min(Math.max(Number(pageSize) || upstreamPageSize, 1), 1000);
+  const loadPage = async pageNumber => {
+    const raw = await boardRequestQueue.run(() => requestBuffer(eastmoneyBoardUrl({
+      fs, fields, pageSize:upstreamPageSize, pageNumber,
+    }), {
+      ...UPSTREAM_HEADERS,
+      Referer:'https://quote.eastmoney.com/',
+    }, { timeoutMs:9000 }));
+    const payload = JSON.parse(raw.toString('utf-8'));
+    if (Number(payload?.rc) !== 0 || !Array.isArray(payload?.data?.diff)) {
+      throw new Error('Invalid board market payload');
+    }
+    return { rows:payload.data.diff, total:eastmoneyNumber(payload.data.total) || payload.data.diff.length };
+  };
+  const firstPage = await loadPage(1);
+  const total = firstPage.total;
+  const rowsToLoad = Math.min(total, requestedRows);
+  const pageCount = Math.ceil(rowsToLoad / upstreamPageSize);
+  if (pageCount === 1) return { rows:firstPage.rows.slice(0, rowsToLoad), total };
+  const laterPages = await Promise.all(
+    Array.from({ length:pageCount - 1 }, (_, index) => loadPage(index + 2))
+  );
+  return { rows:[...firstPage.rows, ...laterPages.flatMap(page => page.rows)].slice(0, rowsToLoad), total };
+}
+
+function saveBoundedCache(cache, key, payload, maxEntries) {
+  cache.delete(key);
+  cache.set(key, payload);
+  while (cache.size > maxEntries) cache.delete(cache.keys().next().value);
+}
+
+function normalizedBoardRow(row) {
+  const leaderMarket = Number(row.f141);
+  const leaderCode = row.f140 == null ? '' : String(row.f140);
+  return {
+    code:String(row.f12 || ''), name:String(row.f14 || ''), price:eastmoneyNumber(row.f2),
+    pct:eastmoneyNumber(row.f3), change:eastmoneyNumber(row.f4), turnover:eastmoneyNumber(row.f8),
+    marketCap:eastmoneyNumber(row.f20), mainNetInflow:eastmoneyNumber(row.f62),
+    upCount:eastmoneyNumber(row.f104), downCount:eastmoneyNumber(row.f105),
+    leader:{
+      name:String(row.f128 || ''), code:leaderCode,
+      symbol:leaderCode && (leaderMarket === 0 || leaderMarket === 1)
+        ? `${leaderMarket === 1 ? 'sh' : 'sz'}${leaderCode}` : '',
+      pct:eastmoneyNumber(row.f136),
+    },
+  };
+}
+
+function normalizedBoardStock(row) {
+  const code = String(row.f12 || '');
+  const market = Number(row.f13);
+  const marketPrefix = market === 1 ? 'sh' : market === 0 ? 'sz' : code.startsWith('8') || code.startsWith('4') ? 'bj' : '';
+  const symbol = /^\d{6}$/.test(code) && marketPrefix ? `${marketPrefix}${code}` : '';
+  return {
+    code, symbol, name:String(row.f14 || ''), price:eastmoneyNumber(row.f2),
+    pct:eastmoneyNumber(row.f3), change:eastmoneyNumber(row.f4), volume:eastmoneyNumber(row.f5),
+    amount:eastmoneyNumber(row.f6), turnover:eastmoneyNumber(row.f8), marketCap:eastmoneyNumber(row.f20),
+    floatMarketCap:eastmoneyNumber(row.f21), pb:eastmoneyNumber(row.f23),
+    mainNetInflow:eastmoneyNumber(row.f62), industry:String(row.f100 || ''),
+  };
+}
+
+async function loadBoardList(type, force = false) {
+  const boardType = BOARD_TYPES[type];
+  if (!boardType) throw new Error('Invalid board type');
+  const cached = boardListCache.get(type);
+  if (!force && cached && Date.now() - cached.fetchedAt < BOARD_LIST_CACHE_MS) return cached;
+  if (boardListRefreshes.has(type)) return boardListRefreshes.get(type);
+  const refresh = (async () => {
+    const { rows, total } = await fetchEastmoneyBoardRows({
+      fs:boardType.fs,
+      fields:'f2,f3,f4,f8,f12,f14,f20,f62,f104,f105,f128,f136,f140,f141',
+      pageSize:BOARD_LIST_PAGE_SIZE,
+    });
+    const data = rows.map(normalizedBoardRow).filter(item => item.code && item.name);
+    const payload = { type, label:boardType.label, data, total, fetchedAt:Date.now(), truncated:total > data.length };
+    saveBoundedCache(boardListCache, type, payload, Object.keys(BOARD_TYPES).length);
+    return payload;
+  })();
+  boardListRefreshes.set(type, refresh);
+  try { return await refresh; } finally { boardListRefreshes.delete(type); }
+}
+
+async function loadBoardDetail(code) {
+  const cached = boardDetailCache.get(code);
+  if (cached && Date.now() - cached.fetchedAt < BOARD_DETAIL_CACHE_MS) return cached;
+  if (boardDetailRefreshes.has(code)) return boardDetailRefreshes.get(code);
+  const refresh = (async () => {
+    const { rows, total } = await fetchEastmoneyBoardRows({
+      fs:`b:${code}+f:!50`,
+      fields:'f2,f3,f4,f5,f6,f8,f12,f13,f14,f20,f21,f23,f62,f100',
+      pageSize:BOARD_COMPONENT_PAGE_SIZE,
+    });
+    const stocks = rows.map(normalizedBoardStock).filter(item => item.code && item.name);
+    const payload = {
+      code, total, stocks, fetchedAt:Date.now(), truncated:total > stocks.length,
+    };
+    saveBoundedCache(boardDetailCache, code, payload, 36);
+    return payload;
+  })();
+  boardDetailRefreshes.set(code, refresh);
+  try { return await refresh; } finally { boardDetailRefreshes.delete(code); }
+}
+
+function boardInfoValue(value) {
+  const text = typeof value === 'string' ? value.trim() : '';
+  return text && text !== '--' ? text : '';
+}
+
+async function loadStockBoards(symbol) {
+  if (!isAShareSymbol(symbol)) return { symbol, boards:[], fetchedAt:Date.now() };
+  const cached = stockBoardCache.get(symbol);
+  if (cached && Date.now() - cached.fetchedAt < STOCK_BOARD_CACHE_MS) return cached;
+  if (stockBoardRefreshes.has(symbol)) return stockBoardRefreshes.get(symbol);
+  const refresh = (async () => {
+    const code = `${symbol.startsWith('sh') ? 'SH' : 'SZ'}${symbol.slice(2)}`;
+    const raw = await boardRequestQueue.run(() => requestBuffer(
+      `https://emweb.securities.eastmoney.com/PC_HSF10/CompanySurvey/CompanySurveyAjax?code=${code}`,
+      { ...UPSTREAM_HEADERS, Referer:'https://quote.eastmoney.com/' },
+      { timeoutMs:9000 }
+    ));
+    const info = JSON.parse(raw.toString('utf-8'))?.jbzl || {};
+    const candidates = [
+      ['行业', boardInfoValue(info.sshy)],
+      ['证监会行业', boardInfoValue(info.sszjhhy)],
+      ['市场板块', boardInfoValue(info.zqlb)],
+      ['地域', boardInfoValue(info.qy)],
+    ];
+    const seen = new Set();
+    const boards = candidates.filter(([, name]) => {
+      if (!name || seen.has(name)) return false;
+      seen.add(name);
+      return true;
+    }).map(([kind, name]) => ({ kind, name }));
+    const payload = { symbol, boards, fetchedAt:Date.now() };
+    saveBoundedCache(stockBoardCache, symbol, payload, 240);
+    return payload;
+  })();
+  stockBoardRefreshes.set(symbol, refresh);
+  try { return await refresh; } finally { stockBoardRefreshes.delete(symbol); }
+}
+
+async function proxyBoardList(urlObj, res) {
+  const type = urlObj.searchParams.get('type') || 'industry';
+  if (!BOARD_TYPES[type]) { sendJson(res, 400, { data:[], error:'Invalid board type' }); return; }
+  try {
+    sendJson(res, 200, await loadBoardList(type, urlObj.searchParams.has('refresh')));
+  } catch (error) {
+    console.error(`Board list error (${type}):`, error.message);
+    sendJson(res, 502, { data:[], error:'板块行情暂时不可用' });
+  }
+}
+
+async function proxyBoardDetail(urlObj, res) {
+  const code = (urlObj.searchParams.get('code') || '').toUpperCase();
+  if (!/^BK\d{4,6}$/.test(code)) { sendJson(res, 400, { stocks:[], error:'Invalid board code' }); return; }
+  try {
+    sendJson(res, 200, await loadBoardDetail(code));
+  } catch (error) {
+    console.error(`Board detail error (${code}):`, error.message);
+    sendJson(res, 502, { stocks:[], error:'板块成分股暂时不可用' });
+  }
+}
+
+async function proxyStockBoards(urlObj, res) {
+  const symbol = urlObj.searchParams.get('sym') || '';
+  if (!isAShareSymbol(symbol)) { sendJson(res, 400, { boards:[], error:'仅支持 A 股板块信息' }); return; }
+  try {
+    sendJson(res, 200, await loadStockBoards(symbol));
+  } catch (error) {
+    console.error(`Stock board error (${symbol}):`, error.message);
+    sendJson(res, 502, { boards:[], error:'个股板块信息暂时不可用' });
+  }
+}
+
 async function proxyFundFlowHistory(urlObj, res) {
   const symbol = urlObj.searchParams.get('sym') || '';
   if (!isAShareSymbol(symbol)) { sendJson(res, 400, { data:[], error:'仅支持 A 股主力资金数据' }); return; }
@@ -745,6 +951,21 @@ const server = http.createServer(async (req, res) => {
 
   if (pathname === '/api/markets') {
     proxyGlobalMarkets(res);
+    return;
+  }
+
+  if (pathname === '/api/boards') {
+    await proxyBoardList(urlObj, res);
+    return;
+  }
+
+  if (pathname === '/api/board') {
+    await proxyBoardDetail(urlObj, res);
+    return;
+  }
+
+  if (pathname === '/api/stock-boards') {
+    await proxyStockBoards(urlObj, res);
     return;
   }
 

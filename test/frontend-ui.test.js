@@ -7,6 +7,7 @@ const path = require('node:path');
 const vm = require('node:vm');
 
 const html = fs.readFileSync(path.join(__dirname, '..', 'public', 'index.html'), 'utf8');
+const floatHtml = fs.readFileSync(path.join(__dirname, '..', 'public', 'float.html'), 'utf8');
 const referenceHtml = fs.readFileSync(path.join(__dirname, '..', 'public', 'reference.html'), 'utf8');
 const referenceReaderScript = fs.readFileSync(path.join(__dirname, '..', 'public', 'reference-reader.js'), 'utf8');
 const serverSource = fs.readFileSync(path.join(__dirname, '..', 'server.js'), 'utf8');
@@ -201,12 +202,74 @@ test('standalone and in-page reference views share the same renderer', () => {
 });
 
 test('all app pages support direct URL navigation and browser history', () => {
-  assert.match(html, /const APP_PAGES = \['market','ipo','alerts','notes','reference','sites','ai','user-ai-models','admin-users','admin-sites','admin-ai'\]/);
+  assert.match(html, /const APP_PAGES = \['market','boards','ipo','alerts','notes','reference','sites','ai','user-ai-models','admin-users','admin-sites','admin-ai'\]/);
   assert.match(html, /document\.title = '深度学习';/);
   assert.doesNotMatch(html, /APP_PAGE_TITLES/);
   assert.match(html, /history\.pushState\(\{ page \}, '', url\)/);
   assert.match(html, /addEventListener\('popstate'/);
   assert.match(html, /aria-current/);
+});
+
+test('board market page exposes sector categories, rankings, and stock drill-down', () => {
+  assert.match(html, /data-page="boards"[^>]*onclick="switchAppPage\('boards'\)"/);
+  assert.match(html, /id="page-boards"/);
+  assert.match(html, /data-board-type="industry"/);
+  assert.match(html, /data-board-type="concept"/);
+  assert.match(html, /data-board-type="region"/);
+  assert.match(html, /涨幅前十/);
+  assert.match(html, /跌幅前十/);
+  assert.match(html, /资金流入前五/);
+  assert.match(html, /function openBoardStock\(symbol\)/);
+  assert.match(html, /id="stock-board-context"/);
+  assert.match(html, /function loadStockBoards\(sym\)/);
+  assert.match(serverSource, /const BOARD_TYPES = \{/);
+  assert.match(serverSource, /pathname === '\/api\/boards'/);
+  assert.match(serverSource, /pathname === '\/api\/board'/);
+  assert.match(serverSource, /pathname === '\/api\/stock-boards'/);
+  assert.match(serverSource, /CompanySurveyAjax\?code=/);
+
+  const start = html.indexOf('function boardNumber');
+  const end = html.indexOf('function filteredBoardRows', start);
+  assert.ok(start >= 0 && end > start);
+  const context = {
+    sign:value => Number(value) > 0 ? '+' : '',
+    cls:value => Number(value) > 0 ? 'up' : Number(value) < 0 ? 'down' : 'flat',
+  };
+  vm.createContext(context);
+  vm.runInContext(`${html.slice(start, end)}\nthis.boardPctForTest = boardPct; this.boardMoneyForTest = boardMoney;`, context);
+  assert.equal(context.boardPctForTest(3.2), '+3.20%');
+  assert.equal(context.boardPctForTest(-1.25), '-1.25%');
+  assert.equal(context.boardMoneyForTest(123000000), '+1.23亿');
+});
+
+test('float window is a controllable watchlist dashboard and can drill into stock details', () => {
+  assert.match(html, /market-tool-label">盯盘浮窗/);
+  assert.match(html, /浮窗被浏览器拦截/);
+  assert.match(html, /event\.data\?\.type === 'stock-float-open'/);
+  assert.match(html, /\^\(\?:sh\|sz\|hk\|us\)\[a-zA-Z0-9\._-\]\+\$/);
+  assert.match(floatHtml, /自选盯盘/);
+  assert.match(floatHtml, /id="summary-up"/);
+  assert.match(floatHtml, /id="summary-leader"/);
+  assert.match(floatHtml, /data-sort="order"/);
+  assert.match(floatHtml, /data-sort="pct"/);
+  assert.match(floatHtml, /id="refresh-interval"/);
+  assert.match(floatHtml, /function openStock\(symbol\)/);
+  assert.match(floatHtml, /stock-float-open/);
+  assert.match(floatHtml, /quoteRefreshQueued/);
+  assert.match(floatHtml, /document\.addEventListener\('visibilitychange'/);
+
+  const start = floatHtml.indexOf('function sortFloatRows');
+  const end = floatHtml.indexOf('function renderSummary', start);
+  assert.ok(start >= 0 && end > start);
+  const context = { sortMode:'pct' };
+  vm.createContext(context);
+  vm.runInContext(`${floatHtml.slice(start, end)}\nthis.sortFloatRowsForTest = sortFloatRows;`, context);
+  const sorted = JSON.parse(JSON.stringify(context.sortFloatRowsForTest([
+    { symbol:'sh600519', quote:{ pct:-1.2 } },
+    { symbol:'usAAPL', quote:{ pct:1.8 } },
+    { symbol:'sz000001', quote:null },
+  ])));
+  assert.deepEqual(sorted.map(item => item.symbol), ['usAAPL', 'sh600519', 'sz000001']);
 });
 
 test('IPO calendar labels each stock board', () => {
