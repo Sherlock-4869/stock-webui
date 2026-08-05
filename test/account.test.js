@@ -7,7 +7,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { AccountService } = require('../account/service');
 const {
-  MemoryAccountDatabase, SCHEMA_STATEMENTS, ensureSiteRecommendationVisibilitySchema, ensureAvatarSchema,
+  FUND_FLOW_HISTORY_CACHE_RETENTION_MS, MemoryAccountDatabase, SCHEMA_STATEMENTS, ensureSiteRecommendationVisibilitySchema, ensureAvatarSchema,
 } = require('../account/database');
 const { hashPassword, verifyPassword, sanitizePageConfig } = require('../account/security');
 
@@ -81,6 +81,20 @@ test('page config keeps only supported LocalStorage keys', () => {
     watchlist_v1:'["sh600519"]',
     stock_theme_v1:'light',
   } });
+});
+
+test('memory account cleanup removes stale fund flow history cache entries', async () => {
+  const database = new MemoryAccountDatabase();
+  await database.saveFundFlowHistoryCache('sh600519', {
+    data:[{ date:'2026-07-01', mainNet:1 }], source:'test',
+    fetchedAt:new Date(Date.now() - FUND_FLOW_HISTORY_CACHE_RETENTION_MS - 1000),
+  });
+  await database.saveFundFlowHistoryCache('sz000001', {
+    data:[{ date:'2026-08-01', mainNet:2 }], source:'test', fetchedAt:new Date(),
+  });
+  await database.cleanup();
+  assert.equal(await database.getFundFlowHistoryCache('sh600519'), null);
+  assert.equal((await database.getFundFlowHistoryCache('sz000001')).data[0].mainNet, 2);
 });
 
 test('site recommendations start empty and remain publicly readable', async t => {

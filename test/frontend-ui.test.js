@@ -335,6 +335,12 @@ test('fund flow chart clearly marks today-only or stale-cache degradation', () =
   assert.match(html, /d\.meta\.message \|\| '历史数据正在后台刷新，当前展示已保存数据'/);
 });
 
+test('five-day main flow is shown only in the fund flow panel, not list metrics', () => {
+  assert.match(html, /\['近五日累计', fmtMetricMoney\(latest\.mainFiveDay\)/);
+  assert.doesNotMatch(html, /main_five_day|metric-main-five-day|value="main_five_day"/);
+  assert.doesNotMatch(serverSource, /includeFiveDay|fiveDay/);
+});
+
 test('chat UI loads persisted history upward while bounding rendered content', () => {
   assert.match(html, /const CHAT_MAX_RENDERED_MESSAGES = 500;/);
   assert.match(html, /const CHAT_MAX_RENDERED_IMAGES = 50;/);

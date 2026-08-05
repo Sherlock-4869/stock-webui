@@ -174,7 +174,7 @@ tr:hover td{background:#1c2128}
 .settings-avatar-row{display:flex;align-items:center;gap:10px;margin-top:13px;padding:10px;border:1px solid #30363d;border-radius:7px;background:#0d111766}.settings-avatar-row .account-avatar{width:46px;height:46px;font-size:16px}.settings-avatar-copy{min-width:0;flex:1}.settings-avatar-title{font-size:12px;font-weight:650}.settings-avatar-actions{display:flex;flex:none;gap:6px}.settings-avatar-btn{border:1px solid #30363d;border-radius:6px;background:#21262d;color:#c9d1d9;padding:6px 8px;font-size:11px;cursor:pointer}.settings-avatar-btn:hover{border-color:#58a6ff;color:#79c0ff}.settings-avatar-btn.danger{color:#ff7b72}.settings-avatar-btn:disabled{opacity:.5;cursor:not-allowed}.avatar-upload-input{display:none}
 .auth-tab{background:transparent}
 .metric-option-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:14px}.metric-option{display:flex;align-items:flex-start;gap:10px;padding:11px 12px;border:1px solid #30363d;border-radius:7px;background:#1c2128;cursor:pointer}.metric-option input{margin-top:2px;accent-color:#238636}.metric-option strong{display:block;font-size:13px}.metric-option small{display:block;margin-top:3px;color:#6e7681;font-size:10px;line-height:1.4}
-.optional-column{display:none}#stock-table.show-pe .metric-pe,#stock-table.show-pb .metric-pb,#stock-table.show-bvps .metric-bvps,#stock-table.show-dividend .metric-dividend,#stock-table.show-turnover .metric-turnover,#stock-table.show-volume-ratio .metric-volume-ratio,#stock-table.show-total-market-cap .metric-total-market-cap,#stock-table.show-float-market-cap .metric-float-market-cap,#stock-table.show-roe .metric-roe,#stock-table.show-net-profit-growth .metric-net-profit-growth,#stock-table.show-gross-margin .metric-gross-margin,#stock-table.show-revenue-growth .metric-revenue-growth,#stock-table.show-main-net-inflow .metric-main-net-inflow,#stock-table.show-main-net-ratio .metric-main-net-ratio,#stock-table.show-main-five-day .metric-main-five-day,#stock-table.show-super-large-net .metric-super-large-net,#stock-table.show-large-net .metric-large-net{display:table-cell}
+.optional-column{display:none}#stock-table.show-pe .metric-pe,#stock-table.show-pb .metric-pb,#stock-table.show-bvps .metric-bvps,#stock-table.show-dividend .metric-dividend,#stock-table.show-turnover .metric-turnover,#stock-table.show-volume-ratio .metric-volume-ratio,#stock-table.show-total-market-cap .metric-total-market-cap,#stock-table.show-float-market-cap .metric-float-market-cap,#stock-table.show-roe .metric-roe,#stock-table.show-net-profit-growth .metric-net-profit-growth,#stock-table.show-gross-margin .metric-gross-margin,#stock-table.show-revenue-growth .metric-revenue-growth,#stock-table.show-main-net-inflow .metric-main-net-inflow,#stock-table.show-main-net-ratio .metric-main-net-ratio,#stock-table.show-super-large-net .metric-super-large-net,#stock-table.show-large-net .metric-large-net{display:table-cell}
 #stock-table.has-optional{min-width:calc(1100px + var(--metric-table-width,0px))}
 html.metrics-scroll .table-wrapper{position:relative;isolation:isolate;max-width:100%;overflow-x:auto;overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch;border:1px solid #30363d;border-radius:8px;scrollbar-color:#484f58 #21262d;scrollbar-width:auto}
 html.metrics-scroll .table-wrapper::-webkit-scrollbar{height:12px}
@@ -620,7 +620,7 @@ button:focus-visible,a:focus-visible,select:focus-visible,input:focus-visible,te
         <th>代码</th><th>名称</th><th>最新价</th>
         <th>涨跌额</th><th>涨跌幅</th><th>今开</th>
         <th>昨收</th><th>最高</th><th>最低</th>
-        <th>成交量(手)</th><th>成交额(万)</th><th class="optional-column metric-pe" title="A 股采用动态市盈率；亏损时显示 --">市盈率(动)</th><th class="optional-column metric-pb">市净率</th><th class="optional-column metric-bvps" title="根据最新价和市净率计算">每股净资产</th><th class="optional-column metric-dividend">股息率</th><th class="optional-column metric-turnover">换手率</th><th class="optional-column metric-volume-ratio">量比</th><th class="optional-column metric-total-market-cap">总市值</th><th class="optional-column metric-float-market-cap">流通市值</th><th class="optional-column metric-roe">ROE</th><th class="optional-column metric-net-profit-growth">净利润增速</th><th class="optional-column metric-gross-margin">毛利率</th><th class="optional-column metric-revenue-growth">营收增速</th><th class="optional-column metric-main-net-inflow">主力流入</th><th class="optional-column metric-main-net-ratio">主力净额占成交比</th><th class="optional-column metric-main-five-day">近五日主力累计</th><th class="optional-column metric-super-large-net">超大单净额</th><th class="optional-column metric-large-net">大单净额</th><th>操作</th>
+        <th>成交量(手)</th><th>成交额(万)</th><th class="optional-column metric-pe" title="A 股采用动态市盈率；亏损时显示 --">市盈率(动)</th><th class="optional-column metric-pb">市净率</th><th class="optional-column metric-bvps" title="根据最新价和市净率计算">每股净资产</th><th class="optional-column metric-dividend">股息率</th><th class="optional-column metric-turnover">换手率</th><th class="optional-column metric-volume-ratio">量比</th><th class="optional-column metric-total-market-cap">总市值</th><th class="optional-column metric-float-market-cap">流通市值</th><th class="optional-column metric-roe">ROE</th><th class="optional-column metric-net-profit-growth">净利润增速</th><th class="optional-column metric-gross-margin">毛利率</th><th class="optional-column metric-revenue-growth">营收增速</th><th class="optional-column metric-main-net-inflow">主力流入</th><th class="optional-column metric-main-net-ratio">主力净额占成交比</th><th class="optional-column metric-super-large-net">超大单净额</th><th class="optional-column metric-large-net">大单净额</th><th>操作</th>
       </tr>
     </thead>
     <tbody id="tbody"><tr><td colspan="12" class="empty">暂无自选股，请添加</td></tr></tbody>
@@ -861,7 +861,6 @@ button:focus-visible,a:focus-visible,select:focus-visible,input:focus-visible,te
       <label class="metric-option"><input type="checkbox" value="revenue_growth"><span><strong>营收增速</strong><small>A 股最新报告期营业总收入同比增速</small></span></label>
       <label class="metric-option"><input type="checkbox" value="main_net_inflow"><span><strong>主力流入</strong><small>A 股当日主力资金净流入；流出时为负值</small></span></label>
       <label class="metric-option"><input type="checkbox" value="main_net_ratio"><span><strong>主力净额占成交比</strong><small>A 股主力净额占当日成交额的比例</small></span></label>
-      <label class="metric-option"><input type="checkbox" value="main_five_day"><span><strong>近五日主力累计</strong><small>A 股最近五个交易日主力净额合计</small></span></label>
       <label class="metric-option"><input type="checkbox" value="super_large_net"><span><strong>超大单净额</strong><small>A 股当日超大单资金净流入额</small></span></label>
       <label class="metric-option"><input type="checkbox" value="large_net"><span><strong>大单净额</strong><small>A 股当日大单资金净流入额</small></span></label>
     </div>
@@ -998,7 +997,6 @@ const OPTIONAL_METRICS = [
   { key:'revenue_growth', dataKey:'revenueGrowth', kind:'percentTone', source:'fundamentals' },
   { key:'main_net_inflow', dataKey:'mainNetInflow', kind:'money', source:'flow' },
   { key:'main_net_ratio', dataKey:'mainNetRatio', kind:'percentTone', source:'flow' },
-  { key:'main_five_day', dataKey:'mainFiveDay', kind:'money', source:'fiveDay' },
   { key:'super_large_net', dataKey:'superLargeNet', kind:'money', source:'flow' },
   { key:'large_net', dataKey:'largeNet', kind:'money', source:'flow' },
 ];
@@ -1573,7 +1571,6 @@ async function fetchExtendedMetrics(symbols = [...watchlist]) {
   if (sources.has('valuation')) params.set('valuation', '1');
   if (sources.has('fundamentals')) params.set('fundamentals', '1');
   if (sources.has('flow')) params.set('flow', '1');
-  if (sources.has('fiveDay')) params.set('fiveDay', '1');
   try {
     const response = await fetch(`/api/stock-metrics?${params}`);
     if (!response.ok) throw new Error('stock metrics request failed');
@@ -1652,8 +1649,7 @@ function renderOptionalMetricCells(sym, quote) {
     const titleText = metric.source === 'valuation'
       ? `动态市盈率${extended.valuationDate ? ` · 行情日期：${extended.valuationDate}` : ''}；亏损时不展示`
       : metric.source === 'fundamentals' ? reportTitle
-      : metric.source === 'flow' && extended.flowDate ? `资金日期：${extended.flowDate}`
-        : metric.source === 'fiveDay' && extended.mainFiveDayDate ? `统计截至：${extended.mainFiveDayDate}` : '';
+        : metric.source === 'flow' && extended.flowDate ? `资金日期：${extended.flowDate}` : '';
     const title = titleText ? ` title="${escapeHtml(titleText)}"` : '';
     return `<td class="optional-column metric-${metric.key.replaceAll('_','-')}${tone}"${title}>${metricValue(metric, value)}</td>`;
   }).join('');

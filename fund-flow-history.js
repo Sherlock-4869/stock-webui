@@ -5,6 +5,43 @@ const DEFAULT_RETRY_DELAY_MS = 250;
 const DEFAULT_ATTEMPTS = 3;
 const DEFAULT_MAX_ENTRIES = 500;
 
+function createAsyncTaskQueue({ concurrency = 4, maxQueued = 120 } = {}) {
+  const maxActive = Math.max(1, Math.floor(Number(concurrency) || 1));
+  const maxWaiting = Math.max(0, Math.floor(Number(maxQueued) || 0));
+  const queue = [];
+  let active = 0;
+
+  function drain() {
+    while (active < maxActive && queue.length) {
+      const { task, resolve, reject } = queue.shift();
+      active += 1;
+      Promise.resolve()
+        .then(task)
+        .then(resolve, reject)
+        .finally(() => {
+          active -= 1;
+          drain();
+        });
+    }
+  }
+
+  function run(task) {
+    if (typeof task !== 'function') return Promise.reject(new TypeError('queue task must be a function'));
+    if (queue.length >= maxWaiting && active >= maxActive) {
+      return Promise.reject(new Error('Fund flow history request queue is full'));
+    }
+    return new Promise((resolve, reject) => {
+      queue.push({ task, resolve, reject });
+      drain();
+    });
+  }
+
+  return {
+    run,
+    info: () => ({ active, queued:queue.length, concurrency:maxActive, maxQueued:maxWaiting }),
+  };
+}
+
 function numberOrNull(value) {
   if (value === '' || value == null) return null;
   const number = Number(value);
@@ -34,6 +71,42 @@ function parseFundFlowHistoryPayload(payload) {
     };
   }).filter(item => item.date && Number.isFinite(item.mainNet));
   if (!data.length) throw new Error('Fund flow history is empty');
+  return data;
+}
+
+function parseSinaFundFlowHistoryPayload(rows) {
+  const data = (Array.isArray(rows) ? rows : []).map(row => {
+    const superLargeNet = numberOrNull(row?.r0_net);
+    const largeNet = numberOrNull(row?.r1_net);
+    const mediumNet = numberOrNull(row?.r2_net);
+    const smallNet = numberOrNull(row?.r3_net);
+    const mainNet = Number.isFinite(superLargeNet) && Number.isFinite(largeNet)
+      ? superLargeNet + largeNet
+      : numberOrNull(row?.netamount);
+    const totalAmount = ['r0', 'r1', 'r2', 'r3']
+      .map(key => numberOrNull(row?.[key]))
+      .filter(Number.isFinite)
+      .reduce((sum, value) => sum + value, 0);
+    const ratio = value => Number.isFinite(value) && totalAmount > 0 ? value / totalAmount * 100 : null;
+    const changeRatio = numberOrNull(row?.changeratio);
+    return {
+      date:row?.opendate,
+      mainNet,
+      smallNet,
+      mediumNet,
+      largeNet,
+      superLargeNet,
+      mainRatio:ratio(mainNet),
+      smallRatio:ratio(smallNet),
+      mediumRatio:ratio(mediumNet),
+      largeRatio:ratio(largeNet),
+      superLargeRatio:ratio(superLargeNet),
+      close:numberOrNull(row?.trade),
+      pct:changeRatio == null ? null : changeRatio * 100,
+    };
+  }).filter(item => item.date && Number.isFinite(item.mainNet))
+    .sort((a, b) => String(a.date).localeCompare(String(b.date)));
+  if (!data.length) throw new Error('Sina fund flow history is empty');
   return data;
 }
 
@@ -111,7 +184,9 @@ function createFundFlowHistoryLoader({
           const result = await fetchPayload(symbol);
           const payload = result?.payload || result;
           const source = result?.source || 'upstream';
-          const data = parseFundFlowHistoryPayload(payload);
+          const data = Array.isArray(result?.data)
+            ? result.data
+            : parseFundFlowHistoryPayload(payload);
           store(symbol, data, { source });
           try {
             await savePersisted(symbol, { data, source, fetchedAt:new Date(now()) });
@@ -159,8 +234,10 @@ function createFundFlowHistoryLoader({
 }
 
 module.exports = {
+  createAsyncTaskQueue,
   createFundFlowHistoryLoader,
   mergeFundFlowHistory,
   parseFundFlowHistoryPayload,
+  parseSinaFundFlowHistoryPayload,
   DEFAULT_FRESH_MS,
 };

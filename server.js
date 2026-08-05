@@ -6,7 +6,12 @@ const { createWechatService } = require('./wechat/service');
 const { createAccountService } = require('./account/service');
 const { createAiService } = require('./ai/service');
 const { createChatService } = require('./chat/chat');
-const { createFundFlowHistoryLoader, mergeFundFlowHistory } = require('./fund-flow-history');
+const {
+  createAsyncTaskQueue,
+  createFundFlowHistoryLoader,
+  mergeFundFlowHistory,
+  parseSinaFundFlowHistoryPayload,
+} = require('./fund-flow-history');
 
 const PORT = 3000;
 const PUBLIC_DIR = path.join(__dirname, 'public');
@@ -49,6 +54,7 @@ const REALTIME_VALUATION_CACHE_MS = 4500;
 const fundamentalCache = new Map();
 const realtimeFundFlowCache = new Map();
 const realtimeValuationCache = new Map();
+const fundFlowHistoryRequestQueue = createAsyncTaskQueue({ concurrency:4, maxQueued:120 });
 
 function serveFile(res, filePath) {
   fs.readFile(filePath, (err, data) => {
@@ -163,18 +169,44 @@ async function fetchFundFlowHistoryPayload(symbol) {
   const fields1 = 'f1,f2,f3,f7';
   const fields2 = 'f51,f52,f53,f54,f55,f56,f57,f58,f59,f60,f61,f62,f63';
   const query = `secid=${eastmoneySecId(symbol)}&lmt=120&klt=101&fields1=${fields1}&fields2=${fields2}`;
-  const sources = [
+  const eastmoneySources = [
     { name:'eastmoney-daykline', path:'daykline/get', timeoutMs:5000 },
     { name:'eastmoney-kline-fallback', path:'kline/get', timeoutMs:8000 },
   ];
   const errors = [];
-  for (const source of sources) {
+  for (const source of eastmoneySources.slice(0, 1)) {
     try {
-      const raw = await requestBuffer(
+      const raw = await fundFlowHistoryRequestQueue.run(() => requestBuffer(
         `https://push2his.eastmoney.com/api/qt/stock/fflow/${source.path}?${query}`,
         { ...UPSTREAM_HEADERS, Referer:'https://quote.eastmoney.com/' },
         { timeoutMs:source.timeoutMs }
-      );
+      ));
+      const payload = JSON.parse(raw.toString('utf-8'));
+      if (Number(payload?.rc) !== 0 || !Array.isArray(payload?.data?.klines) || !payload.data.klines.length) {
+        throw new Error(`invalid payload rc=${payload?.rc ?? 'unknown'}`);
+      }
+      return { payload, source:source.name };
+    } catch (error) {
+      errors.push(`${source.name}: ${error.message}`);
+    }
+  }
+  try {
+    const raw = await fundFlowHistoryRequestQueue.run(() => requestBuffer(
+      `https://money.finance.sina.com.cn/quotes_service/api/json_v2.php/MoneyFlow.ssl_qsfx_lscjfb?page=1&num=120&sort=opendate&asc=0&daima=${symbol}`,
+      { ...UPSTREAM_HEADERS, Referer:'https://money.finance.sina.com.cn/' },
+      { timeoutMs:8000 }
+    ));
+    return { data:parseSinaFundFlowHistoryPayload(JSON.parse(raw.toString('utf-8'))), source:'sina-money-flow' };
+  } catch (error) {
+    errors.push(`sina-money-flow: ${error.message}`);
+  }
+  for (const source of eastmoneySources.slice(1)) {
+    try {
+      const raw = await fundFlowHistoryRequestQueue.run(() => requestBuffer(
+        `https://push2his.eastmoney.com/api/qt/stock/fflow/${source.path}?${query}`,
+        { ...UPSTREAM_HEADERS, Referer:'https://quote.eastmoney.com/' },
+        { timeoutMs:source.timeoutMs }
+      ));
       const payload = JSON.parse(raw.toString('utf-8'));
       if (Number(payload?.rc) !== 0 || !Array.isArray(payload?.data?.klines) || !payload.data.klines.length) {
         throw new Error(`invalid payload rc=${payload?.rc ?? 'unknown'}`);
@@ -439,10 +471,6 @@ async function loadFundFlowHistoryResult(symbol) {
   };
 }
 
-async function loadFundFlowHistory(symbol) {
-  return (await loadFundFlowHistoryResult(symbol)).data;
-}
-
 async function proxyStockMetrics(urlObj, res) {
   const symbols = [...new Set((urlObj.searchParams.get('symbols') || '').split(',')
     .filter(symbol => /^[a-zA-Z0-9._-]+$/.test(symbol)))]
@@ -451,7 +479,6 @@ async function proxyStockMetrics(urlObj, res) {
   const includeFundamentals = urlObj.searchParams.get('fundamentals') === '1';
   const includeValuation = urlObj.searchParams.get('valuation') === '1';
   const includeFlow = urlObj.searchParams.get('flow') === '1';
-  const includeFiveDay = urlObj.searchParams.get('fiveDay') === '1';
   const data = Object.fromEntries(symbols.map(symbol => [symbol, {}]));
 
   const [fundamentals, valuations, flow] = await Promise.all([
@@ -461,25 +488,6 @@ async function proxyStockMetrics(urlObj, res) {
   ]);
   symbols.forEach(symbol => Object.assign(data[symbol], fundamentals[symbol], valuations[symbol], flow[symbol]));
 
-  if (includeFiveDay) {
-    const queue = symbols.filter(isAShareSymbol);
-    const workers = Array.from({ length:Math.min(6, queue.length) }, async () => {
-      while (queue.length) {
-        const symbol = queue.shift();
-        try {
-          const history = await loadFundFlowHistory(symbol);
-          const lastFive = history.slice(-5).map(item => item.mainNet).filter(Number.isFinite);
-          if (lastFive.length) {
-            data[symbol].mainFiveDay = lastFive.reduce((sum, value) => sum + value, 0);
-            data[symbol].mainFiveDayDate = history[history.length - 1]?.date || null;
-          }
-        } catch (error) {
-          console.error(`Five-day fund flow error (${symbol}):`, error.message);
-        }
-      }
-    });
-    await Promise.all(workers);
-  }
   sendJson(res, 200, { data, fetchedAt:Date.now() });
 }
 

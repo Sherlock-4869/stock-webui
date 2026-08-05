@@ -2,6 +2,9 @@
 
 const mysql = require('mysql2/promise');
 
+const FUND_FLOW_HISTORY_CACHE_RETENTION_DAYS = 30;
+const FUND_FLOW_HISTORY_CACHE_RETENTION_MS = FUND_FLOW_HISTORY_CACHE_RETENTION_DAYS * 24 * 60 * 60 * 1000;
+
 const SCHEMA_STATEMENTS = [
   `CREATE TABLE IF NOT EXISTS users (
     id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -1099,6 +1102,10 @@ class AccountDatabase {
   async cleanup() {
     await this.requirePool().query('DELETE FROM user_sessions WHERE expires_at<=NOW()');
     await this.requirePool().query('DELETE FROM user_oauth_states WHERE expires_at<=NOW() OR consumed_at IS NOT NULL');
+    await this.requirePool().query(
+      `DELETE FROM stock_fund_flow_history_cache
+       WHERE fetched_at < DATE_SUB(NOW(), INTERVAL ${FUND_FLOW_HISTORY_CACHE_RETENTION_DAYS} DAY)`
+    );
   }
 }
 
@@ -1665,6 +1672,12 @@ class MemoryAccountDatabase {
     const now = Date.now();
     for (const [key, session] of this.sessions) if (new Date(session.session_expires_at).getTime() <= now) this.sessions.delete(key);
     for (const [key, state] of this.states) if (state.consumed_at || new Date(state.expires_at).getTime() <= now) this.states.delete(key);
+    for (const [symbol, value] of this.fundFlowHistoryCache) {
+      const fetchedAt = new Date(value?.fetchedAt || 0).getTime();
+      if (!Number.isFinite(fetchedAt) || now - fetchedAt > FUND_FLOW_HISTORY_CACHE_RETENTION_MS) {
+        this.fundFlowHistoryCache.delete(symbol);
+      }
+    }
   }
 }
 
@@ -1676,5 +1689,7 @@ module.exports = {
   ensureSiteRecommendationVisibilitySchema,
   ensureNoteFolderSchema,
   ensureAvatarSchema,
+  FUND_FLOW_HISTORY_CACHE_RETENTION_DAYS,
+  FUND_FLOW_HISTORY_CACHE_RETENTION_MS,
   ensureUserAiModelSchema,
 };
