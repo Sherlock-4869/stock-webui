@@ -514,8 +514,11 @@ function eastmoneyNumber(value) {
   return Number.isFinite(number) ? number : null;
 }
 
-function eastmoneyBoardUrl({ fs, fields, pageSize, pageNumber = 1 }) {
-  return 'https://push2.eastmoney.com/api/qt/clist/get?' + new URLSearchParams({
+// 板块行情主源与延迟镜像：push2 被风控断连时自动降级到 push2delay（约延迟 15 分钟）。
+const EASTMONEY_BOARD_HOSTS = ['https://push2.eastmoney.com', 'https://push2delay.eastmoney.com'];
+
+function eastmoneyBoardUrl({ fs, fields, pageSize, pageNumber = 1, host = EASTMONEY_BOARD_HOSTS[0] }) {
+  return `${host}/api/qt/clist/get?` + new URLSearchParams({
     pn:String(pageNumber), pz:String(pageSize), po:'1', np:'1', fltt:'2', invt:'2', fid:'f3', fs, fields,
   });
 }
@@ -523,9 +526,9 @@ function eastmoneyBoardUrl({ fs, fields, pageSize, pageNumber = 1 }) {
 async function fetchEastmoneyBoardRows({ fs, fields, pageSize }) {
   const upstreamPageSize = 100;
   const requestedRows = Math.min(Math.max(Number(pageSize) || upstreamPageSize, 1), 1000);
-  const loadPage = async pageNumber => {
+  const loadPage = async (pageNumber, host) => {
     const raw = await boardRequestQueue.run(() => requestBuffer(eastmoneyBoardUrl({
-      fs, fields, pageSize:upstreamPageSize, pageNumber,
+      fs, fields, pageSize:upstreamPageSize, pageNumber, host,
     }), {
       ...UPSTREAM_HEADERS,
       Referer:'https://quote.eastmoney.com/',
@@ -536,15 +539,25 @@ async function fetchEastmoneyBoardRows({ fs, fields, pageSize }) {
     }
     return { rows:payload.data.diff, total:eastmoneyNumber(payload.data.total) || payload.data.diff.length };
   };
-  const firstPage = await loadPage(1);
-  const total = firstPage.total;
-  const rowsToLoad = Math.min(total, requestedRows);
-  const pageCount = Math.ceil(rowsToLoad / upstreamPageSize);
-  if (pageCount === 1) return { rows:firstPage.rows.slice(0, rowsToLoad), total };
-  const laterPages = await Promise.all(
-    Array.from({ length:pageCount - 1 }, (_, index) => loadPage(index + 2))
-  );
-  return { rows:[...firstPage.rows, ...laterPages.flatMap(page => page.rows)].slice(0, rowsToLoad), total };
+  const loadAllPages = async host => {
+    const firstPage = await loadPage(1, host);
+    const total = firstPage.total;
+    const rowsToLoad = Math.min(total, requestedRows);
+    const pageCount = Math.ceil(rowsToLoad / upstreamPageSize);
+    if (pageCount === 1) return { rows:firstPage.rows.slice(0, rowsToLoad), total };
+    const laterPages = await Promise.all(
+      Array.from({ length:pageCount - 1 }, (_, index) => loadPage(index + 2, host))
+    );
+    return { rows:[...firstPage.rows, ...laterPages.flatMap(page => page.rows)].slice(0, rowsToLoad), total };
+  };
+  // push2 主源优先；任意一页断连/超时/无效响应时，整批降级到延迟镜像重试，
+  // 避免"首页成功、后续分页失败"导致请求整体失败。
+  try {
+    return await loadAllPages(EASTMONEY_BOARD_HOSTS[0]);
+  } catch (error) {
+    console.error(`Board host ${EASTMONEY_BOARD_HOSTS[0]} unavailable (${error.message}), falling back to ${EASTMONEY_BOARD_HOSTS[1]}`);
+    return await loadAllPages(EASTMONEY_BOARD_HOSTS[1]);
+  }
 }
 
 function saveBoundedCache(cache, key, payload, maxEntries) {

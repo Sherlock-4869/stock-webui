@@ -194,3 +194,19 @@ public/index.html           | 24 ++++++++++++++----------
 │ ←  │  收起按钮
 └────┘
 ```
+
+## 2026-08-06 板块行情修复（东方财富 push2 风控降级）
+
+### 背景
+- 现象：板块行情页显示"板块行情暂时不可用"，output.log 报 `Board list error (industry): socket hang up`
+- 根因：东方财富 `push2.eastmoney.com` 按源 IP 限流并临时封禁突发请求（官方用户协议亦禁止爬虫抓取，未公开具体速率阈值）；对当前出口断连，`curl`/Node 均复现 `Empty reply / socket hang up`；延迟镜像 `push2delay.eastmoney.com`（约延迟 15 分钟）可用
+
+### 修改（server.js）
+- 新增 `EASTMONEY_BOARD_HOSTS`：主源 push2 + 备用 push2delay
+- `eastmoneyBoardUrl()` 支持传入 host
+- `fetchEastmoneyBoardRows()` 重构：整批请求（含全部分页）先走 push2，任意一页断连/超时/无效响应即整体降级到 push2delay 重试，避免"首页成功、后续分页失败"导致整体失败
+- 板块列表（/api/boards）与板块成分股（/api/board）共用该函数，均获得降级能力
+
+### 验证
+- `npm run check`、`npm test`（81 项）全部通过
+- 正式服务 3 轮轮询 industry + concept + 成分股均 HTTP 200，日志确认降级自动触发
