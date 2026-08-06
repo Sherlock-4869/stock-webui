@@ -3,3 +3,4 @@ node_modules/
 output.log
 npm-debug.log*
 .DS_Store
+.workbuddy/
