@@ -152,7 +152,14 @@ function setRefreshInterval(value) { const interval = Number(value); if (!REFRES
 function setSortMode(mode) { if (!['order','pct'].includes(mode)) return; sortMode = mode; localStorage.setItem(FLOAT_SORT_STORAGE_KEY, mode); document.querySelectorAll('[data-sort]').forEach(button => button.classList.toggle('active', button.dataset.sort === mode)); renderRows(latestRows); }
 function manualRefresh() { fetchAndRender(); }
 function openStock(symbol) { if (!validSymbol(symbol)) return; if (window.opener && !window.opener.closed) { window.opener.postMessage({ type:'stock-float-open', symbol }, location.origin); window.opener.focus(); } else { location.href = '/'; } }
-function returnToMainWindow() { if (window.opener && !window.opener.closed) { window.opener.focus(); return; } location.href = '/'; }
+function returnToMainWindow() {
+  if (window.opener && !window.opener.closed) {
+    try { window.opener.focus(); } catch (_) {}
+    try { window.close(); } catch (_) {}
+    return;
+  }
+  location.href = '/';
+}
 window.addEventListener('storage', event => { if (event.key === THEME_STORAGE_KEY) { themePreference = THEME_PREFERENCES.includes(event.newValue) ? event.newValue : 'dark'; applyTheme(); return; } if (event.key === COLOR_STORAGE_KEY) { showListColors = event.newValue !== 'false'; renderRows(latestRows); return; } if (event.key === REFRESH_INTERVAL_STORAGE_KEY) { const interval = Number(event.newValue); if (REFRESH_INTERVAL_OPTIONS.includes(interval)) { refreshIntervalMs = interval; document.getElementById('refresh-interval').value = String(interval); startAutoRefresh(); } return; } if ([GROUPS_STORAGE_KEY, ACTIVE_GROUP_STORAGE_KEY, STORAGE_KEY].includes(event.key)) fetchAndRender(); });
 systemThemeQuery.addEventListener?.('change', () => { if (themePreference === 'system') applyTheme(); });
 document.addEventListener('visibilitychange', () => { startAutoRefresh(); if (!document.hidden) fetchAndRender(); });

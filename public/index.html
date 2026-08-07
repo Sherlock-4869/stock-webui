@@ -197,6 +197,7 @@ html.metrics-scroll #stock-table tbody tr:hover td:first-child,html.metrics-scro
 .group-picker-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px}
 .group-picker-meta{flex:none;color:#6e7681;font-size:10px}.group-picker-option.has .group-picker-meta{color:#3fb950}
 #watchlist-add-mask{z-index:210}
+#watchlist-add-mask .dialog-actions .dialog-btn.danger{margin-right:auto}
 .group-list{margin-top:12px;border:1px solid #30363d;border-radius:7px;overflow:hidden}.group-list-row{display:flex;align-items:center;gap:8px;padding:9px 10px;border-top:1px solid #30363d}.group-list-row:first-child{border-top:0}.group-list-name{flex:1}.group-list-meta{font-size:11px;color:#6e7681}
 .market-tag{display:inline-block;font-size:10px;padding:1px 5px;border-radius:3px;font-weight:600;margin-right:4px;vertical-align:middle}
 .tag-a{background:#1f3a5f;color:#79c0ff}
@@ -612,6 +613,7 @@ html[data-theme="light"] .stock-board-tag{border-color:#9bcaf4;background:#e8f4f
     <label class="batch-count"><input type="checkbox" id="select-all" onchange="toggleSelectAll(this.checked)"> 已选择 <strong id="selected-count">0</strong> 只</label>
     <button class="dialog-btn batch-action" onclick="openBatchTransfer('copy')">复制到</button>
     <button class="dialog-btn batch-action" onclick="openBatchTransfer('move')">移动到</button>
+    <button class="dialog-btn danger batch-action" title="从所有分组移除" onclick="openBatchTransfer('remove')">移除全部</button>
     <button class="dialog-btn danger batch-action" onclick="batchDelete()">删除</button>
     <button class="dialog-btn" onclick="toggleSelectionMode(false)">取消</button>
   </div>
@@ -907,9 +909,10 @@ html[data-theme="light"] .stock-board-tag{border-color:#9bcaf4;background:#e8f4f
   <div class="modal dialog-modal" role="dialog" aria-modal="true" aria-labelledby="transfer-title">
     <div class="dialog-title" id="transfer-title">复制或移动股票</div>
     <div class="modal-sub" id="transfer-stock"></div>
-    <div class="form-row"><label for="transfer-mode">操作方式</label><select class="form-select" id="transfer-mode"><option value="copy">复制到（保留当前分组）</option><option value="move">移动到（从当前分组移除）</option></select></div>
-    <div class="form-row"><label for="transfer-target">目标分组</label><select class="form-select" id="transfer-target"></select></div>
-    <div class="dialog-actions"><button class="dialog-btn" onclick="closeTransferDialog()">取消</button><button class="dialog-btn primary" onclick="confirmTransfer()">确认</button></div>
+    <div class="form-row"><label for="transfer-mode">操作方式</label><select class="form-select" id="transfer-mode" onchange="updateTransferMode()"><option value="copy">复制到（保留当前分组）</option><option value="move">移动到（从当前分组移除）</option><option value="remove">从所有分组移除</option></select></div>
+    <div class="form-row" id="transfer-target-row"><label for="transfer-target">目标分组</label><select class="form-select" id="transfer-target"></select></div>
+    <div class="form-row" id="transfer-remove-note" hidden><label>提示</label><div class="settings-hint">将从全部分组中移除所选股票，其他分组不再显示该股。</div></div>
+    <div class="dialog-actions"><button class="dialog-btn" onclick="closeTransferDialog()">取消</button><button class="dialog-btn primary" id="transfer-confirm-btn" onclick="confirmTransfer()">确认</button></div>
   </div>
 </div>
 
@@ -926,8 +929,8 @@ html[data-theme="light"] .stock-board-tag{border-color:#9bcaf4;background:#e8f4f
   <div class="modal dialog-modal" role="dialog" aria-modal="true" aria-labelledby="watchlist-add-title">
     <div class="dialog-title" id="watchlist-add-title">添加到自选</div>
     <div class="modal-sub" id="watchlist-add-stock"></div>
-    <div class="form-row"><label>目标分组</label><div class="group-picker" id="watchlist-add-groups"></div></div>
-    <div class="dialog-actions"><button class="dialog-btn" onclick="closeWatchlistAddDialog()">取消</button><button class="dialog-btn primary" onclick="confirmWatchlistAdd()">添加</button></div>
+    <div class="form-row"><label>选择分组（可多选）</label><div class="group-picker" id="watchlist-add-groups"></div></div>
+    <div class="dialog-actions"><button class="dialog-btn danger" id="watchlist-remove-all-btn" onclick="confirmRemoveFromAllWatchlist()" hidden>从所有分组移除</button><button class="dialog-btn" onclick="closeWatchlistAddDialog()">取消</button><button class="dialog-btn primary" onclick="confirmWatchlistAdd()">保存</button></div>
   </div>
 </div>
 
@@ -1721,7 +1724,7 @@ function renderTable(data) {
     if (!q) return `<tr class="stock-row" data-sym="${sym}" onclick="handleRowClick(event,'${sym}')">
       <td><input class="batch-check" type="checkbox" aria-label="选择 ${sym}" ${selectedSymbols.has(sym)?'checked':''} onclick="event.stopPropagation()" onchange="setStockSelected('${sym}',this.checked)"><span class="drag-handle" title="长按拖动排序" aria-label="拖动排序">⠿</span>${marketTag(sym)}<b>${sym.replace(/^(sh|sz|hk|us)/,'')}</b></td>
       <td colspan="10" style="color:#6e7681">数据加载中...</td>${renderOptionalMetricCells(sym, null)}
-      <td><div class="stock-actions"><button class="del-btn pin-btn" title="置顶" aria-label="将 ${sym} 置顶" ${i===0?'disabled':''} onclick="event.stopPropagation();pinStock('${sym}')">↑</button><button class="del-btn transfer-btn" title="复制或移动" onclick="event.stopPropagation();openTransferDialog('${sym}')">⇄</button><button class="del-btn" title="从当前分组删除" onclick="event.stopPropagation();removeStock('${sym}')">✕</button></div></td></tr>`;
+      <td><div class="stock-actions"><button class="del-btn pin-btn" title="置顶" aria-label="将 ${sym} 置顶" ${i===0?'disabled':''} onclick="event.stopPropagation();pinStock('${sym}')">↑</button><button class="del-btn transfer-btn" title="复制、移动或从所有分组移除" onclick="event.stopPropagation();openTransferDialog('${sym}')">⇄</button><button class="del-btn" title="从当前分组删除" onclick="event.stopPropagation();removeStock('${sym}')">✕</button></div></td></tr>`;
     const c = cls(q.chg);
     return `<tr class="stock-row" data-sym="${sym}" onclick="handleRowClick(event,'${sym}')">
       <td><input class="batch-check" type="checkbox" aria-label="选择 ${sym}" ${selectedSymbols.has(sym)?'checked':''} onclick="event.stopPropagation()" onchange="setStockSelected('${sym}',this.checked)"><span class="drag-handle" title="长按拖动排序" aria-label="拖动排序">⠿</span>${marketTag(sym)}<b>${sym.replace(/^(sh|sz|hk|us)/,'')}</b></td>
@@ -1732,7 +1735,7 @@ function renderTable(data) {
       <td>${fmt(q.open)}</td><td>${fmt(q.prevClose)}</td>
       <td class="up">${fmt(q.high)}</td><td class="down">${fmt(q.low)}</td>
       <td>${fmtVol(q.volume)}</td><td>${fmtAmt(q.amount)}</td>${renderOptionalMetricCells(sym, q)}
-      <td><div class="stock-actions"><button class="del-btn pin-btn" title="置顶" aria-label="将 ${q.name||sym} 置顶" ${i===0?'disabled':''} onclick="event.stopPropagation();pinStock('${sym}')">↑</button><button class="del-btn transfer-btn" title="复制或移动" onclick="event.stopPropagation();openTransferDialog('${sym}')">⇄</button><button class="del-btn" title="从当前分组删除" onclick="event.stopPropagation();removeStock('${sym}')">✕</button></div></td></tr>`;
+      <td><div class="stock-actions"><button class="del-btn pin-btn" title="置顶" aria-label="将 ${q.name||sym} 置顶" ${i===0?'disabled':''} onclick="event.stopPropagation();pinStock('${sym}')">↑</button><button class="del-btn transfer-btn" title="复制、移动或从所有分组移除" onclick="event.stopPropagation();openTransferDialog('${sym}')">⇄</button><button class="del-btn" title="从当前分组删除" onclick="event.stopPropagation();removeStock('${sym}')">✕</button></div></td></tr>`;
   }).join('');
 }
 
@@ -1792,6 +1795,18 @@ function updateBatchBar() {
 }
 
 let transferSymbols = [];
+function updateTransferMode() {
+  const mode = document.getElementById('transfer-mode').value;
+  const isRemove = mode === 'remove';
+  document.getElementById('transfer-target-row').hidden = isRemove;
+  document.getElementById('transfer-remove-note').hidden = !isRemove;
+  document.getElementById('transfer-confirm-btn').textContent = isRemove ? '移除' : '确认';
+  document.getElementById('transfer-title').textContent = isRemove ? '从所有分组移除' : '复制或移动股票';
+}
+function removeSymbolFromAllGroups(groups, symbols) {
+  const removed = new Set(symbols);
+  groups.forEach(group => group.stocks.splice(0, group.stocks.length, ...group.stocks.filter(sym => !removed.has(sym))));
+}
 function openTransferDialog(sym) {
   document.getElementById('transfer-mode').value = 'copy';
   openTransferDialogFor([sym]);
@@ -1805,7 +1820,9 @@ function openTransferDialogFor(symbols) {
   transferSymbols = symbols.filter(sym => watchlist.includes(sym));
   if (!transferSymbols.length) return;
   const targets = groups.filter(group => group.id !== activeGroupId);
-  if (!targets.length) { openGroupManager(); return; }
+  const modeSelect = document.getElementById('transfer-mode');
+  if (!targets.length && modeSelect.value !== 'remove') modeSelect.value = 'remove';
+  updateTransferMode();
   document.getElementById('transfer-stock').textContent = transferSymbols.length === 1
     ? `${lastQuoteData[transferSymbols[0]]?.name || transferSymbols[0]} · ${transferSymbols[0].replace(/^(sh|sz|hk|us)/,'').toUpperCase()}`
     : `已选择 ${transferSymbols.length} 只股票`;
@@ -1814,10 +1831,20 @@ function openTransferDialogFor(symbols) {
 }
 function closeTransferDialog(event) { if (event && event.target !== event.currentTarget) return; document.getElementById('transfer-mask').classList.remove('open'); transferSymbols = []; }
 function confirmTransfer() {
+  if (!transferSymbols.length) return;
+  const mode = document.getElementById('transfer-mode').value;
+  if (mode === 'remove') {
+    if (!confirm(`从所有分组中移除 ${transferSymbols.length} 只股票？`)) return;
+    removeSymbolFromAllGroups(groups, transferSymbols);
+    save(); renderGroupTabs(); closeTransferDialog(); toggleSelectionMode(false);
+    watchlist.length ? fetchQuotes() : renderEmpty();
+    document.getElementById('status-text').textContent = '已从所有分组移除';
+    return;
+  }
   const target = groups.find(group => group.id === document.getElementById('transfer-target').value);
-  if (!target || !transferSymbols.length) return;
+  if (!target) return;
   transferSymbols.forEach(sym => { if (!target.stocks.includes(sym)) target.stocks.push(sym); });
-  if (document.getElementById('transfer-mode').value === 'move') {
+  if (mode === 'move') {
     const moved = new Set(transferSymbols); watchlist.splice(0, watchlist.length, ...watchlist.filter(sym => !moved.has(sym)));
   }
   save(); renderGroupTabs(); closeTransferDialog(); toggleSelectionMode(false); watchlist.length ? fetchQuotes() : renderEmpty();
@@ -2146,19 +2173,44 @@ function addSymbolToGroup(groups, groupId, sym) {
 function updateModalWatchlistButton() {
   const button = document.getElementById('modal-watchlist-btn');
   if (!button) return;
-  const inActiveGroup = modalSym ? watchlist.includes(modalSym) : false;
-  button.textContent = inActiveGroup ? '✓ 已在自选' : '＋ 加自选';
-  button.classList.toggle('added', inActiveGroup);
+  const inAnyGroup = modalSym ? groups.some(group => group.stocks.includes(modalSym)) : false;
+  button.textContent = inAnyGroup ? '✓ 已在自选' : '＋ 加自选';
+  button.classList.toggle('added', inAnyGroup);
+}
+function syncSymbolGroups(groups, activeGroupId, sym, checkedGroupIds) {
+  const checked = new Set(checkedGroupIds);
+  let changed = false;
+  groups.forEach(group => {
+    const has = group.stocks.includes(sym);
+    if (checked.has(group.id) && !has) {
+      addSymbolToGroup(groups, group.id, sym);
+      changed = true;
+    } else if (!checked.has(group.id) && has) {
+      if (group.id === activeGroupId) {
+        const index = group.stocks.indexOf(sym);
+        if (index >= 0) { group.stocks.splice(index, 1); changed = true; }
+      } else {
+        group.stocks = group.stocks.filter(item => item !== sym);
+        changed = true;
+      }
+    }
+  });
+  return changed;
 }
 function openWatchlistAddDialog(sym) {
   if (!sym) return;
   watchlistAddSymbol = sym;
   const quote = lastQuoteData[sym];
+  const memberGroupIds = new Set(groups.filter(group => group.stocks.includes(sym)).map(group => group.id));
+  const defaultFirstGroup = memberGroupIds.size === 0;
   document.getElementById('watchlist-add-stock').textContent = `${quote?.name || sym} · ${sym.replace(/^(sh|sz|hk|us)/, '').toUpperCase()}`;
-  document.getElementById('watchlist-add-groups').innerHTML = groups.map(group => {
-    const has = group.stocks.includes(sym);
-    return `<label class="group-picker-option${has ? ' has' : ''}"><input type="radio" name="watchlist-add-group" value="${group.id}" ${group.id === activeGroupId ? 'checked' : ''}><span class="group-picker-name">${escapeHtml(group.name)}</span><span class="group-picker-meta">${group.stocks.length} 只${has ? ' · 已包含' : ''}</span></label>`;
+  document.getElementById('watchlist-add-groups').innerHTML = groups.map((group, index) => {
+    const member = memberGroupIds.has(group.id);
+    const checked = member || (defaultFirstGroup && index === 0);
+    return `<label class="group-picker-option${member ? ' has' : ''}"><input type="checkbox" name="watchlist-add-group" value="${group.id}" ${checked ? 'checked' : ''}><span class="group-picker-name">${escapeHtml(group.name)}</span><span class="group-picker-meta">${group.stocks.length} 只${member ? ' · 已包含' : ''}</span></label>`;
   }).join('');
+  document.getElementById('watchlist-add-title').textContent = memberGroupIds.size ? '管理自选分组' : '添加到自选';
+  document.getElementById('watchlist-remove-all-btn').hidden = memberGroupIds.size === 0;
   document.getElementById('watchlist-add-mask').classList.add('open');
 }
 function closeWatchlistAddDialog(event) {
@@ -2167,20 +2219,29 @@ function closeWatchlistAddDialog(event) {
   watchlistAddSymbol = null;
 }
 function confirmWatchlistAdd() {
-  const selected = document.querySelector('#watchlist-add-groups input[name="watchlist-add-group"]:checked');
   const sym = watchlistAddSymbol;
-  if (!selected || !sym) return;
-  const group = groups.find(item => item.id === selected.value);
-  if (!group) return;
-  const added = addSymbolToGroup(groups, group.id, sym);
-  if (added) {
+  if (!sym) return;
+  const checked = [...document.querySelectorAll('#watchlist-add-groups input[name="watchlist-add-group"]:checked')].map(input => input.value);
+  const changed = syncSymbolGroups(groups, activeGroupId, sym, checked);
+  if (changed) {
     save();
     renderGroupTabs();
-    if (group.id === activeGroupId) fetchQuotes();
+    watchlist.length ? fetchQuotes() : renderEmpty();
   }
   closeWatchlistAddDialog();
   updateModalWatchlistButton();
-  showToast(`已添加到「${group.name}」`);
+  showToast(changed ? '自选分组已更新' : '未更改');
+}
+function confirmRemoveFromAllWatchlist() {
+  const sym = watchlistAddSymbol;
+  if (!sym) return;
+  if (!confirm(`从所有分组中移除“${lastQuoteData[sym]?.name || sym}”？`)) return;
+  removeSymbolFromAllGroups(groups, [sym]);
+  save(); renderGroupTabs();
+  watchlist.length ? fetchQuotes() : renderEmpty();
+  closeWatchlistAddDialog();
+  updateModalWatchlistButton();
+  showToast('已从所有分组移除');
 }
 
 function switchTab(el) {

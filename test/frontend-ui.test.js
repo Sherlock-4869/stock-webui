@@ -265,6 +265,55 @@ test('add to watchlist dialog adds a stock to the chosen group and dedupes', () 
   assert.equal(context.addSymbolToGroupForTest(groups, 'a', ''), false);
 });
 
+test('watchlist dialog syncs multi-select group membership and can remove from all groups', () => {
+  assert.match(html, /type="checkbox" name="watchlist-add-group"/);
+  assert.match(html, /id="watchlist-remove-all-btn"/);
+  assert.match(html, /function confirmRemoveFromAllWatchlist\(\)/);
+  assert.match(html, /function syncSymbolGroups\(groups, activeGroupId, sym, checkedGroupIds\)/);
+
+  const start = html.indexOf('function addSymbolToGroup');
+  const end = html.indexOf('function openWatchlistAddDialog', start);
+  assert.ok(start >= 0 && end > start);
+  const context = {};
+  vm.createContext(context);
+  vm.runInContext(`${html.slice(start, end)}\nthis.addSymbolToGroupForTest = addSymbolToGroup; this.syncSymbolGroupsForTest = syncSymbolGroups;`, context);
+  const groups = [
+    { id:'a', name:'默认分组', stocks:['sh600519', 'sz000001'] },
+    { id:'b', name:'长期持有', stocks:['sz000001', 'hk00700'] },
+  ];
+  const activeStocks = groups[0].stocks;
+  assert.equal(context.syncSymbolGroupsForTest(groups, 'a', 'sz000001', ['b']), true);
+  assert.deepEqual(groups[0].stocks, ['sh600519']);
+  assert.deepEqual(groups[1].stocks, ['sz000001', 'hk00700']);
+  assert.equal(groups[0].stocks, activeStocks);
+  assert.equal(context.syncSymbolGroupsForTest(groups, 'a', 'sz000001', ['a', 'b']), true);
+  assert.deepEqual(groups[0].stocks, ['sh600519', 'sz000001']);
+  assert.equal(context.syncSymbolGroupsForTest(groups, 'a', 'sh600519', ['a']), false);
+  assert.equal(context.syncSymbolGroupsForTest(groups, 'a', 'hk00700', ['a']), true);
+  assert.deepEqual(groups[1].stocks, ['sz000001']);
+});
+
+test('transfer dialog can remove a stock from all groups', () => {
+  assert.match(html, /<option value="remove">从所有分组移除<\/option>/);
+  assert.match(html, /function updateTransferMode\(\)/);
+  assert.match(html, /function removeSymbolFromAllGroups\(groups, symbols\)/);
+  assert.match(html, /onclick="openBatchTransfer\('remove'\)"/);
+
+  const start = html.indexOf('function removeSymbolFromAllGroups');
+  const end = html.indexOf('function openTransferDialog', start);
+  assert.ok(start >= 0 && end > start);
+  const context = {};
+  vm.createContext(context);
+  vm.runInContext(`${html.slice(start, end)}\nthis.removeSymbolFromAllGroupsForTest = removeSymbolFromAllGroups;`, context);
+  const groups = [
+    { id:'a', name:'默认分组', stocks:['sh600519', 'sz000001'] },
+    { id:'b', name:'长期持有', stocks:['sz000001', 'hk00700'] },
+  ];
+  context.removeSymbolFromAllGroupsForTest(groups, ['sz000001']);
+  assert.deepEqual(groups[0].stocks, ['sh600519']);
+  assert.deepEqual(groups[1].stocks, ['hk00700']);
+});
+
 test('float window is a controllable watchlist dashboard and can drill into stock details', () => {
   assert.match(html, /market-tool-label">盯盘浮窗/);
   assert.match(html, /浮窗被浏览器拦截/);
@@ -277,6 +326,8 @@ test('float window is a controllable watchlist dashboard and can drill into stoc
   assert.match(floatHtml, /data-sort="pct"/);
   assert.match(floatHtml, /id="refresh-interval"/);
   assert.match(floatHtml, /function openStock\(symbol\)/);
+  assert.match(floatHtml, /function returnToMainWindow\(\)/);
+  assert.match(floatHtml, /window\.close\(\)/);
   assert.match(floatHtml, /stock-float-open/);
   assert.match(floatHtml, /quoteRefreshQueued/);
   assert.match(floatHtml, /document\.addEventListener\('visibilitychange'/);
