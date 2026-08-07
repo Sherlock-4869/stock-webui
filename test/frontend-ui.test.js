@@ -222,6 +222,11 @@ test('board market page exposes sector categories, rankings, and stock drill-dow
   assert.match(html, /function openBoardStock\(symbol\)/);
   assert.match(html, /id="stock-board-context"/);
   assert.match(html, /function loadStockBoards\(sym\)/);
+  assert.match(html, /id="modal-watchlist-btn"[^>]*onclick="openWatchlistAddDialog\(modalSym\)"/);
+  assert.match(html, /id="watchlist-add-mask"/);
+  assert.match(html, /id="watchlist-add-groups"/);
+  assert.match(html, /function openWatchlistAddDialog\(sym\)/);
+  assert.match(html, /function confirmWatchlistAdd\(\)/);
   assert.match(serverSource, /const BOARD_TYPES = \{/);
   assert.match(serverSource, /pathname === '\/api\/boards'/);
   assert.match(serverSource, /pathname === '\/api\/board'/);
@@ -240,6 +245,24 @@ test('board market page exposes sector categories, rankings, and stock drill-dow
   assert.equal(context.boardPctForTest(3.2), '+3.20%');
   assert.equal(context.boardPctForTest(-1.25), '-1.25%');
   assert.equal(context.boardMoneyForTest(123000000), '+1.23亿');
+});
+
+test('add to watchlist dialog adds a stock to the chosen group and dedupes', () => {
+  const start = html.indexOf('function addSymbolToGroup');
+  const end = html.indexOf('function updateModalWatchlistButton', start);
+  assert.ok(start >= 0 && end > start);
+  const context = {};
+  vm.createContext(context);
+  vm.runInContext(`${html.slice(start, end)}\nthis.addSymbolToGroupForTest = addSymbolToGroup;`, context);
+  const groups = [
+    { id:'a', name:'默认分组', stocks:['sh600519'] },
+    { id:'b', name:'长期持有', stocks:[] },
+  ];
+  assert.equal(context.addSymbolToGroupForTest(groups, 'b', 'sz000001'), true);
+  assert.deepEqual(groups[1].stocks, ['sz000001']);
+  assert.equal(context.addSymbolToGroupForTest(groups, 'a', 'sh600519'), false);
+  assert.equal(context.addSymbolToGroupForTest(groups, 'missing', 'sh600519'), false);
+  assert.equal(context.addSymbolToGroupForTest(groups, 'a', ''), false);
 });
 
 test('float window is a controllable watchlist dashboard and can drill into stock details', () => {

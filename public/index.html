@@ -190,6 +190,13 @@ html.metrics-scroll #stock-table tbody td:first-child,html.metrics-scroll #stock
 html.metrics-scroll #stock-table th:nth-child(2),html.metrics-scroll #stock-table td:nth-child(2){box-shadow:7px 0 9px -9px #000}
 html.metrics-scroll #stock-table th:last-child,html.metrics-scroll #stock-table td:last-child{box-shadow:-7px 0 9px -9px #000}
 html.metrics-scroll #stock-table tbody tr:hover td:first-child,html.metrics-scroll #stock-table tbody tr:hover td:nth-child(2),html.metrics-scroll #stock-table tbody tr:hover td:last-child{background:#1c2128}
+.group-picker{display:flex;flex-direction:column;gap:7px;max-height:248px;overflow:auto;padding-right:2px}
+.group-picker-option{display:flex;align-items:center;gap:9px;padding:9px 11px;border:1px solid #30363d;border-radius:7px;cursor:pointer;transition:border-color .15s,background .15s}
+.group-picker-option:hover{border-color:#1f6feb;background:#1f3a5f}
+.group-picker-option input{accent-color:#238636}
+.group-picker-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px}
+.group-picker-meta{flex:none;color:#6e7681;font-size:10px}.group-picker-option.has .group-picker-meta{color:#3fb950}
+#watchlist-add-mask{z-index:210}
 .group-list{margin-top:12px;border:1px solid #30363d;border-radius:7px;overflow:hidden}.group-list-row{display:flex;align-items:center;gap:8px;padding:9px 10px;border-top:1px solid #30363d}.group-list-row:first-child{border-top:0}.group-list-name{flex:1}.group-list-meta{font-size:11px;color:#6e7681}
 .market-tag{display:inline-block;font-size:10px;padding:1px 5px;border-radius:3px;font-weight:600;margin-right:4px;vertical-align:middle}
 .tag-a{background:#1f3a5f;color:#79c0ff}
@@ -227,6 +234,10 @@ body.stock-sorting,body.stock-sorting *{cursor:grabbing!important;user-select:no
 .modal-price .chg{font-size:13px;margin-top:2px}
 .modal-close{background:none;border:none;color:#8b949e;font-size:20px;cursor:pointer;padding:0 4px;line-height:1;margin-top:-2px}
 .modal-close:hover{color:#e6edf3}
+.modal-watchlist-btn{flex:none;margin-top:2px;border:1px solid #30363d;border-radius:6px;background:#21262d;color:#8b949e;padding:5px 10px;font-size:12px;cursor:pointer;transition:color .15s,border-color .15s,background .15s}
+.modal-watchlist-btn:hover{color:#79c0ff;border-color:#1f6feb;background:#1f3a5f}
+.modal-watchlist-btn.added{color:#3fb950;border-color:#238636;background:#23863618}
+.modal-watchlist-btn.added:hover{color:#56d364;background:#23863628}
 .tab-bar{display:flex;gap:0;padding:12px 20px 0;border-bottom:1px solid #30363d}
 .tab{padding:6px 14px;font-size:13px;cursor:pointer;border-bottom:2px solid transparent;color:#8b949e;transition:color .15s}
 .tab.active{color:#58a6ff;border-bottom-color:#58a6ff}
@@ -290,6 +301,12 @@ html[data-theme="light"] .refresh-interval-select,html[data-theme="light"] .mark
 html[data-theme="light"] .dropdown{background:#fff;border-color:#d0d7de;box-shadow:0 8px 24px #1f23281f}html[data-theme="light"] .dd-item:hover,html[data-theme="light"] .dd-item.active{background:#f0f3f6}html[data-theme="light"] .dd-item.selected{background:#ddf4ff}
 html[data-theme="light"] .group-tab{background:#fff;border-color:#d0d7de;color:#57606a}html[data-theme="light"] .group-tab.active{background:#ddf4ff;border-color:#54aeff;color:#0969da}
 html[data-theme="light"] .modal-mask{background:#1f232866}html[data-theme="light"] .modal,html[data-theme="light"] .drag-ghost,html[data-theme="light"] .market-drag-ghost{background:#fff;color:#1f2328;box-shadow:0 20px 55px #1f232833}
+html[data-theme="light"] .modal-watchlist-btn{background:#f6f8fa;border-color:#d0d7de;color:#57606a}
+html[data-theme="light"] .modal-watchlist-btn:hover{background:#eaf4ff;color:#0969da;border-color:#54aeff}
+html[data-theme="light"] .modal-watchlist-btn.added{background:#dafbe1;border-color:#aceebb;color:#1a7f37}
+html[data-theme="light"] .group-picker-option{border-color:#d0d7de}
+html[data-theme="light"] .group-picker-option:hover{background:#eaf4ff;border-color:#54aeff}
+html[data-theme="light"] .group-picker-meta{color:#64748b}html[data-theme="light"] .group-picker-option.has .group-picker-meta{color:#1a7f37}
 html[data-theme="light"] .tab-bar,html[data-theme="light"] .stats-grid,html[data-theme="light"] .chart-range,html[data-theme="light"] .group-list{border-color:#d0d7de}html[data-theme="light"] .chart-range{background:#f6f8fa}
 html[data-theme="light"] .chart-loading{background:#fff;color:#57606a}html[data-theme="light"] .chart-retry-btn{background:#f6f8fa;border-color:#d0d7de;color:#1f2328}
 html[data-theme="light"] .market-name,html[data-theme="light"] .market-price,html[data-theme="light"] .market-summary strong,html[data-theme="light"] .chart-info,html[data-theme="light"] .alert-message{color:#1f2328}
@@ -905,6 +922,15 @@ html[data-theme="light"] .stock-board-tag{border-color:#9bcaf4;background:#e8f4f
   </div>
 </div>
 
+<div class="modal-mask" id="watchlist-add-mask" onclick="closeWatchlistAddDialog(event)">
+  <div class="modal dialog-modal" role="dialog" aria-modal="true" aria-labelledby="watchlist-add-title">
+    <div class="dialog-title" id="watchlist-add-title">添加到自选</div>
+    <div class="modal-sub" id="watchlist-add-stock"></div>
+    <div class="form-row"><label>目标分组</label><div class="group-picker" id="watchlist-add-groups"></div></div>
+    <div class="dialog-actions"><button class="dialog-btn" onclick="closeWatchlistAddDialog()">取消</button><button class="dialog-btn primary" onclick="confirmWatchlistAdd()">添加</button></div>
+  </div>
+</div>
+
 <div class="modal-mask" id="modal-mask" onclick="closeModal(event)">
   <div class="modal" id="modal">
     <div class="modal-header">
@@ -916,6 +942,7 @@ html[data-theme="light"] .stock-board-tag{border-color:#9bcaf4;background:#e8f4f
         <div class="price" id="m-price"></div>
         <div class="chg" id="m-chg"></div>
       </div>
+      <button class="modal-watchlist-btn" id="modal-watchlist-btn" type="button" onclick="openWatchlistAddDialog(modalSym)">＋ 加自选</button>
       <button class="modal-close" onclick="closeModal()">✕</button>
     </div>
     <div class="stock-board-context" id="stock-board-context" aria-live="polite"></div>
@@ -2096,6 +2123,7 @@ function openModal(sym) {
   document.getElementById('period-bar').classList.remove('visible');
   document.querySelectorAll('.period-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.period === 'm5'));
   document.getElementById('modal-mask').classList.add('open');
+  updateModalWatchlistButton();
   loadStockBoards(sym);
   loadChart('minute');
 }
@@ -2106,6 +2134,53 @@ function closeModal(e) {
   modalSym = null;
   stockBoardRequestId++;
   chartRequestId++;
+}
+
+let watchlistAddSymbol = null;
+function addSymbolToGroup(groups, groupId, sym) {
+  const group = groups.find(item => item.id === groupId);
+  if (!group || !sym || group.stocks.includes(sym)) return false;
+  group.stocks.push(sym);
+  return true;
+}
+function updateModalWatchlistButton() {
+  const button = document.getElementById('modal-watchlist-btn');
+  if (!button) return;
+  const inActiveGroup = modalSym ? watchlist.includes(modalSym) : false;
+  button.textContent = inActiveGroup ? '✓ 已在自选' : '＋ 加自选';
+  button.classList.toggle('added', inActiveGroup);
+}
+function openWatchlistAddDialog(sym) {
+  if (!sym) return;
+  watchlistAddSymbol = sym;
+  const quote = lastQuoteData[sym];
+  document.getElementById('watchlist-add-stock').textContent = `${quote?.name || sym} · ${sym.replace(/^(sh|sz|hk|us)/, '').toUpperCase()}`;
+  document.getElementById('watchlist-add-groups').innerHTML = groups.map(group => {
+    const has = group.stocks.includes(sym);
+    return `<label class="group-picker-option${has ? ' has' : ''}"><input type="radio" name="watchlist-add-group" value="${group.id}" ${group.id === activeGroupId ? 'checked' : ''}><span class="group-picker-name">${escapeHtml(group.name)}</span><span class="group-picker-meta">${group.stocks.length} 只${has ? ' · 已包含' : ''}</span></label>`;
+  }).join('');
+  document.getElementById('watchlist-add-mask').classList.add('open');
+}
+function closeWatchlistAddDialog(event) {
+  if (event && event.target !== event.currentTarget) return;
+  document.getElementById('watchlist-add-mask').classList.remove('open');
+  watchlistAddSymbol = null;
+}
+function confirmWatchlistAdd() {
+  const selected = document.querySelector('#watchlist-add-groups input[name="watchlist-add-group"]:checked');
+  const sym = watchlistAddSymbol;
+  if (!selected || !sym) return;
+  const group = groups.find(item => item.id === selected.value);
+  if (!group) return;
+  const added = addSymbolToGroup(groups, group.id, sym);
+  if (added) {
+    save();
+    renderGroupTabs();
+    if (group.id === activeGroupId) fetchQuotes();
+  }
+  closeWatchlistAddDialog();
+  updateModalWatchlistButton();
+  showToast(`已添加到「${group.name}」`);
 }
 
 function switchTab(el) {
