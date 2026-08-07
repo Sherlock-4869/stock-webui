@@ -325,7 +325,7 @@ async function loadRealtimeValuations(symbols) {
     try {
       const secids = missing.map(eastmoneySecId).join(',');
       const raw = await requestBuffer(
-        `https://push2.eastmoney.com/api/qt/ulist.np/get?secids=${secids}&fields=f9,f12,f13,f14,f124`,
+        `https://push2.eastmoney.com/api/qt/ulist.np/get?secids=${secids}&fields=f9,f12,f13,f14,f114,f115,f124`,
         { ...UPSTREAM_HEADERS, Referer:'https://quote.eastmoney.com/' }
       );
       const rows = JSON.parse(raw.toString('utf-8'))?.data?.diff || [];
@@ -335,11 +335,15 @@ async function loadRealtimeValuations(symbols) {
         if (!isAShareSymbol(symbol)) continue;
         returned.add(symbol);
         const rawPe = numberOrNull(row.f9);
+        const rawPeStatic = numberOrNull(row.f114);
+        const rawPeTtm = numberOrNull(row.f115);
         const updatedAt = numberOrNull(row.f124);
         realtimeValuationCache.set(symbol, {
           fetchedAt:now,
           data:{
             peDynamic:rawPe != null && rawPe > 0 ? rawPe / 100 : null,
+            peStatic:rawPeStatic != null && rawPeStatic > 0 ? rawPeStatic / 100 : null,
+            peTtm:rawPeTtm != null && rawPeTtm > 0 ? rawPeTtm / 100 : null,
             valuationDate:updatedAt ? shanghaiDateKey(updatedAt * 1000) : null,
           },
         });
@@ -347,7 +351,7 @@ async function loadRealtimeValuations(symbols) {
       missing.filter(symbol => !returned.has(symbol)).forEach(symbol => {
         realtimeValuationCache.set(symbol, {
           fetchedAt:now,
-          data:{ peDynamic:null, valuationDate:null },
+          data:{ peDynamic:null, peStatic:null, peTtm:null, valuationDate:null },
         });
       });
     } catch (error) {
@@ -356,7 +360,7 @@ async function loadRealtimeValuations(symbols) {
   }
 
   return Object.fromEntries(aShares.map(symbol => [symbol,
-    realtimeValuationCache.get(symbol)?.data || { peDynamic:null, valuationDate:null },
+    realtimeValuationCache.get(symbol)?.data || { peDynamic:null, peStatic:null, peTtm:null, valuationDate:null },
   ]));
 }
 
