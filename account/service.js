@@ -411,6 +411,36 @@ class AccountService {
         return true;
       }
 
+      const adminUserRoleMatch = pathname.match(/^\/api\/admin\/users\/(\d{1,20})\/admin$/);
+      if (adminUserRoleMatch) {
+        if (req.method !== 'PUT') {
+          sendJson(res, 405, { error:'Method Not Allowed' }, { Allow:'PUT' });
+          return true;
+        }
+        assertSameOrigin(req);
+        const session = await this.requireAdmin(req);
+        const userId = adminUserRoleMatch[1];
+        if (String(session.user.id) === userId) {
+          throw Object.assign(new Error('不能修改自己的管理员身份'), { statusCode:400 });
+        }
+        const body = await readJson(req, 4096);
+        if (typeof body.isAdmin !== 'boolean') {
+          throw Object.assign(new Error('管理员授权状态不正确'), { statusCode:400 });
+        }
+        let user;
+        try {
+          user = await this.database.setUserAdmin({ userId, isAdmin:body.isAdmin });
+        } catch (error) {
+          if (error.code === 'LAST_ACTIVE_ADMIN') {
+            throw Object.assign(new Error('系统必须至少保留一名启用中的管理员'), { statusCode:409 });
+          }
+          throw error;
+        }
+        if (!user) throw Object.assign(new Error('用户不存在或已停用'), { statusCode:404 });
+        sendJson(res, 200, { user:publicUser(user), changed:true });
+        return true;
+      }
+
       const adminSitesMatch = pathname.match(/^\/api\/admin\/sites(?:\/(\d+))?$/);
       if (adminSitesMatch) {
         if (req.method !== 'GET') assertSameOrigin(req);

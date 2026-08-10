@@ -249,6 +249,62 @@ test('only database-designated administrators can manage recommended sites', asy
   assert.equal(removed.payload.deleted, true);
 });
 
+test('administrators can grant and revoke administrator roles without enabling self-escalation', async t => {
+  const app = await startTestService();
+  t.after(app.close);
+
+  const owner = await jsonRequest(app.service, '/api/auth/register', {
+    method:'POST', body:{ username:'role_owner', password:'password-123', displayName:'初始管理员' },
+  });
+  const ownerCookie = cookieFrom(owner);
+  app.service.database.users.get(Number(owner.payload.user.id)).is_admin = 1;
+
+  const target = await jsonRequest(app.service, '/api/auth/register', {
+    method:'POST', body:{ username:'role_target', password:'password-123', displayName:'待授权用户' },
+  });
+  const targetCookie = cookieFrom(target);
+
+  const forbidden = await jsonRequest(app.service, `/api/admin/users/${owner.payload.user.id}/admin`, {
+    method:'PUT', cookie:targetCookie, body:{ isAdmin:true },
+  });
+  assert.equal(forbidden.response.status, 403);
+
+  const invalid = await jsonRequest(app.service, `/api/admin/users/${target.payload.user.id}/admin`, {
+    method:'PUT', cookie:ownerCookie, body:{ isAdmin:'yes' },
+  });
+  assert.equal(invalid.response.status, 400);
+
+  const selfChange = await jsonRequest(app.service, `/api/admin/users/${owner.payload.user.id}/admin`, {
+    method:'PUT', cookie:ownerCookie, body:{ isAdmin:false },
+  });
+  assert.equal(selfChange.response.status, 400);
+
+  const granted = await jsonRequest(app.service, `/api/admin/users/${target.payload.user.id}/admin`, {
+    method:'PUT', cookie:ownerCookie, body:{ isAdmin:true },
+  });
+  assert.equal(granted.response.status, 200);
+  assert.equal(granted.payload.user.isAdmin, true);
+
+  const targetMe = await jsonRequest(app.service, '/api/auth/me', { cookie:targetCookie });
+  assert.equal(targetMe.payload.user.isAdmin, true);
+  const targetAdminAccess = await jsonRequest(app.service, '/api/admin/sites', { cookie:targetCookie });
+  assert.equal(targetAdminAccess.response.status, 200);
+
+  const revoked = await jsonRequest(app.service, `/api/admin/users/${target.payload.user.id}/admin`, {
+    method:'PUT', cookie:ownerCookie, body:{ isAdmin:false },
+  });
+  assert.equal(revoked.response.status, 200);
+  assert.equal(revoked.payload.user.isAdmin, false);
+
+  const targetAfterRevoke = await jsonRequest(app.service, '/api/admin/sites', { cookie:targetCookie });
+  assert.equal(targetAfterRevoke.response.status, 403);
+  await assert.rejects(
+    app.service.database.setUserAdmin({ userId:owner.payload.user.id, isAdmin:false }),
+    error => error?.code === 'LAST_ACTIVE_ADMIN'
+  );
+  assert.equal((await app.service.database.findUserById(owner.payload.user.id)).is_admin, 1);
+});
+
 test('account HTTP flow persists config across logout and password login', async t => {
   const app = await startTestService();
   t.after(app.close);

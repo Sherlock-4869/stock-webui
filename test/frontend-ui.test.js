@@ -397,13 +397,16 @@ test('IPO calendar expands a sanitized offering detail card using public fields'
   assert.doesNotMatch(detail, /<img/);
 });
 
-test('administrator UI keeps system tools in the sidebar and provides per-user AI access management', () => {
+test('administrator UI keeps system tools in the sidebar and provides role plus AI access management', () => {
   assert.match(html, /id="page-admin-sites"/);
   assert.match(html, /id="page-admin-users"/);
   assert.match(html, /id="admin-users-list"/);
   assert.match(html, /data-page="admin-users" onclick="switchAppPage\('admin-users'\)"/);
   assert.match(html, /\/api\/admin\/ai\/users/);
   assert.match(html, /function setAdminAiUserPermission\(user, canUse, button\)/);
+  assert.match(html, /\/api\/admin\/users\/\$\{encodeURIComponent\(user\.id\)\}\/admin/);
+  assert.match(html, /function setAdminUserRole\(user, isAdmin, button\)/);
+  assert.match(html, /roleToggle\.textContent = isCurrentUser \? '当前账号' : \(user\.isAdmin \? '撤销管理员' : '授予管理员'\)/);
   assert.match(html, /id="admin-navigation" hidden/);
   assert.match(html, /data-page="admin-sites" onclick="switchAppPage\('admin-sites'\)"/);
   assert.match(html, /apiRequest\('\/api\/admin\/sites'/);

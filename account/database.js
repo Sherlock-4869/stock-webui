@@ -14,7 +14,7 @@ const SCHEMA_STATEMENTS = [
     avatar_url VARCHAR(500) NULL,
     custom_avatar_data MEDIUMTEXT NULL,
     status VARCHAR(20) NOT NULL DEFAULT 'active',
-    is_admin TINYINT(1) NOT NULL DEFAULT 0,
+    is_admin TINYINT(1) NOT NULL DEFAULT 0 COMMENT '1=管理员；首次管理员需由数据库初始化，后续可由管理员授权',
     config_decided_at DATETIME NULL,
     last_login_at DATETIME NULL,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -240,7 +240,7 @@ async function ensureAdminSchema(connection, databaseName) {
     [databaseName]
   );
   if (!columns.length) {
-    await connection.query("ALTER TABLE users ADD COLUMN is_admin TINYINT(1) NOT NULL DEFAULT 0 AFTER status");
+    await connection.query("ALTER TABLE users ADD COLUMN is_admin TINYINT(1) NOT NULL DEFAULT 0 COMMENT '1=管理员；首次管理员需由数据库初始化，后续可由管理员授权' AFTER status");
   }
 
   const [indexes] = await connection.execute(
@@ -590,6 +590,39 @@ class AccountDatabase {
   async findUserByUsername(username) {
     const [rows] = await this.requirePool().execute('SELECT * FROM users WHERE username=? LIMIT 1', [username]);
     return rows[0] || null;
+  }
+
+  async setUserAdmin({ userId, isAdmin }) {
+    const connection = await this.requirePool().getConnection();
+    try {
+      await connection.beginTransaction();
+      let activeAdmins = null;
+      if (!isAdmin) {
+        [activeAdmins] = await connection.execute(
+          "SELECT id FROM users WHERE status='active' AND is_admin=1 ORDER BY id FOR UPDATE"
+        );
+      }
+      const [rows] = await connection.execute(
+        "SELECT id, status, is_admin FROM users WHERE id=? AND status='active' LIMIT 1 FOR UPDATE",
+        [userId]
+      );
+      const user = rows[0];
+      if (!user) {
+        await connection.rollback();
+        return null;
+      }
+      if (!isAdmin && Number(user.is_admin) === 1 && activeAdmins.length <= 1) {
+        throw Object.assign(new Error('At least one active administrator is required'), { code:'LAST_ACTIVE_ADMIN' });
+      }
+      await connection.execute('UPDATE users SET is_admin=? WHERE id=?', [isAdmin ? 1 : 0, userId]);
+      await connection.commit();
+      return this.findUserById(userId);
+    } catch (error) {
+      await connection.rollback();
+      throw error;
+    } finally {
+      connection.release();
+    }
   }
 
   async updateLastLogin(userId) {
@@ -1261,6 +1294,20 @@ class MemoryAccountDatabase {
 
   async findUserById(id) { return this.cloneUser(this.users.get(Number(id))); }
   async findUserByUsername(username) { return this.cloneUser(this.users.get(this.usernames.get(username))); }
+  async setUserAdmin({ userId, isAdmin }) {
+    const user = this.users.get(Number(userId));
+    if (!user || user.status !== 'active') return null;
+    if (!isAdmin && Number(user.is_admin) === 1) {
+      const activeAdminCount = [...this.users.values()]
+        .filter(item => item.status === 'active' && Number(item.is_admin) === 1).length;
+      if (activeAdminCount <= 1) {
+        throw Object.assign(new Error('At least one active administrator is required'), { code:'LAST_ACTIVE_ADMIN' });
+      }
+    }
+    user.is_admin = isAdmin ? 1 : 0;
+    user.updated_at = new Date();
+    return this.cloneUser(user);
+  }
   async updateLastLogin(userId) {
     const user = this.users.get(Number(userId));
     if (user) user.last_login_at = new Date();

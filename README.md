@@ -60,12 +60,13 @@ cp .env.example .env
 
 ### 管理员账号
 
-- `users.is_admin=1` 表示管理员，默认注册账号均为 `0`，前端和公开接口都不提供提权入口。
+- `users.is_admin=1` 表示管理员，默认注册账号均为 `0`；普通用户不能自行提权，只有已经登录的管理员可以通过受保护的管理接口修改其他账号的角色。
 - 管理员的右上角账号菜单只保留“账户设置与密码”和退出登录；系统管理功能统一从侧边栏进入。
-- 管理员可从侧边栏“系统管理”进入“用户与权限”，逐个授予或收回 AI 问股权限；管理员天然拥有该权限。
+- 管理员可从侧边栏“系统管理”进入“用户与权限”，逐个授予或撤销其他账号的管理员角色，并授予或收回 AI 问股权限；管理员天然拥有问股权限。
+- 管理员不能修改自己的管理员身份，系统也会拒绝撤销最后一名启用中管理员，避免管理入口被意外锁死。角色变化会立即作用于服务端权限判断；被调整账号刷新页面后即可看到新的管理界面。
 - 管理员可从侧边栏“系统管理”进入“AI 问股管理”，配置页面公开状态、网站全局 OpenAI 兼容模型和使用看板；用户已启用个人模型时优先使用它，未配置个人模型的已获权限用户才使用网站模型。模型 API Key 只显示为输入框，保存后不回显。
 - 管理员进入聊天室后，可以点击“在线人数”查看当前 Node.js 实例中的在线账号及连接数。
-- 管理员身份仅允许在数据库后台赋值，例如：
+- 系统首次启用时还没有可操作管理页面的管理员，需要在数据库后台初始化第一个管理员；以下 SQL 也可用于紧急恢复：
 
 ```sql
 UPDATE users SET is_admin=1 WHERE username='需要设为管理员的账号';
@@ -101,7 +102,7 @@ CREATE TABLE IF NOT EXISTS users (
   avatar_url VARCHAR(500) NULL,
   custom_avatar_data MEDIUMTEXT NULL COMMENT '用户上传的头像 Data URL；最大 160KB',
   status VARCHAR(20) NOT NULL DEFAULT 'active',
-  is_admin TINYINT(1) NOT NULL DEFAULT 0 COMMENT '仅由数据库后台赋值；1=管理员',
+  is_admin TINYINT(1) NOT NULL DEFAULT 0 COMMENT '1=管理员；首次管理员需由数据库初始化，后续可由管理员授权',
   config_decided_at DATETIME NULL COMMENT '首次登录配置关联是否已选择',
   last_login_at DATETIME NULL,
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -246,7 +247,7 @@ CREATE TABLE IF NOT EXISTS user_notes (
 
 ```sql
 ALTER TABLE users
-  ADD COLUMN is_admin TINYINT(1) NOT NULL DEFAULT 0 AFTER status,
+  ADD COLUMN is_admin TINYINT(1) NOT NULL DEFAULT 0 COMMENT '1=管理员；首次管理员需由数据库初始化，后续可由管理员授权' AFTER status,
   ADD KEY idx_users_admin_status (is_admin, status);
 ```
 

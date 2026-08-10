@@ -9,7 +9,7 @@ CREATE TABLE IF NOT EXISTS users (
   avatar_url VARCHAR(500) NULL,
   custom_avatar_data MEDIUMTEXT NULL COMMENT '用户上传的头像 Data URL；最大 160KB',
   status VARCHAR(20) NOT NULL DEFAULT 'active',
-  is_admin TINYINT(1) NOT NULL DEFAULT 0 COMMENT '仅由数据库后台赋值；1=管理员',
+  is_admin TINYINT(1) NOT NULL DEFAULT 0 COMMENT '1=管理员；首次管理员需由数据库初始化，后续可由管理员授权',
   config_decided_at DATETIME NULL COMMENT '首次登录配置关联是否已选择',
   last_login_at DATETIME NULL,
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
