@@ -344,6 +344,8 @@ test('watchlist tool requests picture-in-picture directly from the click gesture
   assert.match(html, /prepareStockPictureInPictureMedia\(\)\.catch/);
   assert.match(html, /left:0;top:0;width:2px;height:2px;opacity:0\.01/);
   assert.match(html, /function openStandardFloatWindow\(\)/);
+  assert.match(html, /function shouldUseSafariFloatWindow\(\)/);
+  assert.match(html, /safariFloatWindow\s*\? Boolean\(floatWindow && !floatWindow\.closed\)/);
   assert.match(html, /function pictureInPictureStartMessage\(error\)/);
   assert.match(html, /画中画被浏览器拒绝；请关闭其他画中画窗口后重试/);
   assert.match(html, /自选盯盘 ·/);
@@ -355,7 +357,8 @@ test('watchlist tool requests picture-in-picture directly from the click gesture
   assert.match(pipStartSource, /state\.video\.webkitSetPresentationMode\('picture-in-picture'\)/);
   assert.match(pipStartSource, /STOCK_PIP_WEBKIT_NO_WINDOW/);
   assert.doesNotMatch(pipStartSource, /await state\.video\.play\(\)/);
-  assert.doesNotMatch(pipStartSource, /openStandardFloatWindow\(\)/);
+  assert.match(pipStartSource, /if \(shouldUseSafariFloatWindow\(\)\) \{\s*if \(openStandardFloatWindow\(\)\)/);
+  assert.match(html, /popup=yes,width=620,height=560/);
   assert.match(html, /event\.data\?\.type === 'stock-float-open'/);
   assert.match(html, /\^\(\?:sh\|sz\|hk\|us\)\[a-zA-Z0-9\._-\]\+\$/);
   assert.match(floatHtml, /自选盯盘/);
@@ -387,15 +390,16 @@ test('watchlist tool requests picture-in-picture directly from the click gesture
 
 test('web page opens the desktop client only on user action and exposes a safe download guide', () => {
   assert.match(html, /id="desktop-open-btn"[^>]*onclick="openDesktopClient\(\)"/);
+  assert.match(html, /id="desktop-download-btn"[^>]*href="https:\/\/github\.com\/Sherlock-4869\/stock-desktop\/releases\/latest"/);
   assert.match(html, /id="desktop-launch-guide"/);
-  assert.match(html, /https:\/\/github\.com\/Sherlock-4869\/stock-desktop\/releases/);
+  assert.match(html, /https:\/\/github\.com\/Sherlock-4869\/stock-desktop\/releases\/latest/);
   const start = html.indexOf('function openDesktopClient');
   const end = html.indexOf('function applyListColorPreference', start);
   assert.ok(start >= 0 && end > start);
   const guide = { classList:{ add() {} }, querySelector:() => ({ href:'' }) };
   const context = {
     activeGroupId:'g_default',
-    DESKTOP_DOWNLOAD_URL:'https://github.com/Sherlock-4869/stock-desktop/releases',
+    DESKTOP_DOWNLOAD_URL:'https://github.com/Sherlock-4869/stock-desktop/releases/latest',
     document:{ getElementById:id => id === 'desktop-launch-guide' ? guide : null },
     window:{ location:{ href:'' } },
     showToast() {},
