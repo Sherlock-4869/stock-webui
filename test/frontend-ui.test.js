@@ -342,6 +342,8 @@ test('watchlist tool requests picture-in-picture directly from the click gesture
   assert.match(html, /leavepictureinpicture/);
   assert.match(html, /function closeStockPictureInPicture\(/);
   assert.match(html, /function prepareStockPictureInPictureMedia\(\)/);
+  assert.match(html, /function retryStockPictureInPictureMedia\(\)/);
+  assert.match(html, /Safari 画中画正在重新准备，请稍候后再点一次/);
   assert.match(html, /prepareStockPictureInPictureMedia\(\)\.catch/);
   assert.match(html, /left:0;top:0;width:2px;height:2px;opacity:0\.01/);
   assert.match(html, /function openStandardFloatWindow\(\)/);

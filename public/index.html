@@ -5556,6 +5556,23 @@ function pictureInPictureStartMessage(error) {
   return '画中画盯盘启动失败；请使用最新版 Safari、Chrome 或 Edge 后重试';
 }
 
+function resetStockPictureInPictureMedia() {
+  const media = stockPictureInPictureMedia;
+  if (!media || stockPictureInPictureState?.media === media) return;
+  stockPictureInPictureMedia = null;
+  try { media.video?.pause(); } catch (_) {}
+  if (media.video) {
+    media.video.srcObject = null;
+    media.video.remove();
+  }
+  media.stream?.getTracks().forEach(track => track.stop());
+}
+
+function retryStockPictureInPictureMedia() {
+  resetStockPictureInPictureMedia();
+  return prepareStockPictureInPictureMedia();
+}
+
 function prepareStockPictureInPictureMedia() {
   if (stockPictureInPictureMedia) return stockPictureInPictureMedia.readyPromise;
   const canvas = document.createElement('canvas');
@@ -5653,7 +5670,14 @@ async function openFloatWindow() {
   }
   const media = stockPictureInPictureMedia;
   if (!media?.ready) {
-    showToast(media?.error ? '画中画准备失败；请刷新页面后重试' : '画中画正在准备，请稍候重试', true);
+    if (media?.error) {
+      retryStockPictureInPictureMedia().catch(error => {
+        console.error('stock picture-in-picture retry error:', error);
+      });
+      showToast('Safari 画中画正在重新准备，请稍候后再点一次', true);
+    } else {
+      showToast('画中画正在准备，请稍候重试', true);
+    }
     return;
   }
   const state = {
@@ -5688,8 +5712,23 @@ async function openFloatWindow() {
       state.video.webkitSetPresentationMode('picture-in-picture');
       // webkitSetPresentationMode() returns void and can fail silently. Confirm
       // that Safari actually entered PiP before claiming that the ticker opened.
+      // Safari can dispatch the mode change a few frames after this call.
       if (state.video.webkitPresentationMode !== 'picture-in-picture') {
-        await new Promise(resolve => requestAnimationFrame(resolve));
+        await new Promise(resolve => {
+          const confirm = () => {
+            if (state.video.webkitPresentationMode === 'picture-in-picture') {
+              state.video.removeEventListener('webkitpresentationmodechanged', confirm);
+              clearTimeout(timeout);
+              resolve();
+            }
+          };
+          const timeout = setTimeout(() => {
+            state.video.removeEventListener('webkitpresentationmodechanged', confirm);
+            resolve();
+          }, 800);
+          state.video.addEventListener('webkitpresentationmodechanged', confirm);
+          requestAnimationFrame(confirm);
+        });
       }
       if (state.video.webkitPresentationMode !== 'picture-in-picture') {
         const error = new Error('Safari did not enter picture-in-picture mode');
