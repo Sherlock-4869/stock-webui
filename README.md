@@ -45,7 +45,7 @@ cp .env.example .env
 - 登录前的访客配置会单独备份；退出登录后恢复访客配置，避免把账号数据遗留给未登录页面。
 - 密码使用 Node.js 原生 `scrypt` 加盐哈希。浏览器 Cookie 只保存随机会话令牌，数据库只保存令牌的 SHA-256；Cookie 使用 `HttpOnly`、`SameSite=Lax`，HTTPS 下自动增加 `Secure`。
 - 桌面端使用 `POST /api/auth/desktop/login` 签发独立的 Bearer 会话；令牌只能放在 `Authorization` 请求头中，不能放进 URL、Cookie 或日志。客户端启动时可通过 `POST /api/auth/desktop/refresh` 轮换令牌，并以 `POST /api/auth/desktop/logout` 撤销当前桌面会话。该会话沿用 `STOCK_ACCOUNT_SESSION_DAYS` 的有效期，服务端仍然只保存其 SHA-256 摘要。
-- 网页自选工具栏提供“下载桌面端”链接，始终跳转到 GitHub 最新正式版；在 macOS Safari 中，“画中画盯盘”会改为可拖动、可缩放的独立盯盘浮窗，Chrome/Edge 保持原生画中画。
+- 网页自选工具栏提供“下载桌面端”链接，始终跳转到 GitHub 最新正式版；“画中画盯盘”在 Safari、Chrome、Edge 中均保持原生置顶画中画，旁边的“可拖动浮窗”则打开可自由摆放和缩放的独立盯盘窗口。
 
 ### 聊天室记录与加载规则
 

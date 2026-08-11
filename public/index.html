@@ -637,6 +637,10 @@ html[data-theme="light"] .stock-board-tag{border-color:#9bcaf4;background:#e8f4f
       <svg class="market-tool-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="14" height="14" rx="2"/><path d="M12 3h7a2 2 0 0 1 2 2v7M12 12l9-9"/></svg>
       <span class="market-tool-label">画中画盯盘</span>
     </button>
+    <button class="refresh-btn market-tool-btn" id="movable-float-btn" type="button" onclick="openMovableFloatWindow()" title="打开可自由拖动和缩放的盯盘浮窗">
+      <svg class="market-tool-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M8 12h8M12 8v8"/></svg>
+      <span class="market-tool-label">可拖动浮窗</span>
+    </button>
     <button class="refresh-btn market-tool-btn" id="desktop-open-btn" type="button" onclick="openDesktopClient()" title="使用原生桌面端打开当前分组">
       <svg class="market-tool-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="3" width="16" height="12" rx="2"/><path d="M8 21h8M12 15v6"/></svg>
       <span class="market-tool-label">在桌面端打开</span>
@@ -5495,23 +5499,18 @@ function restartStockPictureInPictureRefresh() {
 function updateStockPictureInPictureButton() {
   const button = document.getElementById('pip-btn');
   if (!button) return;
-  const safariFloatWindow = shouldUseSafariFloatWindow();
-  const active = safariFloatWindow
-    ? Boolean(floatWindow && !floatWindow.closed)
-    : Boolean(stockPictureInPictureState?.pipWindow && !stockPictureInPictureState.closing);
+  const active = Boolean(stockPictureInPictureState?.pipWindow && !stockPictureInPictureState.closing);
   const api = pictureInPictureApi();
   const media = stockPictureInPictureMedia;
-  const preparing = !safariFloatWindow && Boolean(api && !active && !media?.ready && !media?.error);
+  const preparing = Boolean(api && !active && !media?.ready && !media?.error);
   button.classList.toggle('is-active', active);
   button.setAttribute('aria-pressed', String(active));
   button.disabled = preparing;
-  button.title = safariFloatWindow
-    ? (active ? 'Safari 盯盘浮窗已打开；再次点击可聚焦窗口' : '在 Safari 中打开可自由拖动的盯盘浮窗')
-    : active
-      ? '画中画盯盘正在运行；再次点击可关闭'
-      : preparing
-        ? '正在准备画中画盯盘…'
-        : '开启画中画盯盘';
+  button.title = active
+    ? '画中画盯盘正在运行；再次点击可关闭'
+    : preparing
+      ? '正在准备画中画盯盘…'
+      : '开启画中画盯盘';
 }
 
 function closeStockPictureInPicture(state = stockPictureInPictureState, exitPictureInPicture = true) {
@@ -5622,7 +5621,6 @@ function prepareStockPictureInPictureMedia() {
 function openStandardFloatWindow() {
   if (floatWindow && !floatWindow.closed) {
     floatWindow.focus();
-    updateStockPictureInPictureButton();
     return true;
   }
   floatWindow = window.open(
@@ -5635,22 +5633,14 @@ function openStandardFloatWindow() {
     return false;
   }
   floatWindow.focus();
-  updateStockPictureInPictureButton();
   return true;
 }
 
-function shouldUseSafariFloatWindow() {
-  const userAgent = navigator.userAgent || '';
-  return /Macintosh/.test(userAgent)
-    && /Safari\//.test(userAgent)
-    && !/(?:Chrome|Chromium|CriOS|Edg|OPR)\//.test(userAgent);
+function openMovableFloatWindow() {
+  if (openStandardFloatWindow()) showToast('已打开可拖动盯盘浮窗；可通过窗口标题栏拖到任意位置并缩放');
 }
 
 async function openFloatWindow() {
-  if (shouldUseSafariFloatWindow()) {
-    if (openStandardFloatWindow()) showToast('Safari 已打开可拖动盯盘浮窗；可通过窗口标题栏拖到任意位置并缩放');
-    return;
-  }
   if (stockPictureInPictureState) {
     closeStockPictureInPicture();
     showToast('已关闭画中画盯盘');
