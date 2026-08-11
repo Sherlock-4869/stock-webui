@@ -96,6 +96,13 @@ function parseCookies(req) {
   return cookies;
 }
 
+function bearerToken(req) {
+  const authorization = String(req.headers.authorization || '');
+  if (!authorization) return null;
+  const match = authorization.match(/^Bearer ([A-Za-z0-9_-]{40,200})$/);
+  return match ? match[1] : false;
+}
+
 function isSecureRequest(req) {
   const forwarded = String(req.headers['x-forwarded-proto'] || '').split(',')[0].trim().toLowerCase();
   return forwarded ? forwarded === 'https' : Boolean(req.socket?.encrypted);
@@ -295,11 +302,17 @@ class AccountService {
   }
 
   async sessionFromRequest(req) {
-    const token = parseCookies(req)[this.config.cookieName];
+    const bearer = bearerToken(req);
+    const token = bearer === null ? parseCookies(req)[this.config.cookieName] : bearer;
     if (!token) return null;
     const session = await this.database.findSession(tokenHash(token));
     if (session) this.database.touchSession(session.session_id).catch(() => {});
-    return session ? { token, tokenHash: tokenHash(token), user: session } : null;
+    return session ? {
+      token,
+      tokenHash: tokenHash(token),
+      user: session,
+      authScheme: bearer === null ? 'cookie' : 'bearer',
+    } : null;
   }
 
   async requireUser(req) {
@@ -359,6 +372,16 @@ class AccountService {
     return { token, expiresAt, cookie: sessionCookie(this.config, token, expiresAt, isSecureRequest(req)) };
   }
 
+  async desktopSessionPayload(user, login) {
+    return {
+      ...(await this.authPayload(user)),
+      desktopSession: {
+        token: login.token,
+        expiresAt: login.expiresAt.toISOString(),
+      },
+    };
+  }
+
   async handleRoute(req, res, urlObject) {
     const pathname = urlObject.pathname;
     // AI administration has its own service, but keeps this account service as
@@ -408,6 +431,57 @@ class AccountService {
         } else {
           sendJson(res, 503, { error: this.initializationError || '账号服务尚未启用' });
         }
+        return true;
+      }
+
+      if (pathname === '/api/auth/desktop/login') {
+        if (req.method !== 'POST') {
+          sendJson(res, 405, { error:'Method Not Allowed' }, { Allow:'POST' });
+          return true;
+        }
+        const body = await readJson(req, 4096);
+        const username = normalizeUsername(body.username);
+        this.rateLimit(`desktop-login:${this.clientIp(req)}:${username}`, 12, 15 * 60 * 1000);
+        const user = username ? await this.database.findUserByUsername(username) : null;
+        const valid = Boolean(user && user.status === 'active' && user.password_hash
+          && await verifyPassword(String(body.password || ''), user.password_hash));
+        if (!valid) throw Object.assign(new Error('账号或密码错误'), { statusCode:401 });
+        await this.database.updateLastLogin(user.id);
+        const refreshed = await this.database.findUserById(user.id);
+        const login = await this.createLogin(refreshed, req);
+        this.rateLimits.delete(`desktop-login:${this.clientIp(req)}:${username}`);
+        // The bearer token is returned only to the desktop main process. It is
+        // never placed in a URL, cookie, or log entry.
+        sendJson(res, 200, await this.desktopSessionPayload(refreshed, login));
+        return true;
+      }
+
+      if (pathname === '/api/auth/desktop/refresh') {
+        if (req.method !== 'POST') {
+          sendJson(res, 405, { error:'Method Not Allowed' }, { Allow:'POST' });
+          return true;
+        }
+        const session = await this.requireUser(req);
+        if (session.authScheme !== 'bearer') {
+          throw Object.assign(new Error('桌面会话凭据不正确'), { statusCode:401 });
+        }
+        const login = await this.createLogin(session.user, req);
+        await this.database.deleteSession(session.tokenHash);
+        sendJson(res, 200, await this.desktopSessionPayload(session.user, login));
+        return true;
+      }
+
+      if (pathname === '/api/auth/desktop/logout') {
+        if (req.method !== 'POST') {
+          sendJson(res, 405, { error:'Method Not Allowed' }, { Allow:'POST' });
+          return true;
+        }
+        const session = await this.requireUser(req);
+        if (session.authScheme !== 'bearer') {
+          throw Object.assign(new Error('桌面会话凭据不正确'), { statusCode:401 });
+        }
+        await this.database.deleteSession(session.tokenHash);
+        sendJson(res, 200, { loggedOut:true });
         return true;
       }
 

@@ -129,6 +129,7 @@ body.market-sorting,body.market-sorting *{cursor:grabbing!important;user-select:
 .group-tab.active{color:#fff;background:#1f3a5f;border-color:#1f6feb}
 .group-count{margin-left:5px;color:#6e7681;font-size:10px}.group-tab.active .group-count{color:#79c0ff}
 .group-manage-btn{flex:none}
+.desktop-launch-guide{display:none;align-items:center;gap:7px;margin:-2px 0 10px;color:#8b949e;font-size:12px}.desktop-launch-guide.visible{display:flex}.desktop-launch-guide a{color:#58a6ff}
 .group-refresh-controls{display:flex;align-items:center;gap:7px;flex:none;margin-left:auto}.group-refresh-controls .status{margin-left:0;padding-left:8px;border-left:1px solid #30363d}.group-refresh-controls .refresh-setting{padding:0 2px}
 .batch-bar{display:none;align-items:center;gap:8px;margin:-4px 0 12px;padding:9px 10px;background:#161b22;border:1px solid #30363d;border-radius:7px}
 .batch-bar.visible{display:flex}.batch-count{color:#8b949e;font-size:12px;margin-right:auto}.batch-check{display:none;width:15px;height:15px;margin-right:7px;vertical-align:-2px;accent-color:#238636;cursor:pointer}
@@ -636,7 +637,12 @@ html[data-theme="light"] .stock-board-tag{border-color:#9bcaf4;background:#e8f4f
       <svg class="market-tool-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="14" height="14" rx="2"/><path d="M12 3h7a2 2 0 0 1 2 2v7M12 12l9-9"/></svg>
       <span class="market-tool-label">画中画盯盘</span>
     </button>
+    <button class="refresh-btn market-tool-btn" id="desktop-open-btn" type="button" onclick="openDesktopClient()" title="使用原生桌面端打开当前分组">
+      <svg class="market-tool-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="3" width="16" height="12" rx="2"/><path d="M8 21h8M12 15v6"/></svg>
+      <span class="market-tool-label">在桌面端打开</span>
+    </button>
   </div>
+  <div class="desktop-launch-guide" id="desktop-launch-guide" role="status">已尝试唤起桌面端；若尚未安装，请<a href="https://github.com/Sherlock-4869/stock-desktop/releases" target="_blank" rel="noopener noreferrer">下载客户端</a>。</div>
   <div class="sort-note"><span class="drag-handle" aria-hidden="true">⠿</span><span>长按股票行后拖动，可调整自选股顺序</span><div class="group-refresh-controls"><button class="refresh-btn" type="button" onclick="refreshAll()">↻ 刷新</button><label class="refresh-setting" for="refresh-interval"><span>刷新频率</span><select class="refresh-interval-select" id="refresh-interval" title="自选股刷新间隔；全球指数固定每 5 秒刷新" onchange="setRefreshInterval(this.value)"><option value="1000">1 秒（高频）</option><option value="3000">3 秒</option><option value="5000" selected>5 秒</option><option value="10000">10 秒</option><option value="30000">30 秒</option><option value="60000">60 秒</option></select></label><div class="status"><span class="dot" id="dot"></span><span id="status-text">连接中...</span></div></div></div>
   <div class="table-wrapper">
   <table id="stock-table">
@@ -1004,6 +1010,7 @@ const COLOR_STORAGE_KEY = 'stock_list_colors_v1';
 const MARKET_ORDER_STORAGE_KEY = 'global_market_order_v1';
 const MARKET_ROWS_STORAGE_KEY = 'global_market_rows_v1';
 const REFRESH_INTERVAL_STORAGE_KEY = 'stock_refresh_interval_v1';
+const DESKTOP_DOWNLOAD_URL = 'https://github.com/Sherlock-4869/stock-desktop/releases';
 const ACCOUNT_GUEST_BACKUP_KEY = 'stock_guest_config_backup_v1';
 const ACCOUNT_CONFIG_KEYS = [
   STORAGE_KEY, GROUPS_STORAGE_KEY, ACTIVE_GROUP_STORAGE_KEY, APP_PAGE_STORAGE_KEY,
@@ -1278,6 +1285,22 @@ function switchGroup(id) {
   if (!group || id === activeGroupId) return;
   toggleSelectionMode(false);
   activeGroupId = id; watchlist = group.stocks; lastRawQuoteData = {}; save(); renderGroupTabs(); fetchQuotes();
+}
+
+function openDesktopClient(symbol = '') {
+  const safeSymbol = /^[a-zA-Z0-9._-]{1,24}$/.test(String(symbol)) ? String(symbol) : '';
+  const safeGroupId = /^[a-zA-Z0-9_-]{1,64}$/.test(String(activeGroupId)) ? activeGroupId : '';
+  if (!safeSymbol && !safeGroupId) { showToast('当前分组无法在桌面端定位', true); return; }
+  const target = safeSymbol
+    ? `stockwatch://stock?symbol=${encodeURIComponent(safeSymbol)}`
+    : `stockwatch://watch?group=${encodeURIComponent(safeGroupId)}`;
+  const guide = document.getElementById('desktop-launch-guide');
+  const download = guide?.querySelector('a');
+  if (download) download.href = DESKTOP_DOWNLOAD_URL;
+  guide?.classList.add('visible');
+  // This is called exclusively from the user's click handler. The protocol URL
+  // contains only a public stock symbol or group ID, never session credentials.
+  window.location.href = target;
 }
 
 function applyListColorPreference() {

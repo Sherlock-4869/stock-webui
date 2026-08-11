@@ -26,7 +26,7 @@ async function startTestService() {
   };
 }
 
-async function jsonRequest(service, path, { method = 'GET', body, cookie } = {}) {
+async function jsonRequest(service, path, { method = 'GET', body, cookie, bearer } = {}) {
   const rawBody = body === undefined ? '' : JSON.stringify(body);
   const req = Readable.from(rawBody ? [Buffer.from(rawBody)] : []);
   req.method = method;
@@ -34,6 +34,7 @@ async function jsonRequest(service, path, { method = 'GET', body, cookie } = {})
   req.headers = { host:'stock.test', origin:'http://stock.test' };
   if (body !== undefined) req.headers['content-type'] = 'application/json';
   if (cookie) req.headers.cookie = cookie;
+  if (bearer) req.headers.authorization = `Bearer ${bearer}`;
   req.socket = { remoteAddress:'127.0.0.1', encrypted:false };
   const response = {
     status: 200,
@@ -379,6 +380,51 @@ test('account HTTP flow persists config across logout and password login', async
   const afterLogin = await jsonRequest(app.service, '/api/auth/me', { cookie });
   assert.equal(afterLogin.payload.user.displayName, '新名称');
   assert.equal(afterLogin.payload.config.values.watchlist_v1, '["sh600519","usAAPL"]');
+});
+
+test('desktop login issues a bearer-only session that rotates and can be revoked', async t => {
+  const app = await startTestService();
+  t.after(app.close);
+
+  await jsonRequest(app.service, '/api/auth/register', {
+    method:'POST',
+    body:{ username:'desktop_user', password:'password-123', displayName:'桌面用户' },
+  });
+  const login = await jsonRequest(app.service, '/api/auth/desktop/login', {
+    method:'POST', body:{ username:'desktop_user', password:'password-123' },
+  });
+  assert.equal(login.response.status, 200);
+  assert.match(login.payload.desktopSession.token, /^[A-Za-z0-9_-]{40,}$/);
+  assert.match(login.payload.desktopSession.expiresAt, /^\d{4}-\d{2}-\d{2}T/);
+  assert.equal(login.setCookie, undefined);
+
+  const firstToken = login.payload.desktopSession.token;
+  const me = await jsonRequest(app.service, '/api/auth/me', { bearer:firstToken });
+  assert.equal(me.response.status, 200);
+  assert.equal(me.payload.user.username, 'desktop_user');
+
+  const cookieRefresh = await jsonRequest(app.service, '/api/auth/desktop/refresh', {
+    method:'POST', cookie:cookieFrom(await jsonRequest(app.service, '/api/auth/login', {
+      method:'POST', body:{ username:'desktop_user', password:'password-123' },
+    })), body:{},
+  });
+  assert.equal(cookieRefresh.response.status, 401);
+
+  const refreshed = await jsonRequest(app.service, '/api/auth/desktop/refresh', {
+    method:'POST', bearer:firstToken, body:{},
+  });
+  assert.equal(refreshed.response.status, 200);
+  const secondToken = refreshed.payload.desktopSession.token;
+  assert.notEqual(secondToken, firstToken);
+  const expiredToken = await jsonRequest(app.service, '/api/auth/me', { bearer:firstToken });
+  assert.equal(expiredToken.payload.user, null);
+
+  const logout = await jsonRequest(app.service, '/api/auth/desktop/logout', {
+    method:'POST', bearer:secondToken, body:{},
+  });
+  assert.equal(logout.response.status, 200);
+  const loggedOut = await jsonRequest(app.service, '/api/auth/me', { bearer:secondToken });
+  assert.equal(loggedOut.payload.user, null);
 });
 
 test('notes CRUD is persisted and isolated by account', async t => {

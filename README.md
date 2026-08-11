@@ -44,6 +44,7 @@ cp .env.example .env
 - 已有账号配置时，登录后优先加载账号配置，并在页面发生变化后自动同步。
 - 登录前的访客配置会单独备份；退出登录后恢复访客配置，避免把账号数据遗留给未登录页面。
 - 密码使用 Node.js 原生 `scrypt` 加盐哈希。浏览器 Cookie 只保存随机会话令牌，数据库只保存令牌的 SHA-256；Cookie 使用 `HttpOnly`、`SameSite=Lax`，HTTPS 下自动增加 `Secure`。
+- 桌面端使用 `POST /api/auth/desktop/login` 签发独立的 Bearer 会话；令牌只能放在 `Authorization` 请求头中，不能放进 URL、Cookie 或日志。客户端启动时可通过 `POST /api/auth/desktop/refresh` 轮换令牌，并以 `POST /api/auth/desktop/logout` 撤销当前桌面会话。该会话沿用 `STOCK_ACCOUNT_SESSION_DAYS` 的有效期，服务端仍然只保存其 SHA-256 摘要。
 
 ### 聊天室记录与加载规则
 

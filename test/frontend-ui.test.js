@@ -385,6 +385,30 @@ test('watchlist tool requests picture-in-picture directly from the click gesture
   assert.deepEqual(sorted.map(item => item.symbol), ['usAAPL', 'sh600519', 'sz000001']);
 });
 
+test('web page opens the desktop client only on user action and exposes a safe download guide', () => {
+  assert.match(html, /id="desktop-open-btn"[^>]*onclick="openDesktopClient\(\)"/);
+  assert.match(html, /id="desktop-launch-guide"/);
+  assert.match(html, /https:\/\/github\.com\/Sherlock-4869\/stock-desktop\/releases/);
+  const start = html.indexOf('function openDesktopClient');
+  const end = html.indexOf('function applyListColorPreference', start);
+  assert.ok(start >= 0 && end > start);
+  const guide = { classList:{ add() {} }, querySelector:() => ({ href:'' }) };
+  const context = {
+    activeGroupId:'g_default',
+    DESKTOP_DOWNLOAD_URL:'https://github.com/Sherlock-4869/stock-desktop/releases',
+    document:{ getElementById:id => id === 'desktop-launch-guide' ? guide : null },
+    window:{ location:{ href:'' } },
+    showToast() {},
+    encodeURIComponent,
+  };
+  vm.createContext(context);
+  vm.runInContext(html.slice(start, end), context);
+  context.openDesktopClient();
+  assert.equal(context.window.location.href, 'stockwatch://watch?group=g_default');
+  context.openDesktopClient('sh600519');
+  assert.equal(context.window.location.href, 'stockwatch://stock?symbol=sh600519');
+});
+
 test('IPO calendar labels each stock board', () => {
   assert.match(html, /class="ipo-board">\$\{escapeHtml\(ipoBoard\(item\)\)\}/);
   const start = html.indexOf('function ipoBoard');
