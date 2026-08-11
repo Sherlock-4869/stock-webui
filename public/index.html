@@ -632,9 +632,9 @@ html[data-theme="light"] .stock-board-tag{border-color:#9bcaf4;background:#e8f4f
       <svg class="market-tool-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19V10M10 19V5M16 19v-7M22 19H2"/><path d="M4 7.5 9 3l4 3 7-4"/></svg>
       <span class="market-tool-label">指标</span><span class="market-tool-state" id="metrics-btn-state">自定义</span>
     </button>
-    <button class="refresh-btn market-tool-btn" id="pip-btn" type="button" aria-pressed="false" onclick="openFloatWindow()" title="开启始终置顶的画中画盯盘">
+    <button class="refresh-btn market-tool-btn" id="pip-btn" type="button" aria-pressed="false" onclick="openFloatWindow()" title="开启画中画盯盘">
       <svg class="market-tool-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="14" height="14" rx="2"/><path d="M12 3h7a2 2 0 0 1 2 2v7M12 12l9-9"/></svg>
-      <span class="market-tool-label">置顶盯盘</span>
+      <span class="market-tool-label">画中画盯盘</span>
     </button>
   </div>
   <div class="sort-note"><span class="drag-handle" aria-hidden="true">⠿</span><span>长按股票行后拖动，可调整自选股顺序</span><div class="group-refresh-controls"><button class="refresh-btn" type="button" onclick="refreshAll()">↻ 刷新</button><label class="refresh-setting" for="refresh-interval"><span>刷新频率</span><select class="refresh-interval-select" id="refresh-interval" title="自选股刷新间隔；全球指数固定每 5 秒刷新" onchange="setRefreshInterval(this.value)"><option value="1000">1 秒（高频）</option><option value="3000">3 秒</option><option value="5000" selected>5 秒</option><option value="10000">10 秒</option><option value="30000">30 秒</option><option value="60000">60 秒</option></select></label><div class="status"><span class="dot" id="dot"></span><span id="status-text">连接中...</span></div></div></div>
@@ -1085,6 +1085,7 @@ let quoteTimer = null;
 let marketTimer = null;
 let anomalyTimer = null;
 let stockPictureInPictureState = null;
+let stockPictureInPictureMedia = null;
 let quoteRequestPending = false;
 let extendedMetricsRequestPending = false;
 let extendedMetricsQueued = false;
@@ -5251,9 +5252,9 @@ initializeApplication();
 // --- Float Window ---
 let floatWindow = null;
 
-const STOCK_PIP_CANVAS_WIDTH = 720;
-const STOCK_PIP_CANVAS_HEIGHT = 460;
-const STOCK_PIP_MAX_ROWS = 8;
+const STOCK_PIP_CANVAS_WIDTH = 800;
+const STOCK_PIP_CANVAS_HEIGHT = 500;
+const STOCK_PIP_MAX_ROWS = 7;
 
 function activeStockPictureInPictureSnapshot() {
   const activeGroup = groups.find(group => group.id === activeGroupId);
@@ -5302,8 +5303,7 @@ function stockPipQuoteColor(value, palette) {
   return number > 0 ? palette.up : palette.down;
 }
 
-function renderStockPictureInPicture() {
-  const state = stockPictureInPictureState;
+function renderStockPictureInPicture(state = stockPictureInPictureState) {
   if (!state?.canvas) return;
   const snapshot = state.snapshot || activeStockPictureInPictureSnapshot();
   const { canvas } = state;
@@ -5322,51 +5322,51 @@ function renderStockPictureInPicture() {
   context.fillStyle = palette.background;
   context.fillRect(0, 0, width, height);
   context.fillStyle = palette.panel;
-  context.fillRect(0, 0, width, 104);
+  context.fillRect(0, 0, width, 112);
   context.fillStyle = palette.border;
-  context.fillRect(0, 103, width, 1);
+  context.fillRect(0, 111, width, 1);
 
   context.textBaseline = 'middle';
-  context.font = '700 18px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+  context.font = '700 20px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
   context.fillStyle = palette.text;
-  context.fillText(stockPipFitText(context, `自选盯盘 · ${snapshot.groupName}`, 420), 18, 28);
-  context.font = '12px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+  context.fillText(stockPipFitText(context, `自选盯盘 · ${snapshot.groupName}`, 470), 18, 30);
+  context.font = '13px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
   context.fillStyle = state.offline ? palette.offline : palette.muted;
   context.textAlign = 'right';
-  context.fillText(state.offline ? '行情连接失败 · 保留上次结果' : '画中画置顶中', width - 18, 28);
+  context.fillText(state.offline ? '行情连接失败 · 保留上次结果' : '画中画置顶中', width - 18, 30);
   context.textAlign = 'left';
 
   context.fillStyle = palette.tableHead;
-  context.fillRect(18, 50, width - 36, 36);
-  context.font = '600 12px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+  context.fillRect(18, 54, width - 36, 42);
+  context.font = '600 13px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
   context.fillStyle = palette.muted;
-  context.fillText(`上涨 ${up}`, 32, 68);
-  context.fillText(`下跌 ${down}`, 126, 68);
-  context.fillText(`平 ${flat}`, 220, 68);
-  context.fillText(`共 ${snapshot.symbols.length} 只`, 310, 68);
+  context.fillText(`上涨 ${up}`, 32, 75);
+  context.fillText(`下跌 ${down}`, 134, 75);
+  context.fillText(`平 ${flat}`, 236, 75);
+  context.fillText(`共 ${snapshot.symbols.length} 只`, 328, 75);
   context.textAlign = 'right';
   const updateText = state.updatedAt
     ? `更新 ${state.updatedAt.toLocaleTimeString('zh-CN', { hour:'2-digit', minute:'2-digit', second:'2-digit' })}`
     : '正在加载行情…';
-  context.fillText(updateText, width - 32, 68);
+  context.fillText(updateText, width - 32, 75);
   context.textAlign = 'left';
 
   context.fillStyle = palette.tableHead;
-  context.fillRect(0, 104, width, 31);
-  context.font = '600 11px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+  context.fillRect(0, 112, width, 34);
+  context.font = '600 12px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
   context.fillStyle = palette.muted;
-  context.fillText('股票', 18, 120);
-  context.fillText('最新价', 364, 120);
-  context.fillText('涨跌额', 470, 120);
-  context.fillText('涨跌幅', 576, 120);
+  context.fillText('股票', 18, 129);
+  context.fillText('最新价', 405, 129);
+  context.fillText('涨跌额', 525, 129);
+  context.fillText('涨跌幅', 645, 129);
 
   if (!snapshot.symbols.length) {
-    context.font = '14px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+    context.font = '16px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
     context.fillStyle = palette.muted;
     context.textAlign = 'center';
-    context.fillText('当前分组暂无自选股', width / 2, 250);
-    context.font = '12px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
-    context.fillText('在主界面添加股票后会自动显示在此处', width / 2, 276);
+    context.fillText('当前分组暂无自选股', width / 2, 270);
+    context.font = '13px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+    context.fillText('在主界面添加股票后会自动显示在此处', width / 2, 298);
     context.textAlign = 'left';
     return;
   }
@@ -5374,28 +5374,28 @@ function renderStockPictureInPicture() {
   const visibleSymbols = snapshot.symbols.slice(0, STOCK_PIP_MAX_ROWS);
   visibleSymbols.forEach((symbol, index) => {
     const quote = quotes[symbol];
-    const y = 135 + index * 35;
+    const y = 146 + index * 43;
     context.fillStyle = index % 2 ? palette.panel : palette.background;
-    context.fillRect(0, y, width, 35);
+    context.fillRect(0, y, width, 43);
     context.fillStyle = palette.border;
-    context.fillRect(18, y + 34, width - 36, 1);
+    context.fillRect(18, y + 42, width - 36, 1);
     const color = stockPipQuoteColor(quote?.pct, palette);
-    context.font = '700 11px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+    context.font = '700 12px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
     context.fillStyle = palette.muted;
-    context.fillText(stockPipMarketLabel(symbol), 18, y + 17);
-    context.font = '600 12px ui-monospace, SFMono-Regular, Menlo, monospace';
+    context.fillText(stockPipMarketLabel(symbol), 18, y + 21);
+    context.font = '600 14px ui-monospace, SFMono-Regular, Menlo, monospace';
     context.fillStyle = palette.text;
-    context.fillText(symbol.replace(/^(sh|sz|hk|us)/i, '').toUpperCase(), 42, y + 17);
-    context.font = '600 12px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
-    context.fillText(stockPipFitText(context, quote?.name || '行情加载中…', 188), 122, y + 17);
-    context.font = '700 13px ui-monospace, SFMono-Regular, Menlo, monospace';
+    context.fillText(symbol.replace(/^(sh|sz|hk|us)/i, '').toUpperCase(), 45, y + 21);
+    context.font = '600 14px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+    context.fillText(stockPipFitText(context, quote?.name || '行情加载中…', 230), 132, y + 21);
+    context.font = '700 15px ui-monospace, SFMono-Regular, Menlo, monospace';
     context.fillStyle = color;
-    context.fillText(stockPipFormat(quote?.price), 364, y + 17);
-    context.fillText(`${Number(quote?.chg) > 0 ? '+' : ''}${stockPipFormat(quote?.chg)}`, 470, y + 17);
-    context.fillText(`${Number(quote?.pct) > 0 ? '+' : ''}${stockPipFormat(quote?.pct)}%`, 576, y + 17);
+    context.fillText(stockPipFormat(quote?.price), 405, y + 21);
+    context.fillText(`${Number(quote?.chg) > 0 ? '+' : ''}${stockPipFormat(quote?.chg)}`, 525, y + 21);
+    context.fillText(`${Number(quote?.pct) > 0 ? '+' : ''}${stockPipFormat(quote?.pct)}%`, 645, y + 21);
   });
 
-  context.font = '11px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+  context.font = '12px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
   context.fillStyle = palette.muted;
   const extra = snapshot.symbols.length - visibleSymbols.length;
   context.fillText(extra > 0 ? `已显示前 ${visibleSymbols.length} 只，另有 ${extra} 只` : `自动刷新间隔 ${refreshIntervalMs / 1000} 秒`, 18, height - 18);
@@ -5469,11 +5469,17 @@ function updateStockPictureInPictureButton() {
   const button = document.getElementById('pip-btn');
   if (!button) return;
   const active = Boolean(stockPictureInPictureState?.pipWindow && !stockPictureInPictureState.closing);
+  const api = pictureInPictureApi();
+  const media = stockPictureInPictureMedia;
+  const preparing = Boolean(api && !active && !media?.ready && !media?.error);
   button.classList.toggle('is-active', active);
   button.setAttribute('aria-pressed', String(active));
+  button.disabled = preparing;
   button.title = active
-    ? '置顶盯盘正在运行；再次点击可关闭'
-    : '开启始终置顶的画中画盯盘';
+    ? '画中画盯盘正在运行；再次点击可关闭'
+    : preparing
+      ? '正在准备画中画盯盘…'
+      : '开启画中画盯盘';
 }
 
 function closeStockPictureInPicture(state = stockPictureInPictureState, exitPictureInPicture = true) {
@@ -5481,29 +5487,91 @@ function closeStockPictureInPicture(state = stockPictureInPictureState, exitPict
   state.closing = true;
   stockPictureInPictureState = null;
   clearInterval(state.refreshTimer);
-  if (exitPictureInPicture && document.pictureInPictureElement === state.video) {
+  if (state.leaveHandler) state.video?.removeEventListener('leavepictureinpicture', state.leaveHandler);
+  if (state.presentationModeHandler) state.video?.removeEventListener('webkitpresentationmodechanged', state.presentationModeHandler);
+  if (exitPictureInPicture && state.presentationApi === 'standard' && document.pictureInPictureElement === state.video) {
     document.exitPictureInPicture().catch(() => {});
   }
-  state.stream?.getTracks().forEach(track => track.stop());
-  if (state.video) {
+  if (exitPictureInPicture && state.presentationApi === 'webkit' && state.video?.webkitPresentationMode === 'picture-in-picture') {
+    state.video.webkitSetPresentationMode('inline');
+  }
+  if (!state.media) {
+    state.stream?.getTracks().forEach(track => track.stop());
     state.video.srcObject = null;
     state.video.remove();
   }
   updateStockPictureInPictureButton();
 }
 
+function pictureInPictureApi() {
+  if (typeof HTMLCanvasElement.prototype.captureStream !== 'function') return null;
+  if (document.pictureInPictureEnabled && typeof HTMLVideoElement.prototype.requestPictureInPicture === 'function') return 'standard';
+  if (typeof HTMLVideoElement.prototype.webkitSetPresentationMode === 'function') return 'webkit';
+  return null;
+}
+
 function pictureInPictureSupported() {
-  return Boolean(
-    document.pictureInPictureEnabled
-    && typeof HTMLCanvasElement.prototype.captureStream === 'function'
-    && typeof HTMLVideoElement.prototype.requestPictureInPicture === 'function'
-  );
+  return pictureInPictureApi() !== null;
 }
 
 function pictureInPictureStartMessage(error) {
   if (error?.name === 'NotAllowedError') return '画中画被浏览器拒绝；请关闭其他画中画窗口后重试';
-  if (error?.name === 'InvalidStateError') return '画中画视频尚未就绪；请再次点击置顶盯盘';
-  return '置顶画中画启动失败；请使用最新版 Chrome 或 Edge 后重试';
+  if (error?.name === 'InvalidStateError') return '画中画视频尚未就绪；请等待片刻后重试';
+  return '画中画盯盘启动失败；请使用最新版 Safari、Chrome 或 Edge 后重试';
+}
+
+function prepareStockPictureInPictureMedia() {
+  if (stockPictureInPictureMedia) return stockPictureInPictureMedia.readyPromise;
+  const canvas = document.createElement('canvas');
+  canvas.width = STOCK_PIP_CANVAS_WIDTH;
+  canvas.height = STOCK_PIP_CANVAS_HEIGHT;
+  const media = {
+    canvas,
+    stream:null,
+    video:null,
+    ready:false,
+    error:null,
+    readyPromise:null,
+  };
+  stockPictureInPictureMedia = media;
+  try {
+    media.stream = canvas.captureStream(5);
+    media.video = document.createElement('video');
+    media.video.muted = true;
+    media.video.autoplay = true;
+    media.video.playsInline = true;
+    media.video.setAttribute('aria-hidden', 'true');
+    media.video.style.cssText = 'position:fixed;left:-9999px;top:-9999px;width:1px;height:1px;opacity:0;pointer-events:none';
+    media.video.srcObject = media.stream;
+    document.body.appendChild(media.video);
+    renderStockPictureInPicture({ canvas, quotes:{}, snapshot:activeStockPictureInPictureSnapshot(), offline:false });
+    media.readyPromise = new Promise((resolve, reject) => {
+      const markReady = () => {
+        if (media.video.readyState < 1 || media.ready) return;
+        media.ready = true;
+        media.video.removeEventListener('loadedmetadata', markReady);
+        media.video.removeEventListener('canplay', markReady);
+        updateStockPictureInPictureButton();
+        resolve(media);
+      };
+      const markFailed = error => {
+        if (media.ready || media.error) return;
+        media.error = error;
+        media.video.removeEventListener('loadedmetadata', markReady);
+        media.video.removeEventListener('canplay', markReady);
+        updateStockPictureInPictureButton();
+        reject(error);
+      };
+      media.video.addEventListener('loadedmetadata', markReady);
+      media.video.addEventListener('canplay', markReady);
+      media.video.play().then(markReady).catch(markFailed);
+    });
+  } catch (error) {
+    media.error = error;
+    media.readyPromise = Promise.reject(error);
+  }
+  updateStockPictureInPictureButton();
+  return media.readyPromise;
 }
 
 function openStandardFloatWindow() {
@@ -5526,23 +5594,27 @@ function openStandardFloatWindow() {
 async function openFloatWindow() {
   if (stockPictureInPictureState) {
     closeStockPictureInPicture();
-    showToast('已关闭置顶盯盘');
+    showToast('已关闭画中画盯盘');
     return;
   }
-  if (!pictureInPictureSupported()) {
-    showToast('当前浏览器不支持置顶画中画；请使用最新版 Chrome 或 Edge', true);
+  const presentationApi = pictureInPictureApi();
+  if (!presentationApi) {
+    showToast('当前浏览器不支持画中画盯盘；请使用最新版 Safari、Chrome 或 Edge', true);
     return;
   }
-
-  const canvas = document.createElement('canvas');
-  canvas.width = STOCK_PIP_CANVAS_WIDTH;
-  canvas.height = STOCK_PIP_CANVAS_HEIGHT;
+  const media = stockPictureInPictureMedia;
+  if (!media?.ready) {
+    showToast(media?.error ? '画中画准备失败；请刷新页面后重试' : '画中画正在准备，请稍候重试', true);
+    return;
+  }
   const state = {
-    canvas,
+    canvas:media.canvas,
     quotes:{},
     snapshot:activeStockPictureInPictureSnapshot(),
-    stream:null,
-    video:null,
+    stream:media.stream,
+    video:media.video,
+    media,
+    presentationApi,
     pipWindow:null,
     refreshTimer:null,
     refreshPending:false,
@@ -5553,24 +5625,23 @@ async function openFloatWindow() {
   stockPictureInPictureState = state;
   renderStockPictureInPicture();
   try {
-    state.stream = canvas.captureStream(5);
-    state.video = document.createElement('video');
-    state.video.muted = true;
-    state.video.autoplay = true;
-    state.video.playsInline = true;
-    state.video.setAttribute('aria-hidden', 'true');
-    state.video.style.cssText = 'position:fixed;left:-9999px;top:-9999px;width:1px;height:1px;opacity:0;pointer-events:none';
-    state.video.srcObject = state.stream;
-    state.video.addEventListener('leavepictureinpicture', () => closeStockPictureInPicture(state, false), { once:true });
-    document.body.appendChild(state.video);
-    // Keep requestPictureInPicture() in this click handler. Awaiting play() first
-    // loses the transient user activation that Chromium requires for PiP.
-    const playPromise = state.video.play();
-    state.pipWindow = await state.video.requestPictureInPicture();
-    await playPromise;
+    if (state.video.paused) state.video.play().catch(error => console.warn('stock picture-in-picture resume error:', error));
+    if (presentationApi === 'standard') {
+      state.leaveHandler = () => closeStockPictureInPicture(state, false);
+      state.video.addEventListener('leavepictureinpicture', state.leaveHandler, { once:true });
+      // This request must happen synchronously in the click handler; do not await video.play() first.
+      state.pipWindow = await state.video.requestPictureInPicture();
+    } else {
+      state.presentationModeHandler = () => {
+        if (state.video.webkitPresentationMode !== 'picture-in-picture') closeStockPictureInPicture(state, false);
+      };
+      state.video.addEventListener('webkitpresentationmodechanged', state.presentationModeHandler);
+      state.video.webkitSetPresentationMode('picture-in-picture');
+      state.pipWindow = { webkit:true };
+    }
     updateStockPictureInPictureButton();
     restartStockPictureInPictureRefresh();
-    showToast('置顶盯盘已开启；可拖动、缩放或关闭小窗');
+    showToast('画中画盯盘已开启；可拖动、缩放或关闭小窗');
   } catch (error) {
     console.error('stock picture-in-picture start error:', error);
     closeStockPictureInPicture(state, false);
@@ -6915,6 +6986,10 @@ function initChatDrag() {
     if (dragging) { dragging = false; float.style.transition = ''; }
   });
 }
+
+prepareStockPictureInPictureMedia().catch(error => {
+  console.error('stock picture-in-picture preparation error:', error);
+});
 
 </script>
 </body>
