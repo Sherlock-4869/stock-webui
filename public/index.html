@@ -5521,6 +5521,7 @@ function pictureInPictureSupported() {
 function pictureInPictureStartMessage(error) {
   if (error?.name === 'NotAllowedError') return '画中画被浏览器拒绝；请关闭其他画中画窗口后重试';
   if (error?.name === 'InvalidStateError') return '画中画视频尚未就绪；请等待片刻后重试';
+  if (error?.code === 'STOCK_PIP_WEBKIT_NO_WINDOW') return 'Safari 未能打开画中画窗口；请更新 Safari 后重试，或暂时使用 Edge';
   return '画中画盯盘启动失败；请使用最新版 Safari、Chrome 或 Edge 后重试';
 }
 
@@ -5544,11 +5545,17 @@ function prepareStockPictureInPictureMedia() {
     media.video.muted = true;
     media.video.autoplay = true;
     media.video.playsInline = true;
+    media.video.disablePictureInPicture = false;
     media.video.setAttribute('aria-hidden', 'true');
     // Safari blocks muted autoplay for videos outside the viewport. Keep a
     // practically invisible in-viewport renderer so its Canvas stream becomes ready.
     media.video.style.cssText = 'position:fixed;left:0;top:0;width:2px;height:2px;opacity:0.01;pointer-events:none';
+    // Safari 17 on macOS 14 had a WebKit bug where a video backed by srcObject
+    // would enter a broken PiP state without displaying a window. Temporarily
+    // enabling native controls before setting the stream is WebKit's workaround.
+    media.video.controls = true;
     media.video.srcObject = media.stream;
+    media.video.controls = false;
     document.body.appendChild(media.video);
     renderStockPictureInPicture({ canvas, quotes:{}, snapshot:activeStockPictureInPictureSnapshot(), offline:false });
     media.readyPromise = new Promise((resolve, reject) => {
@@ -5643,6 +5650,16 @@ async function openFloatWindow() {
       };
       state.video.addEventListener('webkitpresentationmodechanged', state.presentationModeHandler);
       state.video.webkitSetPresentationMode('picture-in-picture');
+      // webkitSetPresentationMode() returns void and can fail silently. Confirm
+      // that Safari actually entered PiP before claiming that the ticker opened.
+      if (state.video.webkitPresentationMode !== 'picture-in-picture') {
+        await new Promise(resolve => requestAnimationFrame(resolve));
+      }
+      if (state.video.webkitPresentationMode !== 'picture-in-picture') {
+        const error = new Error('Safari did not enter picture-in-picture mode');
+        error.code = 'STOCK_PIP_WEBKIT_NO_WINDOW';
+        throw error;
+      }
       state.pipWindow = { webkit:true };
     }
     updateStockPictureInPictureButton();

@@ -330,6 +330,9 @@ test('watchlist tool requests picture-in-picture directly from the click gesture
   assert.match(html, /HTMLVideoElement\.prototype\.webkitSetPresentationMode/);
   assert.match(html, /webkitSupportsPresentationMode\('picture-in-picture'\)/);
   assert.match(html, /canvas\.captureStream\(5\)/);
+  assert.match(html, /media\.video\.controls = true;/);
+  assert.match(html, /media\.video\.srcObject = media\.stream;/);
+  assert.match(html, /media\.video\.controls = false;/);
   assert.match(html, /const STOCK_PIP_CANVAS_WIDTH = 800/);
   assert.match(html, /const STOCK_PIP_CANVAS_HEIGHT = 500/);
   assert.match(html, /const STOCK_PIP_MAX_ROWS = 7/);
@@ -350,6 +353,7 @@ test('watchlist tool requests picture-in-picture directly from the click gesture
   const pipStartSource = html.slice(pipStart, pipEnd);
   assert.match(pipStartSource, /state\.pipWindow = await state\.video\.requestPictureInPicture\(\)/);
   assert.match(pipStartSource, /state\.video\.webkitSetPresentationMode\('picture-in-picture'\)/);
+  assert.match(pipStartSource, /STOCK_PIP_WEBKIT_NO_WINDOW/);
   assert.doesNotMatch(pipStartSource, /await state\.video\.play\(\)/);
   assert.doesNotMatch(pipStartSource, /openStandardFloatWindow\(\)/);
   assert.match(html, /event\.data\?\.type === 'stock-float-open'/);
