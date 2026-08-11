@@ -12,6 +12,14 @@ const referenceHtml = fs.readFileSync(path.join(__dirname, '..', 'public', 'refe
 const referenceReaderScript = fs.readFileSync(path.join(__dirname, '..', 'public', 'reference-reader.js'), 'utf8');
 const serverSource = fs.readFileSync(path.join(__dirname, '..', 'server.js'), 'utf8');
 
+test('main browser script parses as JavaScript', () => {
+  const scriptStart = html.indexOf('<script>\nconst STORAGE_KEY');
+  const scriptEnd = html.lastIndexOf('</script>');
+  assert.ok(scriptStart >= 0 && scriptEnd > scriptStart, 'main browser script must be present');
+  const script = html.slice(scriptStart + '<script>'.length, scriptEnd);
+  assert.doesNotThrow(() => new Function(script));
+});
+
 function markdownFunctions() {
   const start = html.indexOf('function safeMarkdownUrl');
   const end = html.indexOf('function updateNotePreview', start);
@@ -314,8 +322,15 @@ test('transfer dialog can remove a stock from all groups', () => {
   assert.deepEqual(groups[1].stocks, ['hk00700']);
 });
 
-test('float window is a controllable watchlist dashboard and can drill into stock details', () => {
-  assert.match(html, /market-tool-label">盯盘浮窗/);
+test('watchlist tool opens an always-on-top picture-in-picture dashboard with a controllable fallback', () => {
+  assert.match(html, /market-tool-label">置顶盯盘/);
+  assert.match(html, /function pictureInPictureSupported\(\)/);
+  assert.match(html, /canvas\.captureStream\(5\)/);
+  assert.match(html, /requestPictureInPicture\(\)/);
+  assert.match(html, /leavepictureinpicture/);
+  assert.match(html, /function closeStockPictureInPicture\(/);
+  assert.match(html, /function openStandardFloatWindow\(\)/);
+  assert.match(html, /自选盯盘 ·/);
   assert.match(html, /浮窗被浏览器拦截/);
   assert.match(html, /event\.data\?\.type === 'stock-float-open'/);
   assert.match(html, /\^\(\?:sh\|sz\|hk\|us\)\[a-zA-Z0-9\._-\]\+\$/);
