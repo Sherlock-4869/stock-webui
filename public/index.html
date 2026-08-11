@@ -5503,10 +5503,14 @@ function closeStockPictureInPicture(state = stockPictureInPictureState, exitPict
   updateStockPictureInPictureButton();
 }
 
-function pictureInPictureApi() {
+function pictureInPictureApi(video = stockPictureInPictureMedia?.video) {
   if (typeof HTMLCanvasElement.prototype.captureStream !== 'function') return null;
   if (document.pictureInPictureEnabled && typeof HTMLVideoElement.prototype.requestPictureInPicture === 'function') return 'standard';
-  if (typeof HTMLVideoElement.prototype.webkitSetPresentationMode === 'function') return 'webkit';
+  if (typeof HTMLVideoElement.prototype.webkitSetPresentationMode === 'function') {
+    try {
+      if (!video?.webkitSupportsPresentationMode || video.webkitSupportsPresentationMode('picture-in-picture')) return 'webkit';
+    } catch (_) {}
+  }
   return null;
 }
 
@@ -5541,7 +5545,9 @@ function prepareStockPictureInPictureMedia() {
     media.video.autoplay = true;
     media.video.playsInline = true;
     media.video.setAttribute('aria-hidden', 'true');
-    media.video.style.cssText = 'position:fixed;left:-9999px;top:-9999px;width:1px;height:1px;opacity:0;pointer-events:none';
+    // Safari blocks muted autoplay for videos outside the viewport. Keep a
+    // practically invisible in-viewport renderer so its Canvas stream becomes ready.
+    media.video.style.cssText = 'position:fixed;left:0;top:0;width:2px;height:2px;opacity:0.01;pointer-events:none';
     media.video.srcObject = media.stream;
     document.body.appendChild(media.video);
     renderStockPictureInPicture({ canvas, quotes:{}, snapshot:activeStockPictureInPictureSnapshot(), offline:false });

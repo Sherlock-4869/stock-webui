@@ -325,9 +325,10 @@ test('transfer dialog can remove a stock from all groups', () => {
 test('watchlist tool requests picture-in-picture directly from the click gesture and reports failures', () => {
   assert.match(html, /market-tool-label">画中画盯盘/);
   assert.match(html, /function pictureInPictureSupported\(\)/);
-  assert.match(html, /function pictureInPictureApi\(\)/);
+  assert.match(html, /function pictureInPictureApi\(video = stockPictureInPictureMedia\?\.video\)/);
   assert.match(html, /HTMLVideoElement\.prototype\.requestPictureInPicture/);
   assert.match(html, /HTMLVideoElement\.prototype\.webkitSetPresentationMode/);
+  assert.match(html, /webkitSupportsPresentationMode\('picture-in-picture'\)/);
   assert.match(html, /canvas\.captureStream\(5\)/);
   assert.match(html, /const STOCK_PIP_CANVAS_WIDTH = 800/);
   assert.match(html, /const STOCK_PIP_CANVAS_HEIGHT = 500/);
@@ -338,6 +339,7 @@ test('watchlist tool requests picture-in-picture directly from the click gesture
   assert.match(html, /function closeStockPictureInPicture\(/);
   assert.match(html, /function prepareStockPictureInPictureMedia\(\)/);
   assert.match(html, /prepareStockPictureInPictureMedia\(\)\.catch/);
+  assert.match(html, /left:0;top:0;width:2px;height:2px;opacity:0\.01/);
   assert.match(html, /function openStandardFloatWindow\(\)/);
   assert.match(html, /function pictureInPictureStartMessage\(error\)/);
   assert.match(html, /画中画被浏览器拒绝；请关闭其他画中画窗口后重试/);
