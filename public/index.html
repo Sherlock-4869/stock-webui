@@ -632,7 +632,7 @@ html[data-theme="light"] .stock-board-tag{border-color:#9bcaf4;background:#e8f4f
       <svg class="market-tool-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19V10M10 19V5M16 19v-7M22 19H2"/><path d="M4 7.5 9 3l4 3 7-4"/></svg>
       <span class="market-tool-label">指标</span><span class="market-tool-state" id="metrics-btn-state">自定义</span>
     </button>
-    <button class="refresh-btn market-tool-btn" id="pip-btn" type="button" aria-pressed="false" onclick="openFloatWindow()" title="开启始终置顶的画中画盯盘；不支持时打开普通盯盘浮窗">
+    <button class="refresh-btn market-tool-btn" id="pip-btn" type="button" aria-pressed="false" onclick="openFloatWindow()" title="开启始终置顶的画中画盯盘">
       <svg class="market-tool-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="14" height="14" rx="2"/><path d="M12 3h7a2 2 0 0 1 2 2v7M12 12l9-9"/></svg>
       <span class="market-tool-label">置顶盯盘</span>
     </button>
@@ -5473,7 +5473,7 @@ function updateStockPictureInPictureButton() {
   button.setAttribute('aria-pressed', String(active));
   button.title = active
     ? '置顶盯盘正在运行；再次点击可关闭'
-    : '开启始终置顶的画中画盯盘；不支持时打开普通盯盘浮窗';
+    : '开启始终置顶的画中画盯盘';
 }
 
 function closeStockPictureInPicture(state = stockPictureInPictureState, exitPictureInPicture = true) {
@@ -5493,7 +5493,17 @@ function closeStockPictureInPicture(state = stockPictureInPictureState, exitPict
 }
 
 function pictureInPictureSupported() {
-  return Boolean(document.pictureInPictureEnabled && typeof HTMLCanvasElement.prototype.captureStream === 'function');
+  return Boolean(
+    document.pictureInPictureEnabled
+    && typeof HTMLCanvasElement.prototype.captureStream === 'function'
+    && typeof HTMLVideoElement.prototype.requestPictureInPicture === 'function'
+  );
+}
+
+function pictureInPictureStartMessage(error) {
+  if (error?.name === 'NotAllowedError') return '画中画被浏览器拒绝；请关闭其他画中画窗口后重试';
+  if (error?.name === 'InvalidStateError') return '画中画视频尚未就绪；请再次点击置顶盯盘';
+  return '置顶画中画启动失败；请使用最新版 Chrome 或 Edge 后重试';
 }
 
 function openStandardFloatWindow() {
@@ -5520,8 +5530,7 @@ async function openFloatWindow() {
     return;
   }
   if (!pictureInPictureSupported()) {
-    showToast('当前浏览器不支持置顶画中画，已打开普通盯盘浮窗');
-    openStandardFloatWindow();
+    showToast('当前浏览器不支持置顶画中画；请使用最新版 Chrome 或 Edge', true);
     return;
   }
 
@@ -5554,16 +5563,18 @@ async function openFloatWindow() {
     state.video.srcObject = state.stream;
     state.video.addEventListener('leavepictureinpicture', () => closeStockPictureInPicture(state, false), { once:true });
     document.body.appendChild(state.video);
-    await state.video.play();
+    // Keep requestPictureInPicture() in this click handler. Awaiting play() first
+    // loses the transient user activation that Chromium requires for PiP.
+    const playPromise = state.video.play();
     state.pipWindow = await state.video.requestPictureInPicture();
+    await playPromise;
     updateStockPictureInPictureButton();
     restartStockPictureInPictureRefresh();
     showToast('置顶盯盘已开启；可拖动、缩放或关闭小窗');
   } catch (error) {
     console.error('stock picture-in-picture start error:', error);
     closeStockPictureInPicture(state, false);
-    showToast('置顶画中画启动失败，已打开普通盯盘浮窗', true);
-    openStandardFloatWindow();
+    showToast(pictureInPictureStartMessage(error), true);
   }
 }
 

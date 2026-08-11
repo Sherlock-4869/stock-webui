@@ -322,16 +322,24 @@ test('transfer dialog can remove a stock from all groups', () => {
   assert.deepEqual(groups[1].stocks, ['hk00700']);
 });
 
-test('watchlist tool opens an always-on-top picture-in-picture dashboard with a controllable fallback', () => {
+test('watchlist tool requests picture-in-picture directly from the click gesture and reports failures', () => {
   assert.match(html, /market-tool-label">置顶盯盘/);
   assert.match(html, /function pictureInPictureSupported\(\)/);
+  assert.match(html, /HTMLVideoElement\.prototype\.requestPictureInPicture/);
   assert.match(html, /canvas\.captureStream\(5\)/);
   assert.match(html, /requestPictureInPicture\(\)/);
   assert.match(html, /leavepictureinpicture/);
   assert.match(html, /function closeStockPictureInPicture\(/);
   assert.match(html, /function openStandardFloatWindow\(\)/);
+  assert.match(html, /function pictureInPictureStartMessage\(error\)/);
+  assert.match(html, /画中画被浏览器拒绝；请关闭其他画中画窗口后重试/);
   assert.match(html, /自选盯盘 ·/);
-  assert.match(html, /浮窗被浏览器拦截/);
+  const pipStart = html.indexOf('async function openFloatWindow');
+  const pipEnd = html.indexOf('// ============================================================\n// Notes Module', pipStart);
+  assert.ok(pipStart >= 0 && pipEnd > pipStart);
+  const pipStartSource = html.slice(pipStart, pipEnd);
+  assert.match(pipStartSource, /const playPromise = state\.video\.play\(\);\s*state\.pipWindow = await state\.video\.requestPictureInPicture\(\);\s*await playPromise;/);
+  assert.doesNotMatch(pipStartSource, /openStandardFloatWindow\(\)/);
   assert.match(html, /event\.data\?\.type === 'stock-float-open'/);
   assert.match(html, /\^\(\?:sh\|sz\|hk\|us\)\[a-zA-Z0-9\._-\]\+\$/);
   assert.match(floatHtml, /自选盯盘/);
