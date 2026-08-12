@@ -550,7 +550,7 @@ test('fund flow chart marks source-isolated fallback data and never combines it 
   assert.match(html, /retry\.textContent = '重新获取历史'/);
   assert.match(html, /loadChart\('fundFlow', \{ forceFundFlowRefresh:true \}\)/);
   assert.match(html, /&refresh=1/);
-  assert.match(html, /sina-money-flow/);
+  assert.match(html, /sina-money-flow-v2/);
   assert.match(html, /东方财富暂时不可用，当前使用新浪财经备用历史数据/);
 });
 

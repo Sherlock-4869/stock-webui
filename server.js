@@ -55,6 +55,7 @@ const REALTIME_VALUATION_CACHE_MS = 4500;
 const BOARD_LIST_CACHE_MS = 12 * 1000;
 const BOARD_DETAIL_CACHE_MS = 8 * 1000;
 const STOCK_BOARD_CACHE_MS = 6 * 60 * 60 * 1000;
+const SINA_FUND_FLOW_SOURCE = 'sina-money-flow-v2';
 const BOARD_LIST_PAGE_SIZE = 1000;
 const BOARD_COMPONENT_PAGE_SIZE = 1000;
 const fundamentalCache = new Map();
@@ -210,7 +211,7 @@ async function fetchFundFlowHistory(symbol) {
   } catch (eastmoneyError) {
     console.warn(`Eastmoney fund flow history unavailable (${symbol}), trying Sina:`, eastmoneyError.message);
     try {
-      return { data:await fetchSinaFundFlowHistory(symbol), source:'sina-money-flow' };
+      return { data:await fetchSinaFundFlowHistory(symbol), source:SINA_FUND_FLOW_SOURCE };
     } catch (sinaError) {
       throw new Error(`Fund flow history unavailable (Eastmoney: ${eastmoneyError.message}; Sina: ${sinaError.message})`);
     }
@@ -219,7 +220,7 @@ async function fetchFundFlowHistory(symbol) {
 
 const fundFlowHistoryLoader = createFundFlowHistoryLoader({
   source:'eastmoney-daykline',
-  acceptedSources:['eastmoney-daykline', 'sina-money-flow'],
+  acceptedSources:['eastmoney-daykline', SINA_FUND_FLOW_SOURCE],
   fetchData:fetchFundFlowHistory,
   loadPersisted:symbol => accountService.loadFundFlowHistoryCache(symbol),
   savePersisted:(symbol, value) => accountService.saveFundFlowHistoryCache(symbol, value),

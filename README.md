@@ -79,9 +79,9 @@ UPDATE users SET is_admin=0 WHERE username='需要取消管理员的账号';
 ### 主力资金历史数据
 
 - 个股“主力资金”页优先请求东方财富 `daykline`；完整请求失败后，才切换到新浪财经最近 120 个交易日的资金流数据。一次响应的整条历史曲线只会来自一个数据源，绝不按日期混合或拼接两家的柱体。
-- 两家接口的金额都在服务端标准化为元；新浪原始金额单位为万元。两家的“主力”划分和收盘后修订节奏并不完全相同，因此同一日期的数值可能不同，但来源明确时各自都是有效口径。
+- 两家接口返回的资金金额均按元展示；新浪接口的 `netamount` 与各档 `*_net` 原始字段已经是元，服务端不再二次换算。两家的“主力”划分和收盘后修订节奏并不完全相同，因此同一日期的数值可能不同，但来源明确时各自都是有效口径。
 - 当历史来自东方财富时，当日交易中会额外读取东方财富实时资金字段，并覆盖或补入当天柱体；该值随盘中成交变化，前端会明确标注“今日实时资金”。新浪备用曲线不会拼入东方财富的盘中柱体。
-- 缓存会记录实际来源（`eastmoney-daykline` 或 `sina-money-flow`），新鲜期为 1 分钟；两家上游都暂时失败时，最多展示 5 分钟内最近一次同源完整缓存，并明确标注缓存时间和来源。
+- 缓存会记录实际来源（`eastmoney-daykline` 或 `sina-money-flow-v2`），新鲜期为 1 分钟；新浪备用源的缓存版本已更新，旧版错误缩放的新浪缓存会被自动拒绝并重新请求。两家上游都暂时失败时，最多展示 5 分钟内最近一次同源完整缓存，并明确标注缓存时间和来源。
 - 日线历史暂时不可用、但东方财富实时资金可用时，页面会明确提示“历史曲线暂时获取不到，当前仅显示今日实时资金”，并提供“重新获取历史”按钮。该按钮会绕过新鲜缓存重试东方财富、随后新浪；两者都不可用时才提示“主力资金数据暂时拿不到，请稍后重试”。
 - “近五日累计”为当前曲线最近五个交易日主力净流入的滚动求和。
 
@@ -184,7 +184,7 @@ CREATE TABLE IF NOT EXISTS site_recommendations (
 CREATE TABLE IF NOT EXISTS stock_fund_flow_history_cache (
   symbol VARCHAR(16) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
   data_json JSON NOT NULL COMMENT '单一来源最近成功数据（金额单位：元）',
-  source VARCHAR(40) CHARACTER SET ascii COLLATE ascii_bin NOT NULL COMMENT 'eastmoney-daykline 或 sina-money-flow',
+  source VARCHAR(40) CHARACTER SET ascii COLLATE ascii_bin NOT NULL COMMENT 'eastmoney-daykline 或 sina-money-flow-v2',
   fetched_at DATETIME NOT NULL,
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,

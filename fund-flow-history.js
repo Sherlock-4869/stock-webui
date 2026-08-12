@@ -61,24 +61,21 @@ function parseFundFlowHistoryPayload(payload) {
 }
 
 function parseSinaFundFlowHistoryPayload(rows) {
-  // 新浪该接口的资金金额单位是万元；应用内资金图统一以元显示。
-  const yuan = value => {
-    const number = numberOrNull(value);
-    return number == null ? null : number * 10000;
-  };
+  // 新浪接口返回的 netamount 和各档 *_net 已经是元。不要再按页面
+  // 展示单位换算，否则会把整条备用曲线放大一万倍。
   const data = (Array.isArray(rows) ? rows : []).map(row => {
-    const superLargeNet = yuan(row?.r0_net);
-    const largeNet = yuan(row?.r1_net);
-    const mediumNet = yuan(row?.r2_net);
-    const smallNet = yuan(row?.r3_net);
+    const superLargeNet = numberOrNull(row?.r0_net);
+    const largeNet = numberOrNull(row?.r1_net);
+    const mediumNet = numberOrNull(row?.r2_net);
+    const smallNet = numberOrNull(row?.r3_net);
     const mainNet = Number.isFinite(superLargeNet) && Number.isFinite(largeNet)
       ? superLargeNet + largeNet
-      : yuan(row?.netamount);
+      : numberOrNull(row?.netamount);
     const totalAmount = ['r0', 'r1', 'r2', 'r3']
       .map(key => numberOrNull(row?.[key]))
       .filter(Number.isFinite)
       .reduce((sum, value) => sum + value, 0);
-    const ratio = value => Number.isFinite(value) && totalAmount > 0 ? value / (totalAmount * 10000) * 100 : null;
+    const ratio = value => Number.isFinite(value) && totalAmount > 0 ? value / totalAmount * 100 : null;
     const changeRatio = numberOrNull(row?.changeratio);
     return {
       date:row?.opendate,
