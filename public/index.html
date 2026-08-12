@@ -254,7 +254,7 @@ body.stock-sorting,body.stock-sorting *{cursor:grabbing!important;user-select:no
 .chart-info{display:flex;flex-wrap:wrap;align-items:center;gap:4px 12px;min-width:0;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;color:#c9d1d9}
 .chart-info span{white-space:nowrap}
 .chart-info b{font-weight:500;color:#8b949e;margin-right:4px}
-.chart-guide{flex:none;color:#6e7681;font-size:11px;white-space:nowrap;padding-top:1px}.chart-data-notice{display:none;margin-left:auto;padding:3px 7px;border:1px solid #d2992255;border-radius:10px;background:#d2992214;color:#e3b341;font-size:10px;white-space:nowrap}.chart-data-notice.visible{display:block}
+.chart-guide{flex:none;color:#6e7681;font-size:11px;white-space:nowrap;padding-top:1px}.chart-data-notice{display:none;align-items:center;gap:6px;margin-left:auto;padding:3px 7px;border:1px solid #d2992255;border-radius:10px;background:#d2992214;color:#e3b341;font-size:10px;white-space:nowrap}.chart-data-notice.visible{display:flex}.chart-notice-retry{border:0;border-radius:4px;background:#d2992233;color:#f2cc60;padding:2px 6px;font:inherit;cursor:pointer}.chart-notice-retry:hover{background:#d2992255;color:#fff}
 #chart-canvas{display:block;width:100%;height:290px;border-radius:4px;cursor:crosshair;touch-action:none}
 #chart-canvas.panning{cursor:grabbing}
 .chart-window{display:none;margin-top:8px;user-select:none}
@@ -310,7 +310,7 @@ html[data-theme="light"] .group-picker-option{border-color:#d0d7de}
 html[data-theme="light"] .group-picker-option:hover{background:#eaf4ff;border-color:#54aeff}
 html[data-theme="light"] .group-picker-meta{color:#64748b}html[data-theme="light"] .group-picker-option.has .group-picker-meta{color:#1a7f37}
 html[data-theme="light"] .tab-bar,html[data-theme="light"] .stats-grid,html[data-theme="light"] .chart-range,html[data-theme="light"] .group-list{border-color:#d0d7de}html[data-theme="light"] .chart-range{background:#f6f8fa}
-html[data-theme="light"] .chart-loading{background:#fff;color:#57606a}html[data-theme="light"] .chart-retry-btn{background:#f6f8fa;border-color:#d0d7de;color:#1f2328}
+html[data-theme="light"] .chart-loading{background:#fff;color:#57606a}html[data-theme="light"] .chart-retry-btn{background:#f6f8fa;border-color:#d0d7de;color:#1f2328}html[data-theme="light"] .chart-notice-retry{color:#9a6700}
 html[data-theme="light"] .market-name,html[data-theme="light"] .market-price,html[data-theme="light"] .market-summary strong,html[data-theme="light"] .chart-info,html[data-theme="light"] .alert-message{color:#1f2328}
 html[data-theme="light"] .market-page-note,html[data-theme="light"] .market-summary,html[data-theme="light"] .market-toolbar,html[data-theme="light"] .sort-note,html[data-theme="light"] .module-desc,html[data-theme="light"] .metric-label,html[data-theme="light"] .panel-status,html[data-theme="light"] .status,html[data-theme="light"] .refresh-setting,html[data-theme="light"] .time{color:#57606a}
 html[data-theme="light"] .ipo-board{background:#e5f3ff;color:#0969da}html[data-theme="light"] .ipo-status{border:1px solid transparent;font-weight:650}html[data-theme="light"] .ipo-status.upcoming{background:#e5f3ff;border-color:#b6ddff;color:#0969da}html[data-theme="light"] .ipo-status.today{background:#fff3cd;border-color:#f2d675;color:#8a5a00}html[data-theme="light"] .ipo-status.done{background:#dafbe1;border-color:#aceebb;color:#1a7f37}
@@ -2325,7 +2325,7 @@ const chartState = {
   hoverIndex: null, pointerY: null, layout: null,
 };
 
-async function loadChart(type) {
+async function loadChart(type, options = {}) {
   if (!modalSym) return;
   const requestId = ++chartRequestId;
   const loading = document.getElementById('chart-loading');
@@ -2362,7 +2362,8 @@ async function loadChart(type) {
       drawKline(chartCanvas, d.data?.[symKey]?.[period] || [], 'minuteK', period);
     } else if (type === 'fundFlow') {
       if (!/^(sh|sz)\d{6}$/.test(modalSym)) throw new Error('fund flow is unavailable for this market');
-      const r = await fetch(`/api/fund-flow-history?sym=${modalSym}`);
+      const refresh = options.forceFundFlowRefresh ? '&refresh=1' : '';
+      const r = await fetch(`/api/fund-flow-history?sym=${modalSym}${refresh}`);
       const d = await r.json().catch(() => ({}));
       if (!r.ok) throw new Error(d.error || 'fund flow request failed');
       if (requestId !== chartRequestId || currentTab !== type) return;
@@ -2376,7 +2377,18 @@ async function loadChart(type) {
         const realtimeMessage = d.meta.realtime
           ? `${d.meta.todayOnly ? '当前仅显示' : '已合并'}今日实时资金${Number.isFinite(realtimeTime) ? `（${new Date(realtimeTime * 1000).toLocaleTimeString('zh-CN', { hour:'2-digit', minute:'2-digit', second:'2-digit' })}）` : ''}`
           : '';
-        dataNotice.textContent = [cacheMessage, realtimeMessage].filter(Boolean).join('；');
+        if (d.meta.todayOnly) {
+          const label = document.createElement('span');
+          label.textContent = '历史曲线暂时获取不到，当前仅显示今日实时资金';
+          const retry = document.createElement('button');
+          retry.type = 'button';
+          retry.className = 'chart-notice-retry';
+          retry.textContent = '重新获取历史';
+          retry.addEventListener('click', () => loadChart('fundFlow', { forceFundFlowRefresh:true }));
+          dataNotice.replaceChildren(label, retry);
+        } else {
+          dataNotice.textContent = [cacheMessage, realtimeMessage].filter(Boolean).join('；');
+        }
         dataNotice.classList.add('visible');
       }
     } else {
@@ -2405,7 +2417,7 @@ async function loadChart(type) {
       retry.type = 'button';
       retry.className = 'chart-retry-btn';
       retry.textContent = '重新加载';
-      retry.addEventListener('click', () => loadChart('fundFlow'));
+      retry.addEventListener('click', () => loadChart('fundFlow', { forceFundFlowRefresh:true }));
       loading.appendChild(retry);
     }
   }
@@ -5544,12 +5556,16 @@ function closeStockPictureInPicture(state = stockPictureInPictureState, exitPict
 
 function pictureInPictureApi(video = stockPictureInPictureMedia?.video) {
   if (typeof HTMLCanvasElement.prototype.captureStream !== 'function') return null;
-  if (document.pictureInPictureEnabled && typeof HTMLVideoElement.prototype.requestPictureInPicture === 'function') return 'standard';
+  // Safari exposes both the standard and the WebKit presentation APIs. Our
+  // ticker video is backed by a Canvas MediaStream, so prefer Safari's native
+  // API here: it is the API Apple documents for custom Safari controls and it
+  // avoids the unreliable standard-API path for srcObject videos.
   if (typeof HTMLVideoElement.prototype.webkitSetPresentationMode === 'function') {
     try {
       if (!video?.webkitSupportsPresentationMode || video.webkitSupportsPresentationMode('picture-in-picture')) return 'webkit';
     } catch (_) {}
   }
+  if (document.pictureInPictureEnabled && typeof HTMLVideoElement.prototype.requestPictureInPicture === 'function') return 'standard';
   return null;
 }
 
@@ -5751,6 +5767,16 @@ async function openFloatWindow() {
   } catch (error) {
     console.error('stock picture-in-picture start error:', error);
     closeStockPictureInPicture(state, false);
+    if (state.presentationApi === 'webkit') {
+      // Safari can leave a MediaStream-backed video in a broken presentation
+      // state after a failed native PiP request. Recreate it so the next click
+      // starts from a clean video element and still uses a user gesture.
+      retryStockPictureInPictureMedia().catch(retryError => {
+        console.error('stock picture-in-picture recovery error:', retryError);
+      });
+      showToast('Safari 画中画未能启动，已重新准备；请稍候再点一次', true);
+      return;
+    }
     showToast(pictureInPictureStartMessage(error), true);
   }
 }

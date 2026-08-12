@@ -159,11 +159,11 @@ function createFundFlowHistoryLoader({
     return task;
   }
 
-  async function load(symbol) {
+  async function load(symbol, { force = false } = {}) {
     let item = cache.get(symbol);
     if (!item) item = await hydrate(symbol);
     const age = item ? now() - item.fetchedAt : Infinity;
-    if (item && age >= 0 && age < freshMs) return result(item);
+    if (!force && item && age >= 0 && age < freshMs) return result(item);
     try {
       return await refresh(symbol);
     } catch (error) {

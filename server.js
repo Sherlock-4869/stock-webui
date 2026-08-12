@@ -204,9 +204,9 @@ const fundFlowHistoryLoader = createFundFlowHistoryLoader({
   },
 });
 
-async function loadFundFlowHistoryResult(symbol) {
+async function loadFundFlowHistoryResult(symbol, { forceHistoryRefresh = false } = {}) {
   const [historyResult, points] = await Promise.all([
-    fundFlowHistoryLoader.load(symbol)
+    fundFlowHistoryLoader.load(symbol, { force:forceHistoryRefresh })
       .then(result => ({ result, error:null }))
       .catch(error => ({ result:null, error })),
     loadRealtimeFundFlowPoints([symbol]),
@@ -651,7 +651,9 @@ async function proxyFundFlowHistory(urlObj, res) {
   const symbol = urlObj.searchParams.get('sym') || '';
   if (!isAShareSymbol(symbol)) { sendJson(res, 400, { data:[], error:'仅支持 A 股主力资金数据' }); return; }
   try {
-    const result = await loadFundFlowHistoryResult(symbol);
+    const result = await loadFundFlowHistoryResult(symbol, {
+      forceHistoryRefresh:urlObj.searchParams.get('refresh') === '1',
+    });
     sendJson(res, 200, { ...result, fetchedAt:Date.now() });
   } catch (error) {
     console.error(`Fund flow history error (${symbol}):`, error.message);

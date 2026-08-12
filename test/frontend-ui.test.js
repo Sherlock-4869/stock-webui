@@ -330,6 +330,7 @@ test('watchlist tool requests picture-in-picture directly from the click gesture
   assert.match(html, /HTMLVideoElement\.prototype\.requestPictureInPicture/);
   assert.match(html, /HTMLVideoElement\.prototype\.webkitSetPresentationMode/);
   assert.match(html, /webkitSupportsPresentationMode\('picture-in-picture'\)/);
+  assert.match(html, /function pictureInPictureApi[\s\S]*webkitSetPresentationMode[\s\S]*document\.pictureInPictureEnabled/);
   assert.match(html, /canvas\.captureStream\(5\)/);
   assert.match(html, /media\.video\.controls = true;/);
   assert.match(html, /media\.video\.srcObject = media\.stream;/);
@@ -357,6 +358,8 @@ test('watchlist tool requests picture-in-picture directly from the click gesture
   assert.match(pipStartSource, /state\.pipWindow = await state\.video\.requestPictureInPicture\(\)/);
   assert.match(pipStartSource, /state\.video\.webkitSetPresentationMode\('picture-in-picture'\)/);
   assert.match(pipStartSource, /STOCK_PIP_WEBKIT_NO_WINDOW/);
+  assert.match(pipStartSource, /Safari 画中画未能启动，已重新准备；请稍候再点一次/);
+  assert.match(pipStartSource, /retryStockPictureInPictureMedia\(\)\.catch/);
   assert.doesNotMatch(pipStartSource, /await state\.video\.play\(\)/);
   assert.doesNotMatch(pipStartSource, /openStandardFloatWindow\(\)/);
   assert.match(html, /popup=yes,width=620,height=560/);
@@ -543,6 +546,10 @@ test('fund flow chart uses only an explicitly marked same-source cache fallback'
   assert.match(html, /d\.meta\?\.realtime/);
   assert.match(html, /当前仅显示/);
   assert.match(html, /今日实时资金/);
+  assert.match(html, /历史曲线暂时获取不到，当前仅显示今日实时资金/);
+  assert.match(html, /retry\.textContent = '重新获取历史'/);
+  assert.match(html, /loadChart\('fundFlow', \{ forceFundFlowRefresh:true \}\)/);
+  assert.match(html, /&refresh=1/);
   assert.doesNotMatch(html, /新浪/);
 });
 
@@ -701,6 +708,6 @@ test('administrator chat UI can request the server-authorized online user list',
 
 test('fund flow failures expose an in-place retry action', () => {
   assert.match(html, /className = 'chart-retry-btn'/);
-  assert.match(html, /retry\.addEventListener\('click', \(\) => loadChart\('fundFlow'\)\)/);
+  assert.match(html, /retry\.addEventListener\('click', \(\) => loadChart\('fundFlow', \{ forceFundFlowRefresh:true \}\)\)/);
   assert.match(html, /主力资金数据暂时拿不到，请稍后重试/);
 });
