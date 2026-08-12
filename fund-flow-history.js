@@ -60,6 +60,20 @@ function parseFundFlowHistoryPayload(payload) {
   return data;
 }
 
+function mergeFundFlowHistory(history, current, limit = 120) {
+  const rows = (Array.isArray(history) ? history : [])
+    .filter(item => item?.date && Number.isFinite(Number(item.mainNet)))
+    .map(item => ({ ...item }));
+  if (current?.date && Number.isFinite(Number(current.mainNet))) {
+    const index = rows.findIndex(item => item.date === current.date);
+    if (index >= 0) rows[index] = { ...rows[index], ...current };
+    else rows.push({ ...current });
+  }
+  return rows
+    .sort((a, b) => String(a.date).localeCompare(String(b.date)))
+    .slice(-Math.max(1, Number(limit) || 120));
+}
+
 function createFundFlowHistoryLoader({
   fetchData,
   source = 'eastmoney-daykline',
@@ -164,6 +178,7 @@ function createFundFlowHistoryLoader({
 module.exports = {
   createAsyncTaskQueue,
   createFundFlowHistoryLoader,
+  mergeFundFlowHistory,
   parseFundFlowHistoryPayload,
   DEFAULT_FRESH_MS,
   DEFAULT_FALLBACK_MS,

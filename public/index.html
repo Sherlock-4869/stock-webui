@@ -2367,12 +2367,16 @@ async function loadChart(type) {
       if (!r.ok) throw new Error(d.error || 'fund flow request failed');
       if (requestId !== chartRequestId || currentTab !== type) return;
       drawFundFlow(d.data || []);
-      if (dataNotice && d.meta?.stale) {
-        const fetchedAt = Number(d.meta.fetchedAt);
-        const time = Number.isFinite(fetchedAt)
-          ? new Date(fetchedAt).toLocaleTimeString('zh-CN', { hour:'2-digit', minute:'2-digit', second:'2-digit' })
-          : '最近一次';
-        dataNotice.textContent = `东方财富暂时不可用，展示 ${time} 的缓存数据`;
+      if (dataNotice && (d.meta?.stale || d.meta?.realtime)) {
+        const historyTime = Number(d.meta.fetchedAt);
+        const realtimeTime = Number(d.meta.realtimeUpdatedAt);
+        const cacheMessage = d.meta.stale
+          ? `东方财富日线暂时不可用，展示 ${Number.isFinite(historyTime) ? new Date(historyTime).toLocaleTimeString('zh-CN', { hour:'2-digit', minute:'2-digit', second:'2-digit' }) : '最近一次'} 的缓存`
+          : '';
+        const realtimeMessage = d.meta.realtime
+          ? `${d.meta.todayOnly ? '当前仅显示' : '已合并'}今日实时资金${Number.isFinite(realtimeTime) ? `（${new Date(realtimeTime * 1000).toLocaleTimeString('zh-CN', { hour:'2-digit', minute:'2-digit', second:'2-digit' })}）` : ''}`
+          : '';
+        dataNotice.textContent = [cacheMessage, realtimeMessage].filter(Boolean).join('；');
         dataNotice.classList.add('visible');
       }
     } else {

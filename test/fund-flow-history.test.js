@@ -5,6 +5,7 @@ const assert = require('node:assert/strict');
 const {
   createAsyncTaskQueue,
   createFundFlowHistoryLoader,
+  mergeFundFlowHistory,
   parseFundFlowHistoryPayload,
 } = require('../fund-flow-history');
 
@@ -49,6 +50,19 @@ test('request queue caps concurrent work and waiting tasks', async () => {
   await assert.rejects(queue.run(async () => {}), /queue is full/);
   release();
   await first;
+});
+
+test('today realtime point replaces the daily-history value without changing prior rows', () => {
+  const merged = mergeFundFlowHistory([
+    { date:'2026-08-10', mainNet:100, largeNet:40 },
+    { date:'2026-08-12', mainNet:200, largeNet:80 },
+  ], {
+    date:'2026-08-12', mainNet:300, largeNet:120, updatedAt:1786501326,
+  });
+  assert.deepEqual(merged, [
+    { date:'2026-08-10', mainNet:100, largeNet:40 },
+    { date:'2026-08-12', mainNet:300, largeNet:120, updatedAt:1786501326 },
+  ]);
 });
 
 test('loader stores only Eastmoney data in its original yuan unit', async () => {

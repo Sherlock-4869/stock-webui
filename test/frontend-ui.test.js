@@ -540,7 +540,9 @@ test('AI stock research UI keeps entry permission-gated and renders chat content
 test('fund flow chart uses only an explicitly marked same-source cache fallback', () => {
   assert.match(html, /主力资金数据暂时拿不到，请稍后重试/);
   assert.match(html, /d\.meta\?\.stale/);
-  assert.match(html, /东方财富暂时不可用，展示 \$\{time\} 的缓存数据/);
+  assert.match(html, /d\.meta\?\.realtime/);
+  assert.match(html, /当前仅显示/);
+  assert.match(html, /今日实时资金/);
   assert.doesNotMatch(html, /新浪/);
 });
 

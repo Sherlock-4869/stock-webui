@@ -9,6 +9,7 @@ const { createChatService } = require('./chat/chat');
 const {
   createAsyncTaskQueue,
   createFundFlowHistoryLoader,
+  mergeFundFlowHistory,
   parseFundFlowHistoryPayload,
 } = require('./fund-flow-history');
 
@@ -204,7 +205,34 @@ const fundFlowHistoryLoader = createFundFlowHistoryLoader({
 });
 
 async function loadFundFlowHistoryResult(symbol) {
-  return fundFlowHistoryLoader.load(symbol);
+  const [historyResult, points] = await Promise.all([
+    fundFlowHistoryLoader.load(symbol)
+      .then(result => ({ result, error:null }))
+      .catch(error => ({ result:null, error })),
+    loadRealtimeFundFlowPoints([symbol]),
+  ]);
+  const current = points[symbol];
+  if (!historyResult.result) {
+    if (!current) throw historyResult.error || new Error('Fund flow history is unavailable');
+    return {
+      data:[current],
+      meta:{
+        source:'eastmoney-realtime',
+        realtime:true,
+        todayOnly:true,
+        realtimeUpdatedAt:current.updatedAt,
+      },
+    };
+  }
+  if (!current) return historyResult.result;
+  return {
+    data:mergeFundFlowHistory(historyResult.result.data, current),
+    meta:{
+      ...historyResult.result.meta,
+      realtime:true,
+      realtimeUpdatedAt:current.updatedAt,
+    },
+  };
 }
 
 function shanghaiDateKey(timestampMs=Date.now()) {
