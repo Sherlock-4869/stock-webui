@@ -540,7 +540,7 @@ test('AI stock research UI keeps entry permission-gated and renders chat content
   assert.match(html, /id="admin-ai-model-test"[^>]*onclick="testAiModelConnection\('admin'\)"/);
 });
 
-test('fund flow chart marks source-isolated fallback data and never combines it with realtime data', () => {
+test('fund flow chart uses only an explicitly marked same-source cache fallback', () => {
   assert.match(html, /主力资金数据暂时拿不到，请稍后重试/);
   assert.match(html, /d\.meta\?\.stale/);
   assert.match(html, /d\.meta\?\.realtime/);
@@ -550,8 +550,7 @@ test('fund flow chart marks source-isolated fallback data and never combines it 
   assert.match(html, /retry\.textContent = '重新获取历史'/);
   assert.match(html, /loadChart\('fundFlow', \{ forceFundFlowRefresh:true \}\)/);
   assert.match(html, /&refresh=1/);
-  assert.match(html, /sina-money-flow-v2/);
-  assert.match(html, /东方财富暂时不可用，当前使用新浪财经备用历史数据/);
+  assert.doesNotMatch(html, /新浪财经备用历史数据/);
 });
 
 test('five-day main flow is shown only in the fund flow panel, not list metrics', () => {

@@ -11,7 +11,6 @@ const {
   createFundFlowHistoryLoader,
   mergeFundFlowHistory,
   parseFundFlowHistoryPayload,
-  parseSinaFundFlowHistoryPayload,
 } = require('./fund-flow-history');
 
 const PORT = 3000;
@@ -55,7 +54,6 @@ const REALTIME_VALUATION_CACHE_MS = 4500;
 const BOARD_LIST_CACHE_MS = 12 * 1000;
 const BOARD_DETAIL_CACHE_MS = 8 * 1000;
 const STOCK_BOARD_CACHE_MS = 6 * 60 * 60 * 1000;
-const SINA_FUND_FLOW_SOURCE = 'sina-money-flow-v2';
 const BOARD_LIST_PAGE_SIZE = 1000;
 const BOARD_COMPONENT_PAGE_SIZE = 1000;
 const fundamentalCache = new Map();
@@ -196,32 +194,9 @@ async function fetchEastmoneyFundFlowHistory(symbol) {
   return parseFundFlowHistoryPayload(JSON.parse(raw.toString('utf-8')));
 }
 
-async function fetchSinaFundFlowHistory(symbol) {
-  const raw = await requestBuffer(
-    `https://money.finance.sina.com.cn/quotes_service/api/json_v2.php/MoneyFlow.ssl_qsfx_lscjfb?page=1&num=120&sort=opendate&asc=0&daima=${symbol}`,
-    { ...UPSTREAM_HEADERS, Referer:'https://money.finance.sina.com.cn/' },
-    { timeoutMs:8000 }
-  );
-  return parseSinaFundFlowHistoryPayload(JSON.parse(raw.toString('utf-8')));
-}
-
-async function fetchFundFlowHistory(symbol) {
-  try {
-    return { data:await fetchEastmoneyFundFlowHistory(symbol), source:'eastmoney-daykline' };
-  } catch (eastmoneyError) {
-    console.warn(`Eastmoney fund flow history unavailable (${symbol}), trying Sina:`, eastmoneyError.message);
-    try {
-      return { data:await fetchSinaFundFlowHistory(symbol), source:SINA_FUND_FLOW_SOURCE };
-    } catch (sinaError) {
-      throw new Error(`Fund flow history unavailable (Eastmoney: ${eastmoneyError.message}; Sina: ${sinaError.message})`);
-    }
-  }
-}
-
 const fundFlowHistoryLoader = createFundFlowHistoryLoader({
   source:'eastmoney-daykline',
-  acceptedSources:['eastmoney-daykline', SINA_FUND_FLOW_SOURCE],
-  fetchData:fetchFundFlowHistory,
+  fetchData:fetchEastmoneyFundFlowHistory,
   loadPersisted:symbol => accountService.loadFundFlowHistoryCache(symbol),
   savePersisted:(symbol, value) => accountService.saveFundFlowHistoryCache(symbol, value),
   onPersistenceError:(error, symbol, operation) => {
@@ -249,9 +224,7 @@ async function loadFundFlowHistoryResult(symbol, { forceHistoryRefresh = false }
       },
     };
   }
-  // Do not splice Eastmoney's intraday point into a Sina curve. The fallback
-  // response must remain one complete source so every column has one basis.
-  if (!current || historyResult.result.meta.source !== 'eastmoney-daykline') return historyResult.result;
+  if (!current) return historyResult.result;
   return {
     data:mergeFundFlowHistory(historyResult.result.data, current),
     meta:{

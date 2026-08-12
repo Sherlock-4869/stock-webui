@@ -7,7 +7,6 @@ const {
   createFundFlowHistoryLoader,
   mergeFundFlowHistory,
   parseFundFlowHistoryPayload,
-  parseSinaFundFlowHistoryPayload,
 } = require('../fund-flow-history');
 
 function payload(mainNet, date = '2026-07-30') {
@@ -41,42 +40,6 @@ test('Eastmoney fund flow parser maps fields and normalizes chronological order'
   ]);
   assert.throws(() => parseFundFlowHistoryPayload({ rc:1, data:null }), /rc=1/);
   assert.throws(() => parseFundFlowHistoryPayload({ rc:0, data:{ klines:[] } }), /empty/);
-});
-
-test('Sina fund flow parser preserves its yuan-denominated net-flow fields', () => {
-  const rows = parseSinaFundFlowHistoryPayload([
-    {
-      opendate:'2026-07-30', trade:'12.50', changeratio:'0.0125', netamount:'5',
-      r0:'100', r1:'200', r2:'300', r3:'400', r0_net:'10', r1_net:'20', r2_net:'-30', r3_net:'-40',
-    },
-    {
-      opendate:'2026-07-29', trade:'12.00', changeratio:'-0.01', netamount:'8',
-      r0:'50', r1:'50', r2:'100', r3:'100', r0_net:'-5', r1_net:'4', r2_net:'1', r3_net:'0',
-    },
-  ]);
-  assert.deepEqual(rows, [
-    {
-      date:'2026-07-29', mainNet:-1, smallNet:0, mediumNet:1, largeNet:4, superLargeNet:-5,
-      mainRatio:-0.33333333333333337, smallRatio:0, mediumRatio:0.33333333333333337,
-      largeRatio:1.3333333333333335, superLargeRatio:-1.6666666666666667, close:12, pct:-1,
-    },
-    {
-      date:'2026-07-30', mainNet:30, smallNet:-40, mediumNet:-30, largeNet:20, superLargeNet:10,
-      mainRatio:3, smallRatio:-4, mediumRatio:-3, largeRatio:2, superLargeRatio:1, close:12.5, pct:1.25,
-    },
-  ]);
-  assert.throws(() => parseSinaFundFlowHistoryPayload([]), /empty/);
-});
-
-test('Sina net amount is consistent with its unscaled bucket net flows', () => {
-  const [row] = parseSinaFundFlowHistoryPayload([{
-    opendate:'2026-08-11', trade:'1346.2900', changeratio:'-0.00190531', netamount:'-298190789.7300',
-    r0:'2414648036.8200', r1:'1031553421.9000', r2:'110357358.2400', r3:'0',
-    r0_net:'-323262091.1200', r1_net:'26308851.3500', r2_net:'-1237549.9600', r3_net:'0',
-  }]);
-  assert.equal(row.mainNet, -296953239.77);
-  assert.ok(Math.abs((row.superLargeNet + row.largeNet + row.mediumNet + row.smallNet) - (-298190789.73)) < 0.0001);
-  assert.ok(Math.abs(row.mainNet - (row.superLargeNet + row.largeNet)) < 0.0001);
 });
 
 test('request queue caps concurrent work and waiting tasks', async () => {
@@ -118,42 +81,6 @@ test('loader stores only Eastmoney data in its original yuan unit', async () => 
   assert.equal(saved[0].symbol, 'sh600519');
   assert.equal(saved[0].value.source, 'eastmoney-daykline');
   assert.equal(saved[0].value.data[0].mainNet, 12345678);
-});
-
-test('loader accepts a complete corrected Sina fallback without mixing its source metadata', async () => {
-  const saved = [];
-  const loader = createFundFlowHistoryLoader({
-    now:() => 1000,
-    acceptedSources:['eastmoney-daykline', 'sina-money-flow-v2'],
-    fetchData:async () => ({ data:[{ date:'2026-07-30', mainNet:300000 }], source:'sina-money-flow-v2' }),
-    savePersisted:async (symbol, value) => saved.push({ symbol, value }),
-  });
-
-  const result = await loader.load('sh600519');
-  assert.deepEqual(result.meta, {
-    source:'sina-money-flow-v2', cached:false, stale:false, fetchedAt:1000,
-  });
-  assert.equal(saved[0].value.source, 'sina-money-flow-v2');
-  assert.equal(saved[0].value.data[0].mainNet, 300000);
-});
-
-test('loader discards the old wrongly-scaled Sina cache and refetches corrected data', async () => {
-  let calls = 0;
-  const loader = createFundFlowHistoryLoader({
-    now:() => 1000,
-    acceptedSources:['eastmoney-daykline', 'sina-money-flow-v2'],
-    loadPersisted:async () => ({
-      data:[{ date:'2026-07-30', mainNet:3000000000 }], source:'sina-money-flow', fetchedAt:new Date(1000),
-    }),
-    fetchData:async () => {
-      calls += 1;
-      return { data:[{ date:'2026-07-30', mainNet:300000 }], source:'sina-money-flow-v2' };
-    },
-  });
-  const result = await loader.load('sh600519');
-  assert.equal(calls, 1);
-  assert.equal(result.data[0].mainNet, 300000);
-  assert.equal(result.meta.source, 'sina-money-flow-v2');
 });
 
 test('loader falls back only to a recent cache from the same Eastmoney source', async () => {

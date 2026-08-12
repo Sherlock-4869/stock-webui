@@ -60,44 +60,6 @@ function parseFundFlowHistoryPayload(payload) {
   return data;
 }
 
-function parseSinaFundFlowHistoryPayload(rows) {
-  // 新浪接口返回的 netamount 和各档 *_net 已经是元。不要再按页面
-  // 展示单位换算，否则会把整条备用曲线放大一万倍。
-  const data = (Array.isArray(rows) ? rows : []).map(row => {
-    const superLargeNet = numberOrNull(row?.r0_net);
-    const largeNet = numberOrNull(row?.r1_net);
-    const mediumNet = numberOrNull(row?.r2_net);
-    const smallNet = numberOrNull(row?.r3_net);
-    const mainNet = Number.isFinite(superLargeNet) && Number.isFinite(largeNet)
-      ? superLargeNet + largeNet
-      : numberOrNull(row?.netamount);
-    const totalAmount = ['r0', 'r1', 'r2', 'r3']
-      .map(key => numberOrNull(row?.[key]))
-      .filter(Number.isFinite)
-      .reduce((sum, value) => sum + value, 0);
-    const ratio = value => Number.isFinite(value) && totalAmount > 0 ? value / totalAmount * 100 : null;
-    const changeRatio = numberOrNull(row?.changeratio);
-    return {
-      date:row?.opendate,
-      mainNet,
-      smallNet,
-      mediumNet,
-      largeNet,
-      superLargeNet,
-      mainRatio:ratio(mainNet),
-      smallRatio:ratio(smallNet),
-      mediumRatio:ratio(mediumNet),
-      largeRatio:ratio(largeNet),
-      superLargeRatio:ratio(superLargeNet),
-      close:numberOrNull(row?.trade),
-      pct:changeRatio == null ? null : changeRatio * 100,
-    };
-  }).filter(item => item.date && Number.isFinite(item.mainNet))
-    .sort((a, b) => String(a.date).localeCompare(String(b.date)));
-  if (!data.length) throw new Error('Sina fund flow history is empty');
-  return data;
-}
-
 function mergeFundFlowHistory(history, current, limit = 120) {
   const rows = (Array.isArray(history) ? history : [])
     .filter(item => item?.date && Number.isFinite(Number(item.mainNet)))
@@ -225,7 +187,6 @@ module.exports = {
   createFundFlowHistoryLoader,
   mergeFundFlowHistory,
   parseFundFlowHistoryPayload,
-  parseSinaFundFlowHistoryPayload,
   DEFAULT_FRESH_MS,
   DEFAULT_FALLBACK_MS,
 };
