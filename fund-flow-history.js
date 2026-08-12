@@ -60,6 +60,47 @@ function parseFundFlowHistoryPayload(payload) {
   return data;
 }
 
+function parseSinaFundFlowHistoryPayload(rows) {
+  // 新浪该接口的资金金额单位是万元；应用内资金图统一以元显示。
+  const yuan = value => {
+    const number = numberOrNull(value);
+    return number == null ? null : number * 10000;
+  };
+  const data = (Array.isArray(rows) ? rows : []).map(row => {
+    const superLargeNet = yuan(row?.r0_net);
+    const largeNet = yuan(row?.r1_net);
+    const mediumNet = yuan(row?.r2_net);
+    const smallNet = yuan(row?.r3_net);
+    const mainNet = Number.isFinite(superLargeNet) && Number.isFinite(largeNet)
+      ? superLargeNet + largeNet
+      : yuan(row?.netamount);
+    const totalAmount = ['r0', 'r1', 'r2', 'r3']
+      .map(key => numberOrNull(row?.[key]))
+      .filter(Number.isFinite)
+      .reduce((sum, value) => sum + value, 0);
+    const ratio = value => Number.isFinite(value) && totalAmount > 0 ? value / (totalAmount * 10000) * 100 : null;
+    const changeRatio = numberOrNull(row?.changeratio);
+    return {
+      date:row?.opendate,
+      mainNet,
+      smallNet,
+      mediumNet,
+      largeNet,
+      superLargeNet,
+      mainRatio:ratio(mainNet),
+      smallRatio:ratio(smallNet),
+      mediumRatio:ratio(mediumNet),
+      largeRatio:ratio(largeNet),
+      superLargeRatio:ratio(superLargeNet),
+      close:numberOrNull(row?.trade),
+      pct:changeRatio == null ? null : changeRatio * 100,
+    };
+  }).filter(item => item.date && Number.isFinite(item.mainNet))
+    .sort((a, b) => String(a.date).localeCompare(String(b.date)));
+  if (!data.length) throw new Error('Sina fund flow history is empty');
+  return data;
+}
+
 function mergeFundFlowHistory(history, current, limit = 120) {
   const rows = (Array.isArray(history) ? history : [])
     .filter(item => item?.date && Number.isFinite(Number(item.mainNet)))
@@ -77,6 +118,7 @@ function mergeFundFlowHistory(history, current, limit = 120) {
 function createFundFlowHistoryLoader({
   fetchData,
   source = 'eastmoney-daykline',
+  acceptedSources = [source],
   loadPersisted = async () => null,
   savePersisted = async () => {},
   now = () => Date.now(),
@@ -93,15 +135,18 @@ function createFundFlowHistoryLoader({
   const pending = new Map();
   const hydrating = new Map();
   const acceptedSource = String(source);
+  const allowedSources = new Set((Array.isArray(acceptedSources) ? acceptedSources : [acceptedSources])
+    .map(item => String(item)));
+  allowedSources.add(acceptedSource);
   const attemptCount = Math.max(1, Math.floor(Number(attempts) || 1));
 
   function validRows(data) {
     return Array.isArray(data) && data.length && data.every(item => item?.date && Number.isFinite(Number(item.mainNet)));
   }
 
-  function store(symbol, data, fetchedAt = now()) {
+  function store(symbol, data, sourceName = acceptedSource, fetchedAt = now()) {
     cache.delete(symbol);
-    cache.set(symbol, { data:data.map(item => ({ ...item })), fetchedAt });
+    cache.set(symbol, { data:data.map(item => ({ ...item })), source:sourceName, fetchedAt });
     while (cache.size > maxEntries) cache.delete(cache.keys().next().value);
     return cache.get(symbol);
   }
@@ -109,7 +154,7 @@ function createFundFlowHistoryLoader({
   function result(item, { stale = false } = {}) {
     return {
       data:item.data.map(point => ({ ...point })),
-      meta:{ source:acceptedSource, cached:true, stale, fetchedAt:item.fetchedAt },
+      meta:{ source:item.source, cached:true, stale, fetchedAt:item.fetchedAt },
     };
   }
 
@@ -118,10 +163,10 @@ function createFundFlowHistoryLoader({
     const task = (async () => {
       try {
         const saved = await loadPersisted(symbol);
-        if (saved?.source !== acceptedSource || !validRows(saved.data)) return null;
+        if (!allowedSources.has(String(saved?.source)) || !validRows(saved.data)) return null;
         const fetchedAt = new Date(saved.fetchedAt || 0).getTime();
         if (!Number.isFinite(fetchedAt) || fetchedAt <= 0) return null;
-        return store(symbol, saved.data, fetchedAt);
+        return store(symbol, saved.data, String(saved.source), fetchedAt);
       } catch (error) {
         onPersistenceError(error, symbol, 'load');
         return null;
@@ -138,15 +183,18 @@ function createFundFlowHistoryLoader({
       let lastError;
       for (let attempt = 0; attempt < attemptCount; attempt += 1) {
         try {
-          const data = await fetchData(symbol);
+          const fetched = await fetchData(symbol);
+          const data = Array.isArray(fetched?.data) ? fetched.data : fetched;
+          const sourceName = String(fetched?.source || acceptedSource);
+          if (!allowedSources.has(sourceName)) throw new Error(`Fund flow source is not allowed: ${sourceName}`);
           if (!validRows(data)) throw new Error('Fund flow history is empty');
-          const item = store(symbol, data);
+          const item = store(symbol, data, sourceName);
           try {
-            await savePersisted(symbol, { data:item.data, source:acceptedSource, fetchedAt:new Date(item.fetchedAt) });
+            await savePersisted(symbol, { data:item.data, source:item.source, fetchedAt:new Date(item.fetchedAt) });
           } catch (error) {
             onPersistenceError(error, symbol, 'save');
           }
-          return { data:item.data.map(point => ({ ...point })), meta:{ source:acceptedSource, cached:false, stale:false, fetchedAt:item.fetchedAt } };
+          return { data:item.data.map(point => ({ ...point })), meta:{ source:item.source, cached:false, stale:false, fetchedAt:item.fetchedAt } };
         } catch (error) {
           lastError = error;
           if (attempt + 1 < attemptCount) await wait(retryDelayMs * (attempt + 1));
@@ -180,6 +228,7 @@ module.exports = {
   createFundFlowHistoryLoader,
   mergeFundFlowHistory,
   parseFundFlowHistoryPayload,
+  parseSinaFundFlowHistoryPayload,
   DEFAULT_FRESH_MS,
   DEFAULT_FALLBACK_MS,
 };

@@ -4,7 +4,7 @@
 
 主要能力：
 
-- 浏览自选股、全球指数、K 线和打新日历；主力资金历史数据统一采用东方财富口径。
+- 浏览自选股、全球指数、K 线和打新日历；主力资金历史数据优先采用东方财富，失败时整段切换新浪财经备用数据。
 - 支持账号密码注册/登录、微信开放平台扫码登录及安全会话。
 - 登录后按账号同步自选股、分组、主题、指标等页面配置；主题提供云白、暖纸、石墨、深海、松林、暮紫及跟随系统。
 - 账户设置支持修改显示名称、上传、裁切和压缩个人头像；未设置自定义头像时继续使用微信头像或名称首字。
@@ -78,11 +78,12 @@ UPDATE users SET is_admin=0 WHERE username='需要取消管理员的账号';
 
 ### 主力资金历史数据
 
-- 个股“主力资金”页只请求东方财富 `daykline` 接口，统一展示其最近 120 个交易日的主力净流入、超大单净额和大单净额。
-- 当日交易中会额外读取东方财富实时资金字段，并覆盖或补入当天柱体；该值随盘中成交变化，前端会明确标注“今日实时资金”。实时点不会写入历史缓存。
-- 成功结果只以东方财富 `eastmoney-daykline` 来源、金额单位为元写入缓存。缓存新鲜期为 1 分钟；上游短暂失败时，最多展示 5 分钟内同一来源的最近成功数据，并明确标注缓存时间。新浪或其他来源的旧缓存会被忽略。
-- 日线历史暂时不可用、但东方财富实时资金可用时，页面会明确提示“历史曲线暂时获取不到，当前仅显示今日实时资金”，并提供“重新获取历史”按钮。该按钮会绕过新鲜缓存重新请求东方财富日线；两者都不可用时才提示“主力资金数据暂时拿不到，请稍后重试”。
-- “主力净流入”按东方财富口径展示；“近五日累计”为最近五个交易日主力净流入的滚动求和。
+- 个股“主力资金”页优先请求东方财富 `daykline`；完整请求失败后，才切换到新浪财经最近 120 个交易日的资金流数据。一次响应的整条历史曲线只会来自一个数据源，绝不按日期混合或拼接两家的柱体。
+- 两家接口的金额都在服务端标准化为元；新浪原始金额单位为万元。两家的“主力”划分和收盘后修订节奏并不完全相同，因此同一日期的数值可能不同，但来源明确时各自都是有效口径。
+- 当历史来自东方财富时，当日交易中会额外读取东方财富实时资金字段，并覆盖或补入当天柱体；该值随盘中成交变化，前端会明确标注“今日实时资金”。新浪备用曲线不会拼入东方财富的盘中柱体。
+- 缓存会记录实际来源（`eastmoney-daykline` 或 `sina-money-flow`），新鲜期为 1 分钟；两家上游都暂时失败时，最多展示 5 分钟内最近一次同源完整缓存，并明确标注缓存时间和来源。
+- 日线历史暂时不可用、但东方财富实时资金可用时，页面会明确提示“历史曲线暂时获取不到，当前仅显示今日实时资金”，并提供“重新获取历史”按钮。该按钮会绕过新鲜缓存重试东方财富、随后新浪；两者都不可用时才提示“主力资金数据暂时拿不到，请稍后重试”。
+- “近五日累计”为当前曲线最近五个交易日主力净流入的滚动求和。
 
 ### 账号建表 SQL
 
@@ -182,8 +183,8 @@ CREATE TABLE IF NOT EXISTS site_recommendations (
 
 CREATE TABLE IF NOT EXISTS stock_fund_flow_history_cache (
   symbol VARCHAR(16) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
-  data_json JSON NOT NULL COMMENT '东方财富 daykline 最近成功数据（金额单位：元）',
-  source VARCHAR(40) CHARACTER SET ascii COLLATE ascii_bin NOT NULL COMMENT '固定为 eastmoney-daykline',
+  data_json JSON NOT NULL COMMENT '单一来源最近成功数据（金额单位：元）',
+  source VARCHAR(40) CHARACTER SET ascii COLLATE ascii_bin NOT NULL COMMENT 'eastmoney-daykline 或 sina-money-flow',
   fetched_at DATETIME NOT NULL,
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -550,7 +551,7 @@ account/security.js             密码哈希、令牌与页面配置白名单
 account/database.js             MySQL/测试内存数据访问与自动建表
 account/service.js              注册、登录、配置同步、站点推荐、笔记/文件夹和微信 OAuth 路由
 chat/chat.js                    仅登录账号可用、支持持久化历史分页的 SSE 实时聊天室
-fund-flow-history.js            东方财富主力资金历史数据解析
+fund-flow-history.js            主力资金历史数据解析、来源隔离缓存
 public/reference-reader.js      站内页和独立页共用的参考文档安全渲染器
 wechat/config.js                配置读取和校验
 wechat/client.js                access_token、客服消息和自定义菜单 API

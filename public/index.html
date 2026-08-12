@@ -2368,12 +2368,14 @@ async function loadChart(type, options = {}) {
       if (!r.ok) throw new Error(d.error || 'fund flow request failed');
       if (requestId !== chartRequestId || currentTab !== type) return;
       drawFundFlow(d.data || []);
-      if (dataNotice && (d.meta?.stale || d.meta?.realtime)) {
+      if (dataNotice && (d.meta?.stale || d.meta?.realtime || d.meta?.source === 'sina-money-flow')) {
         const historyTime = Number(d.meta.fetchedAt);
         const realtimeTime = Number(d.meta.realtimeUpdatedAt);
+        const sourceLabel = d.meta?.source === 'sina-money-flow' ? '新浪财经备用数据' : '东方财富日线';
         const cacheMessage = d.meta.stale
-          ? `东方财富日线暂时不可用，展示 ${Number.isFinite(historyTime) ? new Date(historyTime).toLocaleTimeString('zh-CN', { hour:'2-digit', minute:'2-digit', second:'2-digit' }) : '最近一次'} 的缓存`
+          ? `${sourceLabel}暂时不可用，展示 ${Number.isFinite(historyTime) ? new Date(historyTime).toLocaleTimeString('zh-CN', { hour:'2-digit', minute:'2-digit', second:'2-digit' }) : '最近一次'} 的缓存`
           : '';
+        const fallbackMessage = d.meta?.source === 'sina-money-flow' ? '东方财富暂时不可用，当前使用新浪财经备用历史数据' : '';
         const realtimeMessage = d.meta.realtime
           ? `${d.meta.todayOnly ? '当前仅显示' : '已合并'}今日实时资金${Number.isFinite(realtimeTime) ? `（${new Date(realtimeTime * 1000).toLocaleTimeString('zh-CN', { hour:'2-digit', minute:'2-digit', second:'2-digit' })}）` : ''}`
           : '';
@@ -2387,7 +2389,7 @@ async function loadChart(type, options = {}) {
           retry.addEventListener('click', () => loadChart('fundFlow', { forceFundFlowRefresh:true }));
           dataNotice.replaceChildren(label, retry);
         } else {
-          dataNotice.textContent = [cacheMessage, realtimeMessage].filter(Boolean).join('；');
+          dataNotice.textContent = [fallbackMessage, cacheMessage, realtimeMessage].filter(Boolean).join('；');
         }
         dataNotice.classList.add('visible');
       }

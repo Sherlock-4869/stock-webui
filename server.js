@@ -11,6 +11,7 @@ const {
   createFundFlowHistoryLoader,
   mergeFundFlowHistory,
   parseFundFlowHistoryPayload,
+  parseSinaFundFlowHistoryPayload,
 } = require('./fund-flow-history');
 
 const PORT = 3000;
@@ -194,9 +195,32 @@ async function fetchEastmoneyFundFlowHistory(symbol) {
   return parseFundFlowHistoryPayload(JSON.parse(raw.toString('utf-8')));
 }
 
+async function fetchSinaFundFlowHistory(symbol) {
+  const raw = await requestBuffer(
+    `https://money.finance.sina.com.cn/quotes_service/api/json_v2.php/MoneyFlow.ssl_qsfx_lscjfb?page=1&num=120&sort=opendate&asc=0&daima=${symbol}`,
+    { ...UPSTREAM_HEADERS, Referer:'https://money.finance.sina.com.cn/' },
+    { timeoutMs:8000 }
+  );
+  return parseSinaFundFlowHistoryPayload(JSON.parse(raw.toString('utf-8')));
+}
+
+async function fetchFundFlowHistory(symbol) {
+  try {
+    return { data:await fetchEastmoneyFundFlowHistory(symbol), source:'eastmoney-daykline' };
+  } catch (eastmoneyError) {
+    console.warn(`Eastmoney fund flow history unavailable (${symbol}), trying Sina:`, eastmoneyError.message);
+    try {
+      return { data:await fetchSinaFundFlowHistory(symbol), source:'sina-money-flow' };
+    } catch (sinaError) {
+      throw new Error(`Fund flow history unavailable (Eastmoney: ${eastmoneyError.message}; Sina: ${sinaError.message})`);
+    }
+  }
+}
+
 const fundFlowHistoryLoader = createFundFlowHistoryLoader({
   source:'eastmoney-daykline',
-  fetchData:fetchEastmoneyFundFlowHistory,
+  acceptedSources:['eastmoney-daykline', 'sina-money-flow'],
+  fetchData:fetchFundFlowHistory,
   loadPersisted:symbol => accountService.loadFundFlowHistoryCache(symbol),
   savePersisted:(symbol, value) => accountService.saveFundFlowHistoryCache(symbol, value),
   onPersistenceError:(error, symbol, operation) => {
@@ -224,7 +248,9 @@ async function loadFundFlowHistoryResult(symbol, { forceHistoryRefresh = false }
       },
     };
   }
-  if (!current) return historyResult.result;
+  // Do not splice Eastmoney's intraday point into a Sina curve. The fallback
+  // response must remain one complete source so every column has one basis.
+  if (!current || historyResult.result.meta.source !== 'eastmoney-daykline') return historyResult.result;
   return {
     data:mergeFundFlowHistory(historyResult.result.data, current),
     meta:{
