@@ -66,6 +66,10 @@ const boardListRefreshes = new Map();
 const boardDetailRefreshes = new Map();
 const stockBoardRefreshes = new Map();
 const boardRequestQueue = createAsyncTaskQueue({ concurrency:3, maxQueued:30 });
+// Eastmoney's historical money-flow endpoint is much less tolerant of bursts
+// than its realtime quote endpoint.  Serialize these refreshes; the loader
+// below coalesces requests for the same symbol and serves a valid cache first.
+const fundFlowHistoryRequestQueue = createAsyncTaskQueue({ concurrency:1, maxQueued:30 });
 
 const BOARD_TYPES = {
   industry: { label:'行业板块', fs:'m:90+t:2+f:!50' },
@@ -186,12 +190,14 @@ async function fetchEastmoneyFundFlowHistory(symbol) {
   const fields1 = 'f1,f2,f3,f7';
   const fields2 = 'f51,f52,f53,f54,f55,f56,f57,f58,f59,f60,f61,f62,f63';
   const query = `secid=${eastmoneySecId(symbol)}&lmt=120&klt=101&fields1=${fields1}&fields2=${fields2}`;
-  const raw = await requestBuffer(
-    `https://push2his.eastmoney.com/api/qt/stock/fflow/daykline/get?${query}`,
-    { ...UPSTREAM_HEADERS, Referer:'https://quote.eastmoney.com/' },
-    { timeoutMs:8000 }
-  );
-  return parseFundFlowHistoryPayload(JSON.parse(raw.toString('utf-8')));
+  return fundFlowHistoryRequestQueue.run(async () => {
+    const raw = await requestBuffer(
+      `https://push2his.eastmoney.com/api/qt/stock/fflow/daykline/get?${query}`,
+      { ...UPSTREAM_HEADERS, Referer:'https://quote.eastmoney.com/' },
+      { timeoutMs:8000 }
+    );
+    return parseFundFlowHistoryPayload(JSON.parse(raw.toString('utf-8')));
+  });
 }
 
 const fundFlowHistoryLoader = createFundFlowHistoryLoader({
@@ -199,6 +205,11 @@ const fundFlowHistoryLoader = createFundFlowHistoryLoader({
   fetchData:fetchEastmoneyFundFlowHistory,
   loadPersisted:symbol => accountService.loadFundFlowHistoryCache(symbol),
   savePersisted:(symbol, value) => accountService.saveFundFlowHistoryCache(symbol, value),
+  freshMs:15 * 60 * 1000,
+  fallbackMs:7 * 24 * 60 * 60 * 1000,
+  refreshCooldownMs:60 * 1000,
+  retryDelayMs:750,
+  attempts:2,
   onPersistenceError:(error, symbol, operation) => {
     console.error(`Fund flow cache ${operation} error (${symbol}):`, error.message);
   },

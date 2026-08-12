@@ -1,8 +1,13 @@
 'use strict';
 
-const DEFAULT_FRESH_MS = 60 * 1000;
-const DEFAULT_FALLBACK_MS = 5 * 60 * 1000;
-const DEFAULT_RETRY_DELAY_MS = 250;
+// The daily curve is stable once a trading day has closed.  Keep it fresh often
+// enough to pick up Eastmoney corrections, but do not make every chart opening
+// another upstream request.  Today's value is supplied separately by the
+// realtime Eastmoney endpoint and is therefore not delayed by this cache.
+const DEFAULT_FRESH_MS = 15 * 60 * 1000;
+const DEFAULT_FALLBACK_MS = 7 * 24 * 60 * 60 * 1000;
+const DEFAULT_REFRESH_COOLDOWN_MS = 60 * 1000;
+const DEFAULT_RETRY_DELAY_MS = 750;
 const DEFAULT_ATTEMPTS = 2;
 const DEFAULT_MAX_ENTRIES = 500;
 
@@ -84,6 +89,7 @@ function createFundFlowHistoryLoader({
   wait = delay => new Promise(resolve => setTimeout(resolve, delay)),
   freshMs = DEFAULT_FRESH_MS,
   fallbackMs = DEFAULT_FALLBACK_MS,
+  refreshCooldownMs = DEFAULT_REFRESH_COOLDOWN_MS,
   retryDelayMs = DEFAULT_RETRY_DELAY_MS,
   attempts = DEFAULT_ATTEMPTS,
   maxEntries = DEFAULT_MAX_ENTRIES,
@@ -93,6 +99,8 @@ function createFundFlowHistoryLoader({
   const cache = new Map();
   const pending = new Map();
   const hydrating = new Map();
+  const refreshCooldowns = new Map();
+  const refreshErrors = new Map();
   const acceptedSource = String(source);
   const allowedSources = new Set((Array.isArray(acceptedSources) ? acceptedSources : [acceptedSources])
     .map(item => String(item)));
@@ -106,8 +114,17 @@ function createFundFlowHistoryLoader({
   function store(symbol, data, sourceName = acceptedSource, fetchedAt = now()) {
     cache.delete(symbol);
     cache.set(symbol, { data:data.map(item => ({ ...item })), source:sourceName, fetchedAt });
-    while (cache.size > maxEntries) cache.delete(cache.keys().next().value);
+    while (cache.size > maxEntries) {
+      const oldestSymbol = cache.keys().next().value;
+      cache.delete(oldestSymbol);
+      refreshCooldowns.delete(oldestSymbol);
+      refreshErrors.delete(oldestSymbol);
+    }
     return cache.get(symbol);
+  }
+
+  function capRefreshState(entries) {
+    while (entries.size > maxEntries) entries.delete(entries.keys().next().value);
   }
 
   function result(item, { stale = false } = {}) {
@@ -136,8 +153,11 @@ function createFundFlowHistoryLoader({
     return task;
   }
 
-  function refresh(symbol) {
+  function refresh(symbol, { force = false } = {}) {
     if (pending.has(symbol)) return pending.get(symbol);
+    if (!force && (refreshCooldowns.get(symbol) || 0) > now()) return null;
+    refreshCooldowns.set(symbol, now() + Math.max(0, Number(refreshCooldownMs) || 0));
+    capRefreshState(refreshCooldowns);
     const task = (async () => {
       let lastError;
       for (let attempt = 0; attempt < attemptCount; attempt += 1) {
@@ -148,6 +168,7 @@ function createFundFlowHistoryLoader({
           if (!allowedSources.has(sourceName)) throw new Error(`Fund flow source is not allowed: ${sourceName}`);
           if (!validRows(data)) throw new Error('Fund flow history is empty');
           const item = store(symbol, data, sourceName);
+          refreshErrors.delete(symbol);
           try {
             await savePersisted(symbol, { data:item.data, source:item.source, fetchedAt:new Date(item.fetchedAt) });
           } catch (error) {
@@ -159,7 +180,10 @@ function createFundFlowHistoryLoader({
           if (attempt + 1 < attemptCount) await wait(retryDelayMs * (attempt + 1));
         }
       }
-      throw lastError || new Error('Fund flow history is unavailable');
+      const error = lastError || new Error('Fund flow history is unavailable');
+      refreshErrors.set(symbol, error);
+      capRefreshState(refreshErrors);
+      throw error;
     })();
     pending.set(symbol, task);
     task.finally(() => pending.delete(symbol)).catch(() => {});
@@ -171,15 +195,26 @@ function createFundFlowHistoryLoader({
     if (!item) item = await hydrate(symbol);
     const age = item ? now() - item.fetchedAt : Infinity;
     if (!force && item && age >= 0 && age < freshMs) return result(item);
+    // Serve a valid, same-source curve immediately while a single background
+    // request refreshes it.  This avoids a slow or intermittent upstream
+    // request making the chart look unavailable, while the metadata still
+    // tells the browser that the curve is cached.
+    if (!force && item && age >= 0 && age <= fallbackMs) {
+      const task = refresh(symbol);
+      if (task) task.catch(() => {});
+      return result(item, { stale:true });
+    }
     try {
-      return await refresh(symbol);
+      const task = refresh(symbol, { force });
+      if (!task) throw refreshErrors.get(symbol) || new Error('Fund flow history refresh is cooling down');
+      return await task;
     } catch (error) {
       if (item && age >= 0 && age <= fallbackMs) return result(item, { stale:true });
       throw error;
     }
   }
 
-  return { load, cache, pending, hydrating };
+  return { load, cache, pending, hydrating, refreshCooldowns };
 }
 
 module.exports = {
@@ -189,4 +224,5 @@ module.exports = {
   parseFundFlowHistoryPayload,
   DEFAULT_FRESH_MS,
   DEFAULT_FALLBACK_MS,
+  DEFAULT_REFRESH_COOLDOWN_MS,
 };

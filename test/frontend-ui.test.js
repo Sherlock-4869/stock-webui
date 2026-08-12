@@ -548,6 +548,7 @@ test('fund flow chart uses only an explicitly marked same-source cache fallback'
   assert.match(html, /今日实时资金/);
   assert.match(html, /历史曲线暂时获取不到，当前仅显示今日实时资金/);
   assert.match(html, /retry\.textContent = '重新获取历史'/);
+  assert.match(html, /retry\.textContent = '刷新历史'/);
   assert.match(html, /loadChart\('fundFlow', \{ forceFundFlowRefresh:true \}\)/);
   assert.match(html, /&refresh=1/);
   assert.doesNotMatch(html, /新浪财经备用历史数据/);

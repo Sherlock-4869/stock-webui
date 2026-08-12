@@ -2,7 +2,7 @@
 
 const mysql = require('mysql2/promise');
 
-const FUND_FLOW_HISTORY_CACHE_RETENTION_DAYS = 1;
+const FUND_FLOW_HISTORY_CACHE_RETENTION_DAYS = 30;
 
 const SCHEMA_STATEMENTS = [
   `CREATE TABLE IF NOT EXISTS users (

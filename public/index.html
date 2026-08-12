@@ -2372,7 +2372,7 @@ async function loadChart(type, options = {}) {
         const historyTime = Number(d.meta.fetchedAt);
         const realtimeTime = Number(d.meta.realtimeUpdatedAt);
         const cacheMessage = d.meta.stale
-          ? `东方财富日线暂时不可用，展示 ${Number.isFinite(historyTime) ? new Date(historyTime).toLocaleTimeString('zh-CN', { hour:'2-digit', minute:'2-digit', second:'2-digit' }) : '最近一次'} 的缓存`
+          ? `完整历史曲线来自 ${Number.isFinite(historyTime) ? new Date(historyTime).toLocaleString('zh-CN', { month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit', second:'2-digit' }) : '最近一次'} 的东方财富缓存，将自动刷新`
           : '';
         const realtimeMessage = d.meta.realtime
           ? `${d.meta.todayOnly ? '当前仅显示' : '已合并'}今日实时资金${Number.isFinite(realtimeTime) ? `（${new Date(realtimeTime * 1000).toLocaleTimeString('zh-CN', { hour:'2-digit', minute:'2-digit', second:'2-digit' })}）` : ''}`
@@ -2387,7 +2387,18 @@ async function loadChart(type, options = {}) {
           retry.addEventListener('click', () => loadChart('fundFlow', { forceFundFlowRefresh:true }));
           dataNotice.replaceChildren(label, retry);
         } else {
-          dataNotice.textContent = [cacheMessage, realtimeMessage].filter(Boolean).join('；');
+          if (d.meta.stale) {
+            const label = document.createElement('span');
+            label.textContent = [cacheMessage, realtimeMessage].filter(Boolean).join('；');
+            const retry = document.createElement('button');
+            retry.type = 'button';
+            retry.className = 'chart-notice-retry';
+            retry.textContent = '刷新历史';
+            retry.addEventListener('click', () => loadChart('fundFlow', { forceFundFlowRefresh:true }));
+            dataNotice.replaceChildren(label, retry);
+          } else {
+            dataNotice.textContent = realtimeMessage;
+          }
         }
         dataNotice.classList.add('visible');
       }

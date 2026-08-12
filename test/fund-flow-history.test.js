@@ -106,6 +106,67 @@ test('loader falls back only to a recent cache from the same Eastmoney source', 
   });
 });
 
+test('stale same-source history is returned immediately while one refresh runs in background', async () => {
+  let now = 1200;
+  let resolveRefresh;
+  let calls = 0;
+  const loader = createFundFlowHistoryLoader({
+    now:() => now,
+    freshMs:100,
+    fallbackMs:500,
+    refreshCooldownMs:1000,
+    loadPersisted:async () => ({
+      data:[{ date:'2026-07-30', mainNet:100 }], source:'eastmoney-daykline', fetchedAt:new Date(1000),
+    }),
+    fetchData:async () => {
+      calls += 1;
+      return new Promise(resolve => { resolveRefresh = resolve; });
+    },
+  });
+
+  const stale = await loader.load('sh600519');
+  assert.equal(stale.data[0].mainNet, 100);
+  assert.equal(stale.meta.stale, true);
+  assert.equal(calls, 1);
+
+  const duplicate = await loader.load('sh600519');
+  assert.equal(duplicate.meta.stale, true);
+  assert.equal(calls, 1);
+
+  resolveRefresh([{ date:'2026-07-30', mainNet:200 }]);
+  await loader.pending.get('sh600519');
+  assert.equal((await loader.load('sh600519')).data[0].mainNet, 200);
+});
+
+test('failed background refresh is cooled down while a valid curve remains available', async () => {
+  let now = 1200;
+  let calls = 0;
+  const loader = createFundFlowHistoryLoader({
+    now:() => now,
+    freshMs:100,
+    fallbackMs:5000,
+    refreshCooldownMs:1000,
+    attempts:1,
+    loadPersisted:async () => ({
+      data:[{ date:'2026-07-30', mainNet:100 }], source:'eastmoney-daykline', fetchedAt:new Date(1000),
+    }),
+    fetchData:async () => {
+      calls += 1;
+      throw new Error('Eastmoney unavailable');
+    },
+  });
+
+  assert.equal((await loader.load('sh600519')).meta.stale, true);
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal((await loader.load('sh600519')).meta.stale, true);
+  assert.equal(calls, 1);
+
+  now = 2201;
+  assert.equal((await loader.load('sh600519')).meta.stale, true);
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(calls, 2);
+});
+
 test('forced history refresh bypasses a fresh same-source cache', async () => {
   let calls = 0;
   const loader = createFundFlowHistoryLoader({
@@ -136,6 +197,7 @@ test('loader rejects foreign-source and expired cached fund-flow data', async ()
 
   const expiredLoader = createFundFlowHistoryLoader({
     now:() => 62000,
+    freshMs:100,
     fallbackMs:500,
     loadPersisted:async () => ({
       data:[{ date:'2026-07-30', mainNet:8000000 }],
