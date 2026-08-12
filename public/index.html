@@ -2367,8 +2367,12 @@ async function loadChart(type) {
       if (!r.ok) throw new Error(d.error || 'fund flow request failed');
       if (requestId !== chartRequestId || currentTab !== type) return;
       drawFundFlow(d.data || []);
-      if (dataNotice && (d.meta?.degraded || d.meta?.stale)) {
-        dataNotice.textContent = d.meta.message || '历史数据正在后台刷新，当前展示已保存数据';
+      if (dataNotice && d.meta?.stale) {
+        const fetchedAt = Number(d.meta.fetchedAt);
+        const time = Number.isFinite(fetchedAt)
+          ? new Date(fetchedAt).toLocaleTimeString('zh-CN', { hour:'2-digit', minute:'2-digit', second:'2-digit' })
+          : '最近一次';
+        dataNotice.textContent = `东方财富暂时不可用，展示 ${time} 的缓存数据`;
         dataNotice.classList.add('visible');
       }
     } else {
@@ -2391,7 +2395,7 @@ async function loadChart(type) {
       ? '主力资金数据目前仅支持 A 股'
       : type === 'minuteK' && !/^(sh|sz)/.test(modalSym || '')
         ? '该市场暂不支持分时 K 线'
-        : type === 'fundFlow' ? '主力资金加载失败，请稍后重试' : '图表数据暂不可用';
+      : type === 'fundFlow' ? '主力资金数据暂时拿不到，请稍后重试' : '图表数据暂不可用';
     if (type === 'fundFlow' && !unsupportedFundFlow) {
       const retry = document.createElement('button');
       retry.type = 'button';

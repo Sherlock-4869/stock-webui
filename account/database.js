@@ -2,8 +2,7 @@
 
 const mysql = require('mysql2/promise');
 
-const FUND_FLOW_HISTORY_CACHE_RETENTION_DAYS = 30;
-const FUND_FLOW_HISTORY_CACHE_RETENTION_MS = FUND_FLOW_HISTORY_CACHE_RETENTION_DAYS * 24 * 60 * 60 * 1000;
+const FUND_FLOW_HISTORY_CACHE_RETENTION_DAYS = 1;
 
 const SCHEMA_STATEMENTS = [
   `CREATE TABLE IF NOT EXISTS users (
@@ -89,12 +88,12 @@ const SCHEMA_STATEMENTS = [
   `CREATE TABLE IF NOT EXISTS stock_fund_flow_history_cache (
     symbol VARCHAR(16) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
     data_json JSON NOT NULL,
-    source VARCHAR(40) CHARACTER SET ascii COLLATE ascii_bin NOT NULL DEFAULT 'unknown',
+    source VARCHAR(40) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
     fetched_at DATETIME NOT NULL,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (symbol),
-    KEY idx_fund_flow_cache_fetched (fetched_at)
+    KEY idx_fund_flow_cache_source_fetched (source, fetched_at)
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
   `CREATE TABLE IF NOT EXISTS chat_messages (
     id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -498,11 +497,7 @@ class AccountDatabase {
       [symbol]
     );
     if (!rows[0]) return null;
-    return {
-      data:parseJson(rows[0].data_json),
-      source:rows[0].source,
-      fetchedAt:rows[0].fetched_at,
-    };
+    return { data:parseJson(rows[0].data_json), source:rows[0].source, fetchedAt:rows[0].fetched_at };
   }
 
   async saveFundFlowHistoryCache(symbol, { data, source, fetchedAt }) {
@@ -510,7 +505,7 @@ class AccountDatabase {
       `INSERT INTO stock_fund_flow_history_cache (symbol, data_json, source, fetched_at)
        VALUES (?, ?, ?, ?)
        ON DUPLICATE KEY UPDATE data_json=VALUES(data_json), source=VALUES(source), fetched_at=VALUES(fetched_at)`,
-      [symbol, JSON.stringify(data), source || 'unknown', fetchedAt]
+      [symbol, JSON.stringify(data), source, fetchedAt]
     );
   }
 
@@ -1720,8 +1715,7 @@ class MemoryAccountDatabase {
     for (const [key, session] of this.sessions) if (new Date(session.session_expires_at).getTime() <= now) this.sessions.delete(key);
     for (const [key, state] of this.states) if (state.consumed_at || new Date(state.expires_at).getTime() <= now) this.states.delete(key);
     for (const [symbol, value] of this.fundFlowHistoryCache) {
-      const fetchedAt = new Date(value?.fetchedAt || 0).getTime();
-      if (!Number.isFinite(fetchedAt) || now - fetchedAt > FUND_FLOW_HISTORY_CACHE_RETENTION_MS) {
+      if (now - new Date(value?.fetchedAt || 0).getTime() > FUND_FLOW_HISTORY_CACHE_RETENTION_DAYS * 24 * 60 * 60 * 1000) {
         this.fundFlowHistoryCache.delete(symbol);
       }
     }
@@ -1737,6 +1731,5 @@ module.exports = {
   ensureNoteFolderSchema,
   ensureAvatarSchema,
   FUND_FLOW_HISTORY_CACHE_RETENTION_DAYS,
-  FUND_FLOW_HISTORY_CACHE_RETENTION_MS,
   ensureUserAiModelSchema,
 };

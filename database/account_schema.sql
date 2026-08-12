@@ -92,13 +92,13 @@ CREATE TABLE IF NOT EXISTS site_recommendations (
 
 CREATE TABLE IF NOT EXISTS stock_fund_flow_history_cache (
   symbol VARCHAR(16) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
-  data_json JSON NOT NULL COMMENT '最近 120 个交易日的主力资金历史数据',
-  source VARCHAR(40) CHARACTER SET ascii COLLATE ascii_bin NOT NULL DEFAULT 'unknown',
+  data_json JSON NOT NULL COMMENT '东方财富 daykline 最近成功数据（金额单位：元）',
+  source VARCHAR(40) CHARACTER SET ascii COLLATE ascii_bin NOT NULL COMMENT '固定为 eastmoney-daykline',
   fetched_at DATETIME NOT NULL,
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (symbol),
-  KEY idx_fund_flow_cache_fetched (fetched_at)
+  KEY idx_fund_flow_cache_source_fetched (source, fetched_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS chat_messages (

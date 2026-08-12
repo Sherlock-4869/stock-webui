@@ -537,10 +537,11 @@ test('AI stock research UI keeps entry permission-gated and renders chat content
   assert.match(html, /id="admin-ai-model-test"[^>]*onclick="testAiModelConnection\('admin'\)"/);
 });
 
-test('fund flow chart clearly marks today-only or stale-cache degradation', () => {
-  assert.match(html, /id="chart-data-notice"/);
-  assert.match(html, /d\.meta\?\.degraded \|\| d\.meta\?\.stale/);
-  assert.match(html, /d\.meta\.message \|\| '历史数据正在后台刷新，当前展示已保存数据'/);
+test('fund flow chart uses only an explicitly marked same-source cache fallback', () => {
+  assert.match(html, /主力资金数据暂时拿不到，请稍后重试/);
+  assert.match(html, /d\.meta\?\.stale/);
+  assert.match(html, /东方财富暂时不可用，展示 \$\{time\} 的缓存数据/);
+  assert.doesNotMatch(html, /新浪/);
 });
 
 test('five-day main flow is shown only in the fund flow panel, not list metrics', () => {
@@ -699,5 +700,5 @@ test('administrator chat UI can request the server-authorized online user list',
 test('fund flow failures expose an in-place retry action', () => {
   assert.match(html, /className = 'chart-retry-btn'/);
   assert.match(html, /retry\.addEventListener\('click', \(\) => loadChart\('fundFlow'\)\)/);
-  assert.match(html, /主力资金加载失败，请稍后重试/);
+  assert.match(html, /主力资金数据暂时拿不到，请稍后重试/);
 });

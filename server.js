@@ -9,8 +9,7 @@ const { createChatService } = require('./chat/chat');
 const {
   createAsyncTaskQueue,
   createFundFlowHistoryLoader,
-  mergeFundFlowHistory,
-  parseSinaFundFlowHistoryPayload,
+  parseFundFlowHistoryPayload,
 } = require('./fund-flow-history');
 
 const PORT = 3000;
@@ -65,7 +64,6 @@ const stockBoardCache = new Map();
 const boardListRefreshes = new Map();
 const boardDetailRefreshes = new Map();
 const stockBoardRefreshes = new Map();
-const fundFlowHistoryRequestQueue = createAsyncTaskQueue({ concurrency:4, maxQueued:120 });
 const boardRequestQueue = createAsyncTaskQueue({ concurrency:3, maxQueued:30 });
 
 const BOARD_TYPES = {
@@ -183,72 +181,31 @@ function eastmoneySecId(symbol) {
   return `${symbol.startsWith('sh') ? 1 : 0}.${symbol.slice(2)}`;
 }
 
-async function fetchFundFlowHistoryPayload(symbol) {
+async function fetchEastmoneyFundFlowHistory(symbol) {
   const fields1 = 'f1,f2,f3,f7';
   const fields2 = 'f51,f52,f53,f54,f55,f56,f57,f58,f59,f60,f61,f62,f63';
   const query = `secid=${eastmoneySecId(symbol)}&lmt=120&klt=101&fields1=${fields1}&fields2=${fields2}`;
-  const eastmoneySources = [
-    { name:'eastmoney-daykline', path:'daykline/get', timeoutMs:5000 },
-    { name:'eastmoney-kline-fallback', path:'kline/get', timeoutMs:8000 },
-  ];
-  const errors = [];
-  for (const source of eastmoneySources.slice(0, 1)) {
-    try {
-      const raw = await fundFlowHistoryRequestQueue.run(() => requestBuffer(
-        `https://push2his.eastmoney.com/api/qt/stock/fflow/${source.path}?${query}`,
-        { ...UPSTREAM_HEADERS, Referer:'https://quote.eastmoney.com/' },
-        { timeoutMs:source.timeoutMs }
-      ));
-      const payload = JSON.parse(raw.toString('utf-8'));
-      if (Number(payload?.rc) !== 0 || !Array.isArray(payload?.data?.klines) || !payload.data.klines.length) {
-        throw new Error(`invalid payload rc=${payload?.rc ?? 'unknown'}`);
-      }
-      return { payload, source:source.name };
-    } catch (error) {
-      errors.push(`${source.name}: ${error.message}`);
-    }
-  }
-  try {
-    const raw = await fundFlowHistoryRequestQueue.run(() => requestBuffer(
-      `https://money.finance.sina.com.cn/quotes_service/api/json_v2.php/MoneyFlow.ssl_qsfx_lscjfb?page=1&num=120&sort=opendate&asc=0&daima=${symbol}`,
-      { ...UPSTREAM_HEADERS, Referer:'https://money.finance.sina.com.cn/' },
-      { timeoutMs:8000 }
-    ));
-    return { data:parseSinaFundFlowHistoryPayload(JSON.parse(raw.toString('utf-8'))), source:'sina-money-flow' };
-  } catch (error) {
-    errors.push(`sina-money-flow: ${error.message}`);
-  }
-  for (const source of eastmoneySources.slice(1)) {
-    try {
-      const raw = await fundFlowHistoryRequestQueue.run(() => requestBuffer(
-        `https://push2his.eastmoney.com/api/qt/stock/fflow/${source.path}?${query}`,
-        { ...UPSTREAM_HEADERS, Referer:'https://quote.eastmoney.com/' },
-        { timeoutMs:source.timeoutMs }
-      ));
-      const payload = JSON.parse(raw.toString('utf-8'));
-      if (Number(payload?.rc) !== 0 || !Array.isArray(payload?.data?.klines) || !payload.data.klines.length) {
-        throw new Error(`invalid payload rc=${payload?.rc ?? 'unknown'}`);
-      }
-      return { payload, source:source.name };
-    } catch (error) {
-      errors.push(`${source.name}: ${error.message}`);
-    }
-  }
-  throw new Error(`Fund flow history sources failed (${errors.join('; ')})`);
+  const raw = await requestBuffer(
+    `https://push2his.eastmoney.com/api/qt/stock/fflow/daykline/get?${query}`,
+    { ...UPSTREAM_HEADERS, Referer:'https://quote.eastmoney.com/' },
+    { timeoutMs:8000 }
+  );
+  return parseFundFlowHistoryPayload(JSON.parse(raw.toString('utf-8')));
 }
 
 const fundFlowHistoryLoader = createFundFlowHistoryLoader({
-  fetchPayload:fetchFundFlowHistoryPayload,
+  source:'eastmoney-daykline',
+  fetchData:fetchEastmoneyFundFlowHistory,
   loadPersisted:symbol => accountService.loadFundFlowHistoryCache(symbol),
   savePersisted:(symbol, value) => accountService.saveFundFlowHistoryCache(symbol, value),
-  attempts:2,
-  onBackgroundError:(error, symbol) => {
-    console.error(`Fund flow background refresh error (${symbol}):`, error.message);
-  },
   onPersistenceError:(error, symbol, operation) => {
-    console.error(`Fund flow persistent cache ${operation} error (${symbol}):`, error.message);
+    console.error(`Fund flow cache ${operation} error (${symbol}):`, error.message);
   },
 });
+
+async function loadFundFlowHistoryResult(symbol) {
+  return fundFlowHistoryLoader.load(symbol);
+}
 
 function shanghaiDateKey(timestampMs=Date.now()) {
   const parts = new Intl.DateTimeFormat('en-US', {
@@ -439,58 +396,6 @@ async function loadRealtimeFundFlowPoints(symbols) {
     const point = realtimeFundFlowCache.get(symbol)?.data;
     return point?.date === today && Number.isFinite(point.mainNet) ? [[symbol, point]] : [];
   }));
-}
-
-async function loadHistoricalFundFlow(symbol) {
-  if (!isAShareSymbol(symbol)) return [];
-  return fundFlowHistoryLoader.load(symbol);
-}
-
-async function loadFundFlowHistoryResult(symbol) {
-  const [historyResult, points] = await Promise.all([
-    loadHistoricalFundFlow(symbol)
-      .then(data => ({ data, error:null }))
-      .catch(error => ({ data:[], error })),
-    loadRealtimeFundFlowPoints([symbol]),
-  ]);
-  const history = historyResult.data;
-  const current = points[symbol];
-  if (!current) {
-    if (history.length) {
-      return {
-        data:history,
-        meta:{ coverage:'history', degraded:false, ...fundFlowHistoryLoader.info(symbol) },
-      };
-    }
-    throw historyResult.error || new Error('Fund flow data is empty');
-  }
-  const sorted = mergeFundFlowHistory(history, current);
-  const historyInfo = fundFlowHistoryLoader.info(symbol);
-  const accumulatedOnly = !historyInfo || historyInfo.source === 'realtime-accumulated';
-  const degraded = history.length === 0 || accumulatedOnly;
-  const coverage = degraded ? (sorted.length > 1 ? 'partial-history' : 'today-only') : 'history';
-  try {
-    await accountService.saveFundFlowHistoryCache(symbol, {
-      data:sorted,
-      source:accumulatedOnly ? 'realtime-accumulated' : historyInfo.source,
-      fetchedAt:new Date(),
-    });
-  } catch (error) {
-    console.error(`Fund flow current-point persistence error (${symbol}):`, error.message);
-  }
-  return {
-    data:sorted,
-    meta:{
-      coverage,
-      degraded,
-      ...(historyInfo || {}),
-      message:coverage === 'today-only'
-        ? '历史资金源暂时不可用，当前仅展示今日实时数据'
-        : coverage === 'partial-history'
-          ? '历史资金源暂时不可用，当前展示数据库中逐日积累的数据'
-          : '',
-    },
-  };
 }
 
 async function proxyStockMetrics(urlObj, res) {
@@ -722,7 +627,7 @@ async function proxyFundFlowHistory(urlObj, res) {
     sendJson(res, 200, { ...result, fetchedAt:Date.now() });
   } catch (error) {
     console.error(`Fund flow history error (${symbol}):`, error.message);
-    sendJson(res, 502, { data:[], error:'主力资金数据暂不可用' });
+    sendJson(res, 502, { data:[], error:'主力资金数据暂时拿不到，请稍后重试' });
   }
 }
 
