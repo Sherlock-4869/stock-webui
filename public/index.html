@@ -202,6 +202,7 @@ html.metrics-scroll #stock-table tbody tr:hover td:first-child,html.metrics-scro
 .group-list{margin-top:12px;border:1px solid #30363d;border-radius:7px;overflow:hidden}.group-list-row{display:flex;align-items:center;gap:8px;padding:9px 10px;border-top:1px solid #30363d}.group-list-row:first-child{border-top:0}.group-list-name{flex:1}.group-list-meta{font-size:11px;color:#6e7681}
 .market-tag{display:inline-block;font-size:10px;padding:1px 5px;border-radius:3px;font-weight:600;margin-right:4px;vertical-align:middle}
 .tag-a{background:#1f3a5f;color:#79c0ff}
+.tag-etf{background:#123d38;color:#56d4c2}
 .tag-kcb{background:#34255a;color:#bc8cff}
 .tag-cyb{background:#173d4a;color:#56d4dd}
 .tag-hk{background:#3a2d1f;color:#e3b341}
@@ -242,7 +243,7 @@ body.stock-sorting,body.stock-sorting *{cursor:grabbing!important;user-select:no
 .modal-watchlist-btn.added:hover{color:#56d364;background:#23863628}
 .tab-bar{display:flex;gap:0;padding:12px 20px 0;border-bottom:1px solid #30363d}
 .tab{padding:6px 14px;font-size:13px;cursor:pointer;border-bottom:2px solid transparent;color:#8b949e;transition:color .15s}
-.tab.active{color:#58a6ff;border-bottom-color:#58a6ff}
+.tab.active{color:#58a6ff;border-bottom-color:#58a6ff}.tab[hidden]{display:none}
 .chart-area{padding:12px 20px 16px;min-height:410px;position:relative}
 .period-bar{display:none;align-items:center;gap:6px;margin:-2px 0 8px;overflow-x:auto;scrollbar-width:none}
 .period-bar.visible{display:flex}
@@ -620,7 +621,7 @@ html[data-theme="light"] .stock-board-tag{border-color:#9bcaf4;background:#e8f4f
   </div>
   <div class="search-row">
     <div class="search-wrap">
-      <input id="search-input" type="text" placeholder="搜索 A 股、港股、美股名称或代码..." autocomplete="off">
+      <input id="search-input" type="text" placeholder="搜索 A 股、ETF、港股、美股名称或代码..." autocomplete="off">
       <button class="search-clear" id="search-clear" onclick="clearSearch()">✕</button>
       <div class="dropdown" id="dropdown"></div>
     </div>
@@ -1352,7 +1353,16 @@ window.addEventListener('storage', event => {
   }
 });
 
-function marketTag(sym) {
+function isEtfSymbol(sym, quote = null) {
+  return quote?.securityType === 'ETF' || /^(?:sh5|sz15)\d{4}$/.test(sym);
+}
+
+function isAStockSymbol(sym) {
+  return /^(?:sh|sz)\d{6}$/.test(sym) && !isEtfSymbol(sym);
+}
+
+function marketTag(sym, securityType = '') {
+  if (securityType === 'ETF' || isEtfSymbol(sym)) return '<span class="market-tag tag-etf">ETF</span>';
   if (/^sh68[89]/.test(sym)) return '<span class="market-tag tag-kcb">科</span>';
   if (/^sz30[01]/.test(sym)) return '<span class="market-tag tag-cyb">创</span>';
   if (sym.startsWith('sh') || sym.startsWith('sz')) return '<span class="market-tag tag-a">A</span>';
@@ -1626,10 +1636,10 @@ function parseQuoteText(text) {
 function extractQuote(sym, fields) {
   if (!fields || fields.length < 10) return null;
   const price = Number(fields[3]);
-  const isAShare = /^(?:sh|sz)\d{6}$/.test(sym);
+  const isAStock = isAStockSymbol(sym);
   const peRaw = Number(fields[39]);
-  const pbRaw = Number(isAShare ? fields[46] : fields[58]);
-  const dividendRaw = Number(isAShare ? fields[64] : sym.startsWith('hk') ? fields[47] : fields[52]);
+  const pbRaw = Number(isAStock ? fields[46] : fields[58]);
+  const dividendRaw = Number(isAStock ? fields[64] : sym.startsWith('hk') ? fields[47] : fields[52]);
   const pe = Number.isFinite(peRaw) && fields[39] !== '' && peRaw > 0 ? peRaw : null;
   const pb = Number.isFinite(pbRaw) && pbRaw > 0 ? pbRaw : null;
   const dividend = Number.isFinite(dividendRaw) && dividendRaw > 0 ? dividendRaw : null;
@@ -1637,7 +1647,7 @@ function extractQuote(sym, fields) {
     const value = Number(fields[index]);
     return fields[index] !== '' && Number.isFinite(value) && (!positiveOnly || value > 0) ? value : null;
   };
-  const bidAskRatio = isAShare ? (() => {
+  const bidAskRatio = isAStock ? (() => {
     const bid = [10,12,14,16,18].reduce((sum, index) => sum + (Number(fields[index]) || 0), 0);
     const ask = [20,22,24,26,28].reduce((sum, index) => sum + (Number(fields[index]) || 0), 0);
     return bid + ask > 0 ? (bid - ask) / (bid + ask) * 100 : null;
@@ -1647,11 +1657,12 @@ function extractQuote(sym, fields) {
     open: fields[5], chg: fields[31], pct: fields[32],
     high: fields[33], low: fields[34], volume: fields[36], amount: fields[37], updatedAt:fields[30] || '',
     pe, pb, bvps:pb && Number.isFinite(price) ? price / pb : null, dividend,
-    turnover:isAShare ? quoteMetric(38) : null,
-    volumeRatio:isAShare ? quoteMetric(49) : null,
+    turnover:isAStock ? quoteMetric(38) : null,
+    volumeRatio:isAStock ? quoteMetric(49) : null,
     bidAskRatio,
-    floatMarketCap:isAShare ? quoteMetric(44, true) : null,
-    totalMarketCap:isAShare ? quoteMetric(45, true) : null,
+    floatMarketCap:isAStock ? quoteMetric(44, true) : null,
+    totalMarketCap:isAStock ? quoteMetric(45, true) : null,
+    securityType:fields.includes('ETF') ? 'ETF' : 'STOCK',
   };
 }
 
@@ -1661,7 +1672,7 @@ function selectedMetricSources() {
 
 async function fetchExtendedMetrics(symbols = [...watchlist]) {
   const sources = selectedMetricSources();
-  if (!sources.size || !symbols.some(sym => /^(?:sh|sz)\d{6}$/.test(sym))) return;
+  if (!sources.size || !symbols.some(isAStockSymbol)) return;
   if (extendedMetricsRequestPending) { extendedMetricsQueued = true; return; }
   extendedMetricsRequestPending = true;
   const params = new URLSearchParams({ symbols:symbols.join(',') });
@@ -1735,6 +1746,11 @@ function metricValue(metric, value) {
 }
 
 function renderOptionalMetricCells(sym, quote) {
+  if (isEtfSymbol(sym, quote)) {
+    return OPTIONAL_METRICS.map(metric =>
+      `<td class="optional-column metric-${metric.key.replaceAll('_','-')}" title="ETF 不适用该公司指标">--</td>`
+    ).join('');
+  }
   const extended = lastExtendedMetricData[sym] || {};
   const reportTitle = extended.reportName ? `最新报告期：${extended.reportName}` : '';
   return OPTIONAL_METRICS.map(metric => {
@@ -1761,12 +1777,12 @@ function renderTable(data) {
     const q = extractQuote(sym, data[sym]);
     if (q) lastQuoteData[sym] = q;
     if (!q) return `<tr class="stock-row" data-sym="${sym}" onclick="handleRowClick(event,'${sym}')">
-      <td><input class="batch-check" type="checkbox" aria-label="选择 ${sym}" ${selectedSymbols.has(sym)?'checked':''} onclick="event.stopPropagation()" onchange="setStockSelected('${sym}',this.checked)"><span class="drag-handle" title="长按拖动排序" aria-label="拖动排序">⠿</span>${marketTag(sym)}<b>${sym.replace(/^(sh|sz|hk|us)/,'')}</b></td>
+      <td><input class="batch-check" type="checkbox" aria-label="选择 ${sym}" ${selectedSymbols.has(sym)?'checked':''} onclick="event.stopPropagation()" onchange="setStockSelected('${sym}',this.checked)"><span class="drag-handle" title="长按拖动排序" aria-label="拖动排序">⠿</span>${marketTag(sym, q?.securityType)}<b>${sym.replace(/^(sh|sz|hk|us)/,'')}</b></td>
       <td colspan="10" style="color:#6e7681">数据加载中...</td>${renderOptionalMetricCells(sym, null)}
       <td><div class="stock-actions"><button class="del-btn pin-btn" title="置顶" aria-label="将 ${sym} 置顶" ${i===0?'disabled':''} onclick="event.stopPropagation();pinStock('${sym}')">↑</button><button class="del-btn transfer-btn" title="复制、移动或从所有分组移除" onclick="event.stopPropagation();openTransferDialog('${sym}')">⇄</button><button class="del-btn" title="从当前分组删除" onclick="event.stopPropagation();removeStock('${sym}')">✕</button></div></td></tr>`;
     const c = cls(q.chg);
     return `<tr class="stock-row" data-sym="${sym}" onclick="handleRowClick(event,'${sym}')">
-      <td><input class="batch-check" type="checkbox" aria-label="选择 ${sym}" ${selectedSymbols.has(sym)?'checked':''} onclick="event.stopPropagation()" onchange="setStockSelected('${sym}',this.checked)"><span class="drag-handle" title="长按拖动排序" aria-label="拖动排序">⠿</span>${marketTag(sym)}<b>${sym.replace(/^(sh|sz|hk|us)/,'')}</b></td>
+      <td><input class="batch-check" type="checkbox" aria-label="选择 ${sym}" ${selectedSymbols.has(sym)?'checked':''} onclick="event.stopPropagation()" onchange="setStockSelected('${sym}',this.checked)"><span class="drag-handle" title="长按拖动排序" aria-label="拖动排序">⠿</span>${marketTag(sym, q.securityType)}<b>${sym.replace(/^(sh|sz|hk|us)/,'')}</b></td>
       <td>${q.name||sym}</td>
       <td class="${c}" style="font-weight:600">${fmt(q.price)}</td>
       <td class="${c}">${sign(q.chg)}${fmt(q.chg)}</td>
@@ -2116,7 +2132,7 @@ async function doSearch(q) {
     }
     openDropdown(results.map((r, i) => `
       <div class="dd-item" data-i="${i}" onclick="selectItem(${i})">
-        ${marketTag(r.sym)}
+        ${marketTag(r.sym, r.securityType)}
         <span class="dd-name">${r.name}</span>
         <span class="dd-code">${r.market} ${r.code}</span>
       </div>`).join(''));
@@ -2132,10 +2148,10 @@ let currentMinuteKPeriod = 'm5';
 let lastQuoteData = {};
 let stockBoardRequestId = 0;
 
-function renderStockBoardContext(boards, message = '') {
+function renderStockBoardContext(boards, message = '', showBoardLink = true) {
   const context = document.getElementById('stock-board-context');
   if (message) {
-    context.innerHTML = `<span class="stock-board-status">${escapeHtml(message)}</span><button class="stock-board-link" type="button" onclick="openBoardMarketFromStock()">查看板块行情</button>`;
+    context.innerHTML = `<span class="stock-board-status">${escapeHtml(message)}</span>${showBoardLink ? '<button class="stock-board-link" type="button" onclick="openBoardMarketFromStock()">查看板块行情</button>' : ''}`;
     return;
   }
   if (!boards.length) {
@@ -2147,8 +2163,10 @@ function renderStockBoardContext(boards, message = '') {
 
 async function loadStockBoards(sym) {
   const requestId = ++stockBoardRequestId;
-  if (!/^(?:sh|sz)\d{6}$/.test(sym)) {
-    renderStockBoardContext([], '板块归属目前仅支持 A 股');
+  if (!isAStockSymbol(sym)) {
+    renderStockBoardContext([], isEtfSymbol(sym, lastQuoteData[sym])
+      ? 'ETF 支持实时行情、分时和 K 线；不提供个股板块和主力资金'
+      : '板块归属目前仅支持普通 A 股', false);
     return;
   }
   renderStockBoardContext([], '正在读取所属板块…');
@@ -2176,7 +2194,8 @@ function openModal(sym) {
   currentMinuteKPeriod = 'm5';
   const q = lastQuoteData[sym];
   document.getElementById('m-name').textContent = q ? q.name : sym;
-  document.getElementById('m-sub').textContent = sym.replace(/^(sh|sz|hk|us)/, '').toUpperCase();
+  const isEtf = isEtfSymbol(sym, q);
+  document.getElementById('m-sub').textContent = `${isEtf ? 'ETF · ' : ''}${sym.replace(/^(sh|sz|hk|us)/, '').toUpperCase()}`;
   if (q) {
     const c = cls(q.chg);
     document.getElementById('m-price').className = 'price ' + c;
@@ -2185,7 +2204,10 @@ function openModal(sym) {
     document.getElementById('m-chg').textContent = `${sign(q.chg)}${fmt(q.chg)}  ${sign(q.pct)}${fmt(q.pct)}%`;
     renderStats(q);
   }
-  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === 'minute'));
+  document.querySelectorAll('.tab').forEach(t => {
+    t.hidden = isEtf && t.dataset.tab === 'fundFlow';
+    t.classList.toggle('active', t.dataset.tab === 'minute');
+  });
   document.getElementById('period-bar').classList.remove('visible');
   document.querySelectorAll('.period-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.period === 'm5'));
   document.getElementById('modal-mask').classList.add('open');
@@ -2284,6 +2306,7 @@ function confirmRemoveFromAllWatchlist() {
 }
 
 function switchTab(el) {
+  if (el.hidden) return;
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   el.classList.add('active');
   currentTab = el.dataset.tab;

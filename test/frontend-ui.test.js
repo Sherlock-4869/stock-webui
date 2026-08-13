@@ -554,6 +554,19 @@ test('fund flow chart uses only an explicitly marked same-source cache fallback'
   assert.doesNotMatch(html, /新浪财经备用历史数据/);
 });
 
+test('ETF search and charts are supported without exposing stock-only metrics or money flow', () => {
+  assert.match(html, /搜索 A 股、ETF、港股、美股名称或代码/);
+  assert.match(html, /function isEtfSymbol\(sym, quote = null\)/);
+  assert.match(html, /securityType:fields\.includes\('ETF'\) \? 'ETF' : 'STOCK'/);
+  assert.match(html, /tag-etf/);
+  assert.match(html, /ETF 不适用该公司指标/);
+  assert.match(html, /t\.hidden = isEtf && t\.dataset\.tab === 'fundFlow'/);
+  assert.match(html, /ETF 支持实时行情、分时和 K 线；不提供个股板块和主力资金/);
+  assert.match(serverSource, /\^\(\?:GP\|ETF\)\(\?:-\|\$\)/);
+  assert.match(serverSource, /function isAStockSymbol\(symbol\)/);
+  assert.match(serverSource, /主力资金目前仅支持普通 A 股/);
+});
+
 test('five-day main flow is shown only in the fund flow panel, not list metrics', () => {
   assert.match(html, /\['近五日累计', fmtMetricMoney\(latest\.mainFiveDay\)/);
   assert.doesNotMatch(html, /main_five_day|metric-main-five-day|value="main_five_day"/);

@@ -176,13 +176,23 @@ function isAShareSymbol(symbol) {
   return /^(?:sh|sz)\d{6}$/.test(symbol);
 }
 
+function isEtfSymbol(symbol) {
+  // These ranges cover the exchange-traded funds supported by Tencent's quote
+  // feed. Their company and money-flow fields are not A-share fields.
+  return /^(?:sh5|sz15)\d{4}$/.test(symbol);
+}
+
+function isAStockSymbol(symbol) {
+  return isAShareSymbol(symbol) && !isEtfSymbol(symbol);
+}
+
 function eastmoneySecuCode(symbol) {
-  if (!isAShareSymbol(symbol)) return '';
+  if (!isAStockSymbol(symbol)) return '';
   return `${symbol.slice(2)}.${symbol.startsWith('sh') ? 'SH' : 'SZ'}`;
 }
 
 function eastmoneySecId(symbol) {
-  if (!isAShareSymbol(symbol)) return '';
+  if (!isAStockSymbol(symbol)) return '';
   return `${symbol.startsWith('sh') ? 1 : 0}.${symbol.slice(2)}`;
 }
 
@@ -260,7 +270,7 @@ function symbolFromSecuCode(secuCode) {
 }
 
 async function loadFundamentals(symbols) {
-  const aShares = [...new Set(symbols.filter(isAShareSymbol))];
+  const aShares = [...new Set(symbols.filter(isAStockSymbol))];
   const now = Date.now();
   const missing = aShares.filter(symbol => {
     const cached = fundamentalCache.get(symbol);
@@ -310,7 +320,7 @@ async function loadFundamentals(symbols) {
 }
 
 async function loadRealtimeValuations(symbols) {
-  const aShares = [...new Set(symbols.filter(isAShareSymbol))];
+  const aShares = [...new Set(symbols.filter(isAStockSymbol))];
   const now = Date.now();
   const missing = aShares.filter(symbol => {
     const cached = realtimeValuationCache.get(symbol);
@@ -328,7 +338,7 @@ async function loadRealtimeValuations(symbols) {
       const returned = new Set();
       for (const row of rows) {
         const symbol = `${Number(row.f13) === 1 ? 'sh' : 'sz'}${row.f12}`;
-        if (!isAShareSymbol(symbol)) continue;
+        if (!isAStockSymbol(symbol)) continue;
         returned.add(symbol);
         const rawPe = numberOrNull(row.f9);
         const rawPeStatic = numberOrNull(row.f114);
@@ -361,7 +371,7 @@ async function loadRealtimeValuations(symbols) {
 }
 
 async function loadRealtimeFundFlows(symbols) {
-  const aShares = [...new Set(symbols.filter(isAShareSymbol))];
+  const aShares = [...new Set(symbols.filter(isAStockSymbol))];
   const points = await loadRealtimeFundFlowPoints(aShares);
   return Object.fromEntries(aShares.map(symbol => {
     const point = points[symbol];
@@ -380,7 +390,7 @@ async function loadRealtimeFundFlows(symbols) {
 }
 
 async function loadRealtimeFundFlowPoints(symbols) {
-  const aShares = [...new Set(symbols.filter(isAShareSymbol))];
+  const aShares = [...new Set(symbols.filter(isAStockSymbol))];
   const now = Date.now();
   const missing = aShares.filter(symbol => {
     const cached = realtimeFundFlowCache.get(symbol);
@@ -400,7 +410,7 @@ async function loadRealtimeFundFlowPoints(symbols) {
       for (const row of rows) {
         const symbol = `${Number(row.f13) === 1 ? 'sh' : 'sz'}${row.f12}`;
         const updatedAt = numberOrNull(row.f124);
-        if (!isAShareSymbol(symbol) || !updatedAt) continue;
+        if (!isAStockSymbol(symbol) || !updatedAt) continue;
         returned.add(symbol);
         realtimeFundFlowCache.set(symbol, {
           fetchedAt:now,
@@ -593,7 +603,7 @@ function boardInfoValue(value) {
 }
 
 async function loadStockBoards(symbol) {
-  if (!isAShareSymbol(symbol)) return { symbol, boards:[], fetchedAt:Date.now() };
+  if (!isAStockSymbol(symbol)) return { symbol, boards:[], fetchedAt:Date.now() };
   const cached = stockBoardCache.get(symbol);
   if (cached && Date.now() - cached.fetchedAt < STOCK_BOARD_CACHE_MS) return cached;
   if (stockBoardRefreshes.has(symbol)) return stockBoardRefreshes.get(symbol);
@@ -649,7 +659,7 @@ async function proxyBoardDetail(urlObj, res) {
 
 async function proxyStockBoards(urlObj, res) {
   const symbol = urlObj.searchParams.get('sym') || '';
-  if (!isAShareSymbol(symbol)) { sendJson(res, 400, { boards:[], error:'仅支持 A 股板块信息' }); return; }
+  if (!isAStockSymbol(symbol)) { sendJson(res, 400, { boards:[], error:'仅支持普通 A 股板块信息' }); return; }
   try {
     sendJson(res, 200, await loadStockBoards(symbol));
   } catch (error) {
@@ -660,7 +670,7 @@ async function proxyStockBoards(urlObj, res) {
 
 async function proxyFundFlowHistory(urlObj, res) {
   const symbol = urlObj.searchParams.get('sym') || '';
-  if (!isAShareSymbol(symbol)) { sendJson(res, 400, { data:[], error:'仅支持 A 股主力资金数据' }); return; }
+  if (!isAStockSymbol(symbol)) { sendJson(res, 400, { data:[], error:'主力资金目前仅支持普通 A 股' }); return; }
   try {
     const result = await loadFundFlowHistoryResult(symbol, {
       forceHistoryRefresh:urlObj.searchParams.get('refresh') === '1',
@@ -988,7 +998,7 @@ const server = http.createServer(async (req, res) => {
             const parts = item.split('~');
             if (parts.length < 3) continue;
             const [market, code, rawName, , type] = parts;
-            if (type && !/^GP(?:-|$)/.test(type)) continue;
+            if (type && !/^(?:GP|ETF)(?:-|$)/.test(type)) continue;
             let name;
             try { name = JSON.parse('"' + rawName.replace(/"/g, '\\"') + '"'); }
             catch(e) { name = rawName; }
@@ -998,7 +1008,10 @@ const server = http.createServer(async (req, res) => {
               ? code.replace(/\.[A-Z]+$/i, '').toUpperCase()
               : code.toUpperCase();
             const sym = `${mkt}${normalizedCode}`;
-            results.push({ sym, name, market: market.toUpperCase(), code: normalizedCode });
+            results.push({
+              sym, name, market: market.toUpperCase(), code: normalizedCode,
+              securityType:/^ETF(?:-|$)/.test(type) ? 'ETF' : 'STOCK',
+            });
           }
         }
         res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'Access-Control-Allow-Origin': '*', 'Cache-Control': 'no-cache' });
