@@ -265,9 +265,11 @@ test('fund center exposes rankings, search, curves, holdings and public informat
   assert.match(html, /data-fund-type="index"/);
   assert.match(html, /data-fund-type="watchlist"[^>]*>★ 自选/);
   assert.match(html, /id="fund-watchlist-btn"[^>]*onclick="toggleFundWatchlist\(\)"/);
+  assert.match(html, /id="fund-market-watchlist-btn"[^>]*onclick="openFundMarketWatchlist\(\)"/);
   assert.match(html, /const FUND_WATCHLIST_STORAGE_KEY = 'fund_watchlist_v1'/);
   assert.match(html, /function normalizeFundWatchlist\(value\)/);
   assert.match(html, /function toggleFundWatchlist\(\)/);
+  assert.match(html, /openWatchlistAddDialog\(symbol\)/);
   assert.match(html, /function prepareFundChart\(\)/);
   assert.match(html, /前十大重仓个股/);
   assert.match(html, /现任基金经理/);
@@ -278,6 +280,20 @@ test('fund center exposes rankings, search, curves, holdings and public informat
   assert.match(serverSource, /pathname === '\/api\/fund-search'/);
   assert.match(serverSource, /pathname === '\/api\/fund-detail'/);
   assert.match(serverSource, /FUND_RATE_LIMIT_MAX = 90/);
+});
+
+test('listed ETFs from the fund center map into realtime watchlist symbols', () => {
+  const start = html.indexOf('function listedEtfSymbol');
+  const end = html.indexOf('function fundMarketSymbol', start);
+  assert.ok(start >= 0 && end > start);
+  const context = {};
+  vm.createContext(context);
+  vm.runInContext(`${html.slice(start, end)}\nthis.listedEtfSymbolForTest = listedEtfSymbol;`, context);
+  assert.equal(context.listedEtfSymbolForTest('513300', '纳斯达克ETF华夏'), 'sh513300');
+  assert.equal(context.listedEtfSymbolForTest('159941', '纳指ETF广发'), 'sz159941');
+  assert.equal(context.listedEtfSymbolForTest('501018', '南方原油LOF'), '');
+  assert.equal(context.listedEtfSymbolForTest('000001', 'ETF联接基金'), '');
+  assert.equal(context.listedEtfSymbolForTest('513300', '普通指数基金'), '');
 });
 
 test('fund watchlist normalizes imported entries and keeps one safe row per fund', () => {
@@ -613,8 +629,21 @@ test('ETF search and charts are supported without exposing stock-only metrics or
   assert.match(html, /t\.hidden = isEtf && t\.dataset\.tab === 'fundFlow'/);
   assert.match(html, /ETF 支持实时行情、分时和 K 线；不提供个股板块和主力资金/);
   assert.match(serverSource, /parseTencentSecuritySearch\(text\)/);
+  assert.match(serverSource, /sh5\\d\{5\}\|sz15\\d\{4\}/);
   assert.match(serverSource, /function isAStockSymbol\(symbol\)/);
   assert.match(serverSource, /主力资金目前仅支持普通 A 股/);
+});
+
+test('Shanghai and Shenzhen ETF symbols are excluded from stock-only behavior', () => {
+  const start = html.indexOf('function isEtfSymbol');
+  const end = html.indexOf('function isAStockSymbol', start);
+  assert.ok(start >= 0 && end > start);
+  const context = {};
+  vm.createContext(context);
+  vm.runInContext(`${html.slice(start, end)}\nthis.isEtfSymbolForTest = isEtfSymbol;`, context);
+  assert.equal(context.isEtfSymbolForTest('sh513300'), true);
+  assert.equal(context.isEtfSymbolForTest('sz159941'), true);
+  assert.equal(context.isEtfSymbolForTest('sh600519'), false);
 });
 
 test('five-day main flow is shown only in the fund flow panel, not list metrics', () => {

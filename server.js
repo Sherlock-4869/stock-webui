@@ -208,7 +208,7 @@ function isAShareSymbol(symbol) {
 function isEtfSymbol(symbol) {
   // These ranges cover the exchange-traded funds supported by Tencent's quote
   // feed. Their company and money-flow fields are not A-share fields.
-  return /^(?:sh5|sz15)\d{4}$/.test(symbol);
+  return /^(?:sh5\d{5}|sz15\d{4})$/.test(symbol);
 }
 
 function isAStockSymbol(symbol) {
