@@ -210,7 +210,7 @@ test('standalone and in-page reference views share the same renderer', () => {
 });
 
 test('all app pages support direct URL navigation and browser history', () => {
-  assert.match(html, /const APP_PAGES = \['market','boards','ipo','alerts','notes','reference','sites','ai','user-ai-models','admin-users','admin-sites','admin-ai'\]/);
+  assert.match(html, /const APP_PAGES = \['market','boards','funds','ipo','alerts','notes','reference','sites','ai','user-ai-models','admin-users','admin-sites','admin-ai'\]/);
   assert.match(html, /document\.title = '深度学习';/);
   assert.doesNotMatch(html, /APP_PAGE_TITLES/);
   assert.match(html, /history\.pushState\(\{ page \}, '', url\)/);
@@ -253,6 +253,26 @@ test('board market page exposes sector categories, rankings, and stock drill-dow
   assert.equal(context.boardPctForTest(3.2), '+3.20%');
   assert.equal(context.boardPctForTest(-1.25), '-1.25%');
   assert.equal(context.boardMoneyForTest(123000000), '+1.23亿');
+});
+
+test('fund center exposes rankings, search, curves, holdings and public information drill-down', () => {
+  assert.match(html, /data-page="funds"[^>]*onclick="switchAppPage\('funds'\)"/);
+  assert.match(html, /id="page-funds"/);
+  assert.match(html, /id="fund-search-input"[^>]*placeholder="搜索基金名称、代码或拼音"/);
+  assert.match(html, /data-fund-type="stock"/);
+  assert.match(html, /data-fund-type="mixed"/);
+  assert.match(html, /data-fund-type="bond"/);
+  assert.match(html, /data-fund-type="index"/);
+  assert.match(html, /function prepareFundChart\(\)/);
+  assert.match(html, /前十大重仓个股/);
+  assert.match(html, /现任基金经理/);
+  assert.match(html, /基金资讯与公告/);
+  assert.match(html, /function safeFundInfoUrl\(value\)/);
+  assert.match(html, /lastQuoteData\[symbol\] = quote/);
+  assert.match(serverSource, /pathname === '\/api\/funds'/);
+  assert.match(serverSource, /pathname === '\/api\/fund-search'/);
+  assert.match(serverSource, /pathname === '\/api\/fund-detail'/);
+  assert.match(serverSource, /FUND_RATE_LIMIT_MAX = 90/);
 });
 
 test('add to watchlist dialog adds a stock to the chosen group and dedupes', () => {

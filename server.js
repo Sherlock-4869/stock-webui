@@ -12,6 +12,13 @@ const {
   mergeFundFlowHistory,
   parseFundFlowHistoryPayload,
 } = require('./fund-flow-history');
+const {
+  parseFundHoldings,
+  parseFundNews,
+  parseFundRanking,
+  parseFundScript,
+  parseFundSearch,
+} = require('./fund-data');
 
 const PORT = 3000;
 const PUBLIC_DIR = path.join(__dirname, 'public');
@@ -65,6 +72,10 @@ const stockBoardCache = new Map();
 const boardListRefreshes = new Map();
 const boardDetailRefreshes = new Map();
 const stockBoardRefreshes = new Map();
+const fundRankingCache = new Map();
+const fundDetailCache = new Map();
+const fundSearchCache = new Map();
+const fundRateLimitBuckets = new Map();
 const boardRequestQueue = createAsyncTaskQueue({ concurrency:3, maxQueued:30 });
 // Eastmoney's historical money-flow endpoint is much less tolerant of bursts
 // than its realtime quote endpoint.  Serialize these refreshes; the loader
@@ -76,6 +87,20 @@ const BOARD_TYPES = {
   concept: { label:'概念板块', fs:'m:90+t:3+f:!50' },
   region: { label:'地域板块', fs:'m:90+t:1+f:!50' },
 };
+const FUND_TYPES = {
+  all:{ upstream:'all', label:'全部基金' },
+  stock:{ upstream:'gp', label:'股票型' },
+  mixed:{ upstream:'hh', label:'混合型' },
+  bond:{ upstream:'zq', label:'债券型' },
+  index:{ upstream:'zs', label:'指数型' },
+  qdii:{ upstream:'qdii', label:'QDII' },
+  fof:{ upstream:'fof', label:'FOF' },
+};
+const FUND_RANKING_CACHE_MS = 5 * 60 * 1000;
+const FUND_DETAIL_CACHE_MS = 10 * 60 * 1000;
+const FUND_SEARCH_CACHE_MS = 60 * 1000;
+const FUND_RATE_LIMIT_WINDOW_MS = 60 * 1000;
+const FUND_RATE_LIMIT_MAX = 90;
 
 function serveFile(res, filePath) {
   fs.readFile(filePath, (err, data) => {
@@ -827,6 +852,160 @@ async function proxyIpoCalendar(res) {
   }
 }
 
+function fundDateKey(date = new Date()) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+}
+
+function fundOneYearAgoDate() {
+  const date = new Date();
+  date.setFullYear(date.getFullYear() - 1);
+  return fundDateKey(date);
+}
+
+function allowFundRequest(req, res) {
+  const now = Date.now();
+  if (fundRateLimitBuckets.size > 1000) {
+    for (const [key, value] of fundRateLimitBuckets) {
+      if (now - value.startedAt >= FUND_RATE_LIMIT_WINDOW_MS) fundRateLimitBuckets.delete(key);
+    }
+  }
+  const address = String(req.socket?.remoteAddress || 'unknown').slice(0, 100);
+  let bucket = fundRateLimitBuckets.get(address);
+  if (!bucket || now - bucket.startedAt >= FUND_RATE_LIMIT_WINDOW_MS) {
+    bucket = { startedAt:now, count:0 };
+    fundRateLimitBuckets.set(address, bucket);
+  }
+  bucket.count += 1;
+  if (bucket.count <= FUND_RATE_LIMIT_MAX) return true;
+  res.writeHead(429, {
+    'Content-Type':'application/json; charset=utf-8',
+    'Cache-Control':'no-store',
+    'Retry-After':String(Math.max(1, Math.ceil((bucket.startedAt + FUND_RATE_LIMIT_WINDOW_MS - now) / 1000))),
+  });
+  res.end(JSON.stringify({ error:'基金行情请求过于频繁，请稍后再试' }));
+  return false;
+}
+
+async function loadCachedFundValue(cache, key, maxAgeMs, loader, force = false) {
+  const now = Date.now();
+  const existing = cache.get(key);
+  if (!force && existing?.value && now - existing.fetchedAt < maxAgeMs) return existing.value;
+  if (existing?.promise) return existing.promise;
+  const promise = Promise.resolve().then(loader).then(value => {
+    cache.set(key, { value, fetchedAt:Date.now(), promise:null });
+    return value;
+  }).catch(error => {
+    if (existing?.value) {
+      const staleValue = { ...existing.value, stale:true, upstreamError:error.message };
+      cache.set(key, { value:staleValue, fetchedAt:existing.fetchedAt, promise:null });
+      return staleValue;
+    }
+    cache.delete(key);
+    throw error;
+  });
+  cache.set(key, { value:existing?.value || null, fetchedAt:existing?.fetchedAt || 0, promise });
+  return promise;
+}
+
+async function requestFundText(url, referer, maxBytes = 5 * 1024 * 1024) {
+  const buffer = await requestBuffer(url, {
+    ...UPSTREAM_HEADERS,
+    Referer:referer,
+    Accept:'application/json,text/javascript,text/html;q=0.9,*/*;q=0.8',
+  }, { timeoutMs:10000 });
+  if (buffer.length > maxBytes) throw new Error('Fund upstream payload is too large');
+  return buffer.toString('utf-8').replace(/^\uFEFF/, '');
+}
+
+async function loadFundRanking(type, force = false) {
+  const definition = FUND_TYPES[type];
+  if (!definition) throw new Error('Unsupported fund type');
+  return loadCachedFundValue(fundRankingCache, type, FUND_RANKING_CACHE_MS, async () => {
+    const query = new URLSearchParams({
+      op:'ph', dt:'kf', ft:definition.upstream, rs:'', gs:'0', sc:'1nzf', st:'desc',
+      sd:fundOneYearAgoDate(), ed:fundDateKey(), qdii:'', tabSubtype:',,,,,', pi:'1', pn:'50', dx:'1',
+    });
+    const text = await requestFundText(
+      `https://fund.eastmoney.com/data/rankhandler.aspx?${query}`,
+      'https://fund.eastmoney.com/data/fundranking.html',
+      2 * 1024 * 1024
+    );
+    const parsed = parseFundRanking(text, type);
+    return { ...parsed, type, typeLabel:definition.label, fetchedAt:Date.now(), source:'天天基金公开行情' };
+  }, force);
+}
+
+async function loadFundSearch(query) {
+  const cacheKey = query.toLocaleLowerCase('zh-CN');
+  return loadCachedFundValue(fundSearchCache, cacheKey, FUND_SEARCH_CACHE_MS, async () => {
+    const text = await requestFundText(
+      `https://fundsuggest.eastmoney.com/FundSearch/api/FundSearchAPI.ashx?m=1&key=${encodeURIComponent(query)}`,
+      'https://fund.eastmoney.com/',
+      512 * 1024
+    );
+    return { data:parseFundSearch(JSON.parse(text)).slice(0, 12), fetchedAt:Date.now() };
+  });
+}
+
+async function loadFundDetail(code, force = false) {
+  return loadCachedFundValue(fundDetailCache, code, FUND_DETAIL_CACHE_MS, async () => {
+    const referer = `https://fund.eastmoney.com/${code}.html`;
+    const [scriptResult, searchResult, holdingsResult, pageResult] = await Promise.allSettled([
+      requestFundText(`https://fund.eastmoney.com/pingzhongdata/${code}.js?v=${Date.now()}`, referer),
+      loadFundSearch(code),
+      requestFundText(`https://fundf10.eastmoney.com/FundArchivesDatas.aspx?type=jjcc&code=${code}&topline=10&year=&month=&rt=${Math.random()}`, 'https://fundf10.eastmoney.com/', 2 * 1024 * 1024),
+      requestFundText(referer, referer, 4 * 1024 * 1024),
+    ]);
+    const profile = scriptResult.status === 'fulfilled' ? parseFundScript(scriptResult.value) : null;
+    const basicRows = searchResult.status === 'fulfilled' ? searchResult.value.data : [];
+    const basic = basicRows.find(item => item.code === code) || basicRows[0] || null;
+    if ((!profile || profile.code !== code) && !basic) throw new Error('Fund detail is unavailable');
+    const holdings = holdingsResult.status === 'fulfilled' ? parseFundHoldings(holdingsResult.value) : { date:'', data:[], totalRatio:0 };
+    const information = pageResult.status === 'fulfilled' ? parseFundNews(pageResult.value) : { news:[], announcements:[] };
+    const unavailable = [];
+    if (scriptResult.status === 'rejected') unavailable.push('净值与档案');
+    if (holdingsResult.status === 'rejected') unavailable.push('持仓');
+    if (pageResult.status === 'rejected') unavailable.push('资讯');
+    return {
+      code, basic, profile, holdings, information, unavailable,
+      fetchedAt:Date.now(), source:'天天基金公开行情',
+    };
+  }, force);
+}
+
+async function proxyFundRanking(urlObj, res) {
+  const type = urlObj.searchParams.get('type') || 'all';
+  const limit = Math.min(50, Math.max(5, Number(urlObj.searchParams.get('limit')) || 30));
+  if (!FUND_TYPES[type]) { sendJson(res, 400, { error:'不支持的基金类别' }); return; }
+  try {
+    const payload = await loadFundRanking(type, urlObj.searchParams.get('refresh') === '1');
+    sendJson(res, 200, { ...payload, data:payload.data.slice(0, limit) });
+  } catch (error) {
+    console.error('Fund ranking error:', error.message);
+    sendJson(res, 502, { data:[], error:'基金榜单暂时不可用' });
+  }
+}
+
+async function proxyFundSearch(urlObj, res) {
+  const query = String(urlObj.searchParams.get('q') || '').trim();
+  if (!query || query.length > 40) { sendJson(res, 400, { error:'请输入 1—40 个字符的基金名称或代码' }); return; }
+  try { sendJson(res, 200, await loadFundSearch(query)); }
+  catch (error) {
+    console.error('Fund search error:', error.message);
+    sendJson(res, 502, { data:[], error:'基金搜索暂时不可用' });
+  }
+}
+
+async function proxyFundDetail(urlObj, res) {
+  const code = String(urlObj.searchParams.get('code') || '');
+  if (!/^\d{6}$/.test(code)) { sendJson(res, 400, { error:'基金代码格式不正确' }); return; }
+  try { sendJson(res, 200, await loadFundDetail(code, urlObj.searchParams.get('refresh') === '1')); }
+  catch (error) {
+    console.error(`Fund detail error (${code}):`, error.message);
+    sendJson(res, 502, { error:'基金详情暂时不可用' });
+  }
+}
+
 function oneYearAgoDate() {
   const date = new Date();
   date.setFullYear(date.getFullYear() - 1);
@@ -944,6 +1123,24 @@ const server = http.createServer(async (req, res) => {
 
   if (pathname === '/api/ipos') {
     proxyIpoCalendar(res);
+    return;
+  }
+
+  if (pathname === '/api/funds') {
+    if (!allowFundRequest(req, res)) return;
+    await proxyFundRanking(urlObj, res);
+    return;
+  }
+
+  if (pathname === '/api/fund-search') {
+    if (!allowFundRequest(req, res)) return;
+    await proxyFundSearch(urlObj, res);
+    return;
+  }
+
+  if (pathname === '/api/fund-detail') {
+    if (!allowFundRequest(req, res)) return;
+    await proxyFundDetail(urlObj, res);
     return;
   }
 
