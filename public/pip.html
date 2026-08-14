@@ -52,6 +52,8 @@ function loadActiveWatchlist() {
 }
 let watchlist = loadActiveWatchlist();
 let showListColors = localStorage.getItem(COLOR_STORAGE_KEY) !== 'false';
+let fundQuoteCache = {};
+const fundQuoteAttemptAt = new Map();
 const systemThemeQuery = matchMedia('(prefers-color-scheme: light)');
 let themePreference = ['light','dark','system'].includes(localStorage.getItem(THEME_STORAGE_KEY)) ? localStorage.getItem(THEME_STORAGE_KEY) : 'dark';
 function resolvedTheme() { return themePreference === 'system' ? (systemThemeQuery.matches ? 'light' : 'dark') : themePreference; }
@@ -67,6 +69,7 @@ let pipWindow = null;
 let refreshTimer = null;
 
 function marketLabel(sym) {
+  if (sym.startsWith('fund')) return '基';
   if (sym.startsWith('sh') || sym.startsWith('sz')) return 'A';
   if (sym.startsWith('hk')) return '港';
   if (sym.startsWith('us')) return '美';
@@ -98,12 +101,40 @@ function extractQuote(sym, fields) {
   };
 }
 
+function resolveQuote(sym, value) {
+  if (sym.startsWith('fund')) return value ? { name:value.name, price:value.price, chg:value.chg, pct:value.pct } : null;
+  return extractQuote(sym, value);
+}
+
 async function fetchAndRender() {
   if (!watchlist.length) return;
   try {
-    const resp = await fetch(`/api/quote?symbols=${encodeURIComponent(watchlist.join(','))}`);
-    if (!resp.ok) throw new Error();
-    const data = parseQuoteText(await resp.text());
+    const marketSymbols = watchlist.filter(symbol => !symbol.startsWith('fund'));
+    const fundSymbols = watchlist.filter(symbol => symbol.startsWith('fund'));
+    const requests = [];
+    if (marketSymbols.length) requests.push(fetch(`/api/quote?symbols=${encodeURIComponent(marketSymbols.join(','))}`).then(async response => {
+      if (!response.ok) throw new Error('quote request failed');
+      return parseQuoteText(await response.text());
+    }));
+    if (fundSymbols.length) requests.push((async () => {
+      const now = Date.now();
+      const dueSymbols = fundSymbols.filter(symbol => now - (fundQuoteAttemptAt.get(symbol) || 0) >= 5 * 60 * 1000);
+      if (!dueSymbols.length) return fundQuoteCache;
+      dueSymbols.forEach(symbol => fundQuoteAttemptAt.set(symbol, now));
+      const batches = [];
+      for (let index=0; index<dueSymbols.length; index+=30) batches.push(dueSymbols.slice(index, index + 30));
+      const payloads = await Promise.all(batches.map(async batch => {
+        const response = await fetch(`/api/fund-quotes?codes=${encodeURIComponent(batch.map(symbol => symbol.slice(4)).join(','))}`);
+        if (!response.ok) throw new Error('fund quote request failed');
+        return response.json();
+      }));
+      fundQuoteCache = { ...fundQuoteCache, ...Object.assign({}, ...payloads.map(payload => payload.data || {})) };
+      return fundQuoteCache;
+    })());
+    const settled = await Promise.allSettled(requests);
+    const fulfilled = settled.filter(result => result.status === 'fulfilled');
+    if (!fulfilled.length) throw settled[0]?.reason || new Error('quote request failed');
+    const data = Object.assign({}, fundQuoteCache, ...fulfilled.map(result => result.value));
     renderCanvas(data);
   } catch(e) {
     console.error('fetch error:', e);
@@ -145,7 +176,7 @@ function renderCanvas(data) {
     const y = startY + rowH * (i + 1);
     if (y > H - 10) return; // out of bounds
 
-    const q = extractQuote(sym, data[sym]);
+    const q = resolveQuote(sym, data[sym]);
     if (!q) {
       ctx.fillStyle = pipColor('#6e7681','#6e7781');
       ctx.font = '13px sans-serif';
@@ -155,7 +186,7 @@ function renderCanvas(data) {
 
     // market + code
     const mkt = marketLabel(sym);
-    const code = sym.replace(/^(sh|sz|hk|us)/, '');
+    const code = sym.replace(/^(sh|sz|hk|us|fund)/, '');
     ctx.fillStyle = pipColor('#58a6ff','#0969da');
     ctx.font = '11px sans-serif';
     ctx.fillText(mkt, 20, y + 25);

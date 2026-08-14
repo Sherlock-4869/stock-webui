@@ -23,6 +23,7 @@ const {
   normalizeSecuritySearchQuery,
   parseTencentSecuritySearch,
 } = require('./stock-search');
+const { fundQuoteFromProfile } = require('./fund-quote');
 
 const PORT = 3000;
 const PUBLIC_DIR = path.join(__dirname, 'public');
@@ -79,8 +80,10 @@ const stockBoardRefreshes = new Map();
 const fundRankingCache = new Map();
 const fundDetailCache = new Map();
 const fundSearchCache = new Map();
+const fundQuoteCache = new Map();
 const fundRateLimitBuckets = new Map();
 const boardRequestQueue = createAsyncTaskQueue({ concurrency:3, maxQueued:30 });
+const fundQuoteRequestQueue = createAsyncTaskQueue({ concurrency:3, maxQueued:60 });
 // Eastmoney's historical money-flow endpoint is much less tolerant of bursts
 // than its realtime quote endpoint.  Serialize these refreshes; the loader
 // below coalesces requests for the same symbol and serves a valid cache first.
@@ -103,6 +106,8 @@ const FUND_TYPES = {
 const FUND_RANKING_CACHE_MS = 5 * 60 * 1000;
 const FUND_DETAIL_CACHE_MS = 10 * 60 * 1000;
 const FUND_SEARCH_CACHE_MS = 60 * 1000;
+const FUND_QUOTE_CACHE_MS = 5 * 60 * 1000;
+const FUND_QUOTE_CACHE_MAX = 1000;
 const FUND_RATE_LIMIT_WINDOW_MS = 60 * 1000;
 const FUND_RATE_LIMIT_MAX = 90;
 
@@ -977,6 +982,22 @@ async function loadFundDetail(code, force = false) {
   }, force);
 }
 
+async function loadFundQuote(code) {
+  if (!fundQuoteCache.has(code) && fundQuoteCache.size >= FUND_QUOTE_CACHE_MAX) {
+    fundQuoteCache.delete(fundQuoteCache.keys().next().value);
+  }
+  return loadCachedFundValue(fundQuoteCache, code, FUND_QUOTE_CACHE_MS, async () => {
+    const referer = `https://fund.eastmoney.com/${code}.html`;
+    const source = await fundQuoteRequestQueue.run(() => requestFundText(
+      `https://fund.eastmoney.com/pingzhongdata/${code}.js?v=${Date.now()}`,
+      referer,
+      2 * 1024 * 1024
+    ));
+    const quote = fundQuoteFromProfile(code, parseFundScript(source));
+    return { ...quote, fetchedAt:Date.now(), source:'天天基金公开行情' };
+  });
+}
+
 async function proxyFundRanking(urlObj, res) {
   const type = urlObj.searchParams.get('type') || 'all';
   const limit = Math.min(50, Math.max(5, Number(urlObj.searchParams.get('limit')) || 30));
@@ -1008,6 +1029,27 @@ async function proxyFundDetail(urlObj, res) {
     console.error(`Fund detail error (${code}):`, error.message);
     sendJson(res, 502, { error:'基金详情暂时不可用' });
   }
+}
+
+async function proxyFundQuotes(urlObj, res) {
+  const rawCodes = String(urlObj.searchParams.get('codes') || '').split(',').map(code => code.trim()).filter(Boolean);
+  const codes = [...new Set(rawCodes)];
+  if (!codes.length || codes.length > 30 || codes.some(code => !/^\d{6}$/.test(code))) {
+    sendJson(res, 400, { error:'基金代码格式不正确，单次最多查询 30 只' });
+    return;
+  }
+  const settled = await Promise.allSettled(codes.map(loadFundQuote));
+  const data = {};
+  const unavailable = [];
+  settled.forEach((result, index) => {
+    if (result.status === 'fulfilled') data[`fund${codes[index]}`] = result.value;
+    else unavailable.push(codes[index]);
+  });
+  if (!Object.keys(data).length) {
+    sendJson(res, 502, { data, unavailable, error:'基金净值行情暂时不可用' });
+    return;
+  }
+  sendJson(res, 200, { data, unavailable, fetchedAt:Date.now(), partial:unavailable.length > 0 });
 }
 
 function oneYearAgoDate() {
@@ -1145,6 +1187,12 @@ const server = http.createServer(async (req, res) => {
   if (pathname === '/api/fund-detail') {
     if (!allowFundRequest(req, res)) return;
     await proxyFundDetail(urlObj, res);
+    return;
+  }
+
+  if (pathname === '/api/fund-quotes') {
+    if (!allowFundRequest(req, res)) return;
+    await proxyFundQuotes(urlObj, res);
     return;
   }
 

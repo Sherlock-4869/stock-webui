@@ -60,10 +60,12 @@ let refreshTimer = null;
 let quoteRequestPending = false;
 let quoteRefreshQueued = false;
 let latestRows = [];
+let fundQuoteCache = {};
+const fundQuoteAttemptAt = new Map();
 const systemThemeQuery = matchMedia('(prefers-color-scheme: light)');
 
 function escapeHtml(value) { return String(value).replace(/[&<>"']/g, character => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[character])); }
-function validSymbol(value) { return /^(?:sh|sz|hk|us)\w+(?:\.\w+)?$/i.test(value); }
+function validSymbol(value) { return /^(?:(?:sh|sz|hk|us)\w+(?:\.\w+)?|fund\d{6})$/i.test(value); }
 function readActiveWatchlist() {
   try {
     const groups = JSON.parse(localStorage.getItem(GROUPS_STORAGE_KEY) || 'null');
@@ -88,9 +90,10 @@ function applyTheme() { const theme = resolvedTheme(); document.documentElement.
 function fmt(value, digits = 2) { const number = Number(value); return Number.isFinite(number) ? number.toFixed(digits) : '--'; }
 function pct(value) { const number = Number(value); return Number.isFinite(number) ? `${number > 0 ? '+' : ''}${fmt(number)}%` : '--'; }
 function tone(value) { const number = Number(value); return !Number.isFinite(number) || number === 0 ? 'flat' : number > 0 ? 'up' : 'down'; }
-function marketTag(symbol) { if (symbol.startsWith('sh') || symbol.startsWith('sz')) return '<span class="market-tag tag-a">A</span>'; if (symbol.startsWith('hk')) return '<span class="market-tag tag-hk">港</span>'; if (symbol.startsWith('us')) return '<span class="market-tag tag-us">美</span>'; if (symbol.startsWith('bj')) return '<span class="market-tag tag-bj">北</span>'; return ''; }
+function marketTag(symbol) { if (symbol.startsWith('fund')) return '<span class="market-tag tag-bj">基金</span>'; if (symbol.startsWith('sh') || symbol.startsWith('sz')) return '<span class="market-tag tag-a">A</span>'; if (symbol.startsWith('hk')) return '<span class="market-tag tag-hk">港</span>'; if (symbol.startsWith('us')) return '<span class="market-tag tag-us">美</span>'; if (symbol.startsWith('bj')) return '<span class="market-tag tag-bj">北</span>'; return ''; }
 function parseQuoteText(text) { const result = {}; for (const line of text.split('\n')) { const match = line.match(/^v_([a-zA-Z0-9._-]+)="([^"]*)"/); if (match) result[match[1]] = match[2].split('~'); } return result; }
 function extractQuote(symbol, fields) { if (!fields || fields.length < 10) return null; return { symbol, name:fields[1] || symbol, price:fields[3], change:fields[31], pct:fields[32] }; }
+function resolveQuote(symbol, value) { return symbol.startsWith('fund') ? (value ? { symbol, name:value.name || symbol, price:value.price, change:value.chg, pct:value.pct } : null) : extractQuote(symbol, value); }
 function sortFloatRows(rows) { const copy = [...rows]; if (sortMode !== 'pct') return copy; return copy.sort((left, right) => { const a = Number(left.quote?.pct), b = Number(right.quote?.pct); if (!Number.isFinite(a)) return 1; if (!Number.isFinite(b)) return -1; return b - a; }); }
 function renderSummary(rows) {
   const quotes = rows.map(row => row.quote).filter(Boolean);
@@ -113,11 +116,11 @@ function renderSummary(rows) {
 function renderRows(rows) {
   renderSummary(rows);
   const tbody = document.getElementById('tbody');
-  if (!watchlist.length) { tbody.innerHTML = '<tr><td colspan="4" class="quote-empty">当前分组暂无自选股</td></tr>'; return; }
+  if (!watchlist.length) { tbody.innerHTML = '<tr><td colspan="4" class="quote-empty">当前分组暂无行情</td></tr>'; return; }
   tbody.innerHTML = sortFloatRows(rows).map(({ symbol, quote }) => {
-    if (!quote) return `<tr><td>${marketTag(symbol)}<span class="stock-code">${escapeHtml(symbol.replace(/^(sh|sz|hk|us)/, '').toUpperCase())}</span></td><td colspan="3" class="flat">行情加载中…</td></tr>`;
+    if (!quote) return `<tr><td>${marketTag(symbol)}<span class="stock-code">${escapeHtml(symbol.replace(/^(sh|sz|hk|us|fund)/, '').toUpperCase())}</span></td><td colspan="3" class="flat">行情加载中…</td></tr>`;
     const quoteTone = showListColors ? tone(quote.pct) : '';
-    return `<tr><td><button class="stock-open" type="button" onclick="openStock('${symbol}')">${marketTag(symbol)}<span class="stock-copy"><span class="stock-name">${escapeHtml(quote.name)}</span><span class="stock-code">${escapeHtml(symbol.replace(/^(sh|sz|hk|us)/, '').toUpperCase())}</span></span></button></td><td class="quote-price ${quoteTone}">${fmt(quote.price)}</td><td class="quote-change ${quoteTone}">${Number(quote.change) > 0 ? '+' : ''}${fmt(quote.change)}</td><td class="quote-pct ${quoteTone}">${pct(quote.pct)}</td></tr>`;
+    return `<tr><td><button class="stock-open" type="button" onclick="openStock('${symbol}')">${marketTag(symbol)}<span class="stock-copy"><span class="stock-name">${escapeHtml(quote.name)}</span><span class="stock-code">${escapeHtml(symbol.replace(/^(sh|sz|hk|us|fund)/, '').toUpperCase())}</span></span></button></td><td class="quote-price ${quoteTone}">${fmt(quote.price)}</td><td class="quote-change ${quoteTone}">${Number(quote.change) > 0 ? '+' : ''}${fmt(quote.change)}</td><td class="quote-pct ${quoteTone}">${pct(quote.pct)}</td></tr>`;
   }).join('');
 }
 function setStatus(text, offline = false) { const status = document.getElementById('quote-status'); status.textContent = text; status.classList.toggle('offline', offline); }
@@ -129,10 +132,33 @@ async function fetchAndRender() {
   quoteRequestPending = true;
   document.getElementById('refresh-btn').disabled = true;
   try {
-    const response = await fetch(`/api/quote?symbols=${encodeURIComponent(symbols.join(','))}`);
-    if (!response.ok) throw new Error('quote request failed');
-    const data = parseQuoteText(await response.text());
-    latestRows = symbols.map(symbol => ({ symbol, quote:extractQuote(symbol, data[symbol]) }));
+    const marketSymbols = symbols.filter(symbol => !symbol.startsWith('fund'));
+    const fundSymbols = symbols.filter(symbol => symbol.startsWith('fund'));
+    const requests = [];
+    if (marketSymbols.length) requests.push(fetch(`/api/quote?symbols=${encodeURIComponent(marketSymbols.join(','))}`).then(async response => {
+      if (!response.ok) throw new Error('quote request failed');
+      return parseQuoteText(await response.text());
+    }));
+    if (fundSymbols.length) requests.push((async () => {
+      const now = Date.now();
+      const dueSymbols = fundSymbols.filter(symbol => now - (fundQuoteAttemptAt.get(symbol) || 0) >= 5 * 60 * 1000);
+      if (!dueSymbols.length) return fundQuoteCache;
+      dueSymbols.forEach(symbol => fundQuoteAttemptAt.set(symbol, now));
+      const batches = [];
+      for (let index=0; index<dueSymbols.length; index+=30) batches.push(dueSymbols.slice(index, index + 30));
+      const payloads = await Promise.all(batches.map(async batch => {
+        const response = await fetch(`/api/fund-quotes?codes=${encodeURIComponent(batch.map(symbol => symbol.slice(4)).join(','))}`);
+        if (!response.ok) throw new Error('fund quote request failed');
+        return response.json();
+      }));
+      fundQuoteCache = { ...fundQuoteCache, ...Object.assign({}, ...payloads.map(payload => payload.data || {})) };
+      return fundQuoteCache;
+    })());
+    const settled = await Promise.allSettled(requests);
+    const fulfilled = settled.filter(result => result.status === 'fulfilled');
+    if (!fulfilled.length) throw settled[0]?.reason || new Error('quote request failed');
+    const data = Object.assign({}, fundQuoteCache, ...fulfilled.map(result => result.value));
+    latestRows = symbols.map(symbol => ({ symbol, quote:resolveQuote(symbol, data[symbol]) }));
     renderRows(latestRows);
     const now = new Date().toLocaleTimeString('zh-CN', { hour:'2-digit', minute:'2-digit', second:'2-digit' });
     document.getElementById('updated-time').textContent = now;

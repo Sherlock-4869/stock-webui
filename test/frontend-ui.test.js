@@ -8,6 +8,7 @@ const vm = require('node:vm');
 
 const html = fs.readFileSync(path.join(__dirname, '..', 'public', 'index.html'), 'utf8');
 const floatHtml = fs.readFileSync(path.join(__dirname, '..', 'public', 'float.html'), 'utf8');
+const pipHtml = fs.readFileSync(path.join(__dirname, '..', 'public', 'pip.html'), 'utf8');
 const referenceHtml = fs.readFileSync(path.join(__dirname, '..', 'public', 'reference.html'), 'utf8');
 const referenceReaderScript = fs.readFileSync(path.join(__dirname, '..', 'public', 'reference-reader.js'), 'utf8');
 const serverSource = fs.readFileSync(path.join(__dirname, '..', 'server.js'), 'utf8');
@@ -18,6 +19,15 @@ test('main browser script parses as JavaScript', () => {
   assert.ok(scriptStart >= 0 && scriptEnd > scriptStart, 'main browser script must be present');
   const script = html.slice(scriptStart + '<script>'.length, scriptEnd);
   assert.doesNotThrow(() => new Function(script));
+});
+
+test('standalone quote windows parse as JavaScript', () => {
+  for (const source of [floatHtml, pipHtml]) {
+    const scriptStart = source.lastIndexOf('<script>');
+    const scriptEnd = source.lastIndexOf('</script>');
+    assert.ok(scriptStart >= 0 && scriptEnd > scriptStart);
+    assert.doesNotThrow(() => new Function(source.slice(scriptStart + '<script>'.length, scriptEnd)));
+  }
 });
 
 function markdownFunctions() {
@@ -263,22 +273,22 @@ test('fund center exposes rankings, search, curves, holdings and public informat
   assert.match(html, /data-fund-type="mixed"/);
   assert.match(html, /data-fund-type="bond"/);
   assert.match(html, /data-fund-type="index"/);
-  assert.match(html, /data-fund-type="watchlist"[^>]*>★ 自选/);
-  assert.match(html, /id="fund-watchlist-btn"[^>]*onclick="toggleFundWatchlist\(\)"/);
+  assert.doesNotMatch(html, /data-fund-type="watchlist"/);
+  assert.doesNotMatch(html, /id="fund-watchlist-btn"/);
   assert.match(html, /id="fund-market-watchlist-btn"[^>]*onclick="openFundMarketWatchlist\(\)"/);
-  assert.match(html, /const FUND_WATCHLIST_STORAGE_KEY = 'fund_watchlist_v1'/);
-  assert.match(html, /function normalizeFundWatchlist\(value\)/);
-  assert.match(html, /function toggleFundWatchlist\(\)/);
+  assert.doesNotMatch(html, /function toggleFundWatchlist\(\)/);
+  assert.match(html, /function fundQuoteFromDetail\(detail, symbol = fundMarketSymbol\(detail\)\)/);
   assert.match(html, /openWatchlistAddDialog\(symbol\)/);
   assert.match(html, /function prepareFundChart\(\)/);
   assert.match(html, /前十大重仓个股/);
   assert.match(html, /现任基金经理/);
   assert.match(html, /基金资讯与公告/);
   assert.match(html, /function safeFundInfoUrl\(value\)/);
-  assert.match(html, /lastQuoteData\[symbol\] = quote/);
+  assert.match(html, /lastFundQuoteData\[symbol\] = lastQuoteData\[symbol\]/);
   assert.match(serverSource, /pathname === '\/api\/funds'/);
   assert.match(serverSource, /pathname === '\/api\/fund-search'/);
   assert.match(serverSource, /pathname === '\/api\/fund-detail'/);
+  assert.match(serverSource, /pathname === '\/api\/fund-quotes'/);
   assert.match(serverSource, /FUND_RATE_LIMIT_MAX = 90/);
 });
 
@@ -296,29 +306,28 @@ test('listed ETFs from the fund center map into realtime watchlist symbols', () 
   assert.equal(context.listedEtfSymbolForTest('513300', '普通指数基金'), '');
 });
 
-test('fund watchlist normalizes imported entries and keeps one safe row per fund', () => {
-  const start = html.indexOf('function storedFundNumber');
+test('legacy fund watchlist entries migrate into unified market symbols', () => {
+  const start = html.indexOf('function legacyFundMarketSymbols');
   const end = html.indexOf('let _stored = null', start);
   assert.ok(start >= 0 && end > start);
   const context = {};
   vm.createContext(context);
-  vm.runInContext(`${html.slice(start, end)}\nthis.normalizeFundWatchlistForTest = normalizeFundWatchlist; this.toggleFundWatchlistRowForTest = toggleFundWatchlistRow;`, context);
-  const rows = context.normalizeFundWatchlistForTest([
-    { code:'513300', name:'纳斯达克ETF华夏', unitNav:'1.2345', returns:{ daily:'1.2', year:'8.6' } },
-    { code:'513300', name:'重复项' },
+  vm.runInContext(`${html.slice(start, end)}\nthis.legacyFundMarketSymbolsForTest = legacyFundMarketSymbols;`, context);
+  const symbols = context.legacyFundMarketSymbolsForTest([
+    { code:'513300', name:'纳斯达克ETF华夏' },
+    { code:'513300', name:'纳斯达克ETF华夏' },
+    { code:'159941', name:'纳指ETF广发' },
     { code:'not-a-fund', name:'无效项' },
     '000001',
   ]);
-  assert.deepEqual(JSON.parse(JSON.stringify(rows)), [
-    { code:'513300', name:'纳斯达克ETF华夏', type:'', company:'', navDate:'', unitNav:1.2345, returns:{ daily:1.2, year:8.6 } },
-    { code:'000001', name:'000001', type:'', company:'', navDate:'', unitNav:null, returns:{ daily:null, year:null } },
-  ]);
-  const added = context.toggleFundWatchlistRowForTest([], rows[0]);
-  assert.equal(added.added, true);
-  assert.deepEqual(JSON.parse(JSON.stringify(added.data)), JSON.parse(JSON.stringify([rows[0]])));
-  const removed = context.toggleFundWatchlistRowForTest(added.data, rows[0]);
-  assert.equal(removed.added, false);
-  assert.deepEqual(JSON.parse(JSON.stringify(removed.data)), []);
+  assert.deepEqual(JSON.parse(JSON.stringify(symbols)), ['sh513300', 'sz159941', 'fund000001']);
+});
+
+test('ordinary funds use unified fund symbols and disclosure-based quotes', () => {
+  assert.match(html, /return listedEtfSymbol\(detail\?\.code, description\) \|\| \(\/\^\\d\{6\}\$\//);
+  assert.match(html, /function isFundWatchSymbol\(sym\)/);
+  assert.match(html, /fetchFundWatchlistQuotes\(watchlist, forceFunds\)/);
+  assert.match(html, /普通基金不适用盘中个股指标/);
 });
 
 test('add to watchlist dialog adds a stock to the chosen group and dedupes', () => {
