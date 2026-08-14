@@ -15,6 +15,7 @@ const CONFIG_KEYS = Object.freeze([
   'watchlist_v1',
   'watchlist_groups_v1',
   'watchlist_active_group_v1',
+  'fund_watchlist_v1',
   'stock_active_page_v1',
   'stock_anomaly_events_v1',
   'stock_theme_v1',

@@ -75,11 +75,13 @@ test('scrypt password hashes are salted and verifiable', async () => {
 test('page config keeps only supported LocalStorage keys', () => {
   const config = sanitizePageConfig({ values:{
     watchlist_v1:'["sh600519"]',
+    fund_watchlist_v1:'[{"code":"513300","name":"纳斯达克ETF华夏"}]',
     stock_theme_v1:'light',
     arbitrary_secret:'must-not-be-stored',
   } });
   assert.deepEqual(config, { version:1, values:{
     watchlist_v1:'["sh600519"]',
+    fund_watchlist_v1:'[{"code":"513300","name":"纳斯达克ETF华夏"}]',
     stock_theme_v1:'light',
   } });
 });
@@ -333,7 +335,7 @@ test('account HTTP flow persists config across logout and password login', async
 
   const decision = await jsonRequest(app.service, '/api/auth/preferences/decision', {
     method:'POST', cookie,
-    body:{ importCurrent:true, config:{ values:{ watchlist_v1:'["sh600519","usAAPL"]', stock_theme_v1:'dark' } } },
+    body:{ importCurrent:true, config:{ values:{ watchlist_v1:'["sh600519","usAAPL"]', fund_watchlist_v1:'[{"code":"513300"}]', stock_theme_v1:'dark' } } },
   });
   assert.equal(decision.response.status, 200);
   assert.equal(decision.payload.imported, true);
@@ -341,6 +343,7 @@ test('account HTTP flow persists config across logout and password login', async
   const me = await jsonRequest(app.service, '/api/auth/me', { cookie });
   assert.equal(me.payload.needsConfigDecision, false);
   assert.equal(me.payload.config.values.watchlist_v1, '["sh600519","usAAPL"]');
+  assert.equal(me.payload.config.values.fund_watchlist_v1, '[{"code":"513300"}]');
 
   const changed = await jsonRequest(app.service, '/api/auth/password', {
     method:'PUT', cookie,
@@ -367,6 +370,7 @@ test('account HTTP flow persists config across logout and password login', async
   const afterLogin = await jsonRequest(app.service, '/api/auth/me', { cookie });
   assert.equal(afterLogin.payload.user.displayName, '新名称');
   assert.equal(afterLogin.payload.config.values.watchlist_v1, '["sh600519","usAAPL"]');
+  assert.equal(afterLogin.payload.config.values.fund_watchlist_v1, '[{"code":"513300"}]');
 });
 
 test('desktop login issues a bearer-only session that rotates and can be revoked', async t => {

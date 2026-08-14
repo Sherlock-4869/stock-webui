@@ -263,6 +263,11 @@ test('fund center exposes rankings, search, curves, holdings and public informat
   assert.match(html, /data-fund-type="mixed"/);
   assert.match(html, /data-fund-type="bond"/);
   assert.match(html, /data-fund-type="index"/);
+  assert.match(html, /data-fund-type="watchlist"[^>]*>★ 自选/);
+  assert.match(html, /id="fund-watchlist-btn"[^>]*onclick="toggleFundWatchlist\(\)"/);
+  assert.match(html, /const FUND_WATCHLIST_STORAGE_KEY = 'fund_watchlist_v1'/);
+  assert.match(html, /function normalizeFundWatchlist\(value\)/);
+  assert.match(html, /function toggleFundWatchlist\(\)/);
   assert.match(html, /function prepareFundChart\(\)/);
   assert.match(html, /前十大重仓个股/);
   assert.match(html, /现任基金经理/);
@@ -273,6 +278,31 @@ test('fund center exposes rankings, search, curves, holdings and public informat
   assert.match(serverSource, /pathname === '\/api\/fund-search'/);
   assert.match(serverSource, /pathname === '\/api\/fund-detail'/);
   assert.match(serverSource, /FUND_RATE_LIMIT_MAX = 90/);
+});
+
+test('fund watchlist normalizes imported entries and keeps one safe row per fund', () => {
+  const start = html.indexOf('function storedFundNumber');
+  const end = html.indexOf('let _stored = null', start);
+  assert.ok(start >= 0 && end > start);
+  const context = {};
+  vm.createContext(context);
+  vm.runInContext(`${html.slice(start, end)}\nthis.normalizeFundWatchlistForTest = normalizeFundWatchlist; this.toggleFundWatchlistRowForTest = toggleFundWatchlistRow;`, context);
+  const rows = context.normalizeFundWatchlistForTest([
+    { code:'513300', name:'纳斯达克ETF华夏', unitNav:'1.2345', returns:{ daily:'1.2', year:'8.6' } },
+    { code:'513300', name:'重复项' },
+    { code:'not-a-fund', name:'无效项' },
+    '000001',
+  ]);
+  assert.deepEqual(JSON.parse(JSON.stringify(rows)), [
+    { code:'513300', name:'纳斯达克ETF华夏', type:'', company:'', navDate:'', unitNav:1.2345, returns:{ daily:1.2, year:8.6 } },
+    { code:'000001', name:'000001', type:'', company:'', navDate:'', unitNav:null, returns:{ daily:null, year:null } },
+  ]);
+  const added = context.toggleFundWatchlistRowForTest([], rows[0]);
+  assert.equal(added.added, true);
+  assert.deepEqual(JSON.parse(JSON.stringify(added.data)), JSON.parse(JSON.stringify([rows[0]])));
+  const removed = context.toggleFundWatchlistRowForTest(added.data, rows[0]);
+  assert.equal(removed.added, false);
+  assert.deepEqual(JSON.parse(JSON.stringify(removed.data)), []);
 });
 
 test('add to watchlist dialog adds a stock to the chosen group and dedupes', () => {
@@ -582,7 +612,7 @@ test('ETF search and charts are supported without exposing stock-only metrics or
   assert.match(html, /ETF 不适用该公司指标/);
   assert.match(html, /t\.hidden = isEtf && t\.dataset\.tab === 'fundFlow'/);
   assert.match(html, /ETF 支持实时行情、分时和 K 线；不提供个股板块和主力资金/);
-  assert.match(serverSource, /\^\(\?:GP\|ETF\)\(\?:-\|\$\)/);
+  assert.match(serverSource, /parseTencentSecuritySearch\(text\)/);
   assert.match(serverSource, /function isAStockSymbol\(symbol\)/);
   assert.match(serverSource, /主力资金目前仅支持普通 A 股/);
 });

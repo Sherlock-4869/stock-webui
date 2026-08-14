@@ -19,6 +19,10 @@ const {
   parseFundScript,
   parseFundSearch,
 } = require('./fund-data');
+const {
+  normalizeSecuritySearchQuery,
+  parseTencentSecuritySearch,
+} = require('./stock-search');
 
 const PORT = 3000;
 const PUBLIC_DIR = path.join(__dirname, 'public');
@@ -1180,37 +1184,16 @@ const server = http.createServer(async (req, res) => {
   }
 
   if (pathname === '/api/search') {
-    const q = urlObj.searchParams.get('q') || '';
-    if (!q) { res.writeHead(400); res.end('Missing q'); return; }
+    const rawQuery = urlObj.searchParams.get('q') || '';
+    const q = normalizeSecuritySearchQuery(rawQuery);
+    if (!q || rawQuery.length > 60) { res.writeHead(400); res.end('Invalid q'); return; }
     const url = `https://smartbox.gtimg.cn/s3/?v=2&q=${encodeURIComponent(q)}&t=all&c=8`;
     const sreq = https.get(url, { headers: UPSTREAM_HEADERS, timeout: 8000 }, (r) => {
       const chunks = [];
       r.on('data', c => chunks.push(c));
       r.on('end', () => {
         const text = Buffer.concat(chunks).toString('utf-8');
-        const m = text.match(/v_hint="([^"]*)"/);
-        const results = [];
-        if (m && m[1]) {
-          for (const item of m[1].split('^')) {
-            const parts = item.split('~');
-            if (parts.length < 3) continue;
-            const [market, code, rawName, , type] = parts;
-            if (type && !/^(?:GP|ETF)(?:-|$)/.test(type)) continue;
-            let name;
-            try { name = JSON.parse('"' + rawName.replace(/"/g, '\\"') + '"'); }
-            catch(e) { name = rawName; }
-            const mkt = market.toLowerCase();
-            if (!['sh', 'sz', 'hk', 'us'].includes(mkt)) continue;
-            const normalizedCode = mkt === 'us'
-              ? code.replace(/\.[A-Z]+$/i, '').toUpperCase()
-              : code.toUpperCase();
-            const sym = `${mkt}${normalizedCode}`;
-            results.push({
-              sym, name, market: market.toUpperCase(), code: normalizedCode,
-              securityType:/^ETF(?:-|$)/.test(type) ? 'ETF' : 'STOCK',
-            });
-          }
-        }
+        const results = parseTencentSecuritySearch(text);
         res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'Access-Control-Allow-Origin': '*', 'Cache-Control': 'no-cache' });
         res.end(JSON.stringify(results));
       });
