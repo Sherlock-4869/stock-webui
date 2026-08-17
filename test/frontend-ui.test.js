@@ -241,6 +241,10 @@ test('board market page exposes sector categories, rankings, and stock drill-dow
   assert.match(html, /function openStockBoard\(board\)/);
   assert.match(html, /function openStockBoardByIndex\(index\)/);
   assert.match(html, /stock-board-tag clickable/);
+  const stockBoardJumpStart = html.indexOf('async function openStockBoard(board)');
+  const stockBoardJumpEnd = html.indexOf('function openStockBoardByIndex', stockBoardJumpStart);
+  assert.match(html.slice(stockBoardJumpStart, stockBoardJumpEnd), /search\.value = board\.name; filterBoardList\(\)/);
+  assert.doesNotMatch(html.slice(stockBoardJumpStart, stockBoardJumpEnd), /selectBoard\(matched\.code\)/);
   assert.match(html, /id="stock-board-context"/);
   assert.match(html, /function loadStockBoards\(sym\)/);
   assert.match(html, /id="modal-watchlist-btn"[^>]*onclick="openWatchlistAddDialog\(modalSym\)"/);

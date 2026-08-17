@@ -2293,16 +2293,17 @@ async function openStockBoard(board) {
   switchAppPage('boards');
   const targetType = stockBoardType(board);
   if (!targetType) {
-    showToast('该板块暂无法精确匹配，已打开板块行情');
+    showToast('该板块暂无法按分类定位，已打开板块行情');
     return;
   }
   if (boardType !== targetType) await setBoardType(targetType);
   else if (!boardRows.length) await loadBoards();
-  const matched = boardRows.find(item => item.name === board.name);
-  if (matched) { selectBoard(matched.code); return; }
+  activeBoard = null;
+  activeBoardDetail = null;
+  boardSummaryReset();
+  document.getElementById('board-detail').innerHTML = '<div class="board-detail-empty"><div><strong>已筛选对应板块</strong>请从左侧列表选择要查看的行业板块。</div></div>';
   const search = document.getElementById('board-search');
   if (search) { search.value = board.name; filterBoardList(); }
-  showToast(`未找到“${board.name}”的精确板块，已为你筛选相关结果`, true);
 }
 
 function openStockBoardByIndex(index) {
