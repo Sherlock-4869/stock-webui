@@ -286,10 +286,10 @@ class WeChatService {
       }
       if (['打新', '开启打新'].includes(content)) {
         await this.database.setNotification(openid, true);
-        return textReplyXml(message, '打新提醒已开启。系统会推送每周汇总，并在当日有可申购新股时追加提醒。');
+        return textReplyXml(message, '打新提醒已开启。系统会推送每周汇总，并在当日有可申购新股或新债时追加提醒。');
       }
-      if (['本周打新', '本周新股'].includes(content)) return textReplyXml(message, await this.currentWeeklyMessage());
-      return textReplyXml(message, '回复“本周打新”查询本周新股；回复“打新”开启提醒；回复“取消打新”关闭提醒。');
+      if (['本周打新', '本周新股', '本周新债'].includes(content)) return textReplyXml(message, await this.currentWeeklyMessage());
+      return textReplyXml(message, '回复“本周打新”查询本周新股和新债；回复“打新”开启提醒；回复“取消打新”关闭提醒。');
     }
     return 'success';
   }
@@ -372,7 +372,7 @@ class WeChatService {
     const content = buildDailyMessage(items, dateKey, this.config.pageUrl);
     if (dryRun) return { dryRun: true, date: dateKey, ipoCount: items.length, content };
     if (!items.length) {
-      return { accepted: false, date: dateKey, ipoCount: 0, reason: 'No IPOs available for subscription today' };
+      return { accepted: false, date: dateKey, ipoCount: 0, reason: 'No stocks or convertible bonds available for subscription today' };
     }
     return this.runPushJob({
       lockName: 'stock:wechat:daily-ipo',

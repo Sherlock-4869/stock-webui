@@ -59,6 +59,7 @@ function boardFromCode(value) {
 }
 
 function formatBoard(item = {}) {
+  if (item.type === 'bond') return '可转债';
   const codeBoard = boardFromCode(item.code) || boardFromCode(item.applyCode);
   if (codeBoard) return codeBoard;
 
@@ -83,24 +84,48 @@ function formatBoard(item = {}) {
 function appendIpoDetails(lines, items, { includeDate = false } = {}) {
   items.forEach((item, index) => {
     lines.push(`${index + 1}. ${item.name || '--'}（${item.applyCode || item.code || '--'}）【${formatBoard(item)}】`);
+    const extra = item.type === 'bond'
+      ? `${item.rating ? `｜评级 ${item.rating}` : ''}${item.bondIssueScale ? `｜发行规模 ${item.bondIssueScale}亿元` : ''}`
+      : `｜发行价 ${formatPrice(item.price)}`;
     if (includeDate) {
       const dateKey = String(item.applyDate || '').slice(0, 10);
       const weekday = WEEKDAY_NAMES[new Date(`${dateKey}T00:00:00Z`).getUTCDay()];
-      lines.push(`   ${dateKey} ${weekday}｜发行价 ${formatPrice(item.price)}`);
+      lines.push(`   ${dateKey} ${weekday}${extra}`);
     } else {
-      lines.push(`   发行价 ${formatPrice(item.price)}`);
+      lines.push(`   ${extra.slice(1)}`);
     }
   });
 }
 
+function splitIpos(items) {
+  const stocks = [];
+  const bonds = [];
+  (Array.isArray(items) ? items : []).forEach(item => (item.type === 'bond' ? bonds : stocks).push(item));
+  return { stocks, bonds };
+}
+
+function appendIpoGroups(lines, items, { includeDate = false } = {}) {
+  const { stocks, bonds } = splitIpos(items);
+  if (stocks.length) {
+    lines.push(`新股 ${stocks.length} 只：`);
+    appendIpoDetails(lines, stocks.slice(0, 20), { includeDate });
+  }
+  if (bonds.length) {
+    if (stocks.length) lines.push('');
+    lines.push(`新债 ${bonds.length} 只：`);
+    appendIpoDetails(lines, bonds.slice(0, 20), { includeDate });
+  }
+  const omitted = Math.max(0, stocks.length - 20) + Math.max(0, bonds.length - 20);
+  if (omitted) lines.push(`另有 ${omitted} 只，请打开页面查看。`);
+}
+
 function buildWeeklyMessage(items, range, pageUrl) {
-  const lines = [`【本周新股申购】`, `${range.start} 至 ${range.end}`];
+  const lines = [`【本周打新申购】`, `${range.start} 至 ${range.end}`];
   if (!items.length) {
-    lines.push('', '本周暂无可申购新股。');
+    lines.push('', '本周暂无可申购新股或新债。');
   } else {
     lines.push('', `共 ${items.length} 只：`);
-    appendIpoDetails(lines, items.slice(0, 20), { includeDate: true });
-    if (items.length > 20) lines.push(`另有 ${items.length - 20} 只，请打开页面查看。`);
+    appendIpoGroups(lines, items, { includeDate: true });
   }
   lines.push('', `详情：${pageUrl}`, '数据以交易所最终公告为准，不构成投资建议。');
   const content = lines.join('\n');
@@ -109,13 +134,12 @@ function buildWeeklyMessage(items, range, pageUrl) {
 
 function buildDailyMessage(items, dateKey, pageUrl) {
   const weekday = WEEKDAY_NAMES[new Date(`${dateKey}T00:00:00Z`).getUTCDay()];
-  const lines = ['【今日新股申购提醒】', `${dateKey} ${weekday}`];
+  const lines = ['【今日打新申购提醒】', `${dateKey} ${weekday}`];
   if (!items.length) {
-    lines.push('', '今日暂无可申购新股。');
+    lines.push('', '今日暂无可申购新股或新债。');
   } else {
     lines.push('', `今日共 ${items.length} 只：`);
-    appendIpoDetails(lines, items.slice(0, 20));
-    if (items.length > 20) lines.push(`另有 ${items.length - 20} 只，请打开页面查看。`);
+    appendIpoGroups(lines, items);
   }
   lines.push('', `详情：${pageUrl}`, '数据以交易所最终公告为准，不构成投资建议。');
   const content = lines.join('\n');
@@ -129,6 +153,7 @@ module.exports = {
   selectWeekIpos,
   selectDailyIpos,
   formatBoard,
+  splitIpos,
   buildWeeklyMessage,
   buildDailyMessage,
 };

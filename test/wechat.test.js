@@ -81,11 +81,25 @@ test('daily message contains today IPO details and target page', () => {
   const content = buildDailyMessage([
     { name: '今日股份', applyCode: '787002', applyDate: '2026-07-30', price: 8.25, board: '科创板' },
   ], '2026-07-30', 'https://stock.example/?page=ipo');
-  assert.match(content, /今日新股申购提醒/);
+  assert.match(content, /今日打新申购提醒/);
   assert.match(content, /2026-07-30 周四/);
   assert.match(content, /今日股份/);
   assert.match(content, /8\.25元/);
   assert.match(content, /https:\/\/stock\.example\/\?page=ipo/);
+});
+
+test('IPO messages separate convertible-bond subscriptions from stocks', () => {
+  const items = [
+    { type: 'stock', name: '测试新股', applyCode: '730001', applyDate: '2026-07-28', price: 12.5 },
+    { type: 'bond', name: '测试转债', applyCode: '371001', code: '123001', applyDate: '2026-07-28', price: 100, rating: 'AA-', bondIssueScale: 5.5 },
+  ];
+  const weekly = buildWeeklyMessage(items, { start: '2026-07-27', end: '2026-08-02' }, 'https://stock.example/?page=ipo');
+  const daily = buildDailyMessage(items, '2026-07-28', 'https://stock.example/?page=ipo');
+  assert.match(weekly, /新股 1 只/);
+  assert.match(weekly, /新债 1 只/);
+  assert.match(weekly, /测试转债（371001）【可转债】/);
+  assert.match(weekly, /评级 AA-/);
+  assert.match(daily, /新债 1 只/);
 });
 
 test('IPO board falls back to stock code and exchange', () => {
@@ -117,7 +131,7 @@ test('default WeChat menu connects click actions and IPO page', () => {
 
 test('weekly message explicitly reports an empty week', () => {
   const content = buildWeeklyMessage([], { start: '2026-07-27', end: '2026-08-02' }, 'https://stock.example/?page=ipo');
-  assert.match(content, /本周暂无可申购新股/);
+  assert.match(content, /本周暂无可申购新股或新债/);
 });
 
 test('callback XML parser and text reply handle standard WeChat XML', () => {

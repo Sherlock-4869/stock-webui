@@ -681,7 +681,7 @@ html[data-theme="light"] .fund-search,html[data-theme="light"] .fund-search-resu
 </section>
 
 <section class="app-page" id="page-ipo">
-  <div class="module-head"><div><div class="market-kicker">IPO Calendar</div><h2 class="module-title">打新股消息</h2><p class="module-desc">聚合未来 60 天申购安排，发行信息以交易所最终公告为准</p></div><div class="module-actions"><button class="refresh-btn" onclick="fetchIpos(true)">刷新日历</button></div></div>
+  <div class="module-head"><div><div class="market-kicker">IPO &amp; Convertible Bond Calendar</div><h2 class="module-title">打新消息</h2><p class="module-desc">聚合未来 60 天新股与新债申购安排，发行信息以交易所最终公告为准</p></div><div class="module-actions"><button class="refresh-btn" onclick="fetchIpos(true)">刷新日历</button></div></div>
   <div class="metric-grid"><div class="metric-card"><div class="metric-label">今日可申购</div><div class="metric-value" id="ipo-today-count">--</div><div class="metric-note">按申购日期统计</div></div><div class="metric-card"><div class="metric-label">未来 7 天</div><div class="metric-value" id="ipo-week-count">--</div><div class="metric-note">即将开放申购</div></div><div class="metric-card"><div class="metric-label">待上市</div><div class="metric-value" id="ipo-listing-count">--</div><div class="metric-note">近期已完成申购</div></div></div>
   <div class="module-panel"><div class="panel-toolbar" id="ipo-filters"><button class="filter-chip active" data-filter="all" onclick="setIpoFilter('all')">全部</button><button class="filter-chip" data-filter="today" onclick="setIpoFilter('today')">今日申购</button><button class="filter-chip" data-filter="upcoming" onclick="setIpoFilter('upcoming')">即将申购</button><button class="filter-chip" data-filter="listed" onclick="setIpoFilter('listed')">已申购</button><span class="panel-status" id="ipo-updated">等待同步</span></div><div class="ipo-list" id="ipo-list"><div class="module-loading">正在同步打新日历</div></div></div>
 </section>
@@ -4092,6 +4092,7 @@ function ipoStatus(item) {
   return { key:'done', label:item.listingDate ? '已申购' : '待上市' };
 }
 function ipoBoard(item = {}) {
+  if (item.type === 'bond') return '可转债';
   const boardFromCode = value => {
     const digits = String(value || '').replace(/\D/g, '');
     const code = digits && digits.length < 6 ? digits.padStart(6, '0') : digits;
@@ -4173,6 +4174,23 @@ function ipoDetailSection(title, cells) {
   return content ? `<section class="ipo-detail-section"><h3>${escapeHtml(title)}</h3><div class="ipo-detail-grid">${content}</div></section>` : '';
 }
 function ipoDetailsMarkup(item) {
+  if (item.type === 'bond') {
+    const offer = ipoDetailSection('发行与申购', [
+      ipoDetailCell('发行价格', Number(item.price) > 0 ? `¥ ${formatIpoNumber(item.price)}` : ''),
+      ipoDetailCell('发行规模', formatIpoNumber(item.bondIssueScale) ? `${formatIpoNumber(item.bondIssueScale)} 亿元` : ''),
+      ipoDetailCell('申购上限', formatIpoNumber(item.upperLimit) ? `${formatIpoNumber(item.upperLimit)} 万元` : ''),
+      ipoDetailCell('信用评级', item.rating),
+      ipoDetailCell('正股', [item.underlyingStockName, item.underlyingStockCode].filter(Boolean).join(' · ')),
+      ipoDetailCell('初始转股价', Number(item.transferPrice) > 0 ? `¥ ${formatIpoNumber(item.transferPrice)}` : ''),
+      ipoDetailCell('发行方式', item.issueWay, true),
+    ]);
+    const timeline = ipoDetailSection('关键日期', [
+      ipoDetailCell('网上申购', formatIpoDate(item.applyDate)),
+      ipoDetailCell('中签公布', formatIpoDate(item.ballotDate)),
+      ipoDetailCell('预计上市', formatIpoDate(item.listingDate)),
+    ]);
+    return `${offer}${timeline}<p class="ipo-detail-source">数据来自公开可转债日历；部分字段会在公告发布后补齐，请以交易所及发行公告为准。</p>`;
+  }
   const price = Number(item.price);
   const offer = ipoDetailSection('发行与申购', [
     ipoDetailCell('发行价格', Number.isFinite(price) && price > 0 ? `¥ ${price.toFixed(2)}` : ''),
@@ -4250,7 +4268,11 @@ function renderIpos() {
     const when = friendlyDate(item.applyDate), status = ipoStatus(item);
     const upper = Number(item.upperLimit), marketCap = Number(item.requiredMarketCap), price = Number(item.price);
     const detailId = `ipo-detail-${index}`;
-    return `<article class="ipo-row"><button class="ipo-row-summary" type="button" onclick="toggleIpoDetails('${detailId}', this)" aria-expanded="false" aria-controls="${detailId}"><div class="ipo-date">${when.date}<small>${when.label}</small></div><div><div class="ipo-name">${escapeHtml(item.name || '--')}<span class="ipo-board">${escapeHtml(ipoBoard(item))}</span></div><div class="ipo-code">${escapeHtml(item.applyCode || item.code)} · ${escapeHtml((item.market || '').replace('证券交易所',''))}</div></div><div class="ipo-field"><label>发行价</label><span>${price ? `¥ ${price.toFixed(2)}` : '待公布'}</span></div><div class="ipo-field"><label>申购上限</label><span>${upper ? `${Math.round(upper/100)/10} 千股` : '--'}</span></div><div class="ipo-field"><label>所需市值</label><span>${marketCap ? `${marketCap} 万` : '--'}</span></div><div class="ipo-row-action"><span class="ipo-status ${status.key}">${status.label}</span><span class="ipo-expand-hint">详情<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></span></div></button><div class="ipo-details" id="${detailId}" hidden>${ipoDetailsMarkup(item)}</div></article>`;
+    const isBond = item.type === 'bond';
+    const upperText = isBond ? (upper ? `${formatIpoNumber(upper)} 万元` : '--') : (upper ? `${Math.round(upper/100)/10} 千股` : '--');
+    const thirdLabel = isBond ? '信用评级' : '所需市值';
+    const thirdValue = isBond ? (item.rating || '--') : (marketCap ? `${marketCap} 万` : '--');
+    return `<article class="ipo-row"><button class="ipo-row-summary" type="button" onclick="toggleIpoDetails('${detailId}', this)" aria-expanded="false" aria-controls="${detailId}"><div class="ipo-date">${when.date}<small>${when.label}</small></div><div><div class="ipo-name">${escapeHtml(item.name || '--')}<span class="ipo-board">${escapeHtml(ipoBoard(item))}</span></div><div class="ipo-code">${escapeHtml(item.applyCode || item.code)} · ${escapeHtml((item.market || '').replace('证券交易所',''))}</div></div><div class="ipo-field"><label>发行价</label><span>${price ? `¥ ${price.toFixed(2)}` : '待公布'}</span></div><div class="ipo-field"><label>申购上限</label><span>${upperText}</span></div><div class="ipo-field"><label>${thirdLabel}</label><span>${escapeHtml(thirdValue)}</span></div><div class="ipo-row-action"><span class="ipo-status ${status.key}">${status.label}</span><span class="ipo-expand-hint">详情<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></span></div></button><div class="ipo-details" id="${detailId}" hidden>${ipoDetailsMarkup(item)}</div></article>`;
   }).join('') : '<div class="alert-empty">当前筛选条件下暂无记录</div>';
 }
 

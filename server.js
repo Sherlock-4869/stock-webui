@@ -812,18 +812,38 @@ async function loadIpoCalendar() {
     // fields without requiring a release here; only the allowlisted fields below
     // are returned to the browser.
     const columns = 'ALL';
-    const url = 'https://datacenter-web.eastmoney.com/api/data/v1/get?' + new URLSearchParams({
+    const baseUrl = 'https://datacenter-web.eastmoney.com/api/data/v1/get?';
+    const stockUrl = baseUrl + new URLSearchParams({
       reportName:'RPTA_APP_IPOAPPLY', columns, pageNumber:'1', pageSize:'100',
       sortColumns:'APPLY_DATE', sortTypes:'-1', source:'WEB', client:'WEB',
     });
-    const raw = await requestBuffer(url, { ...UPSTREAM_HEADERS, Referer:'https://data.eastmoney.com/' });
-    const payload = JSON.parse(raw.toString('utf-8'));
-    const rows = payload?.result?.data || [];
+    const bondUrl = baseUrl + new URLSearchParams({
+      reportName:'RPT_BOND_CB_LIST', columns, pageNumber:'1', pageSize:'100',
+      sortColumns:'PUBLIC_START_DATE,SECURITY_CODE', sortTypes:'-1,1', source:'WEB', client:'WEB',
+    });
+    const [stockResult, bondResult] = await Promise.allSettled([
+      requestBuffer(stockUrl, { ...UPSTREAM_HEADERS, Referer:'https://data.eastmoney.com/' }),
+      requestBuffer(bondUrl, { ...UPSTREAM_HEADERS, Referer:'https://data.eastmoney.com/xg/xg/?mkt=kzz' }),
+    ]);
+    const rowsFrom = (result, label) => {
+      if (result.status === 'rejected') {
+        console.warn(`IPO ${label} calendar error:`, result.reason?.message || result.reason);
+        return [];
+      }
+      try {
+        return JSON.parse(result.value.toString('utf-8'))?.result?.data || [];
+      } catch (error) {
+        console.warn(`IPO ${label} calendar error:`, error.message);
+        return [];
+      }
+    };
+    const stockRows = rowsFrom(stockResult, 'stock');
+    const bondRows = rowsFrom(bondResult, 'bond');
     const today = new Date(); today.setHours(0,0,0,0);
     const minDate = new Date(today); minDate.setDate(minDate.getDate() - 14);
     const maxDate = new Date(today); maxDate.setDate(maxDate.getDate() + 60);
-    const data = rows.map(row => ({
-      code:row.SECURITY_CODE, name:row.SECURITY_NAME, applyCode:row.APPLY_CODE,
+    const stocks = stockRows.map(row => ({
+      type:'stock', code:row.SECURITY_CODE, name:row.SECURITY_NAME, applyCode:row.APPLY_CODE,
       applyDate:row.APPLY_DATE, listingDate:row.LISTING_DATE, ballotDate:row.BALLOT_NUM_DATE,
       price:row.ISSUE_PRICE, upperLimit:row.ONLINE_APPLY_UPPER,
       requiredMarketCap:row.TOP_APPLY_MARKETCAP, market:row.TRADE_MARKET,
@@ -838,10 +858,19 @@ async function loadIpoCalendar() {
       assignDate:row.ASSIGN_DATE, onlinePayDate:row.ONLINE_PAY_DATE,
       ballotPayDate:row.BALLOT_PAY_DATE, marketCapConfirmDate:row.MARKET_CAP_CONFIRMDATE,
       totalShares:row.TOTAL_SHARES,
-    })).filter(item => {
+    }));
+    const bonds = bondRows.map(row => ({
+      type:'bond', code:row.SECURITY_CODE, name:row.SECURITY_NAME_ABBR, applyCode:row.CORRECODE,
+      applyDate:row.PUBLIC_START_DATE, listingDate:row.LISTING_DATE, ballotDate:row.BOND_START_DATE,
+      price:row.ISSUE_PRICE, upperLimit:row.ONLINE_GENERAL_AAU, market:row.TRADE_MARKET,
+      bondIssueScale:row.ACTUAL_ISSUE_SCALE, rating:row.RATING,
+      underlyingStockCode:row.CONVERT_STOCK_CODE, underlyingStockName:row.SECURITY_SHORT_NAME,
+      transferPrice:row.INITIAL_TRANSFER_PRICE, issueWay:row.PARAM_NAME, issueRemark:row.REMARK,
+    }));
+    const data = [...stocks, ...bonds].filter(item => {
       const date = new Date(item.applyDate);
       return Number.isFinite(date.getTime()) && date >= minDate && date <= maxDate;
-    }).sort((a,b) => new Date(b.applyDate) - new Date(a.applyDate));
+    }).sort((a,b) => new Date(b.applyDate) - new Date(a.applyDate) || String(a.type).localeCompare(String(b.type)) || String(a.code).localeCompare(String(b.code)));
     if (!data.length) throw new Error('IPO calendar is empty');
     ipoCache = { data, fetchedAt:Date.now() };
     return ipoCache;
