@@ -2288,14 +2288,32 @@ function stockBoardType(board) {
   return '';
 }
 
+async function stockBoardExists(board, type) {
+  if (boardType === type && boardRows.length) return boardRows.some(item => item.name === board.name);
+  try {
+    const response = await fetch(`/api/boards?type=${encodeURIComponent(type)}`);
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(payload.error || 'board list request failed');
+    return Array.isArray(payload.data) && payload.data.some(item => item.name === board.name);
+  } catch (error) {
+    console.error('stockBoardExists error:', error);
+    return null;
+  }
+}
+
 async function openStockBoard(board) {
-  closeModal();
-  switchAppPage('boards');
   const targetType = stockBoardType(board);
   if (!targetType) {
-    showToast('该板块暂无法按分类定位，已打开板块行情');
+    showToast('该板块暂无法按分类定位，请在板块行情中手动查看', true);
     return;
   }
+  const exists = await stockBoardExists(board, targetType);
+  if (!exists) {
+    showToast(exists === null ? '板块行情暂时不可用，无法核对该行业' : `板块行情中未找到“${board.name}”`, true);
+    return;
+  }
+  closeModal();
+  switchAppPage('boards');
   if (boardType !== targetType) await setBoardType(targetType);
   else if (!boardRows.length) await loadBoards();
   activeBoard = null;
@@ -2312,8 +2330,6 @@ function openStockBoardByIndex(index) {
 }
 
 function openBoardMarketFromStock() {
-  const preferred = visibleStockBoards.find(board => stockBoardType(board)) || visibleStockBoards[0];
-  if (preferred) { openStockBoard(preferred); return; }
   closeModal();
   switchAppPage('boards');
 }

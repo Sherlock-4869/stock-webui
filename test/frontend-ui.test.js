@@ -239,11 +239,14 @@ test('board market page exposes sector categories, rankings, and stock drill-dow
   assert.match(html, /资金流入前五/);
   assert.match(html, /function openBoardStock\(symbol\)/);
   assert.match(html, /function openStockBoard\(board\)/);
+  assert.match(html, /async function stockBoardExists\(board, type\)/);
   assert.match(html, /function openStockBoardByIndex\(index\)/);
   assert.match(html, /stock-board-tag clickable/);
   const stockBoardJumpStart = html.indexOf('async function openStockBoard(board)');
   const stockBoardJumpEnd = html.indexOf('function openStockBoardByIndex', stockBoardJumpStart);
   assert.match(html.slice(stockBoardJumpStart, stockBoardJumpEnd), /search\.value = board\.name; filterBoardList\(\)/);
+  assert.match(html.slice(stockBoardJumpStart, stockBoardJumpEnd), /const exists = await stockBoardExists\(board, targetType\)/);
+  assert.match(html.slice(stockBoardJumpStart, stockBoardJumpEnd), /板块行情中未找到/);
   assert.doesNotMatch(html.slice(stockBoardJumpStart, stockBoardJumpEnd), /selectBoard\(matched\.code\)/);
   assert.match(html, /id="stock-board-context"/);
   assert.match(html, /function loadStockBoards\(sym\)/);
