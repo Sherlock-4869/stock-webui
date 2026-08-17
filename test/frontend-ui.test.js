@@ -238,6 +238,9 @@ test('board market page exposes sector categories, rankings, and stock drill-dow
   assert.match(html, /跌幅前十/);
   assert.match(html, /资金流入前五/);
   assert.match(html, /function openBoardStock\(symbol\)/);
+  assert.match(html, /function openStockBoard\(board\)/);
+  assert.match(html, /function openStockBoardByIndex\(index\)/);
+  assert.match(html, /stock-board-tag clickable/);
   assert.match(html, /id="stock-board-context"/);
   assert.match(html, /function loadStockBoards\(sym\)/);
   assert.match(html, /id="modal-watchlist-btn"[^>]*onclick="openWatchlistAddDialog\(modalSym\)"/);
@@ -276,6 +279,10 @@ test('fund center exposes rankings, search, curves, holdings and public informat
   assert.doesNotMatch(html, /data-fund-type="watchlist"/);
   assert.doesNotMatch(html, /id="fund-watchlist-btn"/);
   assert.match(html, /id="fund-market-watchlist-btn"[^>]*onclick="openFundMarketWatchlist\(\)"/);
+  assert.match(html, /function openEtfFundMarket\(\)/);
+  assert.match(html, /id="modal-fund-link"[^>]*onclick="openEtfFundMarket\(\)"/);
+  assert.match(html, /function openFundExchangeQuote\(\)/);
+  assert.match(html, /查看交易所行情/);
   assert.doesNotMatch(html, /function toggleFundWatchlist\(\)/);
   assert.match(html, /function fundQuoteFromDetail\(detail, symbol = fundMarketSymbol\(detail\)\)/);
   assert.match(html, /openWatchlistAddDialog\(symbol\)/);
