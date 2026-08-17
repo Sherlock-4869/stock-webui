@@ -280,6 +280,11 @@ test('fund center exposes rankings, search, curves, holdings and public informat
   assert.match(html, /id="page-funds"/);
   assert.match(html, /id="fund-search-input"[^>]*placeholder="搜索基金名称、代码或拼音"/);
   assert.match(html, /data-fund-type="stock"/);
+  assert.match(html, /id="fund-rank-period"[^>]*onchange="setFundRankPeriod\(this\.value\)"/);
+  assert.match(html, /<option value="daily" selected>今日<\/option>/);
+  assert.match(html, /<option value="week">近一周<\/option>/);
+  assert.match(html, /<option value="month">近一月<\/option>/);
+  assert.match(html, /<option value="year">近一年<\/option>/);
   assert.match(html, /data-fund-type="mixed"/);
   assert.match(html, /data-fund-type="bond"/);
   assert.match(html, /data-fund-type="index"/);
@@ -304,6 +309,8 @@ test('fund center exposes rankings, search, curves, holdings and public informat
   assert.match(serverSource, /pathname === '\/api\/fund-detail'/);
   assert.match(serverSource, /pathname === '\/api\/fund-quotes'/);
   assert.match(serverSource, /FUND_RATE_LIMIT_MAX = 90/);
+  assert.match(serverSource, /const FUND_RANK_PERIODS = \{/);
+  assert.match(serverSource, /daily:\{ label:'今日', upstream:'rzf' \}/);
 });
 
 test('listed ETFs from the fund center map into realtime watchlist symbols', () => {

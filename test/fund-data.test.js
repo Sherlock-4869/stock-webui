@@ -43,6 +43,9 @@ test('fund script parser extracts only structured allowlisted values', () => {
 test('fund ranking and search parsers normalize public payloads', () => {
   const ranking = parseFundRanking('var rankData = {datas:["123456,示例基金,SLJJ,2026-08-13,1.2345,2.3456,1.2,2.3,3.4,4.5,5.6,6.7,7.8,8.9,9.1,10.2,2020-01-01,1,20.1,1.50%,0.15%,1"],allRecords:1,allNum:1,zs_count:0,gp_count:1,hh_count:0,zq_count:0,qdii_count:0,fof_count:0};', 'stock');
   assert.equal(ranking.data[0].code, '123456');
+  assert.equal(ranking.data[0].returns.daily, 1.2);
+  assert.equal(ranking.data[0].returns.week, 2.3);
+  assert.equal(ranking.data[0].returns.month, 3.4);
   assert.equal(ranking.data[0].returns.year, 6.7);
   assert.equal(ranking.data[0].currentRate, 0.15);
   assert.equal(ranking.counts.stock, 1);

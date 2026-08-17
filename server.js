@@ -103,6 +103,18 @@ const FUND_TYPES = {
   qdii:{ upstream:'qdii', label:'QDII' },
   fof:{ upstream:'fof', label:'FOF' },
 };
+const FUND_RANK_PERIODS = {
+  daily:{ label:'今日', upstream:'rzf' },
+  week:{ label:'近一周', upstream:'zzf' },
+  month:{ label:'近一月', upstream:'1yzf' },
+  threeMonths:{ label:'近三月', upstream:'3yzf' },
+  sixMonths:{ label:'近六月', upstream:'6yzf' },
+  year:{ label:'近一年', upstream:'1nzf' },
+  twoYears:{ label:'近两年', upstream:'2nzf' },
+  threeYears:{ label:'近三年', upstream:'3nzf' },
+  yearToDate:{ label:'今年以来', upstream:'jnzf' },
+  sinceInception:{ label:'成立以来', upstream:'lnzf' },
+};
 const FUND_RANKING_CACHE_MS = 5 * 60 * 1000;
 const FUND_DETAIL_CACHE_MS = 10 * 60 * 1000;
 const FUND_SEARCH_CACHE_MS = 60 * 1000;
@@ -955,12 +967,13 @@ async function requestFundText(url, referer, maxBytes = 5 * 1024 * 1024) {
   return buffer.toString('utf-8').replace(/^\uFEFF/, '');
 }
 
-async function loadFundRanking(type, force = false) {
+async function loadFundRanking(type, period = 'daily', force = false) {
   const definition = FUND_TYPES[type];
-  if (!definition) throw new Error('Unsupported fund type');
-  return loadCachedFundValue(fundRankingCache, type, FUND_RANKING_CACHE_MS, async () => {
+  const rankPeriod = FUND_RANK_PERIODS[period];
+  if (!definition || !rankPeriod) throw new Error('Unsupported fund ranking');
+  return loadCachedFundValue(fundRankingCache, `${type}:${period}`, FUND_RANKING_CACHE_MS, async () => {
     const query = new URLSearchParams({
-      op:'ph', dt:'kf', ft:definition.upstream, rs:'', gs:'0', sc:'1nzf', st:'desc',
+      op:'ph', dt:'kf', ft:definition.upstream, rs:'', gs:'0', sc:rankPeriod.upstream, st:'desc',
       sd:fundOneYearAgoDate(), ed:fundDateKey(), qdii:'', tabSubtype:',,,,,', pi:'1', pn:'50', dx:'1',
     });
     const text = await requestFundText(
@@ -969,7 +982,7 @@ async function loadFundRanking(type, force = false) {
       2 * 1024 * 1024
     );
     const parsed = parseFundRanking(text, type);
-    return { ...parsed, type, typeLabel:definition.label, fetchedAt:Date.now(), source:'天天基金公开行情' };
+    return { ...parsed, type, typeLabel:definition.label, period, periodLabel:rankPeriod.label, fetchedAt:Date.now(), source:'天天基金公开行情' };
   }, force);
 }
 
@@ -1029,10 +1042,11 @@ async function loadFundQuote(code) {
 
 async function proxyFundRanking(urlObj, res) {
   const type = urlObj.searchParams.get('type') || 'all';
+  const period = urlObj.searchParams.get('period') || 'daily';
   const limit = Math.min(50, Math.max(5, Number(urlObj.searchParams.get('limit')) || 30));
-  if (!FUND_TYPES[type]) { sendJson(res, 400, { error:'不支持的基金类别' }); return; }
+  if (!FUND_TYPES[type] || !FUND_RANK_PERIODS[period]) { sendJson(res, 400, { error:'不支持的基金榜单选项' }); return; }
   try {
-    const payload = await loadFundRanking(type, urlObj.searchParams.get('refresh') === '1');
+    const payload = await loadFundRanking(type, period, urlObj.searchParams.get('refresh') === '1');
     sendJson(res, 200, { ...payload, data:payload.data.slice(0, limit) });
   } catch (error) {
     console.error('Fund ranking error:', error.message);
