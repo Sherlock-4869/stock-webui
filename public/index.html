@@ -2835,31 +2835,27 @@ function drawGridLine(ctx, x1, y1, x2, y2) {
   ctx.stroke();
 }
 
-function drawMinuteSessionBreak(ctx, sessionBreak, xFor, priceTop, chartBottom, H) {
+function drawMinuteSessionBreak(ctx, sessionBreak, xFor, priceTop, chartBottom, W, H) {
   if (!sessionBreak) return;
-  const closeX = xFor(sessionBreak.closeIndex);
-  const openX = xFor(sessionBreak.openIndex);
+  const markerX = (xFor(sessionBreak.closeIndex) + xFor(sessionBreak.openIndex)) / 2;
+  const label = `${sessionBreak.closeTime} / ${sessionBreak.openTime}`;
   ctx.save();
   ctx.strokeStyle = '#d29922aa';
   ctx.lineWidth = 1;
   ctx.setLineDash([3, 3]);
-  [closeX, openX].forEach(x => {
-    ctx.beginPath();
-    ctx.moveTo(x, priceTop);
-    ctx.lineTo(x, chartBottom);
-    ctx.stroke();
-  });
+  ctx.beginPath();
+  ctx.moveTo(markerX, priceTop);
+  ctx.lineTo(markerX, chartBottom);
+  ctx.stroke();
   ctx.setLineDash([]);
   ctx.font = '10px ui-monospace, monospace';
+  const labelWidth = ctx.measureText(label).width + 10;
+  const left = Math.max(1, Math.min(markerX - labelWidth / 2, W - labelWidth - 1));
+  ctx.fillStyle = chartThemeColor('bg');
+  ctx.fillRect(left, H - 20, labelWidth, 16);
   ctx.fillStyle = '#d29922';
-  ctx.textAlign = 'right';
-  ctx.fillText('11:30 收盘', closeX - 3, H - 8);
-  ctx.fillStyle = '#58a6ff';
-  ctx.textAlign = 'left';
-  ctx.fillText('13:00 开盘', openX + 3, H - 8);
-  ctx.fillStyle = chartThemeColor('muted');
   ctx.textAlign = 'center';
-  ctx.fillText('午间休市', (closeX + openX) / 2, priceTop + 12);
+  ctx.fillText(label, left + labelWidth / 2, H - 8);
   ctx.restore();
 }
 
@@ -2885,9 +2881,7 @@ function drawMinuteChart(ctx, W, H) {
   const range = priceMax - priceMin || 1;
   const py = value => priceTop + (priceMax - value) / range * priceH;
   const sessionBreak = findMinuteSessionBreak(data);
-  const sessionGap = sessionBreak ? Math.min(32, Math.max(18, cw * .045)) : 0;
-  const xFor = index => plotLeft + (data.length === 1 ? 0 : index / (data.length - 1)) * (cw - sessionGap)
-    + (sessionBreak && index >= sessionBreak.openIndex ? sessionGap : 0);
+  const xFor = index => plotLeft + (data.length === 1 ? 0 : index / (data.length - 1)) * cw;
   const valueForY = y => priceMax - (y - priceTop) / priceH * range;
 
   ctx.fillStyle = chartThemeColor('bg');
@@ -2906,9 +2900,9 @@ function drawMinuteChart(ctx, W, H) {
     ctx.fillText(`${pct > 0 ? '+' : ''}${pct.toFixed(2)}%`, plotRight + 5, y + 3);
   }
 
-  const sessionIndexes = new Set(sessionBreak ? [sessionBreak.closeIndex, sessionBreak.openIndex] : []);
+  const sessionX = sessionBreak ? (xFor(sessionBreak.closeIndex) + xFor(sessionBreak.openIndex)) / 2 : null;
   const xIndexes = [...new Set([0, Math.round((data.length - 1) * .25), Math.round((data.length - 1) * .5), Math.round((data.length - 1) * .75), data.length - 1])]
-    .filter(index => !sessionIndexes.has(index));
+    .filter(index => sessionX == null || Math.abs(xFor(index) - sessionX) > 50);
   xIndexes.forEach((index, tickIndex) => {
     const x = xFor(index);
     drawGridLine(ctx, x, priceTop, x, volTop + volH);
@@ -2963,7 +2957,7 @@ function drawMinuteChart(ctx, W, H) {
     ctx.fillRect(xFor(i) - barW / 2, volTop + volH - height, barW, height);
   });
   drawGridLine(ctx, plotLeft, volTop, plotRight, volTop);
-  drawMinuteSessionBreak(ctx, sessionBreak, xFor, priceTop, volTop + volH, H);
+  drawMinuteSessionBreak(ctx, sessionBreak, xFor, priceTop, volTop + volH, W, H);
 
   chartState.layout = { W, H, plotLeft, plotRight, cw, priceTop, priceH, volTop, volH, priceMin, priceMax, xFor, py, valueForY };
 }
@@ -3201,10 +3195,34 @@ function minuteTimeValue(value) {
   return String(value || '').replace(/\D/g, '').slice(-4).padStart(4, '0');
 }
 
+function minuteTimeToMinutes(value) {
+  const time = minuteTimeValue(value);
+  const hour = Number(time.slice(0, 2));
+  const minute = Number(time.slice(2, 4));
+  return hour >= 0 && hour < 24 && minute >= 0 && minute < 60 ? hour * 60 + minute : NaN;
+}
+
 function findMinuteSessionBreak(data) {
-  const closeIndex = data.findIndex(point => minuteTimeValue(point.time) === '1130');
-  const openIndex = data.findIndex(point => minuteTimeValue(point.time) === '1300');
-  return closeIndex >= 0 && openIndex > closeIndex ? { closeIndex, openIndex } : null;
+  let best = null;
+  for (let openIndex = 1; openIndex < data.length; openIndex++) {
+    const closeIndex = openIndex - 1;
+    const closeMinutes = minuteTimeToMinutes(data[closeIndex].time);
+    const openMinutes = minuteTimeToMinutes(data[openIndex].time);
+    const gap = openMinutes - closeMinutes;
+    const isMiddayBreak = closeMinutes >= 10 * 60 + 30 && closeMinutes <= 12 * 60
+      && openMinutes >= 12 * 60 && openMinutes <= 14 * 60
+      && gap >= 30 && gap <= 150;
+    if (isMiddayBreak && (!best || gap > best.gap)) {
+      best = {
+        closeIndex,
+        openIndex,
+        closeTime: formatTime(data[closeIndex].time),
+        openTime: formatTime(data[openIndex].time),
+        gap,
+      };
+    }
+  }
+  return best;
 }
 
 function formatTradeDate(value) {
