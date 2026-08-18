@@ -289,6 +289,17 @@ test('global index cards open a quote detail with available curves and clearer p
   assert.match(html, /symbol:'usIXIC'/);
 });
 
+test('stock minute chart marks the A-share lunch break and afternoon reopen', () => {
+  assert.match(html, /function findMinuteSessionBreak\(data\)/);
+  assert.match(html, /minuteTimeValue\(point\.time\) === '1130'/);
+  assert.match(html, /minuteTimeValue\(point\.time\) === '1300'/);
+  assert.match(html, /function drawMinuteSessionBreak\(ctx, sessionBreak/);
+  assert.match(html, /11:30 收盘/);
+  assert.match(html, /13:00 开盘/);
+  assert.match(html, /午间休市/);
+  assert.match(html, /const sessionGap = sessionBreak/);
+});
+
 test('fund center exposes rankings, search, curves, holdings and public information drill-down', () => {
   assert.match(html, /data-page="funds"[^>]*onclick="switchAppPage\('funds'\)"/);
   assert.match(html, /id="page-funds"/);
