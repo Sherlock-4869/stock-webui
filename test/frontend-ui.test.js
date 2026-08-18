@@ -278,8 +278,8 @@ test('board market page exposes sector categories, rankings, and stock drill-dow
 test('global index cards open a quote detail with available curves and clearer price context', () => {
   assert.match(html, /function openMarketIndex\(code\)/);
   assert.match(html, /function isGlobalIndexSymbol\(symbol\)/);
-  assert.match(html, /market-index-open/);
-  assert.match(html, /查看指数详情与曲线/);
+  assert.match(html, /class="market-card \$\{trend\}" data-code="\$\{code\}" onclick="openMarketIndex\('\$\{code\}'\)"/);
+  assert.doesNotMatch(html, /market-card-open/);
   assert.match(html, /全球指数 ·/);
   assert.match(html, /isIndex \? 'kline' : 'minute'/);
   assert.match(html, /指数行情可查看分时与日 K 线/);

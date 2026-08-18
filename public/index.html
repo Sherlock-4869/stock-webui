@@ -48,14 +48,14 @@ html.has-metrics .app-nav-inner{max-width:calc(1240px + var(--optional-metric-wi
 .market-order-note{display:flex;align-items:center;gap:5px;min-width:0}
 .market-row-setting{display:flex;align-items:center;gap:6px;white-space:nowrap}
 .market-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px}
-.market-card{--accent:#8b949e;position:relative;overflow:hidden;min-width:0;background:linear-gradient(145deg,#1a2028,#161b22 68%);border:1px solid #30363d;border-radius:8px;padding:11px 12px 10px;transition:border-color .15s,transform .15s}
+.market-card{--accent:#8b949e;position:relative;overflow:hidden;min-width:0;background:linear-gradient(145deg,#1a2028,#161b22 68%);border:1px solid #30363d;border-radius:8px;padding:11px 12px 10px;cursor:pointer;transition:border-color .15s,transform .15s}
 .market-card::before{content:"";position:absolute;left:0;right:0;top:0;height:2px;background:var(--accent);opacity:.78}
 .market-card:hover{border-color:#484f58;transform:translateY(-1px)}
 .market-card.up{--accent:#f85149}.market-card.down{--accent:#3fb950}
 #market-grid.market-colors-off .market-card{--accent:#8b949e;color:#e6edf3}
 #market-grid.market-colors-off .market-pct{color:#e6edf3}
 .market-card-top{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:7px}
-.market-name{font-size:12px;font-weight:600;color:#c9d1d9;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.market-index-open{min-width:0;border:0;background:transparent;color:inherit;font:inherit;text-align:left;cursor:pointer}.market-index-open:hover{color:#79c0ff;text-decoration:underline;text-underline-offset:3px}
+.market-name{font-size:12px;font-weight:600;color:#c9d1d9;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .market-card-actions{display:flex;align-items:center;gap:4px;flex:none}
 .market-region{flex:none;border:1px solid #30363d;border-radius:3px;color:#6e7681;font-size:9px;font-weight:700;line-height:16px;padding:0 4px;letter-spacing:.3px}
 .market-drag-handle{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;margin-right:-4px;background:none;border:0;border-radius:3px;color:#6e7681;font-size:13px;line-height:1;cursor:grab;touch-action:none;user-select:none}
@@ -68,7 +68,7 @@ body.market-sorting,body.market-sorting *{cursor:grabbing!important;user-select:
 .market-price-row{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
 .market-price{font:600 18px/1.2 ui-monospace,SFMono-Regular,Menlo,monospace;color:#e6edf3;letter-spacing:-.35px}
 .market-pct{font:600 12px/1 ui-monospace,SFMono-Regular,Menlo,monospace;white-space:nowrap}
-.market-change{display:flex;align-items:center;justify-content:space-between;gap:7px;height:18px;margin-top:2px;color:#8b949e;font:10px/18px ui-monospace,SFMono-Regular,Menlo,monospace}.market-card-open{display:flex;width:100%;align-items:center;justify-content:space-between;margin-top:8px;padding:5px 0 0;border:0;border-top:1px solid #30363d;background:transparent;color:#79c0ff;font:10px inherit;cursor:pointer}.market-card-open:hover{color:#a5d6ff}.market-card-open span{color:#6e7681}
+.market-change{display:flex;align-items:center;justify-content:space-between;gap:7px;height:18px;margin-top:2px;color:#8b949e;font:10px/18px ui-monospace,SFMono-Regular,Menlo,monospace}
 .market-range{margin-top:4px}
 .market-range-bar{height:3px;border-radius:3px;background:#30363d;overflow:hidden}
 .market-range-fill{height:100%;border-radius:inherit;background:var(--accent);opacity:.82}
@@ -312,7 +312,7 @@ html[data-theme="light"] .group-picker-option:hover{background:#eaf4ff;border-co
 html[data-theme="light"] .group-picker-meta{color:#64748b}html[data-theme="light"] .group-picker-option.has .group-picker-meta{color:#1a7f37}
 html[data-theme="light"] .tab-bar,html[data-theme="light"] .stats-grid,html[data-theme="light"] .chart-range,html[data-theme="light"] .group-list{border-color:#d0d7de}html[data-theme="light"] .chart-range{background:#f6f8fa}
 html[data-theme="light"] .chart-loading{background:#fff;color:#57606a}html[data-theme="light"] .chart-retry-btn{background:#f6f8fa;border-color:#d0d7de;color:#1f2328}html[data-theme="light"] .chart-notice-retry{color:#9a6700}
-html[data-theme="light"] .market-name,html[data-theme="light"] .market-price,html[data-theme="light"] .market-summary strong,html[data-theme="light"] .chart-info,html[data-theme="light"] .alert-message{color:#1f2328}html[data-theme="light"] .market-index-open:hover,html[data-theme="light"] .market-card-open{color:#0969da}html[data-theme="light"] .market-card-open{border-color:#dbe3ec}
+html[data-theme="light"] .market-name,html[data-theme="light"] .market-price,html[data-theme="light"] .market-summary strong,html[data-theme="light"] .chart-info,html[data-theme="light"] .alert-message{color:#1f2328}
 html[data-theme="light"] .market-page-note,html[data-theme="light"] .market-summary,html[data-theme="light"] .market-toolbar,html[data-theme="light"] .sort-note,html[data-theme="light"] .module-desc,html[data-theme="light"] .metric-label,html[data-theme="light"] .panel-status,html[data-theme="light"] .status,html[data-theme="light"] .refresh-setting,html[data-theme="light"] .time{color:#57606a}
 html[data-theme="light"] .ipo-board{background:#e5f3ff;color:#0969da}html[data-theme="light"] .ipo-status{border:1px solid transparent;font-weight:650}html[data-theme="light"] .ipo-status.upcoming{background:#e5f3ff;border-color:#b6ddff;color:#0969da}html[data-theme="light"] .ipo-status.today{background:#fff3cd;border-color:#f2d675;color:#8a5a00}html[data-theme="light"] .ipo-status.done{background:#dafbe1;border-color:#aceebb;color:#1a7f37}
 html[data-theme="light"] .ipo-row-summary:hover,html[data-theme="light"] .ipo-row.open .ipo-row-summary{background:#f5f9fd}html[data-theme="light"] .ipo-details{border-color:#d7e1eb;background:linear-gradient(145deg,#f8fbff,#fff);box-shadow:inset 0 1px #fff}html[data-theme="light"] .ipo-detail-cell{border-color:#d7e1eb;background:#fff}html[data-theme="light"] .ipo-detail-cell span,html[data-theme="light"] .ipo-detail-section h3,html[data-theme="light"] .ipo-detail-source,html[data-theme="light"] .ipo-expand-hint{color:#64748b}html[data-theme="light"] .ipo-detail-cell strong{color:#243244}html[data-theme="light"] .ipo-row.open .ipo-expand-hint{color:#0969da}
@@ -1469,12 +1469,12 @@ function renderMarkets(rows, partial=false) {
           <div class="market-range-bar"><div class="market-range-fill" style="width:50%"></div></div>
           <div class="market-range-labels"><span>昨收</span><span>${marketNumber(prevClose)}</span></div>
         </div>`;
-    return `<article class="market-card ${trend}" data-code="${code}">
+    return `<article class="market-card ${trend}" data-code="${code}" onclick="openMarketIndex('${code}')" title="点击查看 ${name} 指数详情与曲线">
       <div class="market-card-top">
-        <button class="market-name market-index-open" type="button" onclick="openMarketIndex('${code}')" title="查看 ${name} 指数详情与曲线">${name}</button>
+        <span class="market-name">${name}</span>
         <span class="market-card-actions">
           <span class="market-region">${region}</span>
-          <button class="market-drag-handle" type="button" title="拖动或使用方向键调整 ${name} 的顺序" aria-label="调整 ${name} 的顺序，可拖动或使用方向键">⠿</button>
+          <button class="market-drag-handle" type="button" onclick="event.stopPropagation()" title="拖动或使用方向键调整 ${name} 的顺序" aria-label="调整 ${name} 的顺序，可拖动或使用方向键">⠿</button>
         </span>
       </div>
       <div class="market-price-row">
@@ -1483,7 +1483,6 @@ function renderMarkets(rows, partial=false) {
       </div>
       <div class="market-change"><span>涨跌 ${sign(change)}${marketNumber(change)} 点</span><span>昨收 ${marketNumber(prevClose)}</span></div>
       ${rangeContent}
-      <button class="market-card-open" type="button" onclick="openMarketIndex('${code}')"><span>查看指数详情与曲线</span><span>↗</span></button>
     </article>`;
   }).join('');
 
