@@ -55,7 +55,7 @@ html.has-metrics .app-nav-inner{max-width:calc(1240px + var(--optional-metric-wi
 #market-grid.market-colors-off .market-card{--accent:#8b949e;color:#e6edf3}
 #market-grid.market-colors-off .market-pct{color:#e6edf3}
 .market-card-top{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:7px}
-.market-name{font-size:12px;font-weight:600;color:#c9d1d9;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.market-name{font-size:12px;font-weight:600;color:#c9d1d9;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.market-index-open{min-width:0;border:0;background:transparent;color:inherit;font:inherit;text-align:left;cursor:pointer}.market-index-open:hover{color:#79c0ff;text-decoration:underline;text-underline-offset:3px}
 .market-card-actions{display:flex;align-items:center;gap:4px;flex:none}
 .market-region{flex:none;border:1px solid #30363d;border-radius:3px;color:#6e7681;font-size:9px;font-weight:700;line-height:16px;padding:0 4px;letter-spacing:.3px}
 .market-drag-handle{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;margin-right:-4px;background:none;border:0;border-radius:3px;color:#6e7681;font-size:13px;line-height:1;cursor:grab;touch-action:none;user-select:none}
@@ -68,7 +68,7 @@ body.market-sorting,body.market-sorting *{cursor:grabbing!important;user-select:
 .market-price-row{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
 .market-price{font:600 18px/1.2 ui-monospace,SFMono-Regular,Menlo,monospace;color:#e6edf3;letter-spacing:-.35px}
 .market-pct{font:600 12px/1 ui-monospace,SFMono-Regular,Menlo,monospace;white-space:nowrap}
-.market-change{height:18px;margin-top:2px;color:#8b949e;font:10px/18px ui-monospace,SFMono-Regular,Menlo,monospace}
+.market-change{display:flex;align-items:center;justify-content:space-between;gap:7px;height:18px;margin-top:2px;color:#8b949e;font:10px/18px ui-monospace,SFMono-Regular,Menlo,monospace}.market-card-open{display:flex;width:100%;align-items:center;justify-content:space-between;margin-top:8px;padding:5px 0 0;border:0;border-top:1px solid #30363d;background:transparent;color:#79c0ff;font:10px inherit;cursor:pointer}.market-card-open:hover{color:#a5d6ff}.market-card-open span{color:#6e7681}
 .market-range{margin-top:4px}
 .market-range-bar{height:3px;border-radius:3px;background:#30363d;overflow:hidden}
 .market-range-fill{height:100%;border-radius:inherit;background:var(--accent);opacity:.82}
@@ -312,7 +312,7 @@ html[data-theme="light"] .group-picker-option:hover{background:#eaf4ff;border-co
 html[data-theme="light"] .group-picker-meta{color:#64748b}html[data-theme="light"] .group-picker-option.has .group-picker-meta{color:#1a7f37}
 html[data-theme="light"] .tab-bar,html[data-theme="light"] .stats-grid,html[data-theme="light"] .chart-range,html[data-theme="light"] .group-list{border-color:#d0d7de}html[data-theme="light"] .chart-range{background:#f6f8fa}
 html[data-theme="light"] .chart-loading{background:#fff;color:#57606a}html[data-theme="light"] .chart-retry-btn{background:#f6f8fa;border-color:#d0d7de;color:#1f2328}html[data-theme="light"] .chart-notice-retry{color:#9a6700}
-html[data-theme="light"] .market-name,html[data-theme="light"] .market-price,html[data-theme="light"] .market-summary strong,html[data-theme="light"] .chart-info,html[data-theme="light"] .alert-message{color:#1f2328}
+html[data-theme="light"] .market-name,html[data-theme="light"] .market-price,html[data-theme="light"] .market-summary strong,html[data-theme="light"] .chart-info,html[data-theme="light"] .alert-message{color:#1f2328}html[data-theme="light"] .market-index-open:hover,html[data-theme="light"] .market-card-open{color:#0969da}html[data-theme="light"] .market-card-open{border-color:#dbe3ec}
 html[data-theme="light"] .market-page-note,html[data-theme="light"] .market-summary,html[data-theme="light"] .market-toolbar,html[data-theme="light"] .sort-note,html[data-theme="light"] .module-desc,html[data-theme="light"] .metric-label,html[data-theme="light"] .panel-status,html[data-theme="light"] .status,html[data-theme="light"] .refresh-setting,html[data-theme="light"] .time{color:#57606a}
 html[data-theme="light"] .ipo-board{background:#e5f3ff;color:#0969da}html[data-theme="light"] .ipo-status{border:1px solid transparent;font-weight:650}html[data-theme="light"] .ipo-status.upcoming{background:#e5f3ff;border-color:#b6ddff;color:#0969da}html[data-theme="light"] .ipo-status.today{background:#fff3cd;border-color:#f2d675;color:#8a5a00}html[data-theme="light"] .ipo-status.done{background:#dafbe1;border-color:#aceebb;color:#1a7f37}
 html[data-theme="light"] .ipo-row-summary:hover,html[data-theme="light"] .ipo-row.open .ipo-row-summary{background:#f5f9fd}html[data-theme="light"] .ipo-details{border-color:#d7e1eb;background:linear-gradient(145deg,#f8fbff,#fff);box-shadow:inset 0 1px #fff}html[data-theme="light"] .ipo-detail-cell{border-color:#d7e1eb;background:#fff}html[data-theme="light"] .ipo-detail-cell span,html[data-theme="light"] .ipo-detail-section h3,html[data-theme="light"] .ipo-detail-source,html[data-theme="light"] .ipo-expand-hint{color:#64748b}html[data-theme="light"] .ipo-detail-cell strong{color:#243244}html[data-theme="light"] .ipo-row.open .ipo-expand-hint{color:#0969da}
@@ -1055,20 +1055,20 @@ const GLOBAL_MARKET_REFRESH_INTERVAL = 5000;
 const MARKET_CARDS_PER_ROW = 5;
 const DEFAULT_STOCKS = ['sh600519','sz000001','hk00700','usAAPL'];
 const MARKET_INDEXES = [
-  { code:'000001', name:'上证指数', region:'沪' },
-  { code:'399001', name:'深证成指', region:'深' },
-  { code:'399006', name:'创业板指', region:'创' },
-  { code:'000688', name:'科创 50', region:'科' },
-  { code:'899050', name:'北证 50', region:'北' },
-  { code:'HSI', name:'恒生指数', region:'港' },
-  { code:'HSTECH', name:'恒生科技指数', region:'港' },
-  { code:'DJIA', name:'道琼斯', region:'美' },
-  { code:'IXIC', name:'纳斯达克综指', region:'美' },
-  { code:'SPX', name:'标普 500', region:'美' },
-  { code:'KOSPI', name:'韩国 KOSPI', region:'韩' },
-  { code:'N225', name:'日经 225', region:'日' },
-  { code:'GDAXI', name:'德国 DAX', region:'德' },
-  { code:'FTSE', name:'英国富时 100', region:'英' },
+  { code:'000001', symbol:'sh000001', name:'上证指数', region:'沪' },
+  { code:'399001', symbol:'sz399001', name:'深证成指', region:'深' },
+  { code:'399006', symbol:'sz399006', name:'创业板指', region:'创' },
+  { code:'000688', symbol:'sh000688', name:'科创 50', region:'科' },
+  { code:'899050', symbol:'bj899050', name:'北证 50', region:'北' },
+  { code:'HSI', symbol:'r_hkHSI', name:'恒生指数', region:'港' },
+  { code:'HSTECH', symbol:'r_hkHSTECH', name:'恒生科技指数', region:'港' },
+  { code:'DJIA', symbol:'usDJI', name:'道琼斯', region:'美' },
+  { code:'IXIC', symbol:'usIXIC', name:'纳斯达克综指', region:'美' },
+  { code:'SPX', symbol:'usINX', name:'标普 500', region:'美' },
+  { code:'KOSPI', symbol:'b_KOSPI', name:'韩国 KOSPI', region:'韩' },
+  { code:'N225', symbol:'b_NKY', name:'日经 225', region:'日' },
+  { code:'GDAXI', symbol:'b_DAX', name:'德国 DAX', region:'德' },
+  { code:'FTSE', symbol:'b_UKX', name:'英国富时 100', region:'英' },
 ];
 const OPTIONAL_METRICS = [
   { key:'pe', dataKey:'peDynamic', kind:'number', source:'valuation' },
@@ -1471,7 +1471,7 @@ function renderMarkets(rows, partial=false) {
         </div>`;
     return `<article class="market-card ${trend}" data-code="${code}">
       <div class="market-card-top">
-        <span class="market-name">${name}</span>
+        <button class="market-name market-index-open" type="button" onclick="openMarketIndex('${code}')" title="查看 ${name} 指数详情与曲线">${name}</button>
         <span class="market-card-actions">
           <span class="market-region">${region}</span>
           <button class="market-drag-handle" type="button" title="拖动或使用方向键调整 ${name} 的顺序" aria-label="调整 ${name} 的顺序，可拖动或使用方向键">⠿</button>
@@ -1481,8 +1481,9 @@ function renderMarkets(rows, partial=false) {
         <span class="market-price">${marketNumber(price)}</span>
         <span class="market-pct ${trend}">${sign(pct)}${marketNumber(pct)}%</span>
       </div>
-      <div class="market-change">${sign(change)}${marketNumber(change)} 点</div>
+      <div class="market-change"><span>涨跌 ${sign(change)}${marketNumber(change)} 点</span><span>昨收 ${marketNumber(prevClose)}</span></div>
       ${rangeContent}
+      <button class="market-card-open" type="button" onclick="openMarketIndex('${code}')"><span>查看指数详情与曲线</span><span>↗</span></button>
     </article>`;
   }).join('');
 
@@ -1517,6 +1518,22 @@ function toggleMarketExpansion() {
   if (!lastMarketRows.length) return;
   marketsExpanded = !marketsExpanded;
   renderMarkets(lastMarketRows, lastMarketPartial);
+}
+
+function isGlobalIndexSymbol(symbol) {
+  return MARKET_INDEXES.some(index => index.symbol === symbol);
+}
+
+function openMarketIndex(code) {
+  const definition = MARKET_INDEXES.find(index => index.code === code);
+  const data = lastMarketRows.find(item => String(item.code) === String(code));
+  if (!definition || !data) { showToast('指数行情暂时不可用，请稍后重试', true); return; }
+  lastQuoteData[definition.symbol] = {
+    name:definition.name, price:data.price, prevClose:data.prevClose, open:data.open,
+    chg:data.change, pct:data.pct, high:data.high, low:data.low, volume:null, amount:null,
+    updatedAt:data.updated || '', securityType:'INDEX', marketIndexCode:definition.code,
+  };
+  openModal(definition.symbol);
 }
 
 const marketGrid = document.getElementById('market-grid');
@@ -2263,7 +2280,9 @@ function renderStockBoardContext(boards, message = '', showBoardLink = true) {
 async function loadStockBoards(sym) {
   const requestId = ++stockBoardRequestId;
   if (!isAStockSymbol(sym)) {
-    renderStockBoardContext([], isEtfSymbol(sym, lastQuoteData[sym])
+    renderStockBoardContext([], isGlobalIndexSymbol(sym)
+      ? '指数行情可查看分时与日 K 线；不提供个股板块和主力资金'
+      : isEtfSymbol(sym, lastQuoteData[sym])
       ? 'ETF 支持实时行情、分时和 K 线；不提供个股板块和主力资金'
       : '板块归属目前仅支持普通 A 股', false);
     return;
@@ -2345,13 +2364,17 @@ function openEtfFundMarket() {
 
 function openModal(sym) {
   modalSym = sym;
-  currentTab = 'minute';
-  currentMinuteKPeriod = 'm5';
   const q = lastQuoteData[sym];
+  const isIndex = isGlobalIndexSymbol(sym);
+  currentTab = isIndex ? 'kline' : 'minute';
+  currentMinuteKPeriod = 'm5';
   document.getElementById('m-name').textContent = q ? q.name : sym;
   const isEtf = isEtfSymbol(sym, q);
-  document.getElementById('m-sub').textContent = `${isEtf ? 'ETF · ' : ''}${sym.replace(/^(sh|sz|hk|us)/, '').toUpperCase()}`;
+  document.getElementById('m-sub').textContent = isIndex
+    ? `全球指数 · ${q?.marketIndexCode || sym}`
+    : `${isEtf ? 'ETF · ' : ''}${sym.replace(/^(sh|sz|hk|us)/, '').toUpperCase()}`;
   document.getElementById('modal-fund-link').hidden = !isEtf;
+  document.getElementById('modal-watchlist-btn').hidden = isIndex;
   if (q) {
     const c = cls(q.chg);
     document.getElementById('m-price').className = 'price ' + c;
@@ -2362,14 +2385,15 @@ function openModal(sym) {
   }
   document.querySelectorAll('.tab').forEach(t => {
     t.hidden = isEtf && t.dataset.tab === 'fundFlow';
-    t.classList.toggle('active', t.dataset.tab === 'minute');
+    if (isIndex && ['minuteK','fundFlow'].includes(t.dataset.tab)) t.hidden = true;
+    t.classList.toggle('active', t.dataset.tab === currentTab);
   });
   document.getElementById('period-bar').classList.remove('visible');
   document.querySelectorAll('.period-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.period === 'm5'));
   document.getElementById('modal-mask').classList.add('open');
   updateModalWatchlistButton();
   loadStockBoards(sym);
-  loadChart('minute');
+  loadChart(currentTab);
 }
 
 function closeModal(e) {
@@ -2480,7 +2504,15 @@ function switchMinuteKPeriod(period) {
 }
 
 function renderStats(q) {
-  const items = [
+  const isIndex = isGlobalIndexSymbol(modalSym);
+  const amplitude = Number.isFinite(Number(q.high)) && Number.isFinite(Number(q.low)) && Number(q.prevClose) > 0
+    ? (Number(q.high) - Number(q.low)) / Number(q.prevClose) * 100 : null;
+  const updated = String(q.updatedAt || '').replace(/^(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2}).*$/, '$1-$2-$3 $4:$5');
+  const items = isIndex ? [
+    ['今开', fmt(q.open)], ['昨收', fmt(q.prevClose)],
+    ['最高', fmt(q.high)], ['最低', fmt(q.low)],
+    ['日内振幅', Number.isFinite(amplitude) ? `${amplitude.toFixed(2)}%` : '--'], ['行情时间', updated || '--'],
+  ] : [
     ['今开', fmt(q.open)], ['昨收', fmt(q.prevClose)],
     ['最高', fmt(q.high)], ['最低', fmt(q.low)],
     ['成交量', fmtVol(q.volume)+'手'], ['成交额', fmtAmt(q.amount)+'万'],
