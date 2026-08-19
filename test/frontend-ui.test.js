@@ -421,6 +421,29 @@ test('watchlist dialog syncs multi-select group membership and can remove from a
   assert.deepEqual(groups[1].stocks, ['sz000001']);
 });
 
+test('group manager can reorder groups and keeps boundary moves unchanged', () => {
+  assert.match(html, /title="上移分组"/);
+  assert.match(html, /title="下移分组"/);
+  assert.match(html, /function reorderGroup\(groups, id, offset\)/);
+
+  const start = html.indexOf('function reorderGroup');
+  const end = html.indexOf('function createGroup', start);
+  assert.ok(start >= 0 && end > start);
+  const context = {};
+  vm.createContext(context);
+  vm.runInContext(`${html.slice(start, end)}\nthis.reorderGroupForTest = reorderGroup;`, context);
+  const groups = [
+    { id:'a', name:'默认分组', stocks:[] },
+    { id:'b', name:'长期持有', stocks:[] },
+    { id:'c', name:'观察', stocks:[] },
+  ];
+  assert.equal(context.reorderGroupForTest(groups, 'b', -1), true);
+  assert.deepEqual(groups.map(group => group.id), ['b', 'a', 'c']);
+  assert.equal(context.reorderGroupForTest(groups, 'c', 1), false);
+  assert.equal(context.reorderGroupForTest(groups, 'missing', -1), false);
+  assert.deepEqual(groups.map(group => group.id), ['b', 'a', 'c']);
+});
+
 test('transfer dialog can remove a stock from all groups', () => {
   assert.match(html, /<option value="remove">从所有分组移除<\/option>/);
   assert.match(html, /function updateTransferMode\(\)/);
@@ -440,6 +463,26 @@ test('transfer dialog can remove a stock from all groups', () => {
   context.removeSymbolFromAllGroupsForTest(groups, ['sz000001']);
   assert.deepEqual(groups[0].stocks, ['sh600519']);
   assert.deepEqual(groups[1].stocks, ['hk00700']);
+});
+
+test('watchlist rows use an explicit drag handle and support keyboard reordering', () => {
+  assert.match(html, /按住代码左侧的拖拽把手调整顺序/);
+  assert.match(html, /class="drag-handle" type="button" title="拖动排序；也可用上下方向键调整"/);
+  assert.match(html, /function moveWatchlistSymbol\(items, sym, offset\)/);
+  assert.match(html, /tbody\.addEventListener\('keydown'/);
+  assert.match(html, /autoScrollDuringRowSort/);
+
+  const start = html.indexOf('function moveWatchlistSymbol');
+  const end = html.indexOf('function moveStockByOffset', start);
+  assert.ok(start >= 0 && end > start);
+  const context = {};
+  vm.createContext(context);
+  vm.runInContext(`${html.slice(start, end)}\nthis.moveWatchlistSymbolForTest = moveWatchlistSymbol;`, context);
+  const items = ['sh600519', 'sz000001', 'hk00700'];
+  assert.equal(context.moveWatchlistSymbolForTest(items, 'sz000001', -1), true);
+  assert.deepEqual(items, ['sz000001', 'sh600519', 'hk00700']);
+  assert.equal(context.moveWatchlistSymbolForTest(items, 'hk00700', 1), false);
+  assert.equal(context.moveWatchlistSymbolForTest(items, 'missing', -1), false);
 });
 
 test('watchlist tool requests picture-in-picture directly from the click gesture and reports failures', () => {

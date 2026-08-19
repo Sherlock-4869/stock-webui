@@ -199,7 +199,7 @@ html.metrics-scroll #stock-table tbody tr:hover td:first-child,html.metrics-scro
 .group-picker-meta{flex:none;color:#6e7681;font-size:10px}.group-picker-option.has .group-picker-meta{color:#3fb950}
 #watchlist-add-mask{z-index:210}
 #watchlist-add-mask .dialog-actions .dialog-btn.danger{margin-right:auto}
-.group-list{margin-top:12px;border:1px solid #30363d;border-radius:7px;overflow:hidden}.group-list-row{display:flex;align-items:center;gap:8px;padding:9px 10px;border-top:1px solid #30363d}.group-list-row:first-child{border-top:0}.group-list-name{flex:1}.group-list-meta{font-size:11px;color:#6e7681}
+.group-list{margin-top:12px;border:1px solid #30363d;border-radius:7px;overflow:hidden}.group-list-row{display:flex;align-items:center;gap:8px;padding:9px 10px;border-top:1px solid #30363d}.group-list-row:first-child{border-top:0}.group-list-name{flex:1}.group-list-meta{font-size:11px;color:#6e7681}.group-order-btn:hover{color:#58a6ff}.group-order-btn:disabled{color:#484f58;background:none;cursor:not-allowed}
 .market-tag{display:inline-block;font-size:10px;padding:1px 5px;border-radius:3px;font-weight:600;margin-right:4px;vertical-align:middle}
 .tag-a{background:#1f3a5f;color:#79c0ff}
 .tag-etf{background:#123d38;color:#56d4c2}.tag-fund{background:#34265c;color:#c8b6ff}
@@ -218,8 +218,8 @@ tbody tr.stock-row{cursor:pointer;transition:opacity .15s,background .15s}
 tbody tr.stock-row.sorting-source{opacity:.3}
 tbody tr.stock-row.drop-before td{box-shadow:inset 0 2px #58a6ff}
 tbody tr.stock-row.drop-after td{box-shadow:inset 0 -2px #58a6ff}
-.drag-handle{display:inline-flex;align-items:center;justify-content:center;width:18px;height:22px;margin-right:4px;color:#6e7681;cursor:grab;font-size:15px;font-weight:700;letter-spacing:-3px;vertical-align:middle;touch-action:none;user-select:none}
-.drag-handle:hover{color:#58a6ff}
+.drag-handle{display:inline-flex;align-items:center;justify-content:center;width:24px;height:28px;margin:-3px 4px -3px -5px;padding:0;border:0;border-radius:5px;background:transparent;color:#6e7681;cursor:grab;font:700 15px/1 inherit;letter-spacing:-3px;vertical-align:middle;touch-action:none;user-select:none}
+.drag-handle:hover,.drag-handle:focus-visible{color:#79c0ff;background:#1f3a5f;outline:none}.drag-handle:active{cursor:grabbing}
 body.stock-sorting,body.stock-sorting *{cursor:grabbing!important;user-select:none!important}
 .drag-ghost{position:fixed;z-index:500;pointer-events:none;display:flex;align-items:center;gap:10px;min-width:190px;padding:9px 14px;border-radius:7px;border:1px solid #58a6ff;background:#1c2128;color:#e6edf3;box-shadow:0 12px 30px rgba(0,0,0,.5);font-size:13px;transform:translate(12px,12px)}
 .sort-note{display:flex;align-items:center;gap:6px;margin:-8px 0 8px;color:#6e7681;font-size:12px;min-height:30px}
@@ -664,7 +664,7 @@ html[data-theme="light"] .fund-search,html[data-theme="light"] .fund-search-resu
     </a>
   </div>
   <div class="desktop-launch-guide" id="desktop-launch-guide" role="status">已尝试唤起桌面端；若尚未安装，请<a href="https://github.com/Sherlock-4869/stock-desktop/releases/latest" target="_blank" rel="noopener noreferrer">下载客户端</a>。</div>
-  <div class="sort-note"><span class="drag-handle" aria-hidden="true">⠿</span><span>长按行情行后拖动，可调整分组顺序</span><div class="group-refresh-controls"><button class="refresh-btn" type="button" onclick="refreshAll(true)">↻ 刷新</button><label class="refresh-setting" for="refresh-interval"><span>刷新频率</span><select class="refresh-interval-select" id="refresh-interval" title="交易所行情刷新间隔；普通基金按最新披露净值每 5 分钟检查更新" onchange="setRefreshInterval(this.value)"><option value="1000">1 秒（高频）</option><option value="3000">3 秒</option><option value="5000" selected>5 秒</option><option value="10000">10 秒</option><option value="30000">30 秒</option><option value="60000">60 秒</option></select></label><div class="status"><span class="dot" id="dot"></span><span id="status-text">连接中...</span></div></div></div>
+  <div class="sort-note"><span class="drag-handle" aria-hidden="true" tabindex="-1">⠿</span><span>按住代码左侧的拖拽把手调整顺序；选中把手后可用 ↑↓ 键微调</span><div class="group-refresh-controls"><button class="refresh-btn" type="button" onclick="refreshAll(true)">↻ 刷新</button><label class="refresh-setting" for="refresh-interval"><span>刷新频率</span><select class="refresh-interval-select" id="refresh-interval" title="交易所行情刷新间隔；普通基金按最新披露净值每 5 分钟检查更新" onchange="setRefreshInterval(this.value)"><option value="1000">1 秒（高频）</option><option value="3000">3 秒</option><option value="5000" selected>5 秒</option><option value="10000">10 秒</option><option value="30000">30 秒</option><option value="60000">60 秒</option></select></label><div class="status"><span class="dot" id="dot"></span><span id="status-text">连接中...</span></div></div></div>
   <div class="table-wrapper">
   <table id="stock-table">
     <thead>
@@ -1885,12 +1885,12 @@ function renderTable(data) {
     const q = resolveWatchlistQuote(sym, data[sym]);
     if (q) lastQuoteData[sym] = q;
     if (!q) return `<tr class="stock-row" data-sym="${sym}" onclick="handleRowClick(event,'${sym}')">
-      <td><input class="batch-check" type="checkbox" aria-label="选择 ${sym}" ${selectedSymbols.has(sym)?'checked':''} onclick="event.stopPropagation()" onchange="setStockSelected('${sym}',this.checked)"><span class="drag-handle" title="长按拖动排序" aria-label="拖动排序">⠿</span>${marketTag(sym, q?.securityType)}<b>${watchlistCode(sym)}</b></td>
+      <td><input class="batch-check" type="checkbox" aria-label="选择 ${sym}" ${selectedSymbols.has(sym)?'checked':''} onclick="event.stopPropagation()" onchange="setStockSelected('${sym}',this.checked)"><button class="drag-handle" type="button" title="拖动排序；也可用上下方向键调整" aria-label="调整 ${sym} 的顺序，可拖动或使用上下方向键" onclick="event.stopPropagation()">⠿</button>${marketTag(sym, q?.securityType)}<b>${watchlistCode(sym)}</b></td>
       <td colspan="10" style="color:#6e7681">数据加载中...</td>${renderOptionalMetricCells(sym, null)}
       <td><div class="stock-actions"><button class="del-btn pin-btn" title="置顶" aria-label="将 ${sym} 置顶" ${i===0?'disabled':''} onclick="event.stopPropagation();pinStock('${sym}')">↑</button><button class="del-btn transfer-btn" title="复制、移动或从所有分组移除" onclick="event.stopPropagation();openTransferDialog('${sym}')">⇄</button><button class="del-btn" title="从当前分组删除" onclick="event.stopPropagation();removeStock('${sym}')">✕</button></div></td></tr>`;
     const c = cls(q.chg);
     return `<tr class="stock-row" data-sym="${sym}" onclick="handleRowClick(event,'${sym}')">
-      <td><input class="batch-check" type="checkbox" aria-label="选择 ${sym}" ${selectedSymbols.has(sym)?'checked':''} onclick="event.stopPropagation()" onchange="setStockSelected('${sym}',this.checked)"><span class="drag-handle" title="长按拖动排序" aria-label="拖动排序">⠿</span>${marketTag(sym, q.securityType)}<b>${watchlistCode(sym)}</b></td>
+      <td><input class="batch-check" type="checkbox" aria-label="选择 ${sym}" ${selectedSymbols.has(sym)?'checked':''} onclick="event.stopPropagation()" onchange="setStockSelected('${sym}',this.checked)"><button class="drag-handle" type="button" title="拖动排序；也可用上下方向键调整" aria-label="调整 ${sym} 的顺序，可拖动或使用上下方向键" onclick="event.stopPropagation()">⠿</button>${marketTag(sym, q.securityType)}<b>${watchlistCode(sym)}</b></td>
       <td>${escapeHtml(q.name || sym)}${isFundWatchSymbol(sym) && q.navDate ? `<small title="基金净值披露日期">净值 ${escapeHtml(q.navDate)}</small>` : ''}</td>
       <td class="${c}" style="font-weight:600">${fmt(q.price)}</td>
       <td class="${c}">${sign(q.chg)}${fmt(q.chg)}</td>
@@ -2023,7 +2023,18 @@ function batchDelete() {
 function openGroupManager() { renderGroupManager(); document.getElementById('groups-mask').classList.add('open'); setTimeout(() => document.getElementById('new-group-name').focus(),0); }
 function closeGroupManager(event) { if (event && event.target !== event.currentTarget) return; document.getElementById('groups-mask').classList.remove('open'); }
 function renderGroupManager() {
-  document.getElementById('group-list').innerHTML = groups.map(group => `<div class="group-list-row"><span class="group-list-name">${escapeHtml(group.name)}</span><span class="group-list-meta">${group.stocks.length} 项</span><button class="del-btn" title="重命名" onclick="renameGroup('${group.id}')">✎</button><button class="del-btn" title="删除分组" ${groups.length === 1 ? 'disabled' : ''} onclick="deleteGroup('${group.id}')">✕</button></div>`).join('');
+  document.getElementById('group-list').innerHTML = groups.map((group, index) => `<div class="group-list-row"><span class="group-list-name">${escapeHtml(group.name)}</span><span class="group-list-meta">${group.stocks.length} 项</span><button class="del-btn group-order-btn" title="上移分组" aria-label="上移 ${escapeHtml(group.name)}" ${index === 0 ? 'disabled' : ''} onclick="moveGroupByOffset('${group.id}', -1)">↑</button><button class="del-btn group-order-btn" title="下移分组" aria-label="下移 ${escapeHtml(group.name)}" ${index === groups.length - 1 ? 'disabled' : ''} onclick="moveGroupByOffset('${group.id}', 1)">↓</button><button class="del-btn" title="重命名" onclick="renameGroup('${group.id}')">✎</button><button class="del-btn" title="删除分组" ${groups.length === 1 ? 'disabled' : ''} onclick="deleteGroup('${group.id}')">✕</button></div>`).join('');
+}
+function reorderGroup(groups, id, offset) {
+  const index = groups.findIndex(group => group.id === id);
+  const targetIndex = index + Number(offset);
+  if (index < 0 || !Number.isInteger(targetIndex) || targetIndex < 0 || targetIndex >= groups.length) return false;
+  [groups[index], groups[targetIndex]] = [groups[targetIndex], groups[index]];
+  return true;
+}
+function moveGroupByOffset(id, offset) {
+  if (!reorderGroup(groups, id, offset)) return;
+  save(); renderGroupTabs(); renderGroupManager();
 }
 function createGroup() {
   const input = document.getElementById('new-group-name'), name = input.value.trim(); if (!name) return;
@@ -2042,9 +2053,8 @@ function deleteGroup(id) {
   save(); renderGroupTabs(); renderGroupManager();
 }
 
-// --- Long-press row sorting (mouse + touch) ---
+// --- Explicit-handle row sorting (mouse, touch, and keyboard) ---
 const tbody = document.getElementById('tbody');
-let sortPress = null;
 let sortDrag = null;
 let suppressRowClickUntil = 0;
 
@@ -2064,25 +2074,19 @@ function clearDropMarks() {
   );
 }
 
-function cancelSortPress() {
-  if (!sortPress) return;
-  clearTimeout(sortPress.timer);
-  sortPress = null;
-}
-
-function beginRowSort(press) {
-  if (!sortPress || sortPress !== press || !press.row.isConnected) return;
-  const cells = press.row.cells;
+function beginRowSort(event, handle, row) {
+  if (!row.isConnected || sortDrag) return;
+  event.preventDefault();
+  const sym = row.dataset.sym;
   const ghost = document.createElement('div');
   ghost.className = 'drag-ghost';
-  ghost.innerHTML = `<span class="drag-handle">⠿</span><strong>${cells[1]?.textContent.trim() || press.sym}</strong><span>${press.sym.replace(/^(sh|sz|hk|us)/, '').toUpperCase()}</span>`;
+  ghost.textContent = `⠿ ${row.cells[1]?.textContent.trim() || sym}`;
   document.body.appendChild(ghost);
-  press.row.classList.add('sorting-source');
+  row.classList.add('sorting-source');
   document.body.classList.add('stock-sorting');
-  sortDrag = { ...press, ghost, target: null, before: true };
-  sortPress = null;
-  moveSortGhost(press.x, press.y);
-  try { press.row.setPointerCapture(press.pointerId); } catch (_) {}
+  sortDrag = { row, sym, handle, ghost, pointerId:event.pointerId, target:null, before:true };
+  moveSortGhost(event.clientX, event.clientY);
+  try { handle.setPointerCapture(event.pointerId); } catch (_) {}
 }
 
 function moveSortGhost(x, y) {
@@ -2092,26 +2096,23 @@ function moveSortGhost(x, y) {
 }
 
 tbody.addEventListener('pointerdown', event => {
-  const row = event.target.closest('tr.stock-row');
-  if (!row || event.target.closest('button,a,input') || (event.pointerType === 'mouse' && event.button !== 0)) return;
-  cancelSortPress();
-  const press = {
-    row, sym: row.dataset.sym, pointerId: event.pointerId,
-    startX: event.clientX, startY: event.clientY, x: event.clientX, y: event.clientY,
-  };
-  press.timer = setTimeout(() => beginRowSort(press), 320);
-  sortPress = press;
+  const handle = event.target.closest('.drag-handle');
+  const row = handle?.closest('tr.stock-row');
+  if (!handle || !row || !tbody.contains(row) || (event.pointerType === 'mouse' && event.button !== 0)) return;
+  beginRowSort(event, handle, row);
 });
 
+function autoScrollDuringRowSort(clientY) {
+  const edge = 72;
+  if (clientY < edge) window.scrollBy(0, -Math.ceil((edge - clientY) / 8));
+  else if (clientY > window.innerHeight - edge) window.scrollBy(0, Math.ceil((clientY - (window.innerHeight - edge)) / 8));
+}
+
 window.addEventListener('pointermove', event => {
-  if (sortPress && event.pointerId === sortPress.pointerId) {
-    sortPress.x = event.clientX;
-    sortPress.y = event.clientY;
-    if (Math.hypot(event.clientX - sortPress.startX, event.clientY - sortPress.startY) > 7) cancelSortPress();
-  }
   if (!sortDrag || event.pointerId !== sortDrag.pointerId) return;
   event.preventDefault();
   moveSortGhost(event.clientX, event.clientY);
+  autoScrollDuringRowSort(event.clientY);
   clearDropMarks();
   const hit = document.elementFromPoint(event.clientX, event.clientY)?.closest('tr.stock-row');
   if (!hit || hit === sortDrag.row || !tbody.contains(hit)) {
@@ -2125,9 +2126,8 @@ window.addEventListener('pointermove', event => {
 }, { passive: false });
 
 function finishRowSort(event, cancelled = false) {
-  if (sortPress && event.pointerId === sortPress.pointerId) cancelSortPress();
   if (!sortDrag || event.pointerId !== sortDrag.pointerId) return;
-  const { row, target, before, ghost } = sortDrag;
+  const { row, handle, target, before, ghost } = sortDrag;
   if (!cancelled && target) {
     tbody.insertBefore(row, before ? target : target.nextSibling);
     const sortedSymbols = [...tbody.querySelectorAll('tr.stock-row')].map(r => r.dataset.sym);
@@ -2139,13 +2139,37 @@ function finishRowSort(event, cancelled = false) {
   row.classList.remove('sorting-source');
   ghost.remove();
   document.body.classList.remove('stock-sorting');
-  try { row.releasePointerCapture(event.pointerId); } catch (_) {}
+  try { handle.releasePointerCapture(event.pointerId); } catch (_) {}
   sortDrag = null;
   suppressRowClickUntil = Date.now() + 450;
 }
 
 window.addEventListener('pointerup', event => finishRowSort(event));
 window.addEventListener('pointercancel', event => finishRowSort(event, true));
+
+function moveWatchlistSymbol(items, sym, offset) {
+  const index = items.indexOf(sym);
+  const targetIndex = index + Number(offset);
+  if (index < 0 || !Number.isInteger(targetIndex) || targetIndex < 0 || targetIndex >= items.length) return false;
+  [items[index], items[targetIndex]] = [items[targetIndex], items[index]];
+  return true;
+}
+
+function moveStockByOffset(sym, offset) {
+  if (!moveWatchlistSymbol(watchlist, sym, offset)) return;
+  save();
+  renderTable(lastRawQuoteData);
+  document.getElementById('status-text').textContent = '行情顺序已保存';
+  requestAnimationFrame(() => tbody.querySelector(`tr[data-sym="${sym}"] .drag-handle`)?.focus());
+}
+
+tbody.addEventListener('keydown', event => {
+  const handle = event.target.closest('.drag-handle');
+  const row = handle?.closest('tr.stock-row');
+  if (!handle || !row || !tbody.contains(row) || !['ArrowUp','ArrowDown'].includes(event.key)) return;
+  event.preventDefault();
+  moveStockByOffset(row.dataset.sym, event.key === 'ArrowUp' ? -1 : 1);
+});
 
 // --- Search / dropdown ---
 const searchInput = document.getElementById('search-input');
