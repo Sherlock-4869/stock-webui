@@ -299,6 +299,27 @@ test('stock minute chart labels each market lunch break without separating the c
   assert.doesNotMatch(html, /const sessionGap = sessionBreak/);
 });
 
+test('Hong Kong and US watchlist symbols generate intraday K lines from minute data', () => {
+  assert.match(html, /function supportsMinuteKline\(sym\)/);
+  assert.match(html, /aggregateMinuteKlineRows\(stockData\.data\?\.data \|\| \[\], date, period\)/);
+  assert.match(html, /基于当日分时行情生成，暂不提供跨日分钟历史/);
+  assert.match(html, /t\.dataset\.tab === 'minuteK' && !supportsMinuteKline\(sym\)/);
+
+  const start = html.indexOf('function parseMinuteRows');
+  const end = html.indexOf('function parseKlineRows', start);
+  assert.ok(start >= 0 && end > start);
+  const context = {};
+  vm.createContext(context);
+  vm.runInContext(`${html.slice(start, end)}\nthis.aggregateMinuteKlineRowsForTest = aggregateMinuteKlineRows;`, context);
+  const bars = JSON.parse(JSON.stringify(context.aggregateMinuteKlineRowsForTest([
+    '0930 100 10 1000', '0931 102 30 3000', '0934 101 50 5000', '0935 103 80 8000',
+  ], '20260819', 'm5')));
+  assert.deepEqual(bars, [
+    ['202608190930', 100, 101, 102, 100, 50],
+    ['202608190935', 103, 103, 103, 103, 30],
+  ]);
+});
+
 test('fund center exposes rankings, search, curves, holdings and public information drill-down', () => {
   assert.match(html, /data-page="funds"[^>]*onclick="switchAppPage\('funds'\)"/);
   assert.match(html, /id="page-funds"/);
@@ -599,6 +620,29 @@ test('IPO calendar labels each stock board', () => {
   assert.equal(context.ipoBoardForTest({ board:'上海证券交易所主板' }), '沪市主板');
 });
 
+test('IPO calendar separates stock and convertible-bond records into tabs', () => {
+  assert.match(html, /role="tablist" aria-label="打新类型"/);
+  assert.match(html, /data-ipo-type="stock"/);
+  assert.match(html, /data-ipo-type="bond"/);
+  assert.match(html, /function setIpoType\(type\)/);
+  assert.match(html, /function filterIpoRows\(rows, type, filter\)/);
+
+  const start = html.indexOf('function filterIpoRows');
+  const end = html.indexOf('function renderIpoTypeTabs', start);
+  assert.ok(start >= 0 && end > start);
+  const context = { ipoStatus:item => item.status };
+  vm.createContext(context);
+  vm.runInContext(`${html.slice(start, end)}\nthis.filterIpoRowsForTest = filterIpoRows;`, context);
+  const rows = [
+    { type:'stock', applyDate:'2026-08-21', status:{ key:'upcoming' } },
+    { type:'bond', applyDate:'2026-08-22', status:{ key:'upcoming' } },
+    { type:'stock', applyDate:'2026-08-20', status:{ key:'today' } },
+  ];
+  assert.equal(context.filterIpoRowsForTest(rows, 'stock', 'all').length, 2);
+  assert.equal(context.filterIpoRowsForTest(rows, 'bond', 'all').length, 1);
+  assert.equal(context.filterIpoRowsForTest(rows, 'stock', 'today').length, 1);
+});
+
 test('IPO calendar expands a sanitized offering detail card using public fields', () => {
   assert.match(html, /class="ipo-row-summary" type="button" onclick="toggleIpoDetails/);
   assert.match(html, /function toggleIpoDetails\(detailId, control\)/);
@@ -725,7 +769,7 @@ test('ETF search and charts are supported without exposing stock-only metrics or
   assert.match(html, /securityType:fields\.includes\('ETF'\) \? 'ETF' : 'STOCK'/);
   assert.match(html, /tag-etf/);
   assert.match(html, /ETF 不适用该公司指标/);
-  assert.match(html, /t\.hidden = isEtf && t\.dataset\.tab === 'fundFlow'/);
+  assert.match(html, /t\.dataset\.tab === 'fundFlow' && \(isEtf \|\| isIndex\)/);
   assert.match(html, /ETF 支持实时行情、分时和 K 线；不提供个股板块和主力资金/);
   assert.match(serverSource, /parseTencentSecuritySearch\(text\)/);
   assert.match(serverSource, /sh5\\d\{5\}\|sz15\\d\{4\}/);
