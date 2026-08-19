@@ -664,7 +664,7 @@ html[data-theme="light"] .fund-search,html[data-theme="light"] .fund-search-resu
     </a>
   </div>
   <div class="desktop-launch-guide" id="desktop-launch-guide" role="status">已尝试唤起桌面端；若尚未安装，请<a href="https://github.com/Sherlock-4869/stock-desktop/releases/latest" target="_blank" rel="noopener noreferrer">下载客户端</a>。</div>
-  <div class="sort-note"><span class="drag-handle" aria-hidden="true" tabindex="-1">⠿</span><span>按住代码左侧的拖拽把手调整顺序；选中把手后可用 ↑↓ 键微调</span><div class="group-refresh-controls"><button class="refresh-btn" type="button" onclick="refreshAll(true)">↻ 刷新</button><label class="refresh-setting" for="refresh-interval"><span>刷新频率</span><select class="refresh-interval-select" id="refresh-interval" title="交易所行情刷新间隔；普通基金按最新披露净值每 5 分钟检查更新" onchange="setRefreshInterval(this.value)"><option value="1000">1 秒（高频）</option><option value="3000">3 秒</option><option value="5000" selected>5 秒</option><option value="10000">10 秒</option><option value="30000">30 秒</option><option value="60000">60 秒</option></select></label><div class="status"><span class="dot" id="dot"></span><span id="status-text">连接中...</span></div></div></div>
+  <div class="sort-note"><span class="drag-handle" aria-hidden="true" tabindex="-1">⠿</span><span>可长按行情行后拖动，或直接拖住代码左侧把手；选中把手后可用 ↑↓ 键微调</span><div class="group-refresh-controls"><button class="refresh-btn" type="button" onclick="refreshAll(true)">↻ 刷新</button><label class="refresh-setting" for="refresh-interval"><span>刷新频率</span><select class="refresh-interval-select" id="refresh-interval" title="交易所行情刷新间隔；普通基金按最新披露净值每 5 分钟检查更新" onchange="setRefreshInterval(this.value)"><option value="1000">1 秒（高频）</option><option value="3000">3 秒</option><option value="5000" selected>5 秒</option><option value="10000">10 秒</option><option value="30000">30 秒</option><option value="60000">60 秒</option></select></label><div class="status"><span class="dot" id="dot"></span><span id="status-text">连接中...</span></div></div></div>
   <div class="table-wrapper">
   <table id="stock-table">
     <thead>
@@ -1880,7 +1880,7 @@ function renderOptionalMetricCells(sym, quote) {
 function renderTable(data) {
   if (!watchlist.length) { renderEmpty(); return; }
   lastRawQuoteData = data;
-  if (sortDrag) return; // avoid replacing the active row while it is being moved
+  if (sortPress || sortDrag) return; // keep the row stable while long-pressing or moving it
   document.getElementById('tbody').innerHTML = watchlist.map((sym, i) => {
     const q = resolveWatchlistQuote(sym, data[sym]);
     if (q) lastQuoteData[sym] = q;
@@ -2055,6 +2055,7 @@ function deleteGroup(id) {
 
 // --- Explicit-handle row sorting (mouse, touch, and keyboard) ---
 const tbody = document.getElementById('tbody');
+let sortPress = null;
 let sortDrag = null;
 let suppressRowClickUntil = 0;
 
@@ -2074,19 +2075,24 @@ function clearDropMarks() {
   );
 }
 
-function beginRowSort(event, handle, row) {
-  if (!row.isConnected || sortDrag) return;
-  event.preventDefault();
-  const sym = row.dataset.sym;
+function cancelSortPress() {
+  if (!sortPress) return;
+  clearTimeout(sortPress.timer);
+  sortPress = null;
+}
+
+function beginRowSort(press) {
+  if (!press.row.isConnected || sortDrag || (press.longPress && sortPress !== press)) return;
   const ghost = document.createElement('div');
   ghost.className = 'drag-ghost';
-  ghost.textContent = `⠿ ${row.cells[1]?.textContent.trim() || sym}`;
+  ghost.textContent = `⠿ ${press.row.cells[1]?.textContent.trim() || press.sym}`;
   document.body.appendChild(ghost);
-  row.classList.add('sorting-source');
+  press.row.classList.add('sorting-source');
   document.body.classList.add('stock-sorting');
-  sortDrag = { row, sym, handle, ghost, pointerId:event.pointerId, target:null, before:true };
-  moveSortGhost(event.clientX, event.clientY);
-  try { handle.setPointerCapture(event.pointerId); } catch (_) {}
+  sortDrag = { ...press, ghost, target:null, before:true };
+  sortPress = null;
+  moveSortGhost(press.x, press.y);
+  try { press.captureElement.setPointerCapture(press.pointerId); } catch (_) {}
 }
 
 function moveSortGhost(x, y) {
@@ -2098,8 +2104,21 @@ function moveSortGhost(x, y) {
 tbody.addEventListener('pointerdown', event => {
   const handle = event.target.closest('.drag-handle');
   const row = handle?.closest('tr.stock-row');
-  if (!handle || !row || !tbody.contains(row) || (event.pointerType === 'mouse' && event.button !== 0)) return;
-  beginRowSort(event, handle, row);
+  if (handle && row && tbody.contains(row) && !(event.pointerType === 'mouse' && event.button !== 0)) {
+    event.preventDefault();
+    cancelSortPress();
+    beginRowSort({ row, sym:row.dataset.sym, captureElement:handle, pointerId:event.pointerId, x:event.clientX, y:event.clientY, longPress:false });
+    return;
+  }
+  const longPressRow = event.target.closest('tr.stock-row');
+  if (!longPressRow || !tbody.contains(longPressRow) || event.target.closest('button,a,input') || (event.pointerType === 'mouse' && event.button !== 0)) return;
+  cancelSortPress();
+  const press = {
+    row:longPressRow, sym:longPressRow.dataset.sym, captureElement:longPressRow, pointerId:event.pointerId,
+    startX:event.clientX, startY:event.clientY, x:event.clientX, y:event.clientY, longPress:true,
+  };
+  press.timer = setTimeout(() => beginRowSort(press), 320);
+  sortPress = press;
 });
 
 function autoScrollDuringRowSort(clientY) {
@@ -2109,6 +2128,11 @@ function autoScrollDuringRowSort(clientY) {
 }
 
 window.addEventListener('pointermove', event => {
+  if (sortPress && event.pointerId === sortPress.pointerId) {
+    sortPress.x = event.clientX;
+    sortPress.y = event.clientY;
+    if (Math.hypot(event.clientX - sortPress.startX, event.clientY - sortPress.startY) > 14) cancelSortPress();
+  }
   if (!sortDrag || event.pointerId !== sortDrag.pointerId) return;
   event.preventDefault();
   moveSortGhost(event.clientX, event.clientY);
@@ -2126,8 +2150,9 @@ window.addEventListener('pointermove', event => {
 }, { passive: false });
 
 function finishRowSort(event, cancelled = false) {
+  if (sortPress && event.pointerId === sortPress.pointerId) cancelSortPress();
   if (!sortDrag || event.pointerId !== sortDrag.pointerId) return;
-  const { row, handle, target, before, ghost } = sortDrag;
+  const { row, captureElement, target, before, ghost } = sortDrag;
   if (!cancelled && target) {
     tbody.insertBefore(row, before ? target : target.nextSibling);
     const sortedSymbols = [...tbody.querySelectorAll('tr.stock-row')].map(r => r.dataset.sym);
@@ -2139,7 +2164,7 @@ function finishRowSort(event, cancelled = false) {
   row.classList.remove('sorting-source');
   ghost.remove();
   document.body.classList.remove('stock-sorting');
-  try { handle.releasePointerCapture(event.pointerId); } catch (_) {}
+  try { captureElement.releasePointerCapture(event.pointerId); } catch (_) {}
   sortDrag = null;
   suppressRowClickUntil = Date.now() + 450;
 }

@@ -466,11 +466,13 @@ test('transfer dialog can remove a stock from all groups', () => {
 });
 
 test('watchlist rows use an explicit drag handle and support keyboard reordering', () => {
-  assert.match(html, /按住代码左侧的拖拽把手调整顺序/);
+  assert.match(html, /可长按行情行后拖动，或直接拖住代码左侧把手/);
   assert.match(html, /class="drag-handle" type="button" title="拖动排序；也可用上下方向键调整"/);
   assert.match(html, /function moveWatchlistSymbol\(items, sym, offset\)/);
   assert.match(html, /tbody\.addEventListener\('keydown'/);
   assert.match(html, /autoScrollDuringRowSort/);
+  assert.match(html, /press\.timer = setTimeout\(\(\) => beginRowSort\(press\), 320\)/);
+  assert.match(html, /if \(sortPress \|\| sortDrag\) return;/);
 
   const start = html.indexOf('function moveWatchlistSymbol');
   const end = html.indexOf('function moveStockByOffset', start);
