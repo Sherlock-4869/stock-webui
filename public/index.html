@@ -242,8 +242,8 @@ body.stock-sorting,body.stock-sorting *{cursor:grabbing!important;user-select:no
 .modal-watchlist-btn:hover{color:#79c0ff;border-color:#1f6feb;background:#1f3a5f}
 .modal-watchlist-btn.added{color:#3fb950;border-color:#238636;background:#23863618}
 .modal-watchlist-btn.added:hover{color:#56d364;background:#23863628}
-.tab-bar{display:flex;gap:0;padding:12px 20px 0;border-bottom:1px solid #30363d}
-.tab{padding:6px 14px;font-size:13px;cursor:pointer;border-bottom:2px solid transparent;color:#8b949e;transition:color .15s}
+.tab-bar{display:flex;gap:0;padding:12px 20px 0;border-bottom:1px solid #30363d;overflow-x:auto;scrollbar-width:none}.tab-bar::-webkit-scrollbar{display:none}
+.tab{flex:none;padding:6px 14px;font-size:13px;cursor:pointer;border-bottom:2px solid transparent;color:#8b949e;transition:color .15s}
 .tab.active{color:#58a6ff;border-bottom-color:#58a6ff}.tab[hidden]{display:none}
 .chart-area{padding:12px 20px 16px;min-height:410px;position:relative}
 .period-bar{display:none;align-items:center;gap:6px;margin:-2px 0 8px;overflow-x:auto;scrollbar-width:none}
@@ -259,6 +259,7 @@ body.stock-sorting,body.stock-sorting *{cursor:grabbing!important;user-select:no
 .chart-guide{flex:none;color:#6e7681;font-size:11px;white-space:nowrap;padding-top:1px}.chart-data-notice{display:none;align-items:center;gap:6px;margin-left:auto;padding:3px 7px;border:1px solid #d2992255;border-radius:10px;background:#d2992214;color:#e3b341;font-size:10px;white-space:nowrap}.chart-data-notice.visible{display:flex}.chart-notice-retry{border:0;border-radius:4px;background:#d2992233;color:#f2cc60;padding:2px 6px;font:inherit;cursor:pointer}.chart-notice-retry:hover{background:#d2992255;color:#fff}
 #chart-canvas{display:block;width:100%;height:290px;border-radius:4px;cursor:crosshair;touch-action:none}
 #chart-canvas.panning{cursor:grabbing}
+.chart-hover-tooltip{position:absolute;z-index:4;display:none;min-width:190px;max-width:min(310px,calc(100% - 24px));padding:9px 10px;border:1px solid #484f58;border-radius:7px;background:#0d1117ee;color:#c9d1d9;box-shadow:0 10px 28px #0009;font:10px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;pointer-events:none}.chart-hover-tooltip.visible{display:block}.chart-tooltip-title{margin-bottom:5px;color:#e6edf3;font-weight:700}.chart-tooltip-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:3px 12px}.chart-tooltip-item{display:flex;justify-content:space-between;gap:8px;white-space:nowrap}.chart-tooltip-item b{color:#8b949e;font-weight:500}.chart-tooltip-item strong{overflow:hidden;color:#e6edf3;font-weight:600;text-overflow:ellipsis}.chart-tooltip-item strong.up{color:#f85149}.chart-tooltip-item strong.down{color:#3fb950}
 .chart-window{display:none;margin-top:8px;user-select:none}
 .chart-window.ready{display:block}
 .chart-window-head{display:flex;align-items:center;gap:8px;min-height:22px;margin-bottom:4px;color:#6e7681;font-size:11px}
@@ -277,6 +278,8 @@ body.stock-sorting,body.stock-sorting *{cursor:grabbing!important;user-select:no
 .stat-label{font-size:11px;color:#8b949e;margin-bottom:3px}
 .stat-value{font-size:13px;font-weight:500}
 .chart-loading{position:absolute;inset:52px 20px 16px;display:flex;flex-direction:column;gap:12px;align-items:center;justify-content:center;color:#8b949e;font-size:13px;background:#0d1117;border-radius:4px;z-index:2}.chart-retry-btn{padding:7px 14px;border:1px solid #30363d;border-radius:6px;background:#21262d;color:#e6edf3;font-size:12px;cursor:pointer}.chart-retry-btn:hover{border-color:#58a6ff;color:#79c0ff}
+.stock-information-panel{padding:14px 20px 20px}.stock-info-toolbar{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:12px}.stock-info-toolbar strong{display:block;font-size:14px}.stock-info-toolbar small{display:block;margin-top:4px;color:#8b949e;font-size:10px;line-height:1.5}.stock-info-loading,.stock-info-empty{display:grid;min-height:260px;place-content:center;color:#8b949e;text-align:center;font-size:12px;line-height:1.8}.stock-info-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1px;overflow:hidden;margin-bottom:12px;border:1px solid #30363d;border-radius:8px;background:#30363d}.stock-info-metric{min-width:0;padding:11px 12px;background:#161b22}.stock-info-metric label{display:block;color:#8b949e;font-size:9px}.stock-info-metric b{display:block;overflow:hidden;margin-top:5px;font-size:13px;text-overflow:ellipsis;white-space:nowrap}.stock-info-section{overflow:hidden;margin-top:12px;border:1px solid #30363d;border-radius:8px;background:#161b22}.stock-info-section-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:11px 13px;border-bottom:1px solid #30363d}.stock-info-section-head strong{font-size:12px}.stock-info-section-head span{color:#6e7681;font-size:9px}.stock-info-columns{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.stock-info-columns .stock-info-section{margin-top:0}.stock-financial-table-wrap{overflow:auto}.stock-financial-table{width:100%;min-width:760px;border-collapse:collapse;font-size:9px}.stock-financial-table th,.stock-financial-table td{padding:8px 9px;border-top:1px solid #21262d;text-align:right;white-space:nowrap}.stock-financial-table th{border-top:0;background:#1c2128;color:#8b949e;font-weight:600}.stock-financial-table th:first-child,.stock-financial-table td:first-child{text-align:left}.stock-info-list{max-height:330px;overflow:auto}.stock-info-item{display:block;padding:10px 12px;border-top:1px solid #21262d;color:#c9d1d9;text-decoration:none}.stock-info-item:first-child{border-top:0}.stock-info-item:hover{background:#1f6feb0f;color:#79c0ff}.stock-info-item-title{font-size:10px;font-weight:650;line-height:1.5}.stock-info-item-meta{display:flex;align-items:center;flex-wrap:wrap;gap:5px 8px;margin-top:4px;color:#6e7681;font-size:8px}.stock-info-kind{padding:1px 4px;border-radius:3px;background:#1f3a5f;color:#79c0ff}.stock-info-kind.important{background:#f851491c;color:#ff7b72}.stock-info-notice{margin-top:12px;padding:10px 12px;border:1px dashed #30363d;border-radius:7px;color:#6e7681;font-size:9px;line-height:1.65}.stock-info-notice a{color:#79c0ff;text-decoration:none}.stock-info-notice a:hover{text-decoration:underline}.stock-info-warning{margin-bottom:10px;padding:7px 10px;border:1px solid #d2992255;border-radius:6px;background:#d2992212;color:#e3b341;font-size:9px}
+.chart-area[hidden],.stats-grid[hidden],.stock-information-panel[hidden]{display:none!important}
 .theme-setting{display:flex;align-items:center;gap:6px;color:#8b949e;font-size:11px;white-space:nowrap}.theme-setting select{min-width:94px}
 html[data-theme="light"]{color-scheme:light}
 html[data-theme="light"] body{background:#f3f6fa;color:#172033}
@@ -314,6 +317,7 @@ html[data-theme="light"] .group-picker-meta{color:#64748b}html[data-theme="light
 html[data-theme="light"] .tab-bar,html[data-theme="light"] .stats-grid,html[data-theme="light"] .chart-range,html[data-theme="light"] .group-list{border-color:#d0d7de}html[data-theme="light"] .chart-range{background:#f6f8fa}
 html[data-theme="light"] .chart-loading{background:#fff;color:#57606a}html[data-theme="light"] .chart-retry-btn{background:#f6f8fa;border-color:#d0d7de;color:#1f2328}html[data-theme="light"] .chart-notice-retry{color:#9a6700}
 html[data-theme="light"] .market-name,html[data-theme="light"] .market-price,html[data-theme="light"] .market-summary strong,html[data-theme="light"] .chart-info,html[data-theme="light"] .alert-message{color:#1f2328}
+html[data-theme="light"] .chart-hover-tooltip{border-color:#c8d8e7;background:#fffffff2;color:#24364a;box-shadow:0 10px 28px #1f232833}html[data-theme="light"] .chart-tooltip-title,html[data-theme="light"] .chart-tooltip-item strong{color:#1f2328}html[data-theme="light"] .stock-info-summary,html[data-theme="light"] .stock-info-section{border-color:#d0d7de;background:#d0d7de}html[data-theme="light"] .stock-info-metric,html[data-theme="light"] .stock-info-section{background:#fff}html[data-theme="light"] .stock-info-section-head{border-color:#d0d7de}html[data-theme="light"] .stock-financial-table th{background:#f6f8fa}html[data-theme="light"] .stock-financial-table td,html[data-theme="light"] .stock-info-item{border-color:#e5ebf1}html[data-theme="light"] .stock-info-item{color:#24364a}html[data-theme="light"] .stock-info-notice{border-color:#d0d7de}
 html[data-theme="light"] .market-page-note,html[data-theme="light"] .market-summary,html[data-theme="light"] .market-toolbar,html[data-theme="light"] .sort-note,html[data-theme="light"] .module-desc,html[data-theme="light"] .metric-label,html[data-theme="light"] .panel-status,html[data-theme="light"] .status,html[data-theme="light"] .refresh-setting,html[data-theme="light"] .time{color:#57606a}
 html[data-theme="light"] .ipo-board{background:#e5f3ff;color:#0969da}html[data-theme="light"] .ipo-status{border:1px solid transparent;font-weight:650}html[data-theme="light"] .ipo-status.upcoming{background:#e5f3ff;border-color:#b6ddff;color:#0969da}html[data-theme="light"] .ipo-status.today{background:#fff3cd;border-color:#f2d675;color:#8a5a00}html[data-theme="light"] .ipo-status.done{background:#dafbe1;border-color:#aceebb;color:#1a7f37}
 html[data-theme="light"] .ipo-row-summary:hover,html[data-theme="light"] .ipo-row.open .ipo-row-summary{background:#f5f9fd}html[data-theme="light"] .ipo-details{border-color:#d7e1eb;background:linear-gradient(145deg,#f8fbff,#fff);box-shadow:inset 0 1px #fff}html[data-theme="light"] .ipo-detail-cell{border-color:#d7e1eb;background:#fff}html[data-theme="light"] .ipo-detail-cell span,html[data-theme="light"] .ipo-detail-section h3,html[data-theme="light"] .ipo-detail-source,html[data-theme="light"] .ipo-expand-hint{color:#64748b}html[data-theme="light"] .ipo-detail-cell strong{color:#243244}html[data-theme="light"] .ipo-row.open .ipo-expand-hint{color:#0969da}
@@ -360,6 +364,7 @@ html[data-theme="light"] .chat-image-preview{background:#ffffffee}html[data-them
   .chart-guide{display:none}
   .stats-grid{margin:0 12px 14px}
   .stat-item{padding:8px 10px}
+  .stock-information-panel{padding:12px}.stock-info-toolbar{align-items:stretch;flex-direction:column}.stock-info-summary{grid-template-columns:repeat(2,minmax(0,1fr))}.stock-info-columns{grid-template-columns:1fr}.chart-hover-tooltip{min-width:174px}
   .metric-option-list{grid-template-columns:1fr}
 }
 /* ====== Notes styles ====== */
@@ -1060,8 +1065,9 @@ html[data-theme="light"] .mobile-app-bar{border-color:#dce3ec;background:#ffffff
       <div class="tab" data-tab="minuteK" onclick="switchTab(this)">分时K</div>
       <div class="tab" data-tab="kline" onclick="switchTab(this)">K线</div>
       <div class="tab" data-tab="fundFlow" onclick="switchTab(this)">主力资金</div>
+      <div class="tab" data-tab="information" onclick="switchTab(this)">资讯财报</div>
     </div>
-    <div class="chart-area">
+    <div class="chart-area" id="quote-chart-panel">
       <div class="period-bar" id="period-bar" aria-label="分时 K 线周期">
         <button class="period-btn" data-period="m1" onclick="switchMinuteKPeriod('m1')">1分</button>
         <button class="period-btn active" data-period="m5" onclick="switchMinuteKPeriod('m5')">5分</button>
@@ -1075,6 +1081,7 @@ html[data-theme="light"] .mobile-app-bar{border-color:#dce3ec;background:#ffffff
       </div>
       <div class="chart-loading" id="chart-loading">加载中...</div>
       <canvas id="chart-canvas" height="290"></canvas>
+      <div class="chart-hover-tooltip" id="chart-hover-tooltip" role="tooltip" aria-hidden="true"></div>
       <div class="chart-window" id="chart-window">
         <div class="chart-window-head">
           <span class="chart-range-label" id="chart-range-label"></span>
@@ -1090,6 +1097,10 @@ html[data-theme="light"] .mobile-app-bar{border-color:#dce3ec;background:#ffffff
       </div>
     </div>
     <div class="stats-grid" id="stats-grid"></div>
+    <section class="stock-information-panel" id="stock-information-panel" hidden>
+      <div class="stock-info-toolbar"><div><strong>公司资讯与财务</strong><small id="stock-information-status">聚合公开公告、财务指标和公司相关新闻</small></div><button class="refresh-btn" type="button" onclick="loadStockInformation({ force:true })">刷新资讯</button></div>
+      <div id="stock-information-content"><div class="stock-info-loading">选择“资讯财报”后加载公开信息</div></div>
+    </section>
   </div>
 </div>
 
@@ -2431,6 +2442,7 @@ let currentTab = 'minute';
 let currentMinuteKPeriod = 'm5';
 let lastQuoteData = {};
 let stockBoardRequestId = 0;
+let stockInformationRequestId = 0;
 let visibleStockBoards = [];
 
 function renderStockBoardContext(boards, message = '', showBoardLink = true) {
@@ -2555,9 +2567,14 @@ function openModal(sym) {
   }
   document.querySelectorAll('.tab').forEach(t => {
     t.hidden = (t.dataset.tab === 'minuteK' && !supportsMinuteKline(sym)) ||
-      (t.dataset.tab === 'fundFlow' && (isEtf || isIndex));
+      (t.dataset.tab === 'fundFlow' && (isEtf || isIndex)) ||
+      (t.dataset.tab === 'information' && !isAStockSymbol(sym));
     t.classList.toggle('active', t.dataset.tab === currentTab);
   });
+  document.getElementById('quote-chart-panel').hidden = false;
+  document.getElementById('stats-grid').hidden = false;
+  document.getElementById('stock-information-panel').hidden = true;
+  document.getElementById('stock-information-content').innerHTML = '<div class="stock-info-loading">正在准备公开资讯…</div>';
   document.getElementById('period-bar').classList.remove('visible');
   document.querySelectorAll('.period-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.period === 'm5'));
   document.getElementById('modal-mask').classList.add('open');
@@ -2571,7 +2588,9 @@ function closeModal(e) {
   document.getElementById('modal-mask').classList.remove('open');
   modalSym = null;
   stockBoardRequestId++;
+  stockInformationRequestId++;
   chartRequestId++;
+  hideChartHoverTooltip();
 }
 
 let watchlistAddSymbol = null;
@@ -2661,7 +2680,13 @@ function switchTab(el) {
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   el.classList.add('active');
   currentTab = el.dataset.tab;
-  document.getElementById('period-bar').classList.toggle('visible', currentTab === 'minuteK');
+  const information = currentTab === 'information';
+  document.getElementById('quote-chart-panel').hidden = information;
+  document.getElementById('stats-grid').hidden = information;
+  document.getElementById('stock-information-panel').hidden = !information;
+  document.getElementById('period-bar').classList.toggle('visible', !information && currentTab === 'minuteK');
+  hideChartHoverTooltip();
+  if (information) { loadStockInformation(); return; }
   if (currentTab !== 'fundFlow' && lastQuoteData[modalSym]) renderStats(lastQuoteData[modalSym]);
   loadChart(currentTab);
 }
@@ -2671,6 +2696,100 @@ function switchMinuteKPeriod(period) {
   currentMinuteKPeriod = period;
   document.querySelectorAll('.period-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.period === period));
   if (currentTab === 'minuteK') loadChart('minuteK');
+}
+
+function stockInfoMoney(value) {
+  if (!Number.isFinite(value)) return '--';
+  const absolute = Math.abs(value);
+  const signText = value < 0 ? '-' : '';
+  if (absolute >= 100000000) return `${signText}${(absolute / 100000000).toFixed(2)}亿元`;
+  if (absolute >= 10000) return `${signText}${(absolute / 10000).toFixed(2)}万元`;
+  return `${signText}${Math.round(absolute).toLocaleString('zh-CN')}元`;
+}
+
+function stockInfoNumber(value, digits = 2) {
+  return Number.isFinite(value) ? Number(value).toFixed(digits) : '--';
+}
+
+function stockInfoPercent(value, signed = true) {
+  return Number.isFinite(value) ? `${signed && value > 0 ? '+' : ''}${Number(value).toFixed(2)}%` : '--';
+}
+
+function trustedStockInfoUrl(value) {
+  try {
+    const url = new URL(String(value || ''), location.origin);
+    const host = url.hostname.toLowerCase();
+    const safe = host === 'np-snotice.eastmoney.com' || host === 'sina.com.cn' || host.endsWith('.sina.com.cn') || host === 'sina.cn' || host.endsWith('.sina.cn');
+    return url.protocol === 'https:' && safe ? url.toString() : '';
+  } catch (_) {
+    return '';
+  }
+}
+
+function renderStockInfoMetric(label, value, tone = '') {
+  return `<div class="stock-info-metric"><label>${escapeHtml(label)}</label><b class="${tone === 'up' || tone === 'down' ? tone : ''}">${escapeHtml(value)}</b></div>`;
+}
+
+function renderStockInfoItems(rows, emptyText) {
+  const safeRows = (Array.isArray(rows) ? rows : []).flatMap(item => {
+    const url = trustedStockInfoUrl(item?.url);
+    return url && item?.title ? [{ ...item, url }] : [];
+  });
+  if (!safeRows.length) return `<div class="stock-info-empty">${escapeHtml(emptyText)}</div>`;
+  return safeRows.map(item => `<a class="stock-info-item" href="${escapeHtml(item.url)}" target="_blank" rel="noopener noreferrer"><div class="stock-info-item-title">${escapeHtml(item.title)}</div><div class="stock-info-item-meta"><span class="stock-info-kind${item.important ? ' important' : ''}">${escapeHtml(item.kind || '资讯')}</span><span>${escapeHtml(String(item.publishedAt || '').slice(0, 16))}</span><span>${escapeHtml(item.source || '')}</span></div></a>`).join('');
+}
+
+function renderStockFinancialTable(rows) {
+  if (!rows.length) return '<div class="stock-info-empty">暂未取得结构化财务指标</div>';
+  return `<div class="stock-financial-table-wrap"><table class="stock-financial-table"><thead><tr><th>报告期</th><th>营业收入</th><th>同比</th><th>归母净利润</th><th>同比</th><th>ROE</th><th>毛利率</th><th>EPS</th><th>每股经营现金流</th></tr></thead><tbody>${rows.map(row => {
+    const revenueTone = row.revenueGrowth > 0 ? 'up' : row.revenueGrowth < 0 ? 'down' : '';
+    const profitTone = row.netProfitGrowth > 0 ? 'up' : row.netProfitGrowth < 0 ? 'down' : '';
+    return `<tr><td>${escapeHtml(row.reportName || row.reportDate)}</td><td>${escapeHtml(stockInfoMoney(row.revenue))}</td><td class="${revenueTone}">${escapeHtml(stockInfoPercent(row.revenueGrowth))}</td><td>${escapeHtml(stockInfoMoney(row.netProfit))}</td><td class="${profitTone}">${escapeHtml(stockInfoPercent(row.netProfitGrowth))}</td><td>${escapeHtml(stockInfoPercent(row.roe, false))}</td><td>${escapeHtml(stockInfoPercent(row.grossMargin, false))}</td><td>${escapeHtml(stockInfoNumber(row.eps))}</td><td>${escapeHtml(stockInfoNumber(row.operatingCashFlowPerShare))}</td></tr>`;
+  }).join('')}</tbody></table></div>`;
+}
+
+function renderStockInformation(payload) {
+  const financials = Array.isArray(payload.financials) ? payload.financials : [];
+  const latest = financials[0];
+  const summary = latest ? [
+    ['最新报告期', latest.reportName || latest.reportDate, ''],
+    ['营业收入', stockInfoMoney(latest.revenue), ''],
+    ['营收同比', stockInfoPercent(latest.revenueGrowth), latest.revenueGrowth > 0 ? 'up' : latest.revenueGrowth < 0 ? 'down' : ''],
+    ['归母净利润', stockInfoMoney(latest.netProfit), ''],
+    ['净利润同比', stockInfoPercent(latest.netProfitGrowth), latest.netProfitGrowth > 0 ? 'up' : latest.netProfitGrowth < 0 ? 'down' : ''],
+    ['ROE', stockInfoPercent(latest.roe, false), ''],
+    ['毛利率', stockInfoPercent(latest.grossMargin, false), ''],
+    ['每股收益', stockInfoNumber(latest.eps), ''],
+  ] : [];
+  const reports = Array.isArray(payload.reports) ? payload.reports.slice(0, 10) : [];
+  const announcements = (Array.isArray(payload.announcements) ? payload.announcements : []).filter(item => !item.isReport).slice(0, 24);
+  const news = Array.isArray(payload.news) ? payload.news.slice(0, 24) : [];
+  const warning = payload.unavailable?.length ? `<div class="stock-info-warning">部分数据暂不可用：${escapeHtml(payload.unavailable.join('、'))}。其余内容已正常展示。</div>` : payload.stale ? '<div class="stock-info-warning">上游本轮更新失败，当前展示最近一次可用缓存。</div>' : '';
+  document.getElementById('stock-information-content').innerHTML = `${warning}${summary.length ? `<div class="stock-info-summary">${summary.map(item => renderStockInfoMetric(...item)).join('')}</div>` : ''}<section class="stock-info-section"><div class="stock-info-section-head"><strong>财务指标趋势</strong><span>最近报告期 · 法定累计口径</span></div>${renderStockFinancialTable(financials)}</section><div class="stock-info-columns"><section class="stock-info-section"><div class="stock-info-section-head"><strong>财报原文</strong><span>${reports.length} 项</span></div><div class="stock-info-list">${renderStockInfoItems(reports, '暂未取得定期报告原文')}</div></section><section class="stock-info-section"><div class="stock-info-section-head"><strong>公司公告</strong><span>${announcements.length} 项</span></div><div class="stock-info-list">${renderStockInfoItems(announcements, '暂未取得公司公告')}</div></section></div><section class="stock-info-section"><div class="stock-info-section-head"><strong>相关新闻</strong><span>${news.length} 项 · 仅聚合标题与原文链接</span></div><div class="stock-info-list">${renderStockInfoItems(news, '当前没有取得明确关联的公开资讯')}</div></section><div class="stock-info-notice">公告与财务指标来自东方财富公开页面，新闻标题与链接来自新浪财经公开个股资讯；本站不复制新闻正文。公开网页接口可能延迟或调整，财务数据按上市公司法定报告累计口径展示，仅供信息参考，不构成投资建议。重要信息请以<a href="https://www.cninfo.com.cn/new/index" target="_blank" rel="noopener noreferrer">巨潮资讯</a>、交易所及上市公司正式披露原文为准。</div>`;
+}
+
+async function loadStockInformation({ force = false } = {}) {
+  const symbol = modalSym;
+  if (!isAStockSymbol(symbol)) return;
+  const requestId = ++stockInformationRequestId;
+  const content = document.getElementById('stock-information-content');
+  const status = document.getElementById('stock-information-status');
+  status.textContent = force ? '正在重新同步公开数据…' : '正在同步公开公告、财务指标和相关新闻…';
+  if (force || !content.querySelector('.stock-info-section')) content.innerHTML = '<div class="stock-info-loading">正在整理公开资讯与财务数据…</div>';
+  try {
+    const response = await fetch(`/api/stock-information?symbol=${encodeURIComponent(symbol)}${force ? '&refresh=1' : ''}`);
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(payload.error || 'stock information request failed');
+    if (requestId !== stockInformationRequestId || modalSym !== symbol || currentTab !== 'information') return;
+    renderStockInformation(payload);
+    const fetchedAt = Number(payload.fetchedAt) ? new Date(payload.fetchedAt).toLocaleTimeString('zh-CN', { hour:'2-digit', minute:'2-digit' }) : '刚刚';
+    status.textContent = `${payload.partial ? '部分来源可用' : '公开数据已同步'} · ${fetchedAt}`;
+  } catch (error) {
+    if (requestId !== stockInformationRequestId || modalSym !== symbol) return;
+    console.error('loadStockInformation error:', error);
+    status.textContent = '公开资讯暂时不可用';
+    content.innerHTML = `<div class="stock-info-empty"><div>暂时无法取得公告、财务和新闻数据<br><button class="refresh-btn" type="button" onclick="loadStockInformation({ force:true })">重新获取</button></div></div>`;
+  }
 }
 
 function renderStats(q) {
@@ -2698,6 +2817,7 @@ const chartWindow = document.getElementById('chart-window');
 const chartRange = document.getElementById('chart-range');
 const chartRangeSelection = document.getElementById('chart-range-selection');
 const chartRangeLabel = document.getElementById('chart-range-label');
+const chartHoverTooltip = document.getElementById('chart-hover-tooltip');
 let chartRequestId = 0;
 let chartResizeTimer = null;
 const chartState = {
@@ -2952,6 +3072,7 @@ function setChartViewport(start, end, options = {}) {
   chartState.ma10 = chartState.fullMa10.slice(nextStart, nextEnd + 1);
   chartState.ma20 = chartState.fullMa20.slice(nextStart, nextEnd + 1);
   chartState.hoverIndex = null;
+  hideChartHoverTooltip();
   updateChartWindow();
   if (options.render !== false) {
     renderChart();
@@ -3623,6 +3744,75 @@ function updateChartInfo(index) {
   }
 }
 
+function chartTooltipDetail(index) {
+  const point = chartState.data[index];
+  if (!point) return null;
+  if (chartState.type === 'fundFlow') {
+    return {
+      title:point.date,
+      rows:[
+        ['主力净额', fmtMetricMoney(point.mainNet), cls(point.mainNet)],
+        ['净额占比', Number.isFinite(point.mainRatio) ? `${point.mainRatio.toFixed(2)}%` : '--', cls(point.mainRatio)],
+        ['近五日', fmtMetricMoney(point.mainFiveDay), cls(point.mainFiveDay)],
+        ['超大单', fmtMetricMoney(point.superLargeNet), cls(point.superLargeNet)],
+        ['大单', fmtMetricMoney(point.largeNet), cls(point.largeNet)],
+        ['涨跌幅', Number.isFinite(point.pct) ? `${point.pct > 0 ? '+' : ''}${point.pct.toFixed(2)}%` : '--', cls(point.pct)],
+      ],
+    };
+  }
+  if (chartState.type === 'minute') {
+    const pct = chartState.prevClose > 0 ? (point.price - chartState.prevClose) / chartState.prevClose * 100 : 0;
+    const tone = pct > 0 ? 'up' : pct < 0 ? 'down' : '';
+    return {
+      title:`${formatTradeDate(point.date)} ${formatTime(point.time)}`.trim(),
+      rows:[
+        ['价格', chartNumber(point.price), tone],
+        ['涨跌幅', `${pct > 0 ? '+' : ''}${chartNumber(pct)}%`, tone],
+        ['分钟量', `${chartVolume(point.minuteVolume)}手`, ''],
+        ['累计量', `${chartVolume(point.volume)}手`, ''],
+        ['成交额', chartAmount(point.amount), ''],
+      ],
+    };
+  }
+  const absoluteIndex = chartState.viewStart + index;
+  const previousClose = absoluteIndex > 0 ? chartState.fullData[absoluteIndex - 1].close : point.open;
+  const pct = previousClose ? (point.close - previousClose) / previousClose * 100 : 0;
+  const tone = pct > 0 ? 'up' : pct < 0 ? 'down' : '';
+  return {
+    title:chartState.type === 'minuteK' ? formatKlineTimestamp(point.date) : point.date,
+    rows:[
+      ['开', chartNumber(point.open), ''], ['高', chartNumber(point.high), 'up'],
+      ['低', chartNumber(point.low), 'down'], ['收', chartNumber(point.close), tone],
+      ['涨跌', `${pct > 0 ? '+' : ''}${chartNumber(pct)}%`, tone], ['成交量', `${chartVolume(point.volume)}手`, ''],
+      ['MA5', chartNumber(chartState.ma5[index]), ''], ['MA10', chartNumber(chartState.ma10[index]), ''],
+      ['MA20', chartNumber(chartState.ma20[index]), ''],
+    ],
+  };
+}
+
+function hideChartHoverTooltip() {
+  chartHoverTooltip?.classList.remove('visible');
+  chartHoverTooltip?.setAttribute('aria-hidden', 'true');
+}
+
+function showChartHoverTooltip(event, index) {
+  const detail = chartTooltipDetail(index);
+  if (!detail || !chartHoverTooltip) return;
+  chartHoverTooltip.innerHTML = `<div class="chart-tooltip-title">${escapeHtml(detail.title || '--')}</div><div class="chart-tooltip-grid">${detail.rows.map(([label,value,tone]) => `<div class="chart-tooltip-item"><b>${escapeHtml(label)}</b><strong class="${tone === 'up' || tone === 'down' ? tone : ''}">${escapeHtml(value)}</strong></div>`).join('')}</div>`;
+  chartHoverTooltip.classList.add('visible');
+  chartHoverTooltip.setAttribute('aria-hidden', 'false');
+  const panelRect = document.getElementById('quote-chart-panel').getBoundingClientRect();
+  const localX = event.clientX - panelRect.left;
+  const localY = event.clientY - panelRect.top;
+  const width = chartHoverTooltip.offsetWidth;
+  const height = chartHoverTooltip.offsetHeight;
+  const gap = 14;
+  const left = localX + gap + width <= panelRect.width - 8 ? localX + gap : localX - width - gap;
+  const top = localY + gap + height <= panelRect.height - 8 ? localY + gap : localY - height - gap;
+  chartHoverTooltip.style.left = `${Math.max(8, Math.min(panelRect.width - width - 8, left))}px`;
+  chartHoverTooltip.style.top = `${Math.max(8, Math.min(panelRect.height - height - 8, top))}px`;
+}
+
 function chartRatioAtClientX(clientX) {
   const rect = chartCanvas.getBoundingClientRect();
   const x = (clientX - rect.left) * chartState.layout.W / rect.width;
@@ -3635,13 +3825,13 @@ function updateChartHover(event) {
   const rect = chartCanvas.getBoundingClientRect();
   const x = (event.clientX - rect.left) * chartState.layout.W / rect.width;
   const { plotLeft, plotRight } = chartState.layout;
-  if (x < plotLeft || x > plotRight) return;
+  if (x < plotLeft || x > plotRight) { hideChartHoverTooltip(); return; }
   const ratio = chartRatioAtClientX(event.clientX);
   chartState.hoverIndex = chartState.type === 'minute'
     ? Math.round(ratio * (chartState.data.length - 1))
     : Math.min(chartState.data.length - 1, Math.floor(ratio * chartState.data.length));
   renderChart();
-  updateChartInfo(chartState.hoverIndex);
+  showChartHoverTooltip(event, chartState.hoverIndex);
 }
 
 const chartPointers = new Map();
@@ -3670,6 +3860,7 @@ function beginChartPinch() {
 chartCanvas.addEventListener('pointerdown', event => {
   if (!chartState.layout || !chartState.data.length || event.button > 0) return;
   event.preventDefault();
+  hideChartHoverTooltip();
   chartPointers.set(event.pointerId, { pointerId: event.pointerId, clientX: event.clientX, clientY: event.clientY });
   try { chartCanvas.setPointerCapture(event.pointerId); } catch (_) {}
   chartCanvas.classList.add('panning');
@@ -3708,6 +3899,7 @@ chartCanvas.addEventListener('pointermove', event => {
 chartCanvas.addEventListener('pointerleave', event => {
   if (event.pointerType !== 'mouse' || chartPointers.size) return;
   chartState.hoverIndex = null;
+  hideChartHoverTooltip();
   renderChart();
   updateChartInfo(chartState.data.length - 1);
 });

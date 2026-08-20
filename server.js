@@ -44,6 +44,11 @@ const {
   parseSinaGlobalFutures,
   parseSinaSpotIndexes,
 } = require('./derivatives-market');
+const {
+  normalizeAnnouncementPayload,
+  normalizeFinancialPayload,
+  parseSinaStockNews,
+} = require('./stock-information');
 
 const PORT = 3000;
 const PUBLIC_DIR = path.join(__dirname, 'public');
@@ -94,6 +99,10 @@ const CAPITAL_FLOW_INTRADAY_CACHE_MS = 4500;
 const CAPITAL_FLOW_HISTORY_CACHE_MS = 15 * 60 * 1000;
 const DERIVATIVES_QUOTE_CACHE_MS = 5 * 1000;
 const DERIVATIVES_NEWS_CACHE_MS = 2 * 60 * 1000;
+const STOCK_ANNOUNCEMENT_CACHE_MS = 15 * 60 * 1000;
+const STOCK_FINANCIAL_CACHE_MS = 6 * 60 * 60 * 1000;
+const STOCK_NEWS_CACHE_MS = 5 * 60 * 1000;
+const STOCK_INFORMATION_CACHE_MAX = 500;
 const fundamentalCache = new Map();
 const realtimeFundFlowCache = new Map();
 const realtimeValuationCache = new Map();
@@ -115,6 +124,10 @@ const capitalFlowHistoryCache = new Map();
 const derivativesQuoteCache = new Map();
 const derivativesNewsCache = new Map();
 const derivativesRateLimitBuckets = new Map();
+const stockAnnouncementCache = new Map();
+const stockFinancialCache = new Map();
+const stockNewsCache = new Map();
+const stockInformationRateLimitBuckets = new Map();
 let derivativesQuoteRefreshPromise = null;
 const boardRequestQueue = createAsyncTaskQueue({ concurrency:3, maxQueued:30 });
 const fundQuoteRequestQueue = createAsyncTaskQueue({ concurrency:3, maxQueued:60 });
@@ -158,6 +171,7 @@ const FUND_RATE_LIMIT_WINDOW_MS = 60 * 1000;
 const FUND_RATE_LIMIT_MAX = 90;
 const CAPITAL_FLOW_RATE_LIMIT_MAX = 120;
 const DERIVATIVES_RATE_LIMIT_MAX = 120;
+const STOCK_INFORMATION_RATE_LIMIT_MAX = 60;
 
 const CFFEX_NODES = { IF:'qz_qh', IH:'szgz_qh', IC:'zzgz_qh', IM:'im_qh' };
 const US_NEWS_KEYWORDS = [
@@ -604,6 +618,107 @@ async function proxyStockMetrics(urlObj, res) {
   symbols.forEach(symbol => Object.assign(data[symbol], fundamentals[symbol], valuations[symbol], flow[symbol]));
 
   sendJson(res, 200, { data, fetchedAt:Date.now() });
+}
+
+function reserveStockInformationCache(cache, key) {
+  if (!cache.has(key) && cache.size >= STOCK_INFORMATION_CACHE_MAX) cache.delete(cache.keys().next().value);
+}
+
+async function loadStockAnnouncements(symbol, force = false) {
+  reserveStockInformationCache(stockAnnouncementCache, symbol);
+  return loadCachedFundValue(stockAnnouncementCache, symbol, STOCK_ANNOUNCEMENT_CACHE_MS, async () => {
+    const query = new URLSearchParams({
+      sr:'-1', page_size:'100', page_index:'1', ann_type:'A', client_source:'web', stock_list:symbol.slice(2),
+    });
+    const raw = await requestBuffer(`https://np-anotice-stock.eastmoney.com/api/security/ann?${query}`, {
+      ...UPSTREAM_HEADERS,
+      Referer:`https://data.eastmoney.com/notices/stock/${symbol.slice(2)}.html`,
+      Accept:'application/json,text/plain,*/*',
+    }, { timeoutMs:10000, maxBytes:2 * 1024 * 1024 });
+    return {
+      data:normalizeAnnouncementPayload(JSON.parse(raw.toString('utf-8')), symbol),
+      source:'东方财富公开公告页',
+      fetchedAt:Date.now(),
+    };
+  }, force);
+}
+
+async function loadStockFinancials(symbol, force = false) {
+  reserveStockInformationCache(stockFinancialCache, symbol);
+  return loadCachedFundValue(stockFinancialCache, symbol, STOCK_FINANCIAL_CACHE_MS, async () => {
+    const columns = [
+      'SECUCODE','REPORT_DATE','REPORT_DATE_NAME','NOTICE_DATE','EPSJB','BPS','MGJYXJJE','ROEJQ','XSMLL',
+      'TOTALOPERATEREVETZ','PARENTNETPROFITTZ','TOTALOPERATEREVE','PARENTNETPROFIT',
+    ].join(',');
+    const query = new URLSearchParams({
+      reportName:'RPT_F10_FINANCE_MAINFINADATA', columns,
+      filter:`(SECUCODE="${eastmoneySecuCode(symbol)}")`,
+      pageNumber:'1', pageSize:'12', sortTypes:'-1', sortColumns:'REPORT_DATE', source:'HSF10', client:'PC',
+    });
+    const raw = await requestBuffer(`https://datacenter.eastmoney.com/securities/api/data/v1/get?${query}`, {
+      ...UPSTREAM_HEADERS, Referer:'https://data.eastmoney.com/', Accept:'application/json,text/plain,*/*',
+    }, { timeoutMs:10000, maxBytes:2 * 1024 * 1024 });
+    return {
+      data:normalizeFinancialPayload(JSON.parse(raw.toString('utf-8')), symbol),
+      source:'东方财富公开财务数据',
+      fetchedAt:Date.now(),
+    };
+  }, force);
+}
+
+async function loadStockNews(symbol, force = false) {
+  reserveStockInformationCache(stockNewsCache, symbol);
+  return loadCachedFundValue(stockNewsCache, symbol, STOCK_NEWS_CACHE_MS, async () => {
+    const url = `https://vip.stock.finance.sina.com.cn/corp/view/vCB_AllNewsStock.php?symbol=${encodeURIComponent(symbol)}&Page=1`;
+    const raw = await requestBuffer(url, {
+      ...UPSTREAM_HEADERS, Referer:'https://finance.sina.com.cn/', Accept:'text/html,application/xhtml+xml',
+    }, { timeoutMs:12000, maxBytes:3 * 1024 * 1024 });
+    return {
+      data:parseSinaStockNews(gbkDecode(raw)),
+      source:'新浪财经公开个股资讯',
+      fetchedAt:Date.now(),
+    };
+  }, force);
+}
+
+async function proxyStockInformation(urlObj, res) {
+  const symbol = String(urlObj.searchParams.get('symbol') || '').toLowerCase();
+  if (!isAStockSymbol(symbol)) {
+    sendJson(res, 400, { error:'目前资讯财报仅支持沪深 A 股' });
+    return;
+  }
+  const force = urlObj.searchParams.get('refresh') === '1';
+  const settled = await Promise.allSettled([
+    loadStockAnnouncements(symbol, force),
+    loadStockFinancials(symbol, force),
+    loadStockNews(symbol, force),
+  ]);
+  const labels = ['公告与财报原文', '财务指标', '相关新闻'];
+  const unavailable = settled.flatMap((result, index) => result.status === 'rejected' ? [labels[index]] : []);
+  settled.forEach((result, index) => {
+    if (result.status === 'rejected') console.error(`Stock information ${labels[index]} error (${symbol}):`, result.reason?.message);
+  });
+  if (unavailable.length === settled.length) {
+    sendJson(res, 502, { error:'公开资讯数据暂时不可用，请稍后重试', unavailable });
+    return;
+  }
+  const announcements = settled[0].status === 'fulfilled' ? settled[0].value : null;
+  const financials = settled[1].status === 'fulfilled' ? settled[1].value : null;
+  const news = settled[2].status === 'fulfilled' ? settled[2].value : null;
+  const announcementRows = announcements?.data || [];
+  const fetchedAt = Math.max(announcements?.fetchedAt || 0, financials?.fetchedAt || 0, news?.fetchedAt || 0);
+  sendJson(res, 200, {
+    symbol,
+    announcements:announcementRows,
+    reports:announcementRows.filter(item => item.isReport),
+    financials:financials?.data || [],
+    news:news?.data || [],
+    unavailable,
+    partial:Boolean(unavailable.length),
+    stale:Boolean(announcements?.stale || financials?.stale || news?.stale),
+    fetchedAt,
+    sources:{ announcements:announcements?.source || '', financials:financials?.source || '', news:news?.source || '' },
+  });
 }
 
 function eastmoneyNumber(value) {
@@ -1353,6 +1468,29 @@ function allowDerivativesRequest(req, res) {
   return false;
 }
 
+function allowStockInformationRequest(req, res) {
+  const now = Date.now();
+  if (stockInformationRateLimitBuckets.size > 1000) {
+    for (const [key, value] of stockInformationRateLimitBuckets) {
+      if (now - value.startedAt >= FUND_RATE_LIMIT_WINDOW_MS) stockInformationRateLimitBuckets.delete(key);
+    }
+  }
+  const address = String(req.socket?.remoteAddress || 'unknown').slice(0, 100);
+  let bucket = stockInformationRateLimitBuckets.get(address);
+  if (!bucket || now - bucket.startedAt >= FUND_RATE_LIMIT_WINDOW_MS) {
+    bucket = { startedAt:now, count:0 };
+    stockInformationRateLimitBuckets.set(address, bucket);
+  }
+  bucket.count += 1;
+  if (bucket.count <= STOCK_INFORMATION_RATE_LIMIT_MAX) return true;
+  res.writeHead(429, {
+    'Content-Type':'application/json; charset=utf-8', 'Cache-Control':'no-store',
+    'Retry-After':String(Math.max(1, Math.ceil((bucket.startedAt + FUND_RATE_LIMIT_WINDOW_MS - now) / 1000))),
+  });
+  res.end(JSON.stringify({ error:'资讯财报请求过于频繁，请稍后再试' }));
+  return false;
+}
+
 async function loadCachedFundValue(cache, key, maxAgeMs, loader, force = false) {
   const now = Date.now();
   const existing = cache.get(key);
@@ -1686,6 +1824,12 @@ const server = http.createServer(async (req, res) => {
 
   if (pathname === '/api/stock-metrics') {
     await proxyStockMetrics(urlObj, res);
+    return;
+  }
+
+  if (pathname === '/api/stock-information') {
+    if (!allowStockInformationRequest(req, res)) return;
+    await proxyStockInformation(urlObj, res);
     return;
   }
 

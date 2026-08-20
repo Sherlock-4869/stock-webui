@@ -370,6 +370,31 @@ test('chart crosshair snaps its vertical value to the selected horizontal data n
   assert.doesNotMatch(crosshairSource, /pointerY|valueForY/);
 });
 
+test('chart hover shows the selected node details beside the pointer', () => {
+  assert.match(html, /id="chart-hover-tooltip" role="tooltip"/);
+  assert.match(html, /function chartTooltipDetail\(index\)/);
+  assert.match(html, /function showChartHoverTooltip\(event, index\)/);
+  assert.match(html, /const localX = event\.clientX - panelRect\.left/);
+  assert.match(html, /showChartHoverTooltip\(event, chartState\.hoverIndex\)/);
+  const start = html.indexOf('function updateChartHover');
+  const end = html.indexOf('const chartPointers', start);
+  assert.ok(start >= 0 && end > start);
+  assert.doesNotMatch(html.slice(start, end), /updateChartInfo/);
+});
+
+test('A-share detail exposes resilient public announcements, financials and linked news', () => {
+  assert.match(html, /data-tab="information"[^>]*>资讯财报</);
+  assert.match(html, /id="stock-information-panel"/);
+  assert.match(html, /\/api\/stock-information\?symbol=/);
+  assert.match(html, /本站不复制新闻正文/);
+  assert.match(html, /巨潮资讯/);
+  assert.match(html, /function trustedStockInfoUrl\(value\)/);
+  assert.match(serverSource, /pathname === '\/api\/stock-information'/);
+  assert.match(serverSource, /allowStockInformationRequest\(req, res\)/);
+  assert.match(serverSource, /Promise\.allSettled\(\[/);
+  assert.match(serverSource, /目前资讯财报仅支持沪深 A 股/);
+});
+
 test('Hong Kong and US watchlist symbols generate intraday K lines from minute data', () => {
   assert.match(html, /function supportsMinuteKline\(sym\)/);
   assert.match(html, /aggregateMinuteKlineRows\(stockData\.data\?\.data \|\| \[\], date, period\)/);
