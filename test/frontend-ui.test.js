@@ -220,7 +220,7 @@ test('standalone and in-page reference views share the same renderer', () => {
 });
 
 test('all app pages support direct URL navigation and browser history', () => {
-  assert.match(html, /const APP_PAGES = \['market','boards','funds','ipo','alerts','notes','reference','sites','ai','user-ai-models','admin-users','admin-sites','admin-ai'\]/);
+  assert.match(html, /const APP_PAGES = \['market','boards','capital-flow','funds','ipo','alerts','notes','reference','sites','ai','user-ai-models','admin-users','admin-sites','admin-ai'\]/);
   assert.match(html, /document\.title = '深度学习';/);
   assert.doesNotMatch(html, /APP_PAGE_TITLES/);
   assert.match(html, /history\.pushState\(\{ page \}, '', url\)/);
@@ -273,6 +273,25 @@ test('board market page exposes sector categories, rankings, and stock drill-dow
   assert.equal(context.boardPctForTest(3.2), '+3.20%');
   assert.equal(context.boardPctForTest(-1.25), '-1.25%');
   assert.equal(context.boardMoneyForTest(123000000), '+1.23亿');
+});
+
+test('capital flow radar exposes market, board, stock, history and intraday views', () => {
+  assert.match(html, /data-page="capital-flow"[^>]*onclick="switchAppPage\('capital-flow'\)"/);
+  assert.match(html, /id="page-capital-flow"/);
+  assert.match(html, /id="capital-market-chart"/);
+  assert.match(html, /id="capital-board-ranking"/);
+  assert.match(html, /id="capital-stock-ranking"/);
+  assert.match(html, /data-capital-board-period="3d"/);
+  assert.match(html, /data-capital-stock-period="10d"/);
+  assert.match(html, /function capitalFlowChartSvg\(rows, key = 'time'\)/);
+  assert.match(html, /function openCapitalBoardHistory\(code\)/);
+  assert.match(html, /function detectFundFlowAnomaly\(sym, quote, flow\)/);
+  assert.match(html, /连续净流入/);
+  assert.match(serverSource, /pathname === '\/api\/capital-flow\/rankings'/);
+  assert.match(serverSource, /pathname === '\/api\/capital-flow\/market'/);
+  assert.match(serverSource, /pathname === '\/api\/capital-flow\/history'/);
+  assert.match(serverSource, /pathname === '\/api\/capital-flow\/intraday'/);
+  assert.match(serverSource, /CAPITAL_FLOW_RATE_LIMIT_MAX/);
 });
 
 test('global index cards open a quote detail with available curves and clearer price context', () => {

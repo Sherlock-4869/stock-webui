@@ -530,6 +530,10 @@ html[data-theme="light"] .stock-board-tag{border-color:#9bcaf4;background:#e8f4f
 .fund-manager-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(205px,1fr));gap:10px;padding:13px}.fund-manager{padding:12px;border:1px solid #30363d;border-radius:8px;background:#0d1117}.fund-manager-top{display:flex;align-items:center;justify-content:space-between;gap:8px}.fund-manager-name{font-size:13px;font-weight:750}.fund-manager-star{color:#e3b341;font-size:10px}.fund-manager-meta{margin-top:5px;color:#8b949e;font-size:9px;line-height:1.55}.fund-manager-profit{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin-top:9px}.fund-manager-profit span{padding:6px;border-radius:6px;background:#161b22;color:#8b949e;font-size:8px;text-align:center}.fund-manager-profit b{display:block;margin-top:3px;font-size:10px}.fund-news-columns{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1px;background:#30363d}.fund-news-column{min-width:0;padding:13px;background:#161b22}.fund-news-column h4{margin:0 0 7px;font-size:11px}.fund-news-item{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:7px;padding:7px 0;border-top:1px solid #21262d;color:#c9d1d9;text-decoration:none}.fund-news-item:hover{color:#79c0ff}.fund-news-item span{overflow:hidden;font-size:10px;text-overflow:ellipsis;white-space:nowrap}.fund-news-item time{color:#6e7681;font-size:8px}.fund-disclaimer{padding:11px 14px;border:1px dashed #30363d;border-radius:8px;color:#6e7681;font-size:9px;line-height:1.65}
 html[data-theme="light"] .fund-search,html[data-theme="light"] .fund-search-results,html[data-theme="light"] .fund-directory,html[data-theme="light"] .fund-empty,html[data-theme="light"] .fund-card{border-color:#d0dbe6;background:#fff;color:#24364a}html[data-theme="light"] .fund-search input{color:#24364a}html[data-theme="light"] .fund-search-result{border-color:#e5ebf1}html[data-theme="light"] .fund-search-result:hover,html[data-theme="light"] .fund-list-row:hover,html[data-theme="light"] .fund-list-row.active{background:#e5f3ff}html[data-theme="light"] .fund-overview-card,html[data-theme="light"] .fund-hero{border-color:#d0dbe6;background:linear-gradient(145deg,#fff,#f4f8fc)}html[data-theme="light"] .fund-list-head,html[data-theme="light"] .fund-card-head{border-color:#d0dbe6}html[data-theme="light"] .fund-nav-strip,html[data-theme="light"] .fund-performance,html[data-theme="light"] .fund-facts,html[data-theme="light"] .fund-news-columns{background:#d7e0ea}html[data-theme="light"] .fund-nav-metric,html[data-theme="light"] .fund-performance-item,html[data-theme="light"] .fund-fact,html[data-theme="light"] .fund-news-column{background:#fff}html[data-theme="light"] .fund-allocation-item,html[data-theme="light"] .fund-manager{border-color:#d7e0ea;background:#f7faff}html[data-theme="light"] .fund-manager-profit span{background:#fff}html[data-theme="light"] .fund-holdings-table th{background:#f6f8fa}html[data-theme="light"] .fund-chart-tooltip{border-color:#c8d8e7;background:#fff;color:#24364a}html[data-theme="light"] .fund-holding-name{color:#24364a}
 @media(max-width:980px){.fund-workspace{grid-template-columns:1fr}.fund-directory{position:static}.fund-list{max-height:310px}.fund-overview-grid{grid-template-columns:repeat(2,1fr)}}@media(max-width:650px){.fund-search-shell{min-width:0;width:100%}.fund-hero-top{flex-direction:column}.fund-hero-actions{width:100%}.fund-nav-strip{grid-template-columns:repeat(2,1fr)}.fund-grid-two,.fund-news-columns{grid-template-columns:1fr}.fund-performance{grid-template-columns:repeat(2,1fr)}.fund-performance-item:last-child{grid-column:span 2}.fund-chart-wrap{height:260px}.fund-overview-grid{gap:8px}.fund-overview-card{padding:12px}.fund-facts{grid-template-columns:1fr}.fund-holdings-table{min-width:590px}.fund-allocation{padding:10px;gap:6px}.fund-allocation-item{padding:9px}.fund-manager-grid{grid-template-columns:1fr}.fund-card-head{padding:11px 12px}.fund-period-tabs{max-width:180px}}
+/* Capital flow radar */
+.capital-flow-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:14px}.capital-market-panel,.capital-rank-panel,.capital-detail-panel{overflow:hidden}.capital-panel-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px 15px;border-bottom:1px solid #30363d}.capital-panel-head strong{display:block;font-size:13px}.capital-panel-head small{display:block;margin-top:3px;color:#8b949e;font-size:9px}.capital-chip-row{display:flex;align-items:center;flex-wrap:wrap;gap:5px}.capital-rank-controls{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:9px 11px;border-bottom:1px solid #21262d}.capital-market-chart{height:270px;padding:12px 14px}.capital-market-chart svg,.capital-detail-chart svg{display:block;width:100%;height:100%}.capital-chart-grid{stroke:#30363d;stroke-width:1}.capital-chart-zero{stroke:#6e7681;stroke-width:1;stroke-dasharray:4 4}.capital-chart-main{fill:none;stroke:#58a6ff;stroke-width:2.4}.capital-chart-super{fill:none;stroke:#f0883e;stroke-width:1.6}.capital-chart-large{fill:none;stroke:#d2a8ff;stroke-width:1.6}.capital-chart-retail{fill:none;stroke:#8b949e;stroke-width:1.4}.capital-chart-label{fill:#8b949e;font-size:9px}.capital-legend{display:flex;justify-content:center;gap:18px;padding:0 12px 12px;color:#8b949e;font-size:9px}.capital-legend span::before{content:"";display:inline-block;width:13px;height:2px;margin-right:5px;vertical-align:middle;background:#58a6ff}.capital-legend .super::before{background:#f0883e}.capital-legend .large::before{background:#d2a8ff}.capital-legend .retail::before{background:#8b949e}.capital-rank-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-top:14px}.capital-select{border:1px solid #30363d;border-radius:6px;background:#0d1117;color:#c9d1d9;padding:5px 7px;font:10px inherit}.capital-table-wrap{max-height:560px;overflow:auto}.capital-table{width:100%;border-collapse:collapse;font-size:10px}.capital-table th,.capital-table td{padding:9px 8px;border-top:1px solid #21262d;text-align:right;white-space:nowrap}.capital-table th{position:sticky;z-index:1;top:0;border-top:0;background:#1c2128;color:#8b949e;font-weight:600}.capital-table th:nth-child(2),.capital-table td:nth-child(2){text-align:left}.capital-rank-button{width:100%;padding:0;border:0;background:transparent;color:#c9d1d9;font:inherit;font-weight:700;text-align:left;cursor:pointer}.capital-rank-button:hover{color:#79c0ff}.capital-rank-button small{display:block;margin-top:2px;color:#6e7681;font-size:8px;font-weight:500}.capital-rank-index{color:#6e7681;font:9px ui-monospace,SFMono-Regular,monospace}.capital-detail-panel{min-height:300px;margin-top:14px}.capital-detail-empty{display:grid;min-height:300px;place-content:center;color:#8b949e;text-align:center;line-height:1.8}.capital-detail-empty strong{color:#e6edf3;font-size:16px}.capital-detail-empty span{font-size:11px}.capital-detail-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:15px;border-bottom:1px solid #30363d}.capital-detail-title{font-size:18px;font-weight:750}.capital-detail-sub{margin-top:4px;color:#8b949e;font-size:10px}.capital-detail-actions{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:6px}.capital-streak{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1px;background:#30363d}.capital-streak-item{padding:11px 13px;background:#161b22}.capital-streak-item label{display:block;color:#8b949e;font-size:9px}.capital-streak-item b{display:block;margin-top:5px;font-size:13px}.capital-detail-chart{height:310px;padding:14px}.capital-detail-history{max-height:300px;overflow:auto;border-top:1px solid #30363d}.capital-disclaimer{margin-top:12px;padding:10px 13px;border:1px dashed #30363d;border-radius:8px;color:#6e7681;font-size:9px;line-height:1.6}
+html[data-theme="light"] .capital-panel-head,html[data-theme="light"] .capital-rank-controls,html[data-theme="light"] .capital-detail-head,html[data-theme="light"] .capital-detail-history{border-color:#d7e0ea}html[data-theme="light"] .capital-select{border-color:#c8d8e7;background:#fff;color:#24364a}html[data-theme="light"] .capital-table th{background:#f6f8fa}html[data-theme="light"] .capital-table td{border-color:#e5ebf1}html[data-theme="light"] .capital-rank-button{color:#24364a}html[data-theme="light"] .capital-streak{background:#d7e0ea}html[data-theme="light"] .capital-streak-item{background:#fff}html[data-theme="light"] .capital-chart-grid{stroke:#d7e0ea}
+@media(max-width:980px){.capital-flow-summary{grid-template-columns:repeat(2,1fr)}.capital-rank-grid{grid-template-columns:1fr}}@media(max-width:620px){.capital-flow-summary{gap:8px}.capital-panel-head,.capital-detail-head{align-items:stretch;flex-direction:column}.capital-rank-controls{align-items:flex-start;flex-direction:column}.capital-market-chart{height:230px;padding:8px}.capital-streak{grid-template-columns:repeat(2,1fr)}.capital-detail-actions{justify-content:flex-start}.capital-table{min-width:610px}.capital-detail-chart{height:260px;padding:8px}}
 </style>
 </head>
 <body>
@@ -546,6 +550,7 @@ html[data-theme="light"] .fund-search,html[data-theme="light"] .fund-search-resu
       <div class="sidebar-section-title">市场行情</div>
       <button class="app-tab active" data-page="market" onclick="switchAppPage('market')" title="自选行情"><svg class="app-tab-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m4 16 5-5 4 3 7-8"/><path d="M4 20h16"/></svg><span class="app-tab-label">自选行情</span></button>
       <button class="app-tab" data-page="boards" onclick="switchAppPage('boards')" title="板块行情"><svg class="app-tab-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 15v2M11 11v6M15 8v9M19 12v5"/></svg><span class="app-tab-label">板块行情</span></button>
+      <button class="app-tab" data-page="capital-flow" onclick="switchAppPage('capital-flow')" title="资金流向"><svg class="app-tab-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 18V8m0 0 3 3M4 8 1 11M20 6v10m0 0-3-3m3 3 3-3"/><path d="M9 7h6M9 12h6M9 17h6"/></svg><span class="app-tab-label">资金流向</span></button>
       <button class="app-tab" data-page="funds" onclick="switchAppPage('funds')" title="基金行情"><svg class="app-tab-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19V9l5-4 4 3 7-5v16"/><path d="M4 19h16M8 19v-5M13 19v-7M18 19V8"/></svg><span class="app-tab-label">基金行情</span></button>
       <button class="app-tab" data-page="ipo" onclick="switchAppPage('ipo')" title="打新消息"><svg class="app-tab-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 3v4M17 3v4M3 10h18M8 14h3M8 17h6"/></svg><span class="app-tab-label">打新消息</span><span class="app-tab-badge" id="ipo-badge">--</span></button>
       <button class="app-tab" data-page="alerts" onclick="switchAppPage('alerts')" title="自选异动"><svg class="app-tab-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></svg><span class="app-tab-label">自选异动</span><span class="app-tab-badge" id="alert-badge">0</span></button>
@@ -689,18 +694,30 @@ html[data-theme="light"] .fund-search,html[data-theme="light"] .fund-search-resu
 </section>
 
 <section class="app-page" id="page-alerts">
-  <div class="module-head"><div><div class="market-kicker">Watchlist Signals</div><h2 class="module-title">自选股异动消息</h2><p class="module-desc">监控全部分组，识别大幅涨跌、快速拉升/跳水和临近涨跌停</p></div><div class="module-actions"><button class="refresh-btn" onclick="clearAnomalyEvents()">清空消息</button><button class="refresh-btn" onclick="fetchAnomalyQuotes()">立即扫描</button></div></div>
+  <div class="module-head"><div><div class="market-kicker">Watchlist Signals</div><h2 class="module-title">自选股异动消息</h2><p class="module-desc">监控全部分组，识别大幅涨跌、快速拉升/跳水、临近涨跌停及主力资金突变</p></div><div class="module-actions"><button class="refresh-btn" onclick="clearAnomalyEvents()">清空消息</button><button class="refresh-btn" onclick="fetchAnomalyQuotes()">立即扫描</button></div></div>
   <div class="metric-grid"><div class="metric-card"><div class="metric-label">监控股票</div><div class="metric-value" id="alert-stock-count">0</div><div class="metric-note">已自动去重</div></div><div class="metric-card"><div class="metric-label">今日异动</div><div class="metric-value" id="alert-event-count">0</div><div class="metric-note">仅保存在当前浏览器</div></div><div class="metric-card"><div class="metric-label">监控状态</div><div class="metric-value" style="font-size:15px;margin-top:10px"><span class="live-dot"></span><span id="alert-live-status">等待扫描</span></div><div class="metric-note">随自选刷新频率更新</div></div></div>
   <div class="module-panel"><div class="panel-toolbar"><button class="filter-chip active" data-alert-filter="all" onclick="setAlertFilter('all')">全部</button><button class="filter-chip" data-alert-filter="up" onclick="setAlertFilter('up')">上涨异动</button><button class="filter-chip" data-alert-filter="down" onclick="setAlertFilter('down')">下跌异动</button><span class="panel-status">仅供行情观察，不构成投资建议</span></div><div class="alert-list" id="alert-list"><div class="alert-empty">正在等待第一轮行情扫描…</div></div></div>
 </section>
 
 <section class="app-page" id="page-boards">
   <div class="module-head"><div><div class="market-kicker">Sector Pulse</div><h2 class="module-title">板块行情</h2><p class="module-desc">覆盖行业、概念和地域板块；查看领涨领跌、成分股分布及资金净流入。</p></div><div class="module-actions"><button class="refresh-btn" type="button" onclick="loadBoards(true)">↻ 刷新板块</button></div></div>
-  <div class="board-summary-grid" id="board-summary-grid"><div class="metric-card"><div class="metric-label">当前板块</div><div class="metric-value" id="board-summary-name">--</div><div class="metric-note" id="board-summary-code">从左侧选择板块</div></div><div class="metric-card"><div class="metric-label">板块涨跌幅</div><div class="metric-value" id="board-summary-pct">--</div><div class="metric-note" id="board-summary-leader">领涨股 --</div></div><div class="metric-card"><div class="metric-label">成分股家数</div><div class="metric-value" id="board-summary-total">--</div><div class="metric-note" id="board-summary-breadth">涨跌分布 --</div></div><div class="metric-card"><div class="metric-label">主力净流入</div><div class="metric-value" id="board-summary-flow">--</div><div class="metric-note">来自实时板块成分股</div></div></div>
+  <div class="board-summary-grid" id="board-summary-grid"><div class="metric-card"><div class="metric-label">当前板块</div><div class="metric-value" id="board-summary-name">--</div><div class="metric-note" id="board-summary-code">从左侧选择板块</div></div><div class="metric-card"><div class="metric-label">板块涨跌幅</div><div class="metric-value" id="board-summary-pct">--</div><div class="metric-note" id="board-summary-leader">领涨股 --</div></div><div class="metric-card"><div class="metric-label">成分股家数</div><div class="metric-value" id="board-summary-total">--</div><div class="metric-note" id="board-summary-breadth">涨跌分布 --</div></div><div class="metric-card"><div class="metric-label">主力净流入</div><div class="metric-value" id="board-summary-flow">--</div><div class="metric-note" id="board-summary-flow-note">今日板块资金</div></div></div>
   <div class="board-workspace">
-    <div class="module-panel board-directory"><div class="panel-toolbar board-directory-toolbar"><div class="board-type-tabs" id="board-type-tabs"><button class="filter-chip active" data-board-type="industry" onclick="setBoardType('industry')">行业</button><button class="filter-chip" data-board-type="concept" onclick="setBoardType('concept')">概念</button><button class="filter-chip" data-board-type="region" onclick="setBoardType('region')">地域</button></div><input class="board-search" id="board-search" type="search" maxlength="40" autocomplete="off" placeholder="搜索当前板块" oninput="filterBoardList()"><span class="panel-status" id="board-list-status">正在加载板块行情…</span></div><div class="board-list" id="board-list" aria-live="polite"><div class="module-loading">正在同步板块行情</div></div></div>
+    <div class="module-panel board-directory"><div class="panel-toolbar board-directory-toolbar"><div class="board-type-tabs" id="board-type-tabs"><button class="filter-chip active" data-board-type="industry" onclick="setBoardType('industry')">行业</button><button class="filter-chip" data-board-type="concept" onclick="setBoardType('concept')">概念</button><button class="filter-chip" data-board-type="region" onclick="setBoardType('region')">地域</button></div><div class="board-type-tabs" aria-label="板块资金周期"><button class="filter-chip active" data-board-flow-period="today" onclick="setBoardFlowPeriod('today')">今日资金</button><button class="filter-chip" data-board-flow-period="3d" onclick="setBoardFlowPeriod('3d')">3日</button><button class="filter-chip" data-board-flow-period="5d" onclick="setBoardFlowPeriod('5d')">5日</button><button class="filter-chip" data-board-flow-period="10d" onclick="setBoardFlowPeriod('10d')">10日</button></div><input class="board-search" id="board-search" type="search" maxlength="40" autocomplete="off" placeholder="搜索当前板块" oninput="filterBoardList()"><span class="panel-status" id="board-list-status">正在加载板块行情…</span></div><div class="board-list" id="board-list" aria-live="polite"><div class="module-loading">正在同步板块行情</div></div></div>
     <div class="module-panel board-detail" id="board-detail" aria-live="polite"><div class="board-detail-empty"><div><strong>选择一个板块</strong>即可查看全部成分股、涨跌幅前十和主力资金净流入前五。</div></div></div>
   </div>
+</section>
+
+<section class="app-page" id="page-capital-flow">
+  <div class="module-head"><div><div class="market-kicker">Capital Flow Radar</div><h2 class="module-title">资金流向</h2><p class="module-desc">观察沪深大盘、行业概念及个股的主力资金；统一采用东方财富成交单分类口径。</p></div><div class="module-actions"><button class="refresh-btn" type="button" onclick="refreshCapitalFlow()">↻ 刷新资金</button></div></div>
+  <div class="capital-flow-summary" id="capital-flow-summary"><div class="metric-card"><div class="metric-label">沪深主力净额</div><div class="metric-value" id="capital-summary-main">--</div><div class="metric-note" id="capital-summary-time">等待同步</div></div><div class="metric-card"><div class="metric-label">超大单净额</div><div class="metric-value" id="capital-summary-super">--</div><div class="metric-note">沪深分钟数据合计</div></div><div class="metric-card"><div class="metric-label">大单净额</div><div class="metric-value" id="capital-summary-large">--</div><div class="metric-note">沪深分钟数据合计</div></div><div class="metric-card"><div class="metric-label">中小单净额</div><div class="metric-value" id="capital-summary-retail">--</div><div class="metric-note">中单与小单合计</div></div></div>
+  <section class="module-panel capital-market-panel"><div class="capital-panel-head"><div><strong>大盘资金脉搏</strong><small id="capital-market-status">进入页面后加载</small></div><div class="capital-chip-row" id="capital-market-tabs"><button class="filter-chip active" data-capital-market-view="combined" onclick="setCapitalMarketView('combined')">沪深</button><button class="filter-chip" data-capital-market-view="sh" onclick="setCapitalMarketView('sh')">沪市</button><button class="filter-chip" data-capital-market-view="sz" onclick="setCapitalMarketView('sz')">深市</button></div></div><div class="capital-market-chart" id="capital-market-chart"><div class="module-loading">正在同步大盘资金</div></div><div class="capital-legend"><span class="main">主力</span><span class="super">超大单</span><span class="large">大单</span><span class="retail">中小单</span></div></section>
+  <div class="capital-rank-grid">
+    <section class="module-panel capital-rank-panel"><div class="capital-panel-head"><div><strong>板块资金排行</strong><small id="capital-board-status">行业 · 今日</small></div><div class="capital-chip-row"><button class="filter-chip active" data-capital-board-type="industry" onclick="setCapitalBoardType('industry')">行业</button><button class="filter-chip" data-capital-board-type="concept" onclick="setCapitalBoardType('concept')">概念</button><button class="filter-chip" data-capital-board-type="region" onclick="setCapitalBoardType('region')">地域</button></div></div><div class="capital-rank-controls"><div class="capital-chip-row"><button class="filter-chip active" data-capital-board-period="today" onclick="setCapitalBoardPeriod('today')">今日</button><button class="filter-chip" data-capital-board-period="3d" onclick="setCapitalBoardPeriod('3d')">3日</button><button class="filter-chip" data-capital-board-period="5d" onclick="setCapitalBoardPeriod('5d')">5日</button><button class="filter-chip" data-capital-board-period="10d" onclick="setCapitalBoardPeriod('10d')">10日</button></div><div class="capital-chip-row"><button class="filter-chip active" data-capital-board-direction="in" onclick="setCapitalBoardDirection('in')">净流入</button><button class="filter-chip" data-capital-board-direction="out" onclick="setCapitalBoardDirection('out')">净流出</button></div></div><div class="capital-table-wrap" id="capital-board-ranking"><div class="module-loading">正在同步板块资金榜</div></div></section>
+    <section class="module-panel capital-rank-panel"><div class="capital-panel-head"><div><strong>个股资金排行</strong><small id="capital-stock-status">沪深 A 股 · 今日</small></div><div class="capital-chip-row"><select class="capital-select" id="capital-stock-market" onchange="setCapitalStockMarket(this.value)"><option value="all">沪深 A 股</option><option value="main">主板</option><option value="cyb">创业板</option><option value="kcb">科创板</option><option value="sh">沪市</option><option value="sz">深市</option></select></div></div><div class="capital-rank-controls"><div class="capital-chip-row"><button class="filter-chip active" data-capital-stock-period="today" onclick="setCapitalStockPeriod('today')">今日</button><button class="filter-chip" data-capital-stock-period="3d" onclick="setCapitalStockPeriod('3d')">3日</button><button class="filter-chip" data-capital-stock-period="5d" onclick="setCapitalStockPeriod('5d')">5日</button><button class="filter-chip" data-capital-stock-period="10d" onclick="setCapitalStockPeriod('10d')">10日</button></div><div class="capital-chip-row"><button class="filter-chip active" data-capital-stock-direction="in" onclick="setCapitalStockDirection('in')">净流入</button><button class="filter-chip" data-capital-stock-direction="out" onclick="setCapitalStockDirection('out')">净流出</button></div></div><div class="capital-table-wrap" id="capital-stock-ranking"><div class="module-loading">正在同步个股资金榜</div></div></section>
+  </div>
+  <section class="module-panel capital-detail-panel" id="capital-detail-panel"><div class="capital-detail-empty"><strong>选择一个板块或股票</strong><span>查看最近 120 个交易日、日内分钟资金及连续流入/流出统计。</span></div></section>
+  <div class="capital-disclaimer">“主力资金”按照成交单规模统计，不代表已确认的机构账户买卖；数据仅供行情研究，不构成投资建议。</div>
 </section>
 
 <section class="app-page" id="page-funds">
@@ -1145,6 +1162,7 @@ let refreshIntervalMs = REFRESH_INTERVAL_OPTIONS.includes(_storedRefreshInterval
 let quoteTimer = null;
 let marketTimer = null;
 let anomalyTimer = null;
+let capitalFlowTimer = null;
 let stockPictureInPictureState = null;
 let stockPictureInPictureMedia = null;
 let quoteRequestPending = false;
@@ -1675,8 +1693,12 @@ function refreshAll(forceFunds = false) {
 function startAutoRefresh() {
   clearInterval(quoteTimer);
   clearInterval(anomalyTimer);
+  clearInterval(capitalFlowTimer);
   quoteTimer = document.hidden ? null : setInterval(fetchQuotes, refreshIntervalMs);
   anomalyTimer = document.hidden ? null : setInterval(fetchAnomalyQuotes, refreshIntervalMs);
+  capitalFlowTimer = document.hidden ? null : setInterval(() => {
+    if (activeAppPage === 'capital-flow') { capitalFlowLoaded = false; loadCapitalFlow(); }
+  }, 15000);
 }
 
 function startMarketRefresh() {
@@ -2648,7 +2670,7 @@ async function loadChart(type, options = {}) {
       const d = await r.json().catch(() => ({}));
       if (!r.ok) throw new Error(d.error || 'fund flow request failed');
       if (requestId !== chartRequestId || currentTab !== type) return;
-      drawFundFlow(d.data || []);
+      drawFundFlow(d.data || [], d.streak);
       if (dataNotice && (d.meta?.stale || d.meta?.realtime)) {
         const historyTime = Number(d.meta.fetchedAt);
         const realtimeTime = Number(d.meta.realtimeUpdatedAt);
@@ -2877,7 +2899,7 @@ function drawKline(canvas, rows, type = 'kline', period = '') {
   initializeChartViewport(type === 'kline' ? 30 : chartState.fullData.length);
 }
 
-function drawFundFlow(rows) {
+function drawFundFlow(rows, streak = null) {
   chartState.type = 'fundFlow';
   chartState.fullData = parseFundFlowRows(rows);
   chartState.prevClose = 0;
@@ -2886,11 +2908,11 @@ function drawFundFlow(rows) {
   chartState.fullMa5 = [];
   chartState.fullMa10 = [];
   chartState.fullMa20 = [];
-  renderFundFlowStats(chartState.fullData);
+  renderFundFlowStats(chartState.fullData, streak);
   initializeChartViewport(30);
 }
 
-function renderFundFlowStats(rows) {
+function renderFundFlowStats(rows, streak = null) {
   const latest = rows[rows.length - 1];
   if (!latest) return;
   const items = [
@@ -2899,7 +2921,7 @@ function renderFundFlowStats(rows) {
     ['近五日累计', fmtMetricMoney(latest.mainFiveDay), cls(latest.mainFiveDay)],
     ['超大单净额', fmtMetricMoney(latest.superLargeNet), cls(latest.superLargeNet)],
     ['大单净额', fmtMetricMoney(latest.largeNet), cls(latest.largeNet)],
-    ['最新交易日', latest.date, ''],
+    ['资金连续性', streak?.days ? `连续${streak.direction === 'in' ? '流入' : '流出'} ${streak.days} 日` : '暂无连续方向', streak?.direction === 'in' ? 'up' : streak?.direction === 'out' ? 'down' : ''],
   ];
   document.getElementById('stats-grid').innerHTML = items.map(([label,value,tone]) =>
     `<div class="stat-item"><div class="stat-label">${label}</div><div class="stat-value ${tone}">${value}</div></div>`
@@ -3642,7 +3664,7 @@ window.addEventListener('resize', () => {
 });
 
 // --- App pages / IPO calendar ---
-const APP_PAGES = ['market','boards','funds','ipo','alerts','notes','reference','sites','ai','user-ai-models','admin-users','admin-sites','admin-ai'];
+const APP_PAGES = ['market','boards','capital-flow','funds','ipo','alerts','notes','reference','sites','ai','user-ai-models','admin-users','admin-sites','admin-ai'];
 const requestedAppPage = new URLSearchParams(location.search).get('page');
 const storedAppPage = localStorage.getItem(APP_PAGE_STORAGE_KEY);
 let activeAppPage = APP_PAGES.includes(requestedAppPage)
@@ -3719,6 +3741,7 @@ function switchAppPage(page, { historyMode = 'push', scroll = true } = {}) {
   if (changed && sidebarUsesOverlay()) closeSidebar();
   if (page === 'ipo' && !ipoRows.length) fetchIpos();
   if (page === 'boards' && !boardRows.length) loadBoards();
+  if (page === 'capital-flow') loadCapitalFlow();
   if (page === 'funds' && !fundRows.length) loadFunds();
   if (page === 'alerts') { renderAnomalyEvents(); fetchAnomalyQuotes(); }
   if (page === 'notes') { loadNotesList({ reloadFolders:true }); }
@@ -3735,6 +3758,7 @@ window.addEventListener('popstate', () => switchAppPage(appPageFromLocation(), {
 
 const BOARD_TYPE_LABELS = { industry:'行业板块', concept:'概念板块', region:'地域板块' };
 let boardType = 'industry';
+let boardFlowPeriod = 'today';
 let boardRows = [];
 let activeBoard = null;
 let activeBoardDetail = null;
@@ -3745,16 +3769,19 @@ let boardDetailRequestId = 0;
 const boardLoadWaiters = new Map();
 
 function boardNumber(value, fractionDigits = 2) {
+  if (value === '' || value == null) return '--';
   const number = Number(value);
   return Number.isFinite(number) ? number.toLocaleString('zh-CN', { minimumFractionDigits:fractionDigits, maximumFractionDigits:fractionDigits }) : '--';
 }
 
 function boardPct(value) {
+  if (value === '' || value == null) return '--';
   const number = Number(value);
   return Number.isFinite(number) ? `${sign(number)}${boardNumber(number)}%` : '--';
 }
 
 function boardMoney(value) {
+  if (value === '' || value == null) return '--';
   const number = Number(value);
   if (!Number.isFinite(number)) return '--';
   const absolute = Math.abs(number);
@@ -3776,6 +3803,11 @@ function boardSummaryReset() {
   document.getElementById('board-summary-breadth').textContent = '涨跌分布 --';
   document.getElementById('board-summary-flow').textContent = '--';
   document.getElementById('board-summary-flow').className = 'metric-value';
+  document.getElementById('board-summary-flow-note').textContent = `${CAPITAL_PERIOD_LABELS?.[boardFlowPeriod] || '今日'}板块资金`;
+}
+
+function boardPeriodFlow(board) {
+  return board?.flowPeriods?.[boardFlowPeriod]?.mainNet ?? (boardFlowPeriod === 'today' ? board?.mainNetInflow : null);
 }
 
 function updateBoardSummary(board, detail = activeBoardDetail) {
@@ -3785,7 +3817,7 @@ function updateBoardSummary(board, detail = activeBoardDetail) {
   const falling = stocks.filter(stock => Number(stock.pct) < 0).length;
   const flat = stocks.length - rising - falling;
   const pct = Number(board.pct);
-  const flow = Number(board.mainNetInflow);
+  const flow = boardPeriodFlow(board);
   document.getElementById('board-summary-name').textContent = board.name;
   document.getElementById('board-summary-code').textContent = `${BOARD_TYPE_LABELS[boardType] || '板块'} · ${board.code}`;
   const pctNode = document.getElementById('board-summary-pct');
@@ -3797,6 +3829,7 @@ function updateBoardSummary(board, detail = activeBoardDetail) {
     ? `${rising} 涨 · ${flat} 平 · ${falling} 跌` : '加载成分股后统计';
   const flowNode = document.getElementById('board-summary-flow');
   flowNode.textContent = boardMoney(flow); flowNode.className = `metric-value ${boardTone(flow)}`;
+  document.getElementById('board-summary-flow-note').textContent = `${CAPITAL_PERIOD_LABELS?.[boardFlowPeriod] || '今日'}板块资金`;
 }
 
 function filteredBoardRows() {
@@ -3806,18 +3839,31 @@ function filteredBoardRows() {
 
 function renderBoardList() {
   const list = document.getElementById('board-list');
-  const rows = filteredBoardRows();
+  const rows = filteredBoardRows().sort((left, right) => {
+    const leftRaw = boardPeriodFlow(left), rightRaw = boardPeriodFlow(right);
+    const leftFlow = leftRaw == null ? -Infinity : Number(leftRaw), rightFlow = rightRaw == null ? -Infinity : Number(rightRaw);
+    return (Number.isFinite(rightFlow) ? rightFlow : -Infinity) - (Number.isFinite(leftFlow) ? leftFlow : -Infinity);
+  });
   if (!rows.length) {
     list.innerHTML = `<div class="board-detail-empty"><div><strong>${boardRows.length ? '没有匹配的板块' : '板块行情暂时不可用'}</strong>${boardRows.length ? '换一个关键词试试' : '请稍后刷新重试'}</div></div>`;
     return;
   }
   list.innerHTML = rows.map(board => {
     const leader = board.leader?.name ? `${board.leader.name} ${boardPct(board.leader.pct)}` : '暂无领涨股';
-    return `<button class="board-list-row${activeBoard?.code === board.code ? ' active' : ''}" type="button" onclick="selectBoard('${board.code}')"><span><span class="board-list-name">${escapeHtml(board.name)}</span><span class="board-list-meta"><span>${Number(board.upCount) || 0} 涨</span><span>${Number(board.downCount) || 0} 跌</span></span></span><span><span class="board-list-leader">${escapeHtml(leader)}</span><span class="board-list-pct ${boardTone(board.pct)}">${boardPct(board.pct)}</span></span></button>`;
+    const flow = boardPeriodFlow(board);
+    return `<button class="board-list-row${activeBoard?.code === board.code ? ' active' : ''}" type="button" onclick="selectBoard('${board.code}')"><span><span class="board-list-name">${escapeHtml(board.name)}</span><span class="board-list-meta"><span>${Number(board.upCount) || 0} 涨</span><span>${Number(board.downCount) || 0} 跌</span></span></span><span><span class="board-list-leader ${boardTone(flow)}">${CAPITAL_PERIOD_LABELS?.[boardFlowPeriod] || '今日'} ${boardMoney(flow)}</span><span class="board-list-pct ${boardTone(board.pct)}">${boardPct(board.pct)}</span></span></button>`;
   }).join('');
 }
 
 function filterBoardList() { renderBoardList(); }
+
+function setBoardFlowPeriod(period) {
+  if (!CAPITAL_PERIOD_LABELS?.[period] || period === boardFlowPeriod) return;
+  boardFlowPeriod = period;
+  document.querySelectorAll('[data-board-flow-period]').forEach(button => button.classList.toggle('active', button.dataset.boardFlowPeriod === period));
+  renderBoardList();
+  updateBoardSummary(activeBoard);
+}
 
 function setBoardType(type) {
   if (!BOARD_TYPE_LABELS[type] || type === boardType) return Promise.resolve();
@@ -3886,7 +3932,7 @@ function renderBoardDetail(board, payload) {
   const topFallers = [...stocks].filter(stock => Number.isFinite(Number(stock.pct))).sort((a, b) => Number(a.pct) - Number(b.pct)).slice(0, 10);
   const topInflows = [...stocks].filter(stock => Number.isFinite(Number(stock.mainNetInflow))).sort((a, b) => Number(b.mainNetInflow) - Number(a.mainNetInflow)).slice(0, 5);
   const detail = document.getElementById('board-detail');
-  detail.innerHTML = `<div class="board-detail-head"><div><div class="board-detail-title">${escapeHtml(board.name)}</div><div class="board-detail-code">${escapeHtml(board.code)} · ${BOARD_TYPE_LABELS[boardType]}</div></div><div class="board-detail-status">${payload.truncated ? `已展示前 ${stocks.length} 只成分股<br>` : ''}更新于 ${new Date(payload.fetchedAt || Date.now()).toLocaleTimeString('zh-CN', { hour:'2-digit', minute:'2-digit' })}</div></div><div class="board-stat-strip"><div class="board-stat"><label>板块涨跌幅</label><b class="${boardTone(board.pct)}">${boardPct(board.pct)}</b><small>均值 ${boardPct(averagePct)}</small></div><div class="board-stat"><label>上涨 / 平 / 下跌</label><b><span class="board-up-count">${rising}</span> / <span class="board-neutral-count">${flat}</span> / <span class="board-down-count">${falling}</span></b><small>共 ${payload.total || stocks.length} 只成分股</small></div><div class="board-stat"><label>领涨股</label><b class="${boardTone(board.leader?.pct)}">${escapeHtml(board.leader?.name || '--')}</b><small>${boardPct(board.leader?.pct)}</small></div><div class="board-stat"><label>主力净流入</label><b class="${boardTone(board.mainNetInflow)}">${boardMoney(board.mainNetInflow)}</b><small>板块实时资金</small></div></div><div class="board-top-grid">${boardRankRows('涨幅前十', '按涨跌幅', topRisers, stock => boardPct(stock.pct))}${boardRankRows('跌幅前十', '按涨跌幅', topFallers, stock => boardPct(stock.pct))}${boardRankRows('资金流入前五', '主力净额', topInflows, stock => boardMoney(stock.mainNetInflow), 'up')}</div><section class="board-components"><div class="board-components-head"><span class="board-components-title">成分股</span><span class="board-components-note">点击股票可打开走势图</span></div><div class="board-components-scroll"><table class="board-component-table"><thead><tr><th>股票</th><th>最新价</th><th>涨跌幅</th><th>成交额</th><th>换手率</th><th>主力净额</th><th>所属行业</th></tr></thead><tbody>${boardComponentRows(stocks)}</tbody></table></div></section>`;
+  detail.innerHTML = `<div class="board-detail-head"><div><div class="board-detail-title">${escapeHtml(board.name)}</div><div class="board-detail-code">${escapeHtml(board.code)} · ${BOARD_TYPE_LABELS[boardType]}</div></div><div class="board-detail-status"><button class="refresh-btn" type="button" onclick="openCapitalBoardHistory('${board.code}')">资金历史</button><br>${payload.truncated ? `已展示前 ${stocks.length} 只成分股<br>` : ''}更新于 ${new Date(payload.fetchedAt || Date.now()).toLocaleTimeString('zh-CN', { hour:'2-digit', minute:'2-digit' })}</div></div><div class="board-stat-strip"><div class="board-stat"><label>板块涨跌幅</label><b class="${boardTone(board.pct)}">${boardPct(board.pct)}</b><small>均值 ${boardPct(averagePct)}</small></div><div class="board-stat"><label>上涨 / 平 / 下跌</label><b><span class="board-up-count">${rising}</span> / <span class="board-neutral-count">${flat}</span> / <span class="board-down-count">${falling}</span></b><small>共 ${payload.total || stocks.length} 只成分股</small></div><div class="board-stat"><label>领涨股</label><b class="${boardTone(board.leader?.pct)}">${escapeHtml(board.leader?.name || '--')}</b><small>${boardPct(board.leader?.pct)}</small></div><div class="board-stat"><label>主力净流入</label><b class="${boardTone(board.mainNetInflow)}">${boardMoney(board.mainNetInflow)}</b><small>板块实时资金</small></div></div><div class="board-top-grid">${boardRankRows('涨幅前十', '按涨跌幅', topRisers, stock => boardPct(stock.pct))}${boardRankRows('跌幅前十', '按涨跌幅', topFallers, stock => boardPct(stock.pct))}${boardRankRows('资金流入前五', '主力净额', topInflows, stock => boardMoney(stock.mainNetInflow), 'up')}</div><section class="board-components"><div class="board-components-head"><span class="board-components-title">成分股</span><span class="board-components-note">点击股票可打开走势图</span></div><div class="board-components-scroll"><table class="board-component-table"><thead><tr><th>股票</th><th>最新价</th><th>涨跌幅</th><th>成交额</th><th>换手率</th><th>主力净额</th><th>所属行业</th></tr></thead><tbody>${boardComponentRows(stocks)}</tbody></table></div></section>`;
 }
 
 async function selectBoard(code) {
@@ -3923,6 +3969,245 @@ function openBoardStock(symbol) {
   };
   openModal(stock.symbol);
 }
+
+// --- Capital flow radar ---
+const CAPITAL_PERIOD_LABELS = { today:'今日', '3d':'3日', '5d':'5日', '10d':'10日' };
+const CAPITAL_BOARD_LABELS = { industry:'行业', concept:'概念', region:'地域' };
+const CAPITAL_MARKET_LABELS = { all:'沪深 A 股', main:'主板', cyb:'创业板', kcb:'科创板', sh:'沪市', sz:'深市' };
+let capitalFlowLoaded = false;
+let capitalMarketPayload = null;
+let capitalMarketView = 'combined';
+let capitalBoardType = 'industry';
+let capitalBoardPeriod = 'today';
+let capitalBoardDirection = 'in';
+let capitalStockMarket = 'all';
+let capitalStockPeriod = 'today';
+let capitalStockDirection = 'in';
+let capitalBoardRows = [];
+let capitalStockRows = [];
+let capitalSelectedItem = null;
+let capitalDetailMode = 'history';
+let capitalRequestVersion = 0;
+
+function capitalFlowLatest(rows) { return Array.isArray(rows) && rows.length ? rows[rows.length - 1] : null; }
+
+function capitalFlowChartSvg(rows, key = 'time') {
+  const data = (Array.isArray(rows) ? rows : []).filter(row => row?.[key] && Number.isFinite(Number(row.mainNet)));
+  if (!data.length) return '<div class="capital-detail-empty"><span>当前时段暂无可用资金曲线</span></div>';
+  const width = 900, height = 245, left = 58, right = 12, top = 12, bottom = 28;
+  const series = [
+    ['mainNet','capital-chart-main'], ['superLargeNet','capital-chart-super'], ['largeNet','capital-chart-large'],
+    ['retailNet','capital-chart-retail'],
+  ];
+  const normalized = data.map(row => ({ ...row, retailNet:(Number(row.mediumNet) || 0) + (Number(row.smallNet) || 0) }));
+  const values = normalized.flatMap(row => series.map(([field]) => Number(row[field])).filter(Number.isFinite));
+  let min = Math.min(0, ...values), max = Math.max(0, ...values);
+  if (min === max) { min -= 1; max += 1; }
+  const x = index => left + index / Math.max(1, normalized.length - 1) * (width - left - right);
+  const y = value => top + (max - value) / (max - min) * (height - top - bottom);
+  const lines = [0,.25,.5,.75,1].map(ratio => {
+    const value = max - (max - min) * ratio;
+    const py = y(value);
+    return `<line class="capital-chart-grid" x1="${left}" y1="${py}" x2="${width-right}" y2="${py}"/><text class="capital-chart-label" x="2" y="${py+3}">${escapeHtml(boardMoney(value))}</text>`;
+  }).join('');
+  const paths = series.map(([field, className]) => {
+    const points = normalized.map((row,index) => `${x(index).toFixed(1)},${y(Number(row[field]) || 0).toFixed(1)}`).join(' ');
+    return `<polyline class="${className}" points="${points}"/>`;
+  }).join('');
+  const labelIndexes = [...new Set([0, Math.floor((normalized.length - 1) / 2), normalized.length - 1])];
+  const labels = labelIndexes.map(index => `<text class="capital-chart-label" x="${x(index)}" y="${height-7}" text-anchor="${index === 0 ? 'start' : index === normalized.length - 1 ? 'end' : 'middle'}">${escapeHtml(String(normalized[index][key]).slice(key === 'time' ? 11 : 5, key === 'time' ? 16 : 10))}</text>`).join('');
+  return `<svg viewBox="0 0 ${width} ${height}" role="img" aria-label="资金流向曲线">${lines}<line class="capital-chart-zero" x1="${left}" y1="${y(0)}" x2="${width-right}" y2="${y(0)}"/>${paths}${labels}</svg>`;
+}
+
+function capitalSetSummary(point) {
+  const values = {
+    'capital-summary-main':point?.mainNet,
+    'capital-summary-super':point?.superLargeNet,
+    'capital-summary-large':point?.largeNet,
+    'capital-summary-retail':point ? (Number(point.mediumNet) || 0) + (Number(point.smallNet) || 0) : null,
+  };
+  Object.entries(values).forEach(([id,value]) => {
+    const node = document.getElementById(id);
+    node.textContent = boardMoney(value);
+    node.className = `metric-value ${boardTone(value)}`;
+  });
+  document.getElementById('capital-summary-time').textContent = point?.time ? `更新至 ${point.time.slice(11,16)}` : point?.date ? `交易日 ${point.date}` : '等待同步';
+}
+
+function capitalMarketRows() {
+  if (!capitalMarketPayload) return [];
+  if (capitalMarketView === 'combined') return capitalMarketPayload.combined?.intraday?.length
+    ? capitalMarketPayload.combined.intraday : capitalMarketPayload.combined?.history || [];
+  const market = capitalMarketPayload.markets?.find(item => item.key === capitalMarketView);
+  return market?.intraday?.length ? market.intraday : market?.history || [];
+}
+
+function renderCapitalMarket() {
+  const rows = capitalMarketRows();
+  const key = rows[0]?.time ? 'time' : 'date';
+  document.getElementById('capital-market-chart').innerHTML = capitalFlowChartSvg(rows, key);
+  capitalSetSummary(capitalFlowLatest(capitalMarketPayload?.combined?.intraday?.length
+    ? capitalMarketPayload.combined.intraday : capitalMarketPayload?.combined?.history));
+  document.getElementById('capital-market-status').textContent = `${capitalMarketView === 'combined' ? '沪深两市' : capitalMarketView === 'sh' ? '沪市' : '深市'} · ${key === 'time' ? '当日分钟累计' : '最近交易日'}${capitalMarketPayload?.partial ? ' · 部分数据' : ''}`;
+}
+
+async function loadCapitalMarket(force = false, version = capitalRequestVersion) {
+  try {
+    const response = await fetch(`/api/capital-flow/market${force ? '?refresh=1' : ''}`);
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(payload.error || 'market capital flow request failed');
+    if (version !== capitalRequestVersion) return;
+    capitalMarketPayload = payload;
+    renderCapitalMarket();
+  } catch (error) {
+    if (version !== capitalRequestVersion) return;
+    document.getElementById('capital-market-status').textContent = '大盘资金暂时不可用';
+    document.getElementById('capital-market-chart').innerHTML = `<div class="capital-detail-empty"><span>${escapeHtml(error.message || '请稍后刷新')}</span></div>`;
+  }
+}
+
+function setCapitalMarketView(view) {
+  if (!['combined','sh','sz'].includes(view)) return;
+  capitalMarketView = view;
+  document.querySelectorAll('[data-capital-market-view]').forEach(button => button.classList.toggle('active', button.dataset.capitalMarketView === view));
+  renderCapitalMarket();
+}
+
+function capitalRankingMarkup(scope, rows) {
+  if (!rows.length) return '<div class="capital-detail-empty"><span>当前筛选条件下暂无资金数据</span></div>';
+  return `<table class="capital-table"><thead><tr><th>#</th><th>${scope === 'board' ? '板块' : '股票'}</th><th>涨跌幅</th><th>主力净额</th><th>净占比</th><th>超大单</th><th>大单</th></tr></thead><tbody>${rows.map((row,index) => `<tr><td class="capital-rank-index">${index+1}</td><td><button class="capital-rank-button" type="button" onclick="selectCapitalFlowItem('${scope}','${escapeHtml(row.code)}')">${escapeHtml(row.name)}<small>${escapeHtml(row.code)}${row.industry ? ` · ${escapeHtml(row.industry)}` : ''}</small></button></td><td class="${boardTone(row.pct)}">${boardPct(row.pct)}</td><td class="${boardTone(row.mainNet)}">${boardMoney(row.mainNet)}</td><td class="${boardTone(row.mainRatio)}">${boardPct(row.mainRatio)}</td><td class="${boardTone(row.superLargeNet)}">${boardMoney(row.superLargeNet)}</td><td class="${boardTone(row.largeNet)}">${boardMoney(row.largeNet)}</td></tr>`).join('')}</tbody></table>`;
+}
+
+async function loadCapitalRanking(scope, force = false, version = capitalRequestVersion) {
+  const isBoard = scope === 'board';
+  const type = isBoard ? capitalBoardType : '';
+  const market = isBoard ? '' : capitalStockMarket;
+  const period = isBoard ? capitalBoardPeriod : capitalStockPeriod;
+  const direction = isBoard ? capitalBoardDirection : capitalStockDirection;
+  const selectionKey = [scope, type, market, period, direction].join(':');
+  const container = document.getElementById(isBoard ? 'capital-board-ranking' : 'capital-stock-ranking');
+  const status = document.getElementById(isBoard ? 'capital-board-status' : 'capital-stock-status');
+  container.innerHTML = '<div class="module-loading">正在同步资金排行</div>';
+  try {
+    const params = new URLSearchParams({ scope, period, direction, limit:'40' });
+    if (isBoard) params.set('type', type); else params.set('market', market);
+    if (force) params.set('refresh', '1');
+    const response = await fetch(`/api/capital-flow/rankings?${params}`);
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(payload.error || 'capital ranking request failed');
+    const currentSelectionKey = isBoard
+      ? [scope, capitalBoardType, '', capitalBoardPeriod, capitalBoardDirection].join(':')
+      : [scope, '', capitalStockMarket, capitalStockPeriod, capitalStockDirection].join(':');
+    if (version !== capitalRequestVersion || selectionKey !== currentSelectionKey) return;
+    if (isBoard) capitalBoardRows = payload.data || []; else capitalStockRows = payload.data || [];
+    const rows = isBoard ? capitalBoardRows : capitalStockRows;
+    container.innerHTML = capitalRankingMarkup(scope, rows);
+    status.textContent = `${isBoard ? CAPITAL_BOARD_LABELS[type] : CAPITAL_MARKET_LABELS[market]} · ${CAPITAL_PERIOD_LABELS[period]} · ${direction === 'in' ? '净流入' : '净流出'}${payload.stale ? ' · 缓存' : ''}`;
+  } catch (error) {
+    const currentSelectionKey = isBoard
+      ? [scope, capitalBoardType, '', capitalBoardPeriod, capitalBoardDirection].join(':')
+      : [scope, '', capitalStockMarket, capitalStockPeriod, capitalStockDirection].join(':');
+    if (version !== capitalRequestVersion || selectionKey !== currentSelectionKey) return;
+    status.textContent = '资金排行同步失败';
+    container.innerHTML = `<div class="capital-detail-empty"><span>${escapeHtml(error.message || '请稍后刷新')}</span></div>`;
+  }
+}
+
+function setCapitalBoardType(type) { if (!CAPITAL_BOARD_LABELS[type]) return; capitalBoardType=type; document.querySelectorAll('[data-capital-board-type]').forEach(button=>button.classList.toggle('active',button.dataset.capitalBoardType===type)); loadCapitalRanking('board'); }
+function setCapitalBoardPeriod(period) { if (!CAPITAL_PERIOD_LABELS[period]) return; capitalBoardPeriod=period; document.querySelectorAll('[data-capital-board-period]').forEach(button=>button.classList.toggle('active',button.dataset.capitalBoardPeriod===period)); loadCapitalRanking('board'); }
+function setCapitalBoardDirection(direction) { if (!['in','out'].includes(direction)) return; capitalBoardDirection=direction; document.querySelectorAll('[data-capital-board-direction]').forEach(button=>button.classList.toggle('active',button.dataset.capitalBoardDirection===direction)); loadCapitalRanking('board'); }
+function setCapitalStockMarket(market) { if (!CAPITAL_MARKET_LABELS[market]) return; capitalStockMarket=market; loadCapitalRanking('stock'); }
+function setCapitalStockPeriod(period) { if (!CAPITAL_PERIOD_LABELS[period]) return; capitalStockPeriod=period; document.querySelectorAll('[data-capital-stock-period]').forEach(button=>button.classList.toggle('active',button.dataset.capitalStockPeriod===period)); loadCapitalRanking('stock'); }
+function setCapitalStockDirection(direction) { if (!['in','out'].includes(direction)) return; capitalStockDirection=direction; document.querySelectorAll('[data-capital-stock-direction]').forEach(button=>button.classList.toggle('active',button.dataset.capitalStockDirection===direction)); loadCapitalRanking('stock'); }
+
+function capitalDetailShell(item, mode, body) {
+  const isStock = item.scope === 'stock';
+  return `<div class="capital-detail-head"><div><div class="capital-detail-title">${escapeHtml(item.name)}</div><div class="capital-detail-sub">${escapeHtml(item.code)} · ${isStock ? '个股资金' : `${CAPITAL_BOARD_LABELS[item.type] || '板块'}资金`}</div></div><div class="capital-detail-actions"><button class="filter-chip${mode === 'history' ? ' active' : ''}" type="button" onclick="setCapitalDetailMode('history')">日线历史</button><button class="filter-chip${mode === 'intraday' ? ' active' : ''}" type="button" onclick="setCapitalDetailMode('intraday')">日内分钟</button><button class="refresh-btn" type="button" onclick="openCapitalFlowContext()">${isStock ? '打开个股行情' : '打开板块详情'}</button></div></div>${body}`;
+}
+
+function renderCapitalDetail(payload, mode) {
+  const item = capitalSelectedItem;
+  if (!item) return;
+  const rows = payload.data || [];
+  const latest = capitalFlowLatest(rows);
+  const streak = payload.streak || { direction:'flat', days:0, amount:0 };
+  const retail = latest ? (Number(latest.mediumNet) || 0) + (Number(latest.smallNet) || 0) : null;
+  const streakLabel = streak.direction === 'in' ? `连续净流入 ${streak.days} 日` : streak.direction === 'out' ? `连续净流出 ${streak.days} 日` : '暂无连续方向';
+  const stats = `<div class="capital-streak"><div class="capital-streak-item"><label>最新主力净额</label><b class="${boardTone(latest?.mainNet)}">${boardMoney(latest?.mainNet)}</b></div><div class="capital-streak-item"><label>资金连续性</label><b class="${streak.direction === 'in' ? 'up' : streak.direction === 'out' ? 'down' : 'flat'}">${streakLabel}</b></div><div class="capital-streak-item"><label>连续期间累计</label><b class="${boardTone(streak.amount)}">${boardMoney(streak.amount)}</b></div><div class="capital-streak-item"><label>中小单净额</label><b class="${boardTone(retail)}">${boardMoney(retail)}</b></div></div>`;
+  const key = mode === 'intraday' ? 'time' : 'date';
+  const tableRows = rows.slice(-20).reverse();
+  const table = `<div class="capital-detail-history"><table class="capital-table"><thead><tr><th>${mode === 'intraday' ? '时间' : '日期'}</th><th>主力净额</th><th>超大单</th><th>大单</th><th>中单</th><th>小单</th></tr></thead><tbody>${tableRows.map(row => `<tr><td>${escapeHtml(row[key] || '--')}</td><td class="${boardTone(row.mainNet)}">${boardMoney(row.mainNet)}</td><td class="${boardTone(row.superLargeNet)}">${boardMoney(row.superLargeNet)}</td><td class="${boardTone(row.largeNet)}">${boardMoney(row.largeNet)}</td><td class="${boardTone(row.mediumNet)}">${boardMoney(row.mediumNet)}</td><td class="${boardTone(row.smallNet)}">${boardMoney(row.smallNet)}</td></tr>`).join('')}</tbody></table></div>`;
+  document.getElementById('capital-detail-panel').innerHTML = capitalDetailShell(item, mode, `${stats}<div class="capital-detail-chart">${capitalFlowChartSvg(rows,key)}</div>${table}`);
+}
+
+async function loadCapitalDetail(force = false) {
+  const item = capitalSelectedItem;
+  if (!item) return;
+  const mode = capitalDetailMode;
+  const panel = document.getElementById('capital-detail-panel');
+  panel.innerHTML = capitalDetailShell(item, mode, '<div class="capital-detail-empty"><span>正在加载资金明细…</span></div>');
+  try {
+    const path = mode === 'history' ? 'history' : 'intraday';
+    const params = new URLSearchParams({ kind:item.scope, code:item.scope === 'stock' ? item.symbol : item.code });
+    if (force) params.set('refresh','1');
+    const response = await fetch(`/api/capital-flow/${path}?${params}`);
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(payload.error || 'capital detail request failed');
+    if (capitalSelectedItem?.code !== item.code || capitalDetailMode !== mode) return;
+    renderCapitalDetail(payload, mode);
+  } catch (error) {
+    if (capitalSelectedItem?.code !== item.code || capitalDetailMode !== mode) return;
+    panel.innerHTML = capitalDetailShell(item, mode, `<div class="capital-detail-empty"><strong>资金明细暂时不可用</strong><span>${escapeHtml(error.message || '请稍后再试')}</span></div>`);
+  }
+}
+
+function selectCapitalFlowItem(scope, code) {
+  const row = (scope === 'board' ? capitalBoardRows : capitalStockRows).find(item => item.code === code);
+  if (!row) return;
+  capitalSelectedItem = { ...row, scope, type:scope === 'board' ? capitalBoardType : undefined };
+  capitalDetailMode = 'history';
+  loadCapitalDetail();
+  document.getElementById('capital-detail-panel')?.scrollIntoView({ behavior:'smooth', block:'start' });
+}
+
+function openCapitalBoardHistory(code) {
+  const board = boardRows.find(item => item.code === code);
+  if (!board) return;
+  switchAppPage('capital-flow');
+  capitalSelectedItem = { ...board, scope:'board', type:boardType };
+  capitalDetailMode = 'history';
+  loadCapitalDetail();
+}
+
+function setCapitalDetailMode(mode) { if (!['history','intraday'].includes(mode) || !capitalSelectedItem) return; capitalDetailMode=mode; loadCapitalDetail(); }
+
+async function openCapitalFlowContext() {
+  const item = capitalSelectedItem;
+  if (!item) return;
+  if (item.scope === 'stock') {
+    lastQuoteData[item.symbol] = { ...(lastQuoteData[item.symbol] || {}), name:item.name, price:item.price, pct:item.pct, amount:item.amount };
+    openModal(item.symbol);
+    const tab = document.querySelector('[data-tab="fundFlow"]');
+    if (tab) switchTab(tab);
+    return;
+  }
+  switchAppPage('boards');
+  if (boardType !== item.type) await setBoardType(item.type);
+  else if (!boardRows.length) await loadBoards();
+  if (boardRows.some(board => board.code === item.code)) selectBoard(item.code);
+  else showToast(`板块行情中暂未找到“${item.name}”`, true);
+}
+
+function loadCapitalFlow(force = false) {
+  if (capitalFlowLoaded && !force) return;
+  capitalFlowLoaded = true;
+  const version = ++capitalRequestVersion;
+  loadCapitalMarket(force, version);
+  loadCapitalRanking('board', force, version);
+  loadCapitalRanking('stock', force, version);
+}
+
+function refreshCapitalFlow() { capitalFlowLoaded=false; loadCapitalFlow(true); if (capitalSelectedItem) loadCapitalDetail(true); }
 
 // --- Fund market center ---
 const FUND_TYPE_LABELS = { all:'全部基金', stock:'股票型', mixed:'混合型', bond:'债券型', index:'指数型', qdii:'QDII', fof:'FOF' };
@@ -4611,6 +4896,7 @@ function renderIpos() {
 
 // --- Watchlist anomaly monitor ---
 let anomalySnapshots = new Map();
+let fundFlowAnomalySnapshots = new Map();
 let anomalyRequestPending = false;
 let alertFilter = 'all';
 let anomalyEvents = [];
@@ -4706,12 +4992,28 @@ function detectAnomaly(sym, quote) {
   anomalySnapshots.set(sym, { price, pct, timestamp:Date.now() });
   return true;
 }
+function detectFundFlowAnomaly(sym, quote, flow) {
+  const mainNet = Number(flow?.mainNetInflow), ratio = Number(flow?.mainNetRatio);
+  const previous = fundFlowAnomalySnapshots.get(sym);
+  if (!Number.isFinite(mainNet) || !Number.isFinite(ratio)) { fundFlowAnomalySnapshots.delete(sym); return; }
+  if (Math.abs(mainNet) >= 20000000 && Math.abs(ratio) >= 8) {
+    addAnomalyEvent(sym, quote, mainNet > 0 ? 'flow-in' : 'flow-out', mainNet > 0 ? 'up' : 'down',
+      mainNet > 0 ? '主力大额净流入' : '主力大额净流出',
+      `主力净额 ${boardMoney(mainNet)}，占成交额 ${boardPct(ratio)}`, 2*60*60*1000);
+  }
+  if (previous && previous.mainNet * mainNet < 0 && Math.abs(previous.mainNet) >= 10000000 && Math.abs(mainNet) >= 10000000) {
+    addAnomalyEvent(sym, quote, mainNet > 0 ? 'flow-turn-in' : 'flow-turn-out', mainNet > 0 ? 'up' : 'down',
+      mainNet > 0 ? '主力资金转为净流入' : '主力资金转为净流出',
+      `由 ${boardMoney(previous.mainNet)} 变为 ${boardMoney(mainNet)}`, 30*60*1000);
+  }
+  fundFlowAnomalySnapshots.set(sym, { mainNet, ratio, timestamp:Date.now() });
+}
 async function fetchAnomalyQuotes() {
   const symbols = allWatchlistSymbols();
   document.getElementById('alert-stock-count').textContent = symbols.length;
   if (!symbols.length || anomalyRequestPending) { renderAnomalyEvents(); return; }
   const activeSymbols = symbols.filter(sym => marketSessionState(sym)?.open);
-  symbols.filter(sym => !activeSymbols.includes(sym)).forEach(sym => anomalySnapshots.delete(sym));
+  symbols.filter(sym => !activeSymbols.includes(sym)).forEach(sym => { anomalySnapshots.delete(sym); fundFlowAnomalySnapshots.delete(sym); });
   if (!activeSymbols.length) {
     document.getElementById('alert-live-status').textContent = '休市中 · 开盘后自动继续';
     renderAnomalyEvents();
@@ -4725,10 +5027,19 @@ async function fetchAnomalyQuotes() {
     const responses = await Promise.all(batches.map(batch => fetch(`/api/quote?symbols=${encodeURIComponent(batch.join(','))}`)));
     if (responses.some(response => !response.ok)) throw new Error('anomaly request failed');
     const data = Object.assign({}, ...await Promise.all(responses.map(async response => parseQuoteText(await response.text()))));
+    const flowSymbols = activeSymbols.filter(isAStockSymbol);
+    const flowBatches = [];
+    for (let index=0; index<flowSymbols.length; index+=50) flowBatches.push(flowSymbols.slice(index,index+50));
+    const flowResponses = await Promise.all(flowBatches.map(batch => fetch(`/api/stock-metrics?symbols=${encodeURIComponent(batch.join(','))}&flow=1`)));
+    const flowPayloads = await Promise.all(flowResponses.filter(response => response.ok).map(response => response.json()));
+    const flowData = Object.assign({}, ...flowPayloads.map(payload => payload.data || {}));
     let eligibleCount = 0;
     activeSymbols.forEach(sym => {
       const quote = extractQuote(sym, data[sym]);
-      if (quote && detectAnomaly(sym, quote)) eligibleCount++;
+      if (quote && detectAnomaly(sym, quote)) {
+        eligibleCount++;
+        if (flowData[sym]) detectFundFlowAnomaly(sym, quote, flowData[sym]);
+      }
     });
     document.getElementById('alert-live-status').textContent = eligibleCount
       ? `运行中 · ${new Date().toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'})}`

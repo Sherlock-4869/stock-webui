@@ -24,6 +24,14 @@ const {
   parseTencentSecuritySearch,
 } = require('./stock-search');
 const { fundQuoteFromProfile } = require('./fund-quote');
+const {
+  FLOW_PERIODS,
+  consecutiveFlowDays,
+  flowRankingFields,
+  mergeFlowSeries,
+  normalizeFlowRankingRow,
+  parseIntradayFlowPayload,
+} = require('./capital-flow');
 
 const PORT = 3000;
 const PUBLIC_DIR = path.join(__dirname, 'public');
@@ -68,6 +76,9 @@ const BOARD_DETAIL_CACHE_MS = 8 * 1000;
 const STOCK_BOARD_CACHE_MS = 6 * 60 * 60 * 1000;
 const BOARD_LIST_PAGE_SIZE = 1000;
 const BOARD_COMPONENT_PAGE_SIZE = 1000;
+const CAPITAL_FLOW_RANKING_CACHE_MS = 12 * 1000;
+const CAPITAL_FLOW_INTRADAY_CACHE_MS = 4500;
+const CAPITAL_FLOW_HISTORY_CACHE_MS = 15 * 60 * 1000;
 const fundamentalCache = new Map();
 const realtimeFundFlowCache = new Map();
 const realtimeValuationCache = new Map();
@@ -82,6 +93,10 @@ const fundDetailCache = new Map();
 const fundSearchCache = new Map();
 const fundQuoteCache = new Map();
 const fundRateLimitBuckets = new Map();
+const capitalFlowRateLimitBuckets = new Map();
+const capitalFlowRankingCache = new Map();
+const capitalFlowIntradayCache = new Map();
+const capitalFlowHistoryCache = new Map();
 const boardRequestQueue = createAsyncTaskQueue({ concurrency:3, maxQueued:30 });
 const fundQuoteRequestQueue = createAsyncTaskQueue({ concurrency:3, maxQueued:60 });
 // Eastmoney's historical money-flow endpoint is much less tolerant of bursts
@@ -122,6 +137,16 @@ const FUND_QUOTE_CACHE_MS = 5 * 60 * 1000;
 const FUND_QUOTE_CACHE_MAX = 1000;
 const FUND_RATE_LIMIT_WINDOW_MS = 60 * 1000;
 const FUND_RATE_LIMIT_MAX = 90;
+const CAPITAL_FLOW_RATE_LIMIT_MAX = 120;
+
+const STOCK_FLOW_MARKETS = {
+  all:'m:0+t:6,m:0+t:80,m:1+t:2,m:1+t:23',
+  sh:'m:1+t:2,m:1+t:23',
+  sz:'m:0+t:6,m:0+t:80',
+  main:'m:0+t:6,m:1+t:2',
+  cyb:'m:0+t:80',
+  kcb:'m:1+t:23',
+};
 
 function serveFile(res, filePath) {
   fs.readFile(filePath, (err, data) => {
@@ -268,6 +293,25 @@ const fundFlowHistoryLoader = createFundFlowHistoryLoader({
   attempts:2,
   onPersistenceError:(error, symbol, operation) => {
     console.error(`Fund flow cache ${operation} error (${symbol}):`, error.message);
+  },
+});
+
+const boardFundFlowHistoryLoader = createFundFlowHistoryLoader({
+  source:'eastmoney-daykline',
+  fetchData:key => fundFlowHistoryRequestQueue.run(async () => {
+    const code = String(key).replace(/^board:/, '');
+    const result = await fetchCapitalFlowHistory(`90.${code}`);
+    return result.data;
+  }),
+  loadPersisted:key => accountService.loadFundFlowHistoryCache(key),
+  savePersisted:(key, value) => accountService.saveFundFlowHistoryCache(key, value),
+  freshMs:CAPITAL_FLOW_HISTORY_CACHE_MS,
+  fallbackMs:7 * 24 * 60 * 60 * 1000,
+  refreshCooldownMs:60 * 1000,
+  retryDelayMs:750,
+  attempts:2,
+  onPersistenceError:(error, key, operation) => {
+    console.error(`Board fund flow cache ${operation} error (${key}):`, error.message);
   },
 });
 
@@ -577,6 +621,12 @@ function normalizedBoardRow(row) {
     code:String(row.f12 || ''), name:String(row.f14 || ''), price:eastmoneyNumber(row.f2),
     pct:eastmoneyNumber(row.f3), change:eastmoneyNumber(row.f4), turnover:eastmoneyNumber(row.f8),
     marketCap:eastmoneyNumber(row.f20), mainNetInflow:eastmoneyNumber(row.f62),
+    flowPeriods:{
+      today:{ mainNet:eastmoneyNumber(row.f62), mainRatio:eastmoneyNumber(row.f184) },
+      '3d':{ mainNet:eastmoneyNumber(row.f267), mainRatio:eastmoneyNumber(row.f268) },
+      '5d':{ mainNet:eastmoneyNumber(row.f164), mainRatio:eastmoneyNumber(row.f165) },
+      '10d':{ mainNet:eastmoneyNumber(row.f174), mainRatio:eastmoneyNumber(row.f175) },
+    },
     upCount:eastmoneyNumber(row.f104), downCount:eastmoneyNumber(row.f105),
     leader:{
       name:String(row.f128 || ''), code:leaderCode,
@@ -610,7 +660,7 @@ async function loadBoardList(type, force = false) {
   const refresh = (async () => {
     const { rows, total } = await fetchEastmoneyBoardRows({
       fs:boardType.fs,
-      fields:'f2,f3,f4,f8,f12,f14,f20,f62,f104,f105,f128,f136,f140,f141',
+      fields:'f2,f3,f4,f8,f12,f14,f20,f62,f104,f105,f128,f136,f140,f141,f184,f267,f268,f164,f165,f174,f175',
       pageSize:BOARD_LIST_PAGE_SIZE,
     });
     const data = rows.map(normalizedBoardRow).filter(item => item.code && item.name);
@@ -721,10 +771,175 @@ async function proxyFundFlowHistory(urlObj, res) {
     const result = await loadFundFlowHistoryResult(symbol, {
       forceHistoryRefresh:urlObj.searchParams.get('refresh') === '1',
     });
-    sendJson(res, 200, { ...result, fetchedAt:Date.now() });
+    sendJson(res, 200, { ...result, streak:consecutiveFlowDays(result.data), fetchedAt:Date.now() });
   } catch (error) {
     console.error(`Fund flow history error (${symbol}):`, error.message);
     sendJson(res, 502, { data:[], error:'主力资金数据暂时拿不到，请稍后重试' });
+  }
+}
+
+function capitalFlowSecId(kind, code) {
+  if (kind === 'stock' && isAStockSymbol(code)) return eastmoneySecId(code);
+  if (kind === 'board' && /^BK\d{4,6}$/.test(code)) return `90.${code}`;
+  return '';
+}
+
+async function requestEastmoneyFlowJson(pathname, params, { historical = false } = {}) {
+  const hosts = historical
+    ? ['https://push2his.eastmoney.com', 'https://push2his.eastmoney.com']
+    : ['https://push2.eastmoney.com', 'https://push2delay.eastmoney.com'];
+  let lastError;
+  for (let hostIndex = 0; hostIndex < hosts.length; hostIndex += 1) {
+    const host = hosts[hostIndex];
+    try {
+      const raw = await boardRequestQueue.run(() => requestBuffer(
+        `${host}${pathname}?${new URLSearchParams(params)}`,
+        { ...UPSTREAM_HEADERS, Referer:historical ? 'https://quote.eastmoney.com/' : 'https://data.eastmoney.com/' },
+        { timeoutMs:9000 }
+      ));
+      const payload = JSON.parse(raw.toString('utf-8'));
+      if (Number(payload?.rc) !== 0 || !payload?.data) throw new Error('Invalid capital flow payload');
+      return payload;
+    } catch (error) {
+      lastError = error;
+      if (historical && hostIndex + 1 < hosts.length) await new Promise(resolve => setTimeout(resolve, 600));
+    }
+  }
+  throw lastError || new Error('Capital flow upstream is unavailable');
+}
+
+async function fetchCapitalFlowRankings({ scope, type, market, period, direction, limit }) {
+  const definition = FLOW_PERIODS[period];
+  const fs = scope === 'board' ? BOARD_TYPES[type]?.fs : STOCK_FLOW_MARKETS[market];
+  if (!definition || !fs) throw new Error('Invalid capital flow ranking parameters');
+  const payload = await requestEastmoneyFlowJson('/api/qt/clist/get', {
+    pn:'1', pz:String(limit), po:direction === 'out' ? '0' : '1', np:'1', fltt:'2', invt:'2',
+    fid:definition.sortField, fs, fields:flowRankingFields(period),
+  });
+  const rows = payload.data.diff || [];
+  const data = rows.map(row => normalizeFlowRankingRow(row, { period, scope })).filter(item =>
+    item.code && item.name && (scope === 'board' || item.symbol)
+  );
+  return { scope, type:scope === 'board' ? type : undefined, market:scope === 'stock' ? market : undefined,
+    period, direction, data, total:numberOrNull(payload.data.total) || data.length, fetchedAt:Date.now() };
+}
+
+async function proxyCapitalFlowRankings(urlObj, res) {
+  const scope = urlObj.searchParams.get('scope') || 'stock';
+  const type = urlObj.searchParams.get('type') || 'industry';
+  const market = urlObj.searchParams.get('market') || 'all';
+  const period = urlObj.searchParams.get('period') || 'today';
+  const direction = urlObj.searchParams.get('direction') || 'in';
+  const limit = Math.min(100, Math.max(5, Number(urlObj.searchParams.get('limit')) || 30));
+  if (!['stock','board'].includes(scope) || !FLOW_PERIODS[period] || !['in','out'].includes(direction) ||
+      (scope === 'board' && !BOARD_TYPES[type]) || (scope === 'stock' && !STOCK_FLOW_MARKETS[market])) {
+    sendJson(res, 400, { data:[], error:'资金排行参数无效' }); return;
+  }
+  const key = [scope, type, market, period, direction, limit].join(':');
+  try {
+    const payload = await loadCachedFundValue(capitalFlowRankingCache, key, CAPITAL_FLOW_RANKING_CACHE_MS,
+      () => fetchCapitalFlowRankings({ scope, type, market, period, direction, limit }),
+      urlObj.searchParams.get('refresh') === '1');
+    while (capitalFlowRankingCache.size > 240) capitalFlowRankingCache.delete(capitalFlowRankingCache.keys().next().value);
+    sendJson(res, 200, payload);
+  } catch (error) {
+    console.error('Capital flow ranking error:', error.message);
+    sendJson(res, 502, { data:[], error:'资金流向排行暂时不可用' });
+  }
+}
+
+async function fetchCapitalFlowIntraday(secid) {
+  const payload = await requestEastmoneyFlowJson('/api/qt/stock/fflow/kline/get', {
+    secid, lmt:'0', klt:'1', fields1:'f1,f2,f3,f7', fields2:'f51,f52,f53,f54,f55,f56',
+  });
+  return { ...parseIntradayFlowPayload(payload), fetchedAt:Date.now() };
+}
+
+async function loadCapitalFlowIntraday(secid, force = false) {
+  const value = await loadCachedFundValue(capitalFlowIntradayCache, secid, CAPITAL_FLOW_INTRADAY_CACHE_MS,
+    () => fetchCapitalFlowIntraday(secid), force);
+  while (capitalFlowIntradayCache.size > 500) capitalFlowIntradayCache.delete(capitalFlowIntradayCache.keys().next().value);
+  return value;
+}
+
+async function fetchCapitalFlowHistory(secid) {
+  const payload = await requestEastmoneyFlowJson('/api/qt/stock/fflow/daykline/get', {
+    secid, lmt:'120', klt:'101', fields1:'f1,f2,f3,f7',
+    fields2:'f51,f52,f53,f54,f55,f56,f57,f58,f59,f60,f61,f62,f63',
+  }, { historical:true });
+  const data = parseFundFlowHistoryPayload(payload);
+  return { code:String(payload.data?.code || ''), name:String(payload.data?.name || ''), data,
+    streak:consecutiveFlowDays(data), fetchedAt:Date.now() };
+}
+
+async function loadCapitalFlowHistory(secid, force = false) {
+  return loadCachedFundValue(capitalFlowHistoryCache, secid, CAPITAL_FLOW_HISTORY_CACHE_MS,
+    () => fundFlowHistoryRequestQueue.run(() => fetchCapitalFlowHistory(secid)), force);
+}
+
+async function proxyCapitalFlowMarket(urlObj, res) {
+  const force = urlObj.searchParams.get('refresh') === '1';
+  const markets = [
+    { key:'sh', name:'沪市', secid:'1.000001' },
+    { key:'sz', name:'深市', secid:'0.399001' },
+  ];
+  const settled = await Promise.all(markets.map(async market => {
+    const [intraday, history] = await Promise.allSettled([
+      loadCapitalFlowIntraday(market.secid, force), loadCapitalFlowHistory(market.secid, force),
+    ]);
+    return {
+      ...market,
+      intraday:intraday.status === 'fulfilled' ? intraday.value.data : [],
+      history:history.status === 'fulfilled' ? history.value.data : [],
+      stale:Boolean(intraday.value?.stale || history.value?.stale),
+      unavailable:[intraday.status === 'rejected' ? 'intraday' : '', history.status === 'rejected' ? 'history' : ''].filter(Boolean),
+    };
+  }));
+  if (settled.every(market => !market.intraday.length && !market.history.length)) {
+    sendJson(res, 502, { markets:[], error:'大盘资金流向暂时不可用' }); return;
+  }
+  sendJson(res, 200, {
+    markets:settled,
+    combined:{
+      name:'沪深两市',
+      intraday:mergeFlowSeries(settled.map(market => market.intraday), 'time'),
+      history:mergeFlowSeries(settled.map(market => market.history), 'date'),
+    },
+    partial:settled.some(market => market.unavailable.length), fetchedAt:Date.now(),
+  });
+}
+
+async function proxyCapitalFlowHistory(urlObj, res) {
+  const kind = urlObj.searchParams.get('kind') || 'stock';
+  const code = urlObj.searchParams.get('code') || '';
+  const secid = capitalFlowSecId(kind, code);
+  if (!secid) { sendJson(res, 400, { data:[], error:'资金历史参数无效' }); return; }
+  try {
+    if (kind === 'stock') {
+      const result = await loadFundFlowHistoryResult(code, { forceHistoryRefresh:urlObj.searchParams.get('refresh') === '1' });
+      sendJson(res, 200, { ...result, streak:consecutiveFlowDays(result.data), fetchedAt:Date.now() });
+      return;
+    }
+    const result = await boardFundFlowHistoryLoader.load(`board:${code}`, {
+      force:urlObj.searchParams.get('refresh') === '1',
+    });
+    sendJson(res, 200, { ...result, code, streak:consecutiveFlowDays(result.data), fetchedAt:Date.now() });
+  } catch (error) {
+    console.error(`Capital flow history error (${kind}:${code}):`, error.message);
+    sendJson(res, 502, { data:[], error:'资金历史暂时不可用' });
+  }
+}
+
+async function proxyCapitalFlowIntraday(urlObj, res) {
+  const kind = urlObj.searchParams.get('kind') || 'stock';
+  const code = urlObj.searchParams.get('code') || '';
+  const secid = capitalFlowSecId(kind, code);
+  if (!secid) { sendJson(res, 400, { data:[], error:'日内资金参数无效' }); return; }
+  try {
+    sendJson(res, 200, await loadCapitalFlowIntraday(secid, urlObj.searchParams.get('refresh') === '1'));
+  } catch (error) {
+    console.error(`Capital flow intraday error (${kind}:${code}):`, error.message);
+    sendJson(res, 502, { data:[], error:'日内资金流向暂时不可用' });
   }
 }
 
@@ -933,6 +1148,29 @@ function allowFundRequest(req, res) {
     'Retry-After':String(Math.max(1, Math.ceil((bucket.startedAt + FUND_RATE_LIMIT_WINDOW_MS - now) / 1000))),
   });
   res.end(JSON.stringify({ error:'基金行情请求过于频繁，请稍后再试' }));
+  return false;
+}
+
+function allowCapitalFlowRequest(req, res) {
+  const now = Date.now();
+  if (capitalFlowRateLimitBuckets.size > 1000) {
+    for (const [key, value] of capitalFlowRateLimitBuckets) {
+      if (now - value.startedAt >= FUND_RATE_LIMIT_WINDOW_MS) capitalFlowRateLimitBuckets.delete(key);
+    }
+  }
+  const address = String(req.socket?.remoteAddress || 'unknown').slice(0, 100);
+  let bucket = capitalFlowRateLimitBuckets.get(address);
+  if (!bucket || now - bucket.startedAt >= FUND_RATE_LIMIT_WINDOW_MS) {
+    bucket = { startedAt:now, count:0 };
+    capitalFlowRateLimitBuckets.set(address, bucket);
+  }
+  bucket.count += 1;
+  if (bucket.count <= CAPITAL_FLOW_RATE_LIMIT_MAX) return true;
+  res.writeHead(429, {
+    'Content-Type':'application/json; charset=utf-8', 'Cache-Control':'no-store',
+    'Retry-After':String(Math.max(1, Math.ceil((bucket.startedAt + FUND_RATE_LIMIT_WINDOW_MS - now) / 1000))),
+  });
+  res.end(JSON.stringify({ error:'资金流向请求过于频繁，请稍后再试' }));
   return false;
 }
 
@@ -1207,6 +1445,30 @@ const server = http.createServer(async (req, res) => {
 
   if (pathname === '/api/stock-boards') {
     await proxyStockBoards(urlObj, res);
+    return;
+  }
+
+  if (pathname === '/api/capital-flow/rankings') {
+    if (!allowCapitalFlowRequest(req, res)) return;
+    await proxyCapitalFlowRankings(urlObj, res);
+    return;
+  }
+
+  if (pathname === '/api/capital-flow/market') {
+    if (!allowCapitalFlowRequest(req, res)) return;
+    await proxyCapitalFlowMarket(urlObj, res);
+    return;
+  }
+
+  if (pathname === '/api/capital-flow/history') {
+    if (!allowCapitalFlowRequest(req, res)) return;
+    await proxyCapitalFlowHistory(urlObj, res);
+    return;
+  }
+
+  if (pathname === '/api/capital-flow/intraday') {
+    if (!allowCapitalFlowRequest(req, res)) return;
+    await proxyCapitalFlowIntraday(urlObj, res);
     return;
   }
 
