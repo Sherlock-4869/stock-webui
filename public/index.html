@@ -532,8 +532,13 @@ html[data-theme="light"] .fund-search,html[data-theme="light"] .fund-search-resu
 @media(max-width:980px){.fund-workspace{grid-template-columns:1fr}.fund-directory{position:static}.fund-list{max-height:310px}.fund-overview-grid{grid-template-columns:repeat(2,1fr)}}@media(max-width:650px){.fund-search-shell{min-width:0;width:100%}.fund-hero-top{flex-direction:column}.fund-hero-actions{width:100%}.fund-nav-strip{grid-template-columns:repeat(2,1fr)}.fund-grid-two,.fund-news-columns{grid-template-columns:1fr}.fund-performance{grid-template-columns:repeat(2,1fr)}.fund-performance-item:last-child{grid-column:span 2}.fund-chart-wrap{height:260px}.fund-overview-grid{gap:8px}.fund-overview-card{padding:12px}.fund-facts{grid-template-columns:1fr}.fund-holdings-table{min-width:590px}.fund-allocation{padding:10px;gap:6px}.fund-allocation-item{padding:9px}.fund-manager-grid{grid-template-columns:1fr}.fund-card-head{padding:11px 12px}.fund-period-tabs{max-width:180px}}
 /* Capital flow radar */
 .capital-flow-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:14px}.capital-market-panel,.capital-rank-panel,.capital-detail-panel{overflow:hidden}.capital-panel-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px 15px;border-bottom:1px solid #30363d}.capital-panel-head strong{display:block;font-size:13px}.capital-panel-head small{display:block;margin-top:3px;color:#8b949e;font-size:9px}.capital-chip-row{display:flex;align-items:center;flex-wrap:wrap;gap:5px}.capital-rank-controls{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:9px 11px;border-bottom:1px solid #21262d}.capital-market-chart{height:270px;padding:12px 14px}.capital-market-chart svg,.capital-detail-chart svg{display:block;width:100%;height:100%}.capital-chart-grid{stroke:#30363d;stroke-width:1}.capital-chart-zero{stroke:#6e7681;stroke-width:1;stroke-dasharray:4 4}.capital-chart-main{fill:none;stroke:#58a6ff;stroke-width:2.4}.capital-chart-super{fill:none;stroke:#f0883e;stroke-width:1.6}.capital-chart-large{fill:none;stroke:#d2a8ff;stroke-width:1.6}.capital-chart-retail{fill:none;stroke:#8b949e;stroke-width:1.4}.capital-chart-label{fill:#8b949e;font-size:9px}.capital-legend{display:flex;justify-content:center;gap:18px;padding:0 12px 12px;color:#8b949e;font-size:9px}.capital-legend span::before{content:"";display:inline-block;width:13px;height:2px;margin-right:5px;vertical-align:middle;background:#58a6ff}.capital-legend .super::before{background:#f0883e}.capital-legend .large::before{background:#d2a8ff}.capital-legend .retail::before{background:#8b949e}.capital-rank-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-top:14px}.capital-select{border:1px solid #30363d;border-radius:6px;background:#0d1117;color:#c9d1d9;padding:5px 7px;font:10px inherit}.capital-table-wrap{max-height:560px;overflow:auto}.capital-table{width:100%;border-collapse:collapse;font-size:10px}.capital-table th,.capital-table td{padding:9px 8px;border-top:1px solid #21262d;text-align:right;white-space:nowrap}.capital-table th{position:sticky;z-index:1;top:0;border-top:0;background:#1c2128;color:#8b949e;font-weight:600}.capital-table th:nth-child(2),.capital-table td:nth-child(2){text-align:left}.capital-rank-button{width:100%;padding:0;border:0;background:transparent;color:#c9d1d9;font:inherit;font-weight:700;text-align:left;cursor:pointer}.capital-rank-button:hover{color:#79c0ff}.capital-rank-button small{display:block;margin-top:2px;color:#6e7681;font-size:8px;font-weight:500}.capital-rank-index{color:#6e7681;font:9px ui-monospace,SFMono-Regular,monospace}.capital-detail-panel{min-height:300px;margin-top:14px}.capital-detail-empty{display:grid;min-height:300px;place-content:center;color:#8b949e;text-align:center;line-height:1.8}.capital-detail-empty strong{color:#e6edf3;font-size:16px}.capital-detail-empty span{font-size:11px}.capital-detail-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:15px;border-bottom:1px solid #30363d}.capital-detail-title{font-size:18px;font-weight:750}.capital-detail-sub{margin-top:4px;color:#8b949e;font-size:10px}.capital-detail-actions{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:6px}.capital-streak{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1px;background:#30363d}.capital-streak-item{padding:11px 13px;background:#161b22}.capital-streak-item label{display:block;color:#8b949e;font-size:9px}.capital-streak-item b{display:block;margin-top:5px;font-size:13px}.capital-detail-chart{height:310px;padding:14px}.capital-detail-history{max-height:300px;overflow:auto;border-top:1px solid #30363d}.capital-disclaimer{margin-top:12px;padding:10px 13px;border:1px dashed #30363d;border-radius:8px;color:#6e7681;font-size:9px;line-height:1.6}
+@keyframes capitalSyncPulse{0%,100%{opacity:.35}50%{opacity:1}}.capital-panel-head small.syncing::after,.panel-status.syncing::after{content:"";display:inline-block;width:5px;height:5px;margin-left:5px;border-radius:50%;background:#58a6ff;box-shadow:0 0 0 3px #58a6ff22;animation:capitalSyncPulse 1s ease-in-out infinite}.capital-table-wrap[aria-busy="true"],.capital-market-chart[aria-busy="true"],.capital-detail-panel[aria-busy="true"]{cursor:progress}
 html[data-theme="light"] .capital-panel-head,html[data-theme="light"] .capital-rank-controls,html[data-theme="light"] .capital-detail-head,html[data-theme="light"] .capital-detail-history{border-color:#d7e0ea}html[data-theme="light"] .capital-select{border-color:#c8d8e7;background:#fff;color:#24364a}html[data-theme="light"] .capital-table th{background:#f6f8fa}html[data-theme="light"] .capital-table td{border-color:#e5ebf1}html[data-theme="light"] .capital-rank-button{color:#24364a}html[data-theme="light"] .capital-streak{background:#d7e0ea}html[data-theme="light"] .capital-streak-item{background:#fff}html[data-theme="light"] .capital-chart-grid{stroke:#d7e0ea}
 @media(max-width:980px){.capital-flow-summary{grid-template-columns:repeat(2,1fr)}.capital-rank-grid{grid-template-columns:1fr}}@media(max-width:620px){.capital-flow-summary{gap:8px}.capital-panel-head,.capital-detail-head{align-items:stretch;flex-direction:column}.capital-rank-controls{align-items:flex-start;flex-direction:column}.capital-market-chart{height:230px;padding:8px}.capital-streak{grid-template-columns:repeat(2,1fr)}.capital-detail-actions{justify-content:flex-start}.capital-table{min-width:610px}.capital-detail-chart{height:260px;padding:8px}}
+/* Index futures and US overnight */
+.derivatives-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:14px}.derivatives-market-grid,.derivatives-news-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.derivatives-news-grid{margin-top:14px}.derivatives-panel{overflow:hidden}.derivatives-panel-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;padding:14px 15px;border-bottom:1px solid #30363d}.derivatives-panel-head strong{display:block;font-size:13px}.derivatives-panel-head small{display:block;margin-top:4px;color:#8b949e;font-size:9px}.derivative-quote-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1px;background:#30363d}.derivative-quote{min-width:0;padding:14px;background:#161b22}.derivative-quote-top{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}.derivative-quote-name{overflow:hidden;font-size:11px;font-weight:750;text-overflow:ellipsis;white-space:nowrap}.derivative-quote-code{margin-top:3px;color:#6e7681;font:8px ui-monospace,SFMono-Regular,monospace}.derivative-quote-price{margin-top:10px;font-size:22px;font-weight:760}.derivative-quote-change{margin-top:3px;font-size:10px}.derivative-quote-facts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px;margin-top:11px}.derivative-quote-facts span{min-width:0;padding:6px;border-radius:6px;background:#0d1117;color:#8b949e;font-size:8px}.derivative-quote-facts b{display:block;overflow:hidden;margin-top:3px;color:#c9d1d9;font-size:9px;text-overflow:ellipsis;white-space:nowrap}.derivative-basis{flex:none;padding:3px 6px;border:1px solid currentColor;border-radius:9px;font-size:8px}.derivatives-news-list{max-height:480px;overflow:auto}.derivatives-news-item{display:block;padding:11px 14px;border-top:1px solid #21262d;color:#c9d1d9;text-decoration:none}.derivatives-news-item:first-child{border-top:0}.derivatives-news-item:hover{background:#1f6feb0e;color:#79c0ff}.derivatives-news-title{font-size:10px;font-weight:650;line-height:1.55}.derivatives-news-item.important .derivatives-news-title::before{content:"重点";margin-right:5px;padding:1px 4px;border-radius:3px;background:#f851491d;color:#ff7b72;font-size:7px}.derivatives-news-meta{margin-top:4px;color:#6e7681;font-size:8px}.derivatives-resources{display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin-top:14px;padding:11px 13px;border:1px dashed #30363d;border-radius:8px;color:#6e7681;font-size:9px}.derivatives-resources a{color:#79c0ff;text-decoration:none}.derivatives-resources a:hover{text-decoration:underline}.derivatives-session-live{display:inline-flex;align-items:center;gap:6px}.derivatives-session-live::before{content:"";width:6px;height:6px;border-radius:50%;background:#3fb950;box-shadow:0 0 0 3px #3fb95022}.derivatives-session-live.closed::before{background:#8b949e;box-shadow:none}
+html[data-theme="light"] .derivatives-panel-head{border-color:#d7e0ea}html[data-theme="light"] .derivative-quote-grid{background:#d7e0ea}html[data-theme="light"] .derivative-quote{background:#fff}html[data-theme="light"] .derivative-quote-facts span{background:#f6f8fa}html[data-theme="light"] .derivative-quote-facts b,html[data-theme="light"] .derivatives-news-item{color:#24364a}html[data-theme="light"] .derivatives-news-item{border-color:#e5ebf1}
+@media(max-width:980px){.derivatives-market-grid,.derivatives-news-grid{grid-template-columns:1fr}}@media(max-width:620px){.derivatives-summary{grid-template-columns:1fr}.derivative-quote-grid{grid-template-columns:1fr}.derivatives-panel-head{flex-direction:column}}
 </style>
 </head>
 <body>
@@ -551,6 +556,7 @@ html[data-theme="light"] .capital-panel-head,html[data-theme="light"] .capital-r
       <button class="app-tab active" data-page="market" onclick="switchAppPage('market')" title="自选行情"><svg class="app-tab-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m4 16 5-5 4 3 7-8"/><path d="M4 20h16"/></svg><span class="app-tab-label">自选行情</span></button>
       <button class="app-tab" data-page="boards" onclick="switchAppPage('boards')" title="板块行情"><svg class="app-tab-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 15v2M11 11v6M15 8v9M19 12v5"/></svg><span class="app-tab-label">板块行情</span></button>
       <button class="app-tab" data-page="capital-flow" onclick="switchAppPage('capital-flow')" title="资金流向"><svg class="app-tab-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 18V8m0 0 3 3M4 8 1 11M20 6v10m0 0-3-3m3 3 3-3"/><path d="M9 7h6M9 12h6M9 17h6"/></svg><span class="app-tab-label">资金流向</span></button>
+      <button class="app-tab" data-page="derivatives" onclick="switchAppPage('derivatives')" title="期指与夜盘"><svg class="app-tab-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 17 8 9l4 4 4-7 5 4"/><path d="M3 21h18M6 5v3M18 14v4"/></svg><span class="app-tab-label">期指与夜盘</span></button>
       <button class="app-tab" data-page="funds" onclick="switchAppPage('funds')" title="基金行情"><svg class="app-tab-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19V9l5-4 4 3 7-5v16"/><path d="M4 19h16M8 19v-5M13 19v-7M18 19V8"/></svg><span class="app-tab-label">基金行情</span></button>
       <button class="app-tab" data-page="ipo" onclick="switchAppPage('ipo')" title="打新消息"><svg class="app-tab-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 3v4M17 3v4M3 10h18M8 14h3M8 17h6"/></svg><span class="app-tab-label">打新消息</span><span class="app-tab-badge" id="ipo-badge">--</span></button>
       <button class="app-tab" data-page="alerts" onclick="switchAppPage('alerts')" title="自选异动"><svg class="app-tab-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></svg><span class="app-tab-label">自选异动</span><span class="app-tab-badge" id="alert-badge">0</span></button>
@@ -718,6 +724,20 @@ html[data-theme="light"] .capital-panel-head,html[data-theme="light"] .capital-r
   </div>
   <section class="module-panel capital-detail-panel" id="capital-detail-panel"><div class="capital-detail-empty"><strong>选择一个板块或股票</strong><span>查看最近 120 个交易日、日内分钟资金及连续流入/流出统计。</span></div></section>
   <div class="capital-disclaimer">“主力资金”按照成交单规模统计，不代表已确认的机构账户买卖；数据仅供行情研究，不构成投资建议。</div>
+</section>
+
+<section class="app-page" id="page-derivatives">
+  <div class="module-head"><div><div class="market-kicker">Futures &amp; Overnight Radar</div><h2 class="module-title">期指与美股夜盘</h2><p class="module-desc">跟踪中金所股指期货、实时基差和美股三大指数期货，并聚合期货与全球股市快讯。</p></div><div class="module-actions"><button class="refresh-btn" type="button" onclick="loadDerivativesOverview(true)">↻ 刷新期指与夜盘</button></div></div>
+  <div class="derivatives-summary"><div class="metric-card"><div class="metric-label">美股现货时段</div><div class="metric-value" id="derivatives-session" style="font-size:16px;margin-top:8px">--</div><div class="metric-note" id="derivatives-session-note">按纽约时间判断</div></div><div class="metric-card"><div class="metric-label">期指信号</div><div class="metric-value" id="derivatives-signal" style="font-size:16px;margin-top:8px">--</div><div class="metric-note" id="derivatives-signal-note">等待指数期货行情</div></div><div class="metric-card"><div class="metric-label">数据状态</div><div class="metric-value" id="derivatives-updated" style="font-size:16px;margin-top:8px">--</div><div class="metric-note" id="derivatives-source">进入页面后加载</div></div></div>
+  <div class="derivatives-market-grid">
+    <section class="module-panel derivatives-panel"><div class="derivatives-panel-head"><div><strong>中金所股指期货</strong><small>IF / IH / IC / IM 连续合约，基差 = 期货 − 现货指数</small></div><span class="panel-status" id="cffex-status">等待同步</span></div><div class="derivative-quote-grid" id="cffex-quotes"><div class="module-loading">正在同步股指期货</div></div></section>
+    <section class="module-panel derivatives-panel"><div class="derivatives-panel-head"><div><strong>美股指数期货</strong><small>ES / NQ / YM E-mini，覆盖北京时间夜间及多数非美交易时段</small></div><span class="panel-status" id="us-futures-status">等待同步</span></div><div class="derivative-quote-grid" id="us-futures-quotes"><div class="module-loading">正在同步美股夜盘</div></div></section>
+  </div>
+  <div class="derivatives-news-grid">
+    <section class="module-panel derivatives-panel"><div class="derivatives-panel-head"><div><strong>期货快讯</strong><small>宏观、股指及期货市场动态</small></div><span class="panel-status">公开资讯</span></div><div class="derivatives-news-list" id="futures-news"><div class="module-loading">正在同步期货快讯</div></div></section>
+    <section class="module-panel derivatives-panel"><div class="derivatives-panel-head"><div><strong>美股夜盘资讯</strong><small>优先筛选美股、三大指数、美联储与重点科技股</small></div><span class="panel-status">全球股市快讯</span></div><div class="derivatives-news-list" id="us-night-news"><div class="module-loading">正在同步美股资讯</div></div></section>
+  </div>
+  <div class="derivatives-resources"><span>权威资料：</span><a href="https://www.cffex.com.cn/" target="_blank" rel="noopener noreferrer">中国金融期货交易所</a><a href="https://www.cffex.com.cn/cn/jycs.html" target="_blank" rel="noopener noreferrer">中金所交易参数</a><a href="https://www.cmegroup.com/markets/equities/us-index.html" target="_blank" rel="noopener noreferrer">CME 美国指数期货</a><a href="https://www.nasdaq.com/market-activity" target="_blank" rel="noopener noreferrer">Nasdaq 盘前与盘后</a><span>行情和快讯存在延迟，仅供研究，不构成投资建议。</span></div>
 </section>
 
 <section class="app-page" id="page-funds">
@@ -1697,7 +1717,8 @@ function startAutoRefresh() {
   quoteTimer = document.hidden ? null : setInterval(fetchQuotes, refreshIntervalMs);
   anomalyTimer = document.hidden ? null : setInterval(fetchAnomalyQuotes, refreshIntervalMs);
   capitalFlowTimer = document.hidden ? null : setInterval(() => {
-    if (activeAppPage === 'capital-flow') { capitalFlowLoaded = false; loadCapitalFlow(); }
+    if (activeAppPage === 'capital-flow') loadCapitalFlow(false, { background:true });
+    if (activeAppPage === 'derivatives') loadDerivativesOverview();
   }, 15000);
 }
 
@@ -3664,7 +3685,7 @@ window.addEventListener('resize', () => {
 });
 
 // --- App pages / IPO calendar ---
-const APP_PAGES = ['market','boards','capital-flow','funds','ipo','alerts','notes','reference','sites','ai','user-ai-models','admin-users','admin-sites','admin-ai'];
+const APP_PAGES = ['market','boards','capital-flow','derivatives','funds','ipo','alerts','notes','reference','sites','ai','user-ai-models','admin-users','admin-sites','admin-ai'];
 const requestedAppPage = new URLSearchParams(location.search).get('page');
 const storedAppPage = localStorage.getItem(APP_PAGE_STORAGE_KEY);
 let activeAppPage = APP_PAGES.includes(requestedAppPage)
@@ -3742,6 +3763,7 @@ function switchAppPage(page, { historyMode = 'push', scroll = true } = {}) {
   if (page === 'ipo' && !ipoRows.length) fetchIpos();
   if (page === 'boards' && !boardRows.length) loadBoards();
   if (page === 'capital-flow') loadCapitalFlow();
+  if (page === 'derivatives') loadDerivativesOverview();
   if (page === 'funds' && !fundRows.length) loadFunds();
   if (page === 'alerts') { renderAnomalyEvents(); fetchAnomalyQuotes(); }
   if (page === 'notes') { loadNotesList({ reloadFolders:true }); }
@@ -4052,6 +4074,10 @@ function renderCapitalMarket() {
 }
 
 async function loadCapitalMarket(force = false, version = capitalRequestVersion) {
+  const status = document.getElementById('capital-market-status');
+  const chart = document.getElementById('capital-market-chart');
+  status.classList.add('syncing');
+  chart.setAttribute('aria-busy', 'true');
   try {
     const response = await fetch(`/api/capital-flow/market${force ? '?refresh=1' : ''}`);
     const payload = await response.json().catch(() => ({}));
@@ -4061,8 +4087,11 @@ async function loadCapitalMarket(force = false, version = capitalRequestVersion)
     renderCapitalMarket();
   } catch (error) {
     if (version !== capitalRequestVersion) return;
-    document.getElementById('capital-market-status').textContent = '大盘资金暂时不可用';
-    document.getElementById('capital-market-chart').innerHTML = `<div class="capital-detail-empty"><span>${escapeHtml(error.message || '请稍后刷新')}</span></div>`;
+    status.textContent = capitalMarketPayload ? '大盘资金刷新失败 · 保留上次数据' : '大盘资金暂时不可用';
+    if (!capitalMarketPayload) chart.innerHTML = `<div class="capital-detail-empty"><span>${escapeHtml(error.message || '请稍后刷新')}</span></div>`;
+  } finally {
+    status.classList.remove('syncing');
+    chart.removeAttribute('aria-busy');
   }
 }
 
@@ -4073,9 +4102,54 @@ function setCapitalMarketView(view) {
   renderCapitalMarket();
 }
 
+function capitalRankingRowMarkup(scope, row, index) {
+  return `<tr data-capital-code="${escapeHtml(row.code)}"><td class="capital-rank-index" data-capital-field="index">${index+1}</td><td><button class="capital-rank-button" type="button" onclick="selectCapitalFlowItem('${scope}','${escapeHtml(row.code)}')"><span data-capital-field="name">${escapeHtml(row.name)}</span><small data-capital-field="meta">${escapeHtml(row.code)}${row.industry ? ` · ${escapeHtml(row.industry)}` : ''}</small></button></td><td class="${boardTone(row.pct)}" data-capital-field="pct">${boardPct(row.pct)}</td><td class="${boardTone(row.mainNet)}" data-capital-field="mainNet">${boardMoney(row.mainNet)}</td><td class="${boardTone(row.mainRatio)}" data-capital-field="mainRatio">${boardPct(row.mainRatio)}</td><td class="${boardTone(row.superLargeNet)}" data-capital-field="superLargeNet">${boardMoney(row.superLargeNet)}</td><td class="${boardTone(row.largeNet)}" data-capital-field="largeNet">${boardMoney(row.largeNet)}</td></tr>`;
+}
+
 function capitalRankingMarkup(scope, rows) {
   if (!rows.length) return '<div class="capital-detail-empty"><span>当前筛选条件下暂无资金数据</span></div>';
-  return `<table class="capital-table"><thead><tr><th>#</th><th>${scope === 'board' ? '板块' : '股票'}</th><th>涨跌幅</th><th>主力净额</th><th>净占比</th><th>超大单</th><th>大单</th></tr></thead><tbody>${rows.map((row,index) => `<tr><td class="capital-rank-index">${index+1}</td><td><button class="capital-rank-button" type="button" onclick="selectCapitalFlowItem('${scope}','${escapeHtml(row.code)}')">${escapeHtml(row.name)}<small>${escapeHtml(row.code)}${row.industry ? ` · ${escapeHtml(row.industry)}` : ''}</small></button></td><td class="${boardTone(row.pct)}">${boardPct(row.pct)}</td><td class="${boardTone(row.mainNet)}">${boardMoney(row.mainNet)}</td><td class="${boardTone(row.mainRatio)}">${boardPct(row.mainRatio)}</td><td class="${boardTone(row.superLargeNet)}">${boardMoney(row.superLargeNet)}</td><td class="${boardTone(row.largeNet)}">${boardMoney(row.largeNet)}</td></tr>`).join('')}</tbody></table>`;
+  return `<table class="capital-table"><thead><tr><th>#</th><th>${scope === 'board' ? '板块' : '股票'}</th><th>涨跌幅</th><th>主力净额</th><th>净占比</th><th>超大单</th><th>大单</th></tr></thead><tbody>${rows.map((row,index) => capitalRankingRowMarkup(scope,row,index)).join('')}</tbody></table>`;
+}
+
+function updateCapitalRankingRow(rowNode, row, index) {
+  const setValue = (field, value, tone) => {
+    const node = rowNode.querySelector(`[data-capital-field="${field}"]`);
+    if (!node) return;
+    if (node.textContent !== value) node.textContent = value;
+    if (tone !== undefined) node.className = tone;
+  };
+  setValue('index', String(index + 1));
+  setValue('name', row.name || '--');
+  setValue('meta', `${row.code}${row.industry ? ` · ${row.industry}` : ''}`);
+  setValue('pct', boardPct(row.pct), boardTone(row.pct));
+  setValue('mainNet', boardMoney(row.mainNet), boardTone(row.mainNet));
+  setValue('mainRatio', boardPct(row.mainRatio), boardTone(row.mainRatio));
+  setValue('superLargeNet', boardMoney(row.superLargeNet), boardTone(row.superLargeNet));
+  setValue('largeNet', boardMoney(row.largeNet), boardTone(row.largeNet));
+}
+
+function renderCapitalRanking(scope, rows, container) {
+  const table = container.querySelector('table');
+  const tbody = table?.querySelector('tbody');
+  if (!rows.length || !tbody) {
+    const scrollTop = container.scrollTop;
+    container.innerHTML = capitalRankingMarkup(scope, rows);
+    container.scrollTop = scrollTop;
+    return;
+  }
+  const existing = new Map([...tbody.querySelectorAll('tr[data-capital-code]')].map(row => [row.dataset.capitalCode, row]));
+  rows.forEach((row, index) => {
+    let rowNode = existing.get(row.code);
+    if (!rowNode) {
+      const holder = document.createElement('tbody');
+      holder.innerHTML = capitalRankingRowMarkup(scope, row, index);
+      rowNode = holder.firstElementChild;
+    }
+    updateCapitalRankingRow(rowNode, row, index);
+    tbody.appendChild(rowNode);
+    existing.delete(row.code);
+  });
+  existing.forEach(row => row.remove());
 }
 
 async function loadCapitalRanking(scope, force = false, version = capitalRequestVersion) {
@@ -4087,7 +4161,10 @@ async function loadCapitalRanking(scope, force = false, version = capitalRequest
   const selectionKey = [scope, type, market, period, direction].join(':');
   const container = document.getElementById(isBoard ? 'capital-board-ranking' : 'capital-stock-ranking');
   const status = document.getElementById(isBoard ? 'capital-board-status' : 'capital-stock-status');
-  container.innerHTML = '<div class="module-loading">正在同步资金排行</div>';
+  const hasRenderedRows = Boolean(container.querySelector('table'));
+  if (!hasRenderedRows) container.innerHTML = '<div class="module-loading">正在同步资金排行</div>';
+  else status.classList.add('syncing');
+  container.setAttribute('aria-busy', 'true');
   try {
     const params = new URLSearchParams({ scope, period, direction, limit:'40' });
     if (isBoard) params.set('type', type); else params.set('market', market);
@@ -4101,7 +4178,7 @@ async function loadCapitalRanking(scope, force = false, version = capitalRequest
     if (version !== capitalRequestVersion || selectionKey !== currentSelectionKey) return;
     if (isBoard) capitalBoardRows = payload.data || []; else capitalStockRows = payload.data || [];
     const rows = isBoard ? capitalBoardRows : capitalStockRows;
-    container.innerHTML = capitalRankingMarkup(scope, rows);
+    renderCapitalRanking(scope, rows, container);
     status.textContent = `${isBoard ? CAPITAL_BOARD_LABELS[type] : CAPITAL_MARKET_LABELS[market]} · ${CAPITAL_PERIOD_LABELS[period]} · ${direction === 'in' ? '净流入' : '净流出'}${payload.stale ? ' · 缓存' : ''}`;
   } catch (error) {
     const currentSelectionKey = isBoard
@@ -4109,7 +4186,10 @@ async function loadCapitalRanking(scope, force = false, version = capitalRequest
       : [scope, '', capitalStockMarket, capitalStockPeriod, capitalStockDirection].join(':');
     if (version !== capitalRequestVersion || selectionKey !== currentSelectionKey) return;
     status.textContent = '资金排行同步失败';
-    container.innerHTML = `<div class="capital-detail-empty"><span>${escapeHtml(error.message || '请稍后刷新')}</span></div>`;
+    if (!hasRenderedRows) container.innerHTML = `<div class="capital-detail-empty"><span>${escapeHtml(error.message || '请稍后刷新')}</span></div>`;
+  } finally {
+    status.classList.remove('syncing');
+    container.removeAttribute('aria-busy');
   }
 }
 
@@ -4145,7 +4225,10 @@ async function loadCapitalDetail(force = false) {
   if (!item) return;
   const mode = capitalDetailMode;
   const panel = document.getElementById('capital-detail-panel');
-  panel.innerHTML = capitalDetailShell(item, mode, '<div class="capital-detail-empty"><span>正在加载资金明细…</span></div>');
+  const detailKey = `${item.scope}:${item.code}:${mode}`;
+  const keepExisting = panel.dataset.detailKey === detailKey && panel.querySelector('.capital-detail-chart');
+  if (!keepExisting) panel.innerHTML = capitalDetailShell(item, mode, '<div class="capital-detail-empty"><span>正在加载资金明细…</span></div>');
+  panel.setAttribute('aria-busy', 'true');
   try {
     const path = mode === 'history' ? 'history' : 'intraday';
     const params = new URLSearchParams({ kind:item.scope, code:item.scope === 'stock' ? item.symbol : item.code });
@@ -4155,9 +4238,13 @@ async function loadCapitalDetail(force = false) {
     if (!response.ok) throw new Error(payload.error || 'capital detail request failed');
     if (capitalSelectedItem?.code !== item.code || capitalDetailMode !== mode) return;
     renderCapitalDetail(payload, mode);
+    panel.dataset.detailKey = detailKey;
   } catch (error) {
     if (capitalSelectedItem?.code !== item.code || capitalDetailMode !== mode) return;
-    panel.innerHTML = capitalDetailShell(item, mode, `<div class="capital-detail-empty"><strong>资金明细暂时不可用</strong><span>${escapeHtml(error.message || '请稍后再试')}</span></div>`);
+    if (!keepExisting) panel.innerHTML = capitalDetailShell(item, mode, `<div class="capital-detail-empty"><strong>资金明细暂时不可用</strong><span>${escapeHtml(error.message || '请稍后再试')}</span></div>`);
+    else showToast('资金明细刷新失败，已保留当前数据', true);
+  } finally {
+    panel.removeAttribute('aria-busy');
   }
 }
 
@@ -4198,8 +4285,8 @@ async function openCapitalFlowContext() {
   else showToast(`板块行情中暂未找到“${item.name}”`, true);
 }
 
-function loadCapitalFlow(force = false) {
-  if (capitalFlowLoaded && !force) return;
+function loadCapitalFlow(force = false, { background = false } = {}) {
+  if (capitalFlowLoaded && !force && !background) return;
   capitalFlowLoaded = true;
   const version = ++capitalRequestVersion;
   loadCapitalMarket(force, version);
@@ -4207,7 +4294,131 @@ function loadCapitalFlow(force = false) {
   loadCapitalRanking('stock', force, version);
 }
 
-function refreshCapitalFlow() { capitalFlowLoaded=false; loadCapitalFlow(true); if (capitalSelectedItem) loadCapitalDetail(true); }
+function refreshCapitalFlow() { loadCapitalFlow(true, { background:true }); if (capitalSelectedItem) loadCapitalDetail(true); }
+
+// --- Index futures and US overnight radar ---
+let derivativesLoaded = false;
+let derivativesRequestPending = false;
+let derivativesPayload = null;
+
+function derivativesNumber(value, digits = 2) {
+  const number = Number(value);
+  return Number.isFinite(number) ? number.toLocaleString('zh-CN', { minimumFractionDigits:digits, maximumFractionDigits:digits }) : '--';
+}
+
+function derivativesCompact(value) {
+  const number = Number(value);
+  if (!Number.isFinite(number)) return '--';
+  if (Math.abs(number) >= 100000000) return `${(number / 100000000).toFixed(2)}亿`;
+  if (Math.abs(number) >= 10000) return `${(number / 10000).toFixed(2)}万`;
+  return Math.round(number).toLocaleString('zh-CN');
+}
+
+function newYorkSessionInfo(now = new Date()) {
+  const parts = Object.fromEntries(new Intl.DateTimeFormat('en-US', {
+    timeZone:'America/New_York', weekday:'short', hour:'2-digit', minute:'2-digit', hourCycle:'h23',
+  }).formatToParts(now).filter(part => part.type !== 'literal').map(part => [part.type, part.value]));
+  const day = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].indexOf(parts.weekday);
+  const minutes = Number(parts.hour) * 60 + Number(parts.minute);
+  const weekday = day >= 1 && day <= 5;
+  let title = '美股休市', note = '现货盘前 04:00 开始（纽约时间）', open = false;
+  if (weekday && minutes >= 240 && minutes < 570) { title = '美股盘前'; note = '04:00–09:30 ET'; open = true; }
+  else if (weekday && minutes >= 570 && minutes < 960) { title = '美股常规盘'; note = '09:30–16:00 ET'; open = true; }
+  else if (weekday && minutes >= 960 && minutes < 1200) { title = '美股盘后'; note = '16:00–20:00 ET'; open = true; }
+  const futuresOpen = day === 0 ? minutes >= 1080
+    : day >= 1 && day <= 4 ? !(minutes >= 1020 && minutes < 1080)
+      : day === 5 ? minutes < 1020 : false;
+  return { title, note:`${note} · CME期指${futuresOpen ? '交易中' : '休市/维护'}`, open };
+}
+
+function derivativeQuoteMarkup(row, kind) {
+  const isCffex = kind === 'cffex';
+  const basis = row.basis == null ? null : Number(row.basis);
+  const basisAvailable = Number.isFinite(basis);
+  const basisLabel = basisAvailable ? `${basis > 0 ? '升水' : basis < 0 ? '贴水' : '平水'} ${derivativesNumber(Math.abs(basis))}` : '基差 --';
+  const facts = isCffex
+    ? [['现货指数',derivativesNumber(row.spotPrice)], ['基差率',boardPct(row.basisPct)], ['成交量',derivativesCompact(row.volume)], ['持仓量',derivativesCompact(row.openInterest)]]
+    : [['今开',derivativesNumber(row.open)], ['最高',derivativesNumber(row.high)], ['最低',derivativesNumber(row.low)], ['昨收',derivativesNumber(row.prevClose)]];
+  return `<article class="derivative-quote" data-derivative-code="${escapeHtml(row.code)}"><div class="derivative-quote-top"><div><div class="derivative-quote-name">${escapeHtml(row.name)}</div><div class="derivative-quote-code">${escapeHtml(row.symbol || row.code)} · ${escapeHtml([row.date,row.time].filter(Boolean).join(' '))}</div></div>${isCffex ? `<span class="derivative-basis ${boardTone(row.basis)}">${basisLabel}</span>` : ''}</div><div class="derivative-quote-price ${boardTone(row.change)}">${derivativesNumber(row.price)}</div><div class="derivative-quote-change ${boardTone(row.change)}">${row.change == null ? '--' : `${sign(row.change)}${derivativesNumber(row.change)} · ${boardPct(row.pct)}`}</div><div class="derivative-quote-facts">${facts.map(([label,value]) => `<span>${label}<b>${value}</b></span>`).join('')}</div></article>`;
+}
+
+function renderDerivativeQuotes(id, rows, kind) {
+  const container = document.getElementById(id);
+  if (!rows.length) {
+    if (!container.querySelector('.derivative-quote')) container.innerHTML = '<div class="capital-detail-empty"><span>当前行情暂时不可用</span></div>';
+    return;
+  }
+  const markup = rows.map(row => derivativeQuoteMarkup(row, kind)).join('');
+  if (container.dataset.markup !== markup) {
+    container.innerHTML = markup;
+    container.dataset.markup = markup;
+  }
+}
+
+function derivativeNewsMarkup(rows, emptyText) {
+  if (!rows.length) return `<div class="capital-detail-empty"><span>${escapeHtml(emptyText)}</span></div>`;
+  return rows.map(row => `<a class="derivatives-news-item${row.important ? ' important' : ''}" href="${escapeHtml(row.url)}" target="_blank" rel="noopener noreferrer"><div class="derivatives-news-title">${escapeHtml(row.title)}</div><div class="derivatives-news-meta">${escapeHtml(row.time || '时间待更新')}</div></a>`).join('');
+}
+
+function renderDerivativeNews(id, rows, emptyText) {
+  const container = document.getElementById(id);
+  const fingerprint = JSON.stringify(rows.map(row => [row.title,row.time,row.url,row.important]));
+  if (container.dataset.fingerprint === fingerprint) return;
+  const scrollTop = container.scrollTop;
+  container.innerHTML = derivativeNewsMarkup(rows, emptyText);
+  container.dataset.fingerprint = fingerprint;
+  container.scrollTop = scrollTop;
+}
+
+function renderDerivativesOverview(payload) {
+  const cffex = Array.isArray(payload.cffex) ? payload.cffex : [];
+  const us = Array.isArray(payload.us) ? payload.us : [];
+  renderDerivativeQuotes('cffex-quotes', cffex, 'cffex');
+  renderDerivativeQuotes('us-futures-quotes', us, 'us');
+  renderDerivativeNews('futures-news', Array.isArray(payload.futuresNews) ? payload.futuresNews : [], '暂未取得期货快讯');
+  renderDerivativeNews('us-night-news', Array.isArray(payload.usNews) ? payload.usNews : [], '当前批次暂无美股相关快讯');
+  const session = newYorkSessionInfo();
+  const sessionNode = document.getElementById('derivatives-session');
+  sessionNode.textContent = session.title;
+  sessionNode.className = `metric-value derivatives-session-live${session.open ? '' : ' closed'}`;
+  document.getElementById('derivatives-session-note').textContent = session.note;
+  const validUs = us.filter(row => Number.isFinite(Number(row.pct)));
+  const average = validUs.length ? validUs.reduce((sum,row) => sum + Number(row.pct), 0) / validUs.length : null;
+  const signal = average == null ? '等待行情' : average >= .3 ? '期指偏强' : average <= -.3 ? '期指偏弱' : '期指震荡';
+  const signalNode = document.getElementById('derivatives-signal');
+  signalNode.textContent = signal;
+  signalNode.className = `metric-value ${boardTone(average)}`;
+  document.getElementById('derivatives-signal-note').textContent = average == null ? 'ES / NQ / YM 尚未返回' : `三大指数期货平均 ${boardPct(average)}`;
+  document.getElementById('derivatives-updated').textContent = new Date(payload.fetchedAt || Date.now()).toLocaleTimeString('zh-CN', { hour:'2-digit', minute:'2-digit', second:'2-digit' });
+  document.getElementById('derivatives-source').textContent = `${payload.sources?.quotes || '公开行情'}${payload.partial ? ' · 部分数据' : ' · 数据完整'}`;
+  document.getElementById('cffex-status').textContent = `${cffex.length}/4 合约${payload.partial ? ' · 部分数据' : ''}`;
+  document.getElementById('us-futures-status').textContent = `${us.length}/3 合约${payload.partial ? ' · 部分数据' : ''}`;
+}
+
+async function loadDerivativesOverview(force = false) {
+  if (derivativesRequestPending || (derivativesLoaded && !force && activeAppPage !== 'derivatives')) return;
+  derivativesRequestPending = true;
+  document.getElementById('cffex-status').classList.add('syncing');
+  document.getElementById('us-futures-status').classList.add('syncing');
+  try {
+    const response = await fetch(`/api/derivatives/overview${force ? '?refresh=1' : ''}`);
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(payload.error || 'derivatives request failed');
+    derivativesPayload = payload;
+    derivativesLoaded = true;
+    renderDerivativesOverview(payload);
+  } catch (error) {
+    if (!derivativesPayload) {
+      document.getElementById('cffex-quotes').innerHTML = '<div class="capital-detail-empty"><span>股指期货行情暂时不可用</span></div>';
+      document.getElementById('us-futures-quotes').innerHTML = '<div class="capital-detail-empty"><span>美股指数期货暂时不可用</span></div>';
+    } else showToast('期指与夜盘刷新失败，已保留当前数据', true);
+    document.getElementById('derivatives-source').textContent = '同步失败，稍后自动重试';
+  } finally {
+    derivativesRequestPending = false;
+    document.getElementById('cffex-status').classList.remove('syncing');
+    document.getElementById('us-futures-status').classList.remove('syncing');
+  }
+}
 
 // --- Fund market center ---
 const FUND_TYPE_LABELS = { all:'全部基金', stock:'股票型', mixed:'混合型', bond:'债券型', index:'指数型', qdii:'QDII', fof:'FOF' };

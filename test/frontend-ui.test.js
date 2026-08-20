@@ -220,7 +220,7 @@ test('standalone and in-page reference views share the same renderer', () => {
 });
 
 test('all app pages support direct URL navigation and browser history', () => {
-  assert.match(html, /const APP_PAGES = \['market','boards','capital-flow','funds','ipo','alerts','notes','reference','sites','ai','user-ai-models','admin-users','admin-sites','admin-ai'\]/);
+  assert.match(html, /const APP_PAGES = \['market','boards','capital-flow','derivatives','funds','ipo','alerts','notes','reference','sites','ai','user-ai-models','admin-users','admin-sites','admin-ai'\]/);
   assert.match(html, /document\.title = '深度学习';/);
   assert.doesNotMatch(html, /APP_PAGE_TITLES/);
   assert.match(html, /history\.pushState\(\{ page \}, '', url\)/);
@@ -292,6 +292,24 @@ test('capital flow radar exposes market, board, stock, history and intraday view
   assert.match(serverSource, /pathname === '\/api\/capital-flow\/history'/);
   assert.match(serverSource, /pathname === '\/api\/capital-flow\/intraday'/);
   assert.match(serverSource, /CAPITAL_FLOW_RATE_LIMIT_MAX/);
+  assert.match(html, /function renderCapitalRanking\(scope, rows, container\)/);
+  assert.match(html, /tbody\.appendChild\(rowNode\)/);
+  assert.match(html, /loadCapitalFlow\(false, \{ background:true \}\)/);
+  assert.doesNotMatch(html, /capitalFlowLoaded = false; loadCapitalFlow\(\)/);
+});
+
+test('derivatives page exposes CFFEX basis, US overnight futures, sessions and filtered news', () => {
+  assert.match(html, /data-page="derivatives"[^>]*onclick="switchAppPage\('derivatives'\)"/);
+  assert.match(html, /id="page-derivatives"/);
+  assert.match(html, /id="cffex-quotes"/);
+  assert.match(html, /id="us-futures-quotes"/);
+  assert.match(html, /id="futures-news"/);
+  assert.match(html, /id="us-night-news"/);
+  assert.match(html, /function newYorkSessionInfo\(now = new Date\(\)\)/);
+  assert.match(html, /基差 = 期货 − 现货指数/);
+  assert.match(serverSource, /pathname === '\/api\/derivatives\/overview'/);
+  assert.match(serverSource, /const CFFEX_NODES = \{ IF:'qz_qh', IH:'szgz_qh', IC:'zzgz_qh', IM:'im_qh' \}/);
+  assert.match(serverSource, /DERIVATIVES_RATE_LIMIT_MAX/);
 });
 
 test('global index cards open a quote detail with available curves and clearer price context', () => {

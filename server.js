@@ -32,6 +32,14 @@ const {
   normalizeFlowRankingRow,
   parseIntradayFlowPayload,
 } = require('./capital-flow');
+const {
+  CFFEX_PRODUCTS,
+  normalizeCffexFuture,
+  parseEastmoneyFastNews,
+  parseFuturesFlashHtml,
+  parseSinaGlobalFutures,
+  parseSinaSpotIndexes,
+} = require('./derivatives-market');
 
 const PORT = 3000;
 const PUBLIC_DIR = path.join(__dirname, 'public');
@@ -79,6 +87,8 @@ const BOARD_COMPONENT_PAGE_SIZE = 1000;
 const CAPITAL_FLOW_RANKING_CACHE_MS = 12 * 1000;
 const CAPITAL_FLOW_INTRADAY_CACHE_MS = 4500;
 const CAPITAL_FLOW_HISTORY_CACHE_MS = 15 * 60 * 1000;
+const DERIVATIVES_QUOTE_CACHE_MS = 5 * 1000;
+const DERIVATIVES_NEWS_CACHE_MS = 2 * 60 * 1000;
 const fundamentalCache = new Map();
 const realtimeFundFlowCache = new Map();
 const realtimeValuationCache = new Map();
@@ -97,6 +107,10 @@ const capitalFlowRateLimitBuckets = new Map();
 const capitalFlowRankingCache = new Map();
 const capitalFlowIntradayCache = new Map();
 const capitalFlowHistoryCache = new Map();
+const derivativesQuoteCache = new Map();
+const derivativesNewsCache = new Map();
+const derivativesRateLimitBuckets = new Map();
+let derivativesQuoteRefreshPromise = null;
 const boardRequestQueue = createAsyncTaskQueue({ concurrency:3, maxQueued:30 });
 const fundQuoteRequestQueue = createAsyncTaskQueue({ concurrency:3, maxQueued:60 });
 // Eastmoney's historical money-flow endpoint is much less tolerant of bursts
@@ -138,6 +152,13 @@ const FUND_QUOTE_CACHE_MAX = 1000;
 const FUND_RATE_LIMIT_WINDOW_MS = 60 * 1000;
 const FUND_RATE_LIMIT_MAX = 90;
 const CAPITAL_FLOW_RATE_LIMIT_MAX = 120;
+const DERIVATIVES_RATE_LIMIT_MAX = 120;
+
+const CFFEX_NODES = { IF:'qz_qh', IH:'szgz_qh', IC:'zzgz_qh', IM:'im_qh' };
+const US_NEWS_KEYWORDS = [
+  '美股','美国股市','盘前','盘后','纳指','纳斯达克','标普','道指','华尔街','美联储',
+  '英伟达','苹果','微软','特斯拉','亚马逊','谷歌','meta','美国科技股','美国银行',
+];
 
 const STOCK_FLOW_MARKETS = {
   all:'m:0+t:6,m:0+t:80,m:1+t:2,m:1+t:23',
@@ -943,6 +964,113 @@ async function proxyCapitalFlowIntraday(urlObj, res) {
   }
 }
 
+async function requestSinaText(url) {
+  const buffer = await requestBuffer(url, {
+    ...UPSTREAM_HEADERS,
+    Referer:'https://finance.sina.com.cn/',
+    Accept:'text/plain,*/*;q=0.8',
+  }, { timeoutMs:9000 });
+  if (buffer.length > 2 * 1024 * 1024) throw new Error('Sina payload is too large');
+  return gbkDecode(buffer);
+}
+
+async function loadDerivativesQuotes(force = false) {
+  const cachedAt = Math.max(0, ...[...derivativesQuoteCache.values()].map(item => Number(item.cachedAt) || 0));
+  if (!force && derivativesQuoteCache.size && Date.now() - cachedAt < DERIVATIVES_QUOTE_CACHE_MS) {
+    const cffex = ['IF','IH','IC','IM'].map(code => derivativesQuoteCache.get(`cffex:${code}`)?.value).filter(Boolean);
+    const us = ['ES','NQ','YM'].map(code => derivativesQuoteCache.get(`us:${code}`)?.value).filter(Boolean);
+    const partial = cffex.length < 4 || us.length < 3 || [...derivativesQuoteCache.values()].some(item =>
+      Date.now() - (Number(item.cachedAt) || 0) >= DERIVATIVES_QUOTE_CACHE_MS
+    );
+    return {
+      cffex, us, fetchedAt:cachedAt, partial,
+    };
+  }
+  if (derivativesQuoteRefreshPromise) return derivativesQuoteRefreshPromise;
+  derivativesQuoteRefreshPromise = (async () => {
+    const cffexRequests = Object.entries(CFFEX_NODES).map(async ([code, node]) => {
+      const query = new URLSearchParams({ page:'1', num:'10', sort:'position', asc:'0', node, base:'futures' });
+      const buffer = await requestBuffer(
+        `https://vip.stock.finance.sina.com.cn/quotes_service/api/json_v2.php/Market_Center.getHQFuturesData?${query}`,
+        { ...UPSTREAM_HEADERS, Referer:'https://vip.stock.finance.sina.com.cn/' },
+        { timeoutMs:9000 }
+      );
+      if (buffer.length > 1024 * 1024) throw new Error('CFFEX quote payload is too large');
+      const rows = JSON.parse(buffer.toString('utf-8'));
+      return { code, row:Array.isArray(rows) ? rows.find(item => item.symbol === `${code}0`) || rows[0] : null };
+    });
+    const [spotsResult, usResult, ...cffexResults] = await Promise.allSettled([
+      requestSinaText(`https://hq.sinajs.cn/list=${Object.values(CFFEX_PRODUCTS).map(item => item.spotSymbol).join(',')}`),
+      requestSinaText('https://hq.sinajs.cn/list=hf_ES,hf_NQ,hf_YM'),
+      ...cffexRequests,
+    ]);
+    const spots = spotsResult.status === 'fulfilled' ? parseSinaSpotIndexes(spotsResult.value) : {};
+    let freshCount = 0;
+    cffexResults.forEach(result => {
+      if (result.status !== 'fulfilled') return;
+      const value = normalizeCffexFuture(result.value.row, spots[result.value.code]);
+      if (!value) return;
+      derivativesQuoteCache.set(`cffex:${value.code}`, { value, cachedAt:Date.now() });
+      freshCount += 1;
+    });
+    if (usResult.status === 'fulfilled') {
+      parseSinaGlobalFutures(usResult.value).forEach(value => {
+        derivativesQuoteCache.set(`us:${value.code}`, { value, cachedAt:Date.now() });
+        freshCount += 1;
+      });
+    }
+    const cffex = ['IF','IH','IC','IM'].map(code => derivativesQuoteCache.get(`cffex:${code}`)?.value).filter(Boolean);
+    const us = ['ES','NQ','YM'].map(code => derivativesQuoteCache.get(`us:${code}`)?.value).filter(Boolean);
+    if (!cffex.length && !us.length) throw new Error('Derivative quotes are unavailable');
+    return {
+      cffex, us, fetchedAt:Date.now(),
+      partial:freshCount < 7 || spotsResult.status === 'rejected',
+    };
+  })();
+  try { return await derivativesQuoteRefreshPromise; }
+  finally { derivativesQuoteRefreshPromise = null; }
+}
+
+async function loadDerivativesNews(force = false) {
+  return loadCachedFundValue(derivativesNewsCache, 'overview', DERIVATIVES_NEWS_CACHE_MS, async () => {
+    const [futuresResult, usResult] = await Promise.allSettled([
+      requestBuffer('https://qhweb.eastmoney.com/kuaixunc/page?timestamp=0', {
+        ...UPSTREAM_HEADERS, Referer:'https://qhweb.eastmoney.com/kuaixun',
+      }, { timeoutMs:10000 }),
+      requestBuffer('https://newsapi.eastmoney.com/kuaixun/v1/getlist_105_ajaxResult_100_1_.html', {
+        ...UPSTREAM_HEADERS, Referer:'https://kuaixun.eastmoney.com/',
+      }, { timeoutMs:10000 }),
+    ]);
+    const futures = futuresResult.status === 'fulfilled' && futuresResult.value.length <= 2 * 1024 * 1024
+      ? parseFuturesFlashHtml(futuresResult.value.toString('utf-8'), 14) : [];
+    const us = usResult.status === 'fulfilled' && usResult.value.length <= 3 * 1024 * 1024
+      ? parseEastmoneyFastNews(usResult.value.toString('utf-8'), { limit:14, keywords:US_NEWS_KEYWORDS }) : [];
+    if (!futures.length && !us.length) throw new Error('Derivative news is unavailable');
+    return { futures, us, fetchedAt:Date.now(), partial:!futures.length || !us.length };
+  }, force);
+}
+
+async function proxyDerivativesOverview(urlObj, res) {
+  const force = urlObj.searchParams.get('refresh') === '1';
+  const [quotesResult, newsResult] = await Promise.allSettled([
+    loadDerivativesQuotes(force), loadDerivativesNews(force),
+  ]);
+  if (quotesResult.status === 'rejected' && newsResult.status === 'rejected') {
+    console.error('Derivatives overview error:', quotesResult.reason?.message, newsResult.reason?.message);
+    sendJson(res, 502, { cffex:[], us:[], futuresNews:[], usNews:[], error:'期指与夜盘数据暂时不可用' });
+    return;
+  }
+  const quotes = quotesResult.status === 'fulfilled' ? quotesResult.value : { cffex:[], us:[], partial:true };
+  const news = newsResult.status === 'fulfilled' ? newsResult.value : { futures:[], us:[], partial:true };
+  sendJson(res, 200, {
+    cffex:quotes.cffex, us:quotes.us,
+    futuresNews:news.futures, usNews:news.us,
+    partial:Boolean(quotes.partial || news.partial || quotesResult.status === 'rejected' || newsResult.status === 'rejected'),
+    fetchedAt:Math.max(Number(quotes.fetchedAt) || 0, Number(news.fetchedAt) || 0, Date.now()),
+    sources:{ quotes:'新浪财经公开行情', news:'东方财富期货快讯 / 全球股市快讯' },
+  });
+}
+
 function parseTencentIndexes(buffer) {
   const text = gbkDecode(buffer);
   return GLOBAL_TENCENT_INDEXES.map(([symbol, code]) => {
@@ -1171,6 +1299,29 @@ function allowCapitalFlowRequest(req, res) {
     'Retry-After':String(Math.max(1, Math.ceil((bucket.startedAt + FUND_RATE_LIMIT_WINDOW_MS - now) / 1000))),
   });
   res.end(JSON.stringify({ error:'资金流向请求过于频繁，请稍后再试' }));
+  return false;
+}
+
+function allowDerivativesRequest(req, res) {
+  const now = Date.now();
+  if (derivativesRateLimitBuckets.size > 1000) {
+    for (const [key, value] of derivativesRateLimitBuckets) {
+      if (now - value.startedAt >= FUND_RATE_LIMIT_WINDOW_MS) derivativesRateLimitBuckets.delete(key);
+    }
+  }
+  const address = String(req.socket?.remoteAddress || 'unknown').slice(0, 100);
+  let bucket = derivativesRateLimitBuckets.get(address);
+  if (!bucket || now - bucket.startedAt >= FUND_RATE_LIMIT_WINDOW_MS) {
+    bucket = { startedAt:now, count:0 };
+    derivativesRateLimitBuckets.set(address, bucket);
+  }
+  bucket.count += 1;
+  if (bucket.count <= DERIVATIVES_RATE_LIMIT_MAX) return true;
+  res.writeHead(429, {
+    'Content-Type':'application/json; charset=utf-8', 'Cache-Control':'no-store',
+    'Retry-After':String(Math.max(1, Math.ceil((bucket.startedAt + FUND_RATE_LIMIT_WINDOW_MS - now) / 1000))),
+  });
+  res.end(JSON.stringify({ error:'期指与夜盘请求过于频繁，请稍后再试' }));
   return false;
 }
 
@@ -1469,6 +1620,12 @@ const server = http.createServer(async (req, res) => {
   if (pathname === '/api/capital-flow/intraday') {
     if (!allowCapitalFlowRequest(req, res)) return;
     await proxyCapitalFlowIntraday(urlObj, res);
+    return;
+  }
+
+  if (pathname === '/api/derivatives/overview') {
+    if (!allowDerivativesRequest(req, res)) return;
+    await proxyDerivativesOverview(urlObj, res);
     return;
   }
 
