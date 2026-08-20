@@ -23,6 +23,10 @@ const {
   normalizeSecuritySearchQuery,
   parseTencentSecuritySearch,
 } = require('./stock-search');
+const {
+  createQuoteSnapshotCache,
+  normalizeQuoteSymbols,
+} = require('./quote-feed');
 const { fundQuoteFromProfile } = require('./fund-quote');
 const {
   FLOW_PERIODS,
@@ -73,6 +77,7 @@ const GLOBAL_MARKET_CACHE_MS = 4500;
 const globalMarketCache = new Map();
 let globalMarketSnapshot = null;
 let globalMarketRefreshPromise = null;
+const quoteSnapshotCache = createQuoteSnapshotCache({ maxEntries:500, maxAgeMs:15 * 60 * 1000 });
 const IPO_CACHE_MS = 15 * 60 * 1000;
 let ipoCache = null;
 let ipoRefreshPromise = null;
@@ -193,23 +198,38 @@ function serveReferenceDocument(res, download=false) {
   });
 }
 
-function proxyQuote(symbols, res) {
-  const url = `https://qt.gtimg.cn/q=${symbols}`;
-  const req = https.get(url, { headers: UPSTREAM_HEADERS, timeout: 8000 }, (r) => {
-    const chunks = [];
-    r.on('data', c => chunks.push(c));
-    r.on('end', () => {
-      const text = gbkDecode(Buffer.concat(chunks));
-      res.writeHead(200, {
-        'Content-Type': 'text/plain; charset=utf-8',
-        'Access-Control-Allow-Origin': '*',
-        'Cache-Control': 'no-cache',
-      });
-      res.end(text);
-    });
+async function proxyQuote(symbols, res) {
+  let liveLines = new Map();
+  let upstreamFailed = false;
+  try {
+    const buffer = await requestBuffer(
+      `https://qt.gtimg.cn/q=${symbols.join(',')}`,
+      UPSTREAM_HEADERS,
+      { timeoutMs:8000, maxBytes:2 * 1024 * 1024 }
+    );
+    liveLines = quoteSnapshotCache.store(gbkDecode(buffer));
+    if (!liveLines.size) throw new Error('Upstream quote payload is empty');
+  } catch (error) {
+    upstreamFailed = true;
+    console.error('Quote upstream error:', error.message);
+  }
+
+  const result = quoteSnapshotCache.compose(symbols, { liveLines });
+  if (!result.text) {
+    res.writeHead(502, { 'Content-Type':'text/plain; charset=utf-8', 'Cache-Control':'no-store' });
+    res.end('Quote data is temporarily unavailable');
+    return;
+  }
+  const status = upstreamFailed ? 'stale' : result.stale.length || result.missing.length ? 'partial' : 'live';
+  res.writeHead(200, {
+    'Content-Type':'text/plain; charset=utf-8',
+    'Cache-Control':'no-cache',
+    'X-Stock-Quote-Status':status,
+    'X-Stock-Stale-Symbols':result.stale.join(','),
+    'X-Stock-Missing-Symbols':result.missing.join(','),
+    'X-Stock-Fetched-At':String(Date.now()),
   });
-  req.on('timeout', () => { req.destroy(); res.writeHead(504); res.end('Upstream timeout'); });
-  req.on('error', (e) => { res.writeHead(502); res.end('Upstream error: ' + e.message); });
+  res.end(result.text);
 }
 
 function proxyJson(url, res) {
@@ -231,7 +251,7 @@ function proxyJson(url, res) {
   req.on('error', (e) => { res.writeHead(502); res.end('{}'); });
 }
 
-function requestBuffer(url, headers, { timeoutMs = 8000 } = {}) {
+function requestBuffer(url, headers, { timeoutMs = 8000, maxBytes = 4 * 1024 * 1024 } = {}) {
   return new Promise((resolve, reject) => {
     const req = https.get(url, { headers, timeout:timeoutMs }, (r) => {
       if (r.statusCode < 200 || r.statusCode >= 300) {
@@ -240,7 +260,15 @@ function requestBuffer(url, headers, { timeoutMs = 8000 } = {}) {
         return;
       }
       const chunks = [];
-      r.on('data', chunk => chunks.push(chunk));
+      let size = 0;
+      r.on('data', chunk => {
+        size += chunk.length;
+        if (size > maxBytes) {
+          r.destroy(new Error('Upstream payload is too large'));
+          return;
+        }
+        chunks.push(chunk);
+      });
       r.on('end', () => resolve(Buffer.concat(chunks)));
       r.on('error', reject);
     });
@@ -1561,11 +1589,9 @@ const server = http.createServer(async (req, res) => {
   }
 
   if (pathname === '/api/quote') {
-    const symbols = urlObj.searchParams.get('symbols') || '';
-    if (!symbols) { res.writeHead(400); res.end('Missing symbols'); return; }
-    const safe = symbols.split(',').filter(s => /^[a-zA-Z0-9._-]+$/.test(s)).join(',');
-    if (!safe) { res.writeHead(400); res.end('No valid symbols'); return; }
-    proxyQuote(safe, res);
+    const symbols = normalizeQuoteSymbols(urlObj.searchParams.get('symbols'));
+    if (!symbols) { res.writeHead(400); res.end('Invalid symbols or too many symbols'); return; }
+    await proxyQuote(symbols, res);
     return;
   }
 

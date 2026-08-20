@@ -163,6 +163,29 @@ test('sidebar groups navigation and supports collapse on desktop plus overlay on
   assert.match(html, /href="\/reference\.html" target="_blank" rel="noopener noreferrer"/);
 });
 
+test('mobile market view prioritizes core actions and keeps a visible page identity', () => {
+  assert.match(html, /class="mobile-app-bar"[^>]*aria-label="移动端页面标题"/);
+  assert.match(html, /id="mobile-page-title">自选行情<\/strong>/);
+  assert.match(html, /id="mobile-tools-toggle"[^>]*aria-expanded="false"[^>]*aria-controls="market-secondary-tools"/);
+  assert.match(html, /id="market-secondary-tools"/);
+  assert.match(html, /function toggleMobileMarketTools\(\)/);
+  assert.match(html, /\.market-secondary-tools\{display:none;grid-template-columns:/);
+  assert.match(html, /\.market-secondary-tools\.open\{display:grid\}/);
+  assert.match(html, /mobileTitle\.textContent = activeTab/);
+});
+
+test('watchlist keeps prior quotes visible while clearly marking degraded data', () => {
+  assert.match(html, /X-Stock-Quote-Status/);
+  assert.match(html, /X-Stock-Stale-Symbols/);
+  assert.match(html, /index<marketSymbols\.length; index\+=100/);
+  assert.match(html, /Object\.assign\(\{\}, lastRawQuoteData, freshData\)/);
+  assert.match(html, /staleQuoteSymbols = new Set/);
+  assert.match(html, /quote-state-badge/);
+  assert.match(html, /网络离线 · 保留现有行情/);
+  assert.match(html, /刷新失败 · 保留现有行情/);
+  assert.match(html, /class="watchlist-empty"/);
+});
+
 test('site recommendations open a searchable right-side directory with safe new-tab links', () => {
   assert.match(html, /data-page="sites"[^>]*onclick="switchAppPage\('sites'\)"/);
   assert.match(html, /id="site-recommendations"[^>]*onmouseenter="showSiteRecommendationsPreview\(\)"/);
