@@ -48,7 +48,6 @@ function announcementKind(title, columns) {
 function normalizeAnnouncementPayload(payload, symbol) {
   if (!payload || Number(payload.success) !== 1 || !Array.isArray(payload.data?.list)) throw new Error('Announcement payload is invalid');
   const code = String(symbol || '').slice(2);
-  const prefix = String(symbol || '').startsWith('sh') ? 'H2' : 'H3';
   const seen = new Set();
   const announcements = [];
   for (const row of payload.data.list) {
@@ -65,7 +64,7 @@ function normalizeAnnouncementPayload(payload, symbol) {
       title,
       kind,
       publishedAt:String(row.display_time || row.notice_date || '').slice(0, 19),
-      url:`https://np-snotice.eastmoney.com/pdf/${prefix}_${artCode}_1.pdf`,
+      url:`https://np-snotice.eastmoney.com/pdf/H2_${artCode}_1.pdf`,
       source:'东方财富公开公告页',
       isReport:kind === '定期报告',
       important:/风险|立案|处罚|问询|警示|退市|重大|回购|分红|增持|减持|并购|重组|业绩预告/.test(`${kind} ${title}`),

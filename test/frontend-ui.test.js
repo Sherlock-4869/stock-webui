@@ -370,7 +370,7 @@ test('chart crosshair snaps its vertical value to the selected horizontal data n
   assert.doesNotMatch(crosshairSource, /pointerY|valueForY/);
 });
 
-test('chart hover shows the selected node details beside the pointer', () => {
+test('chart hover shows selected node details beside the pointer and in the chart header', () => {
   assert.match(html, /id="chart-hover-tooltip" role="tooltip"/);
   assert.match(html, /function chartTooltipDetail\(index\)/);
   assert.match(html, /function showChartHoverTooltip\(event, index\)/);
@@ -379,7 +379,9 @@ test('chart hover shows the selected node details beside the pointer', () => {
   const start = html.indexOf('function updateChartHover');
   const end = html.indexOf('const chartPointers', start);
   assert.ok(start >= 0 && end > start);
-  assert.doesNotMatch(html.slice(start, end), /updateChartInfo/);
+  const hoverSource = html.slice(start, end);
+  assert.match(hoverSource, /updateChartInfo\(chartState\.hoverIndex\)/);
+  assert.match(hoverSource, /updateChartInfo\(chartState\.data\.length - 1\)/);
 });
 
 test('A-share detail exposes resilient public announcements, financials and linked news', () => {

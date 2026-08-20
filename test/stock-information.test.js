@@ -31,7 +31,7 @@ test('announcement payload keeps matching A-share disclosures and safe public PD
     title:'2026年半年度报告',
     kind:'定期报告',
     publishedAt:'2026-08-14 19:21:17',
-    url:'https://np-snotice.eastmoney.com/pdf/H3_AN202608141827992716_1.pdf',
+    url:'https://np-snotice.eastmoney.com/pdf/H2_AN202608141827992716_1.pdf',
     source:'东方财富公开公告页',
     isReport:true,
     important:false,

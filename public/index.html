@@ -3825,12 +3825,21 @@ function updateChartHover(event) {
   const rect = chartCanvas.getBoundingClientRect();
   const x = (event.clientX - rect.left) * chartState.layout.W / rect.width;
   const { plotLeft, plotRight } = chartState.layout;
-  if (x < plotLeft || x > plotRight) { hideChartHoverTooltip(); return; }
+  if (x < plotLeft || x > plotRight) {
+    if (chartState.hoverIndex != null) {
+      chartState.hoverIndex = null;
+      renderChart();
+    }
+    hideChartHoverTooltip();
+    updateChartInfo(chartState.data.length - 1);
+    return;
+  }
   const ratio = chartRatioAtClientX(event.clientX);
   chartState.hoverIndex = chartState.type === 'minute'
     ? Math.round(ratio * (chartState.data.length - 1))
     : Math.min(chartState.data.length - 1, Math.floor(ratio * chartState.data.length));
   renderChart();
+  updateChartInfo(chartState.hoverIndex);
   showChartHoverTooltip(event, chartState.hoverIndex);
 }
 
