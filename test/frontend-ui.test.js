@@ -359,6 +359,17 @@ test('stock minute chart labels each market lunch break without separating the c
   assert.doesNotMatch(html, /const sessionGap = sessionBreak/);
 });
 
+test('chart crosshair snaps its vertical value to the selected horizontal data node', () => {
+  const start = html.indexOf('function drawCrosshair');
+  const end = html.indexOf('function chartNumber', start);
+  assert.ok(start >= 0 && end > start);
+  const crosshairSource = html.slice(start, end);
+  assert.match(crosshairSource, /const value = chartState\.type === 'minute' \? point\.price : chartState\.type === 'fundFlow' \? point\.mainNet : point\.close/);
+  assert.match(crosshairSource, /const x = layout\.xFor\(index\), y = layout\.py\(value\)/);
+  assert.match(crosshairSource, /const yLabel = chartState\.type === 'fundFlow' \? fundAxisAmount\(value\) : value\.toFixed\(2\)/);
+  assert.doesNotMatch(crosshairSource, /pointerY|valueForY/);
+});
+
 test('Hong Kong and US watchlist symbols generate intraday K lines from minute data', () => {
   assert.match(html, /function supportsMinuteKline\(sym\)/);
   assert.match(html, /aggregateMinuteKlineRows\(stockData\.data\?\.data \|\| \[\], date, period\)/);

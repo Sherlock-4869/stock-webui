@@ -2704,7 +2704,7 @@ const chartState = {
   type: '', data: [], fullData: [], prevClose: 0, date: '',
   ma5: [], ma10: [], ma20: [], fullMa5: [], fullMa10: [], fullMa20: [], period: '',
   viewStart: 0, viewEnd: -1, defaultStart: 0, defaultEnd: -1,
-  hoverIndex: null, pointerY: null, layout: null,
+  hoverIndex: null, layout: null,
 };
 
 async function loadChart(type, options = {}) {
@@ -2952,7 +2952,6 @@ function setChartViewport(start, end, options = {}) {
   chartState.ma10 = chartState.fullMa10.slice(nextStart, nextEnd + 1);
   chartState.ma20 = chartState.fullMa20.slice(nextStart, nextEnd + 1);
   chartState.hoverIndex = null;
-  chartState.pointerY = null;
   updateChartWindow();
   if (options.render !== false) {
     renderChart();
@@ -3106,7 +3105,6 @@ function drawMinuteChart(ctx, W, H) {
   const py = value => priceTop + (priceMax - value) / range * priceH;
   const sessionBreak = findMinuteSessionBreak(data);
   const xFor = index => plotLeft + (data.length === 1 ? 0 : index / (data.length - 1)) * cw;
-  const valueForY = y => priceMax - (y - priceTop) / priceH * range;
 
   ctx.fillStyle = chartThemeColor('bg');
   ctx.fillRect(0, 0, W, H);
@@ -3183,7 +3181,7 @@ function drawMinuteChart(ctx, W, H) {
   drawGridLine(ctx, plotLeft, volTop, plotRight, volTop);
   drawMinuteSessionBreak(ctx, sessionBreak, xFor, priceTop, volTop + volH, W, H);
 
-  chartState.layout = { W, H, plotLeft, plotRight, cw, priceTop, priceH, volTop, volH, priceMin, priceMax, xFor, py, valueForY };
+  chartState.layout = { W, H, plotLeft, plotRight, cw, priceTop, priceH, volTop, volH, priceMin, priceMax, xFor, py };
 }
 
 function drawAverageLine(ctx, values, xFor, py, color) {
@@ -3212,7 +3210,6 @@ function drawKlineChart(ctx, W, H) {
   const step = cw / data.length;
   const xFor = index => plotLeft + (index + .5) * step;
   const py = value => priceTop + (priceMax - value) / range * priceH;
-  const valueForY = y => priceMax - (y - priceTop) / priceH * range;
 
   ctx.fillStyle = chartThemeColor('bg');
   ctx.fillRect(0, 0, W, H);
@@ -3274,7 +3271,7 @@ function drawKlineChart(ctx, W, H) {
   });
   drawGridLine(ctx, plotLeft, volTop, plotRight, volTop);
 
-  chartState.layout = { W, H, plotLeft, plotRight, cw, priceTop, priceH, volTop, volH, priceMin, priceMax, xFor, py, valueForY };
+  chartState.layout = { W, H, plotLeft, plotRight, cw, priceTop, priceH, volTop, volH, priceMin, priceMax, xFor, py };
 }
 
 function fundAxisAmount(value) {
@@ -3298,7 +3295,6 @@ function drawFundFlowChart(ctx, W, H) {
   const step = cw / data.length;
   const xFor = index => plotLeft + (index + .5) * step;
   const py = value => priceTop + (priceMax - value) / range * priceH;
-  const valueForY = y => priceMax - (y - priceTop) / priceH * range;
   const zeroY = py(0);
 
   ctx.fillStyle = chartThemeColor('bg');
@@ -3350,7 +3346,7 @@ function drawFundFlowChart(ctx, W, H) {
   ctx.lineWidth = 1.5;
   ctx.stroke();
 
-  chartState.layout = { W, H, plotLeft, plotRight, cw, priceTop, priceH, volTop, volH, priceMin, priceMax, xFor, py, valueForY };
+  chartState.layout = { W, H, plotLeft, plotRight, cw, priceTop, priceH, volTop, volH, priceMin, priceMax, xFor, py };
 }
 
 function renderChart() {
@@ -3376,7 +3372,8 @@ function drawCrosshair(ctx) {
   const layout = chartState.layout;
   const index = Math.max(0, Math.min(chartState.data.length - 1, chartState.hoverIndex));
   const point = chartState.data[index];
-  const x = layout.xFor(index), y = chartState.pointerY;
+  const value = chartState.type === 'minute' ? point.price : chartState.type === 'fundFlow' ? point.mainNet : point.close;
+  const x = layout.xFor(index), y = layout.py(value);
   ctx.save();
   ctx.strokeStyle = chartThemeColor('cross');
   ctx.lineWidth = 1;
@@ -3385,19 +3382,16 @@ function drawCrosshair(ctx) {
   ctx.moveTo(x, layout.priceTop);
   ctx.lineTo(x, layout.volTop + layout.volH);
   ctx.stroke();
-  if (y >= layout.priceTop && y <= layout.priceTop + layout.priceH) {
-    ctx.beginPath();
-    ctx.moveTo(layout.plotLeft, y);
-    ctx.lineTo(layout.plotRight, y);
-    ctx.stroke();
-    const yLabel = chartState.type === 'fundFlow' ? fundAxisAmount(layout.valueForY(y)) : layout.valueForY(y).toFixed(2);
-    drawBadge(ctx, yLabel, layout.plotRight - 32, y - 9, chartState.type === 'fundFlow' ? 68 : 58);
-  }
+  ctx.beginPath();
+  ctx.moveTo(layout.plotLeft, y);
+  ctx.lineTo(layout.plotRight, y);
+  ctx.stroke();
+  const yLabel = chartState.type === 'fundFlow' ? fundAxisAmount(value) : value.toFixed(2);
+  drawBadge(ctx, yLabel, layout.plotRight - 32, y - 9, chartState.type === 'fundFlow' ? 68 : 58);
   ctx.setLineDash([]);
-  const markerY = layout.py(chartState.type === 'minute' ? point.price : chartState.type === 'fundFlow' ? point.mainNet : point.close);
   ctx.fillStyle = chartThemeColor('text');
   ctx.beginPath();
-  ctx.arc(x, markerY, 3, 0, Math.PI * 2);
+  ctx.arc(x, y, 3, 0, Math.PI * 2);
   ctx.fill();
   const xText = chartState.type === 'minute'
     ? formatTime(point.time)
@@ -3640,14 +3634,12 @@ function updateChartHover(event) {
   if (!chartState.layout || !chartState.data.length) return;
   const rect = chartCanvas.getBoundingClientRect();
   const x = (event.clientX - rect.left) * chartState.layout.W / rect.width;
-  const y = (event.clientY - rect.top) * chartState.layout.H / rect.height;
   const { plotLeft, plotRight } = chartState.layout;
   if (x < plotLeft || x > plotRight) return;
   const ratio = chartRatioAtClientX(event.clientX);
   chartState.hoverIndex = chartState.type === 'minute'
     ? Math.round(ratio * (chartState.data.length - 1))
     : Math.min(chartState.data.length - 1, Math.floor(ratio * chartState.data.length));
-  chartState.pointerY = y;
   renderChart();
   updateChartInfo(chartState.hoverIndex);
 }
@@ -3716,7 +3708,6 @@ chartCanvas.addEventListener('pointermove', event => {
 chartCanvas.addEventListener('pointerleave', event => {
   if (event.pointerType !== 'mouse' || chartPointers.size) return;
   chartState.hoverIndex = null;
-  chartState.pointerY = null;
   renderChart();
   updateChartInfo(chartState.data.length - 1);
 });
