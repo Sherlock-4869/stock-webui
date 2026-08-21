@@ -568,7 +568,7 @@ html[data-theme="light"] .mobile-app-bar{border-color:#dce3ec;background:#ffffff
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
 </style>
 <style>
-.admin-reference-content{min-height:360px;resize:vertical;font:12px/1.6 ui-monospace,SFMono-Regular,Menlo,monospace}
+.admin-reference-editor-toolbar{display:flex;align-items:center;gap:6px;margin:0 0 8px;flex-wrap:wrap}.admin-reference-editor-toolbar .dialog-btn.active{border-color:#1f6feb;background:#1f3a5f;color:#fff}.admin-reference-count{margin-left:auto;color:#6e7681;font-size:10px}.admin-reference-editor{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px}.admin-reference-content{min-height:420px;resize:vertical;font:12px/1.6 ui-monospace,SFMono-Regular,Menlo,monospace}.admin-reference-preview{min-height:420px;max-height:620px;overflow:auto;padding:12px;border:1px solid #30363d;border-radius:7px;background:#0d1117;color:#c9d1d9;font-size:12px;line-height:1.7}.admin-reference-preview h1,.admin-reference-preview h2,.admin-reference-preview h3{margin:12px 0 7px;color:#f0f6fc}.admin-reference-preview h1{font-size:20px}.admin-reference-preview h2{font-size:16px;border-bottom:1px solid #30363d;padding-bottom:5px}.admin-reference-preview h3{font-size:14px}.admin-reference-preview p{margin:7px 0}.admin-reference-preview pre{padding:8px;overflow:auto;border:1px solid #30363d;border-radius:5px;background:#161b22}.admin-reference-preview code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}.admin-reference-preview a{color:#58a6ff}.admin-reference-editor.mode-edit{grid-template-columns:minmax(0,1fr)}.admin-reference-editor.mode-edit .admin-reference-preview{display:none}.admin-reference-editor.mode-preview{grid-template-columns:minmax(0,1fr)}.admin-reference-editor.mode-preview .admin-reference-content{display:none}@media(max-width:780px){.admin-reference-editor{grid-template-columns:minmax(0,1fr)}.admin-reference-editor.mode-split .admin-reference-preview{min-height:260px}.admin-reference-preview{max-height:none}}
 #page-admin-reference{max-width:1100px;margin:0 auto}
 .main #page-admin-reference{max-width:1100px;margin:0 auto}
 </style>
@@ -936,7 +936,7 @@ html[data-theme="light"] .mobile-app-bar{border-color:#dce3ec;background:#ffffff
       <div class="form-row"><label for="admin-reference-description">文档说明</label><input class="form-input" id="admin-reference-description" maxlength="500" placeholder="简要介绍文档内容"></div>
       <div class="form-row"><label for="admin-reference-sort">排序值</label><input class="form-input" id="admin-reference-sort" type="number" min="-100000" max="100000" step="1" value="0" required></div>
       <div class="form-row"><label for="admin-reference-file">导入文件</label><input class="form-input" id="admin-reference-file" type="file" accept=".md,.txt,.markdown" onchange="importAdminReferenceFile(event)"></div>
-      <div class="form-row"><label for="admin-reference-content">Markdown 内容</label><textarea class="form-input admin-reference-content" id="admin-reference-content" maxlength="4194304" required placeholder="# 文档标题\n\n在此编辑参考内容…"></textarea></div>
+      <div class="form-row"><label for="admin-reference-content">Markdown 内容</label><div class="admin-reference-editor-toolbar"><button class="dialog-btn active" type="button" data-admin-reference-mode="split" onclick="setAdminReferenceEditorMode('split')">分栏预览</button><button class="dialog-btn" type="button" data-admin-reference-mode="edit" onclick="setAdminReferenceEditorMode('edit')">专注编辑</button><button class="dialog-btn" type="button" data-admin-reference-mode="preview" onclick="setAdminReferenceEditorMode('preview')">仅看预览</button><span class="admin-reference-count" id="admin-reference-count">0 字符</span></div><div class="admin-reference-editor mode-split" id="admin-reference-editor"><textarea class="form-input admin-reference-content" id="admin-reference-content" maxlength="4194304" required placeholder="# 文档标题\n\n在此编辑参考内容…" oninput="updateAdminReferencePreview()" onkeydown="handleAdminReferenceEditorKeydown(event)"></textarea><div class="admin-reference-preview" id="admin-reference-preview" aria-label="Markdown 预览"></div></div></div>
       <label class="admin-site-active"><input id="admin-reference-active" type="checkbox" checked> 在参考文档列表中展示</label>
       <div class="admin-site-status" id="admin-reference-form-status" aria-live="polite"></div>
       <div class="admin-site-form-actions"><button class="dialog-btn primary" id="admin-reference-save" type="submit">保存文档</button><button class="dialog-btn" type="button" onclick="resetAdminReferenceForm()">清空</button></div>
@@ -6488,7 +6488,36 @@ function resetAdminReferenceForm() {
   document.getElementById('admin-reference-sort').value = '0';
   document.getElementById('admin-reference-active').checked = true;
   document.getElementById('admin-reference-form-title').textContent = '新增参考文档';
+  setAdminReferenceEditorMode('split');
+  updateAdminReferencePreview();
   setAdminReferenceStatus();
+}
+
+function setAdminReferenceEditorMode(mode = 'split') {
+  const editor = document.getElementById('admin-reference-editor');
+  if (!editor) return;
+  const selected = ['split', 'edit', 'preview'].includes(mode) ? mode : 'split';
+  editor.className = `admin-reference-editor mode-${selected}`;
+  document.querySelectorAll('[data-admin-reference-mode]').forEach(button => {
+    button.classList.toggle('active', button.dataset.adminReferenceMode === selected);
+  });
+  if (selected !== 'preview') document.getElementById('admin-reference-content')?.focus();
+  updateAdminReferencePreview();
+}
+
+function updateAdminReferencePreview() {
+  const content = document.getElementById('admin-reference-content');
+  const preview = document.getElementById('admin-reference-preview');
+  const count = document.getElementById('admin-reference-count');
+  if (!content || !preview) return;
+  preview.innerHTML = renderMarkdown(content.value || '');
+  if (count) count.textContent = `${content.value.length} 字符`;
+}
+
+function handleAdminReferenceEditorKeydown(event) {
+  if (!(event.ctrlKey || event.metaKey) || event.key.toLowerCase() !== 's') return;
+  event.preventDefault();
+  document.getElementById('admin-reference-form')?.requestSubmit();
 }
 
 function editAdminReferenceDocument(documentId) {
@@ -6501,6 +6530,8 @@ function editAdminReferenceDocument(documentId) {
   document.getElementById('admin-reference-content').value = documentInfo.content || '';
   document.getElementById('admin-reference-active').checked = documentInfo.isActive === true;
   document.getElementById('admin-reference-form-title').textContent = '编辑参考文档';
+  setAdminReferenceEditorMode('split');
+  updateAdminReferencePreview();
   setAdminReferenceStatus(`正在编辑：${documentInfo.title}`);
   document.getElementById('admin-reference-form')?.scrollIntoView({ behavior:'smooth', block:'start' });
 }
@@ -6552,6 +6583,7 @@ function importAdminReferenceFile(event) {
   const reader = new FileReader();
   reader.onload = () => {
     document.getElementById('admin-reference-content').value = String(reader.result || '');
+    updateAdminReferencePreview();
     const title = document.getElementById('admin-reference-title');
     if (!title.value.trim()) title.value = file.name.replace(/\.(?:markdown?|txt)$/i, '').slice(0, 200);
     setAdminReferenceStatus(`已导入文件：${file.name}，请确认后保存`);

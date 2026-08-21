@@ -121,7 +121,7 @@
 
   function selectedDocumentId(selector, documents) {
     const queryId = new URLSearchParams(location.search).get('id');
-    const selected = selector?.value || queryId;
+    const selected = queryId || selector?.value;
     return documents.some(item => String(item.id) === String(selected)) ? String(selected) : String(documents[0].id);
   }
 
@@ -136,7 +136,10 @@
       selector.appendChild(option);
     });
     selector.value = selectedId;
-    selector.disabled = documents.length <= 1;
+    // Keep the picker interactive even for a single document. If another
+    // document is added while this page is open, the next page activation can
+    // refresh the options without leaving a stale disabled control behind.
+    selector.disabled = false;
   }
 
   function updateReferenceLinks({ selectedId, download, standalone }) {
@@ -151,7 +154,6 @@
     const downloadElement = typeof download === 'string' ? document.getElementById(download) : download;
     const standaloneElement = typeof standalone === 'string' ? document.getElementById(standalone) : standalone;
     if (!articleElement || !tocElement) throw new Error('Reference reader container is missing');
-    if (!force && articleElement.dataset.loaded === 'true') return { loaded: true, cached: true, documentId:articleElement.dataset.documentId || '' };
     if (!force && articleElement.dataset.loading === 'true') return { loaded: false, pending: true };
 
     articleElement.dataset.loading = 'true';
@@ -160,11 +162,13 @@
     tocElement.innerHTML = '<span class="reference-loading">加载中...</span>';
     try {
       let documents;
+      let usedFallback = false;
       try {
         documents = await fetchDocumentList(force);
       } catch (listError) {
         if (force) throw listError;
         documents = [{ id:'static', title:'参考文档', description:'' }];
+        usedFallback = true;
       }
       const selectedId = selectedDocumentId(selectorElement, documents);
       renderDocumentSelector(selectorElement, documents, selectedId);
@@ -175,6 +179,7 @@
       const markdown = await response.text();
       articleElement.innerHTML = `${renderMarkdown(markdown)}<div class="doc-footer">${escapeHtml(footer)}</div>`;
       articleElement.dataset.loaded = 'true';
+      articleElement.dataset.referenceFallback = usedFallback ? 'true' : 'false';
       articleElement.dataset.documentId = selectedId;
       buildToc(articleElement, tocElement);
       if (selectorElement && selectorElement.dataset.referenceBound !== 'true') {

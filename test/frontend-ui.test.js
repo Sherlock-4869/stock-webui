@@ -259,12 +259,19 @@ test('reference documents expose an administrator-managed multi-document reader'
   assert.match(html, /id="page-admin-reference"/);
   assert.match(html, /id="admin-reference-form"/);
   assert.match(html, /id="admin-reference-content"/);
+  assert.match(html, /data-admin-reference-mode="split"/);
+  assert.match(html, /id="admin-reference-preview"/);
+  assert.match(html, /function setAdminReferenceEditorMode\(mode = 'split'\)/);
+  assert.match(html, /function updateAdminReferencePreview\(\)/);
+  assert.match(html, /handleAdminReferenceEditorKeydown\(event\)/);
   assert.match(html, /loadAdminReferenceDocuments\(force = false\)/);
   assert.match(html, /importAdminReferenceFile\(event\)/);
   assert.match(html, /\/api\/admin\/reference-documents/);
   assert.match(referenceHtml, /id="reference-document-select"/);
   assert.match(referenceReaderScript, /fetchDocumentList/);
   assert.match(referenceReaderScript, /selectedDocumentId/);
+  assert.match(referenceReaderScript, /const selected = queryId \|\| selector\?\.value/);
+  assert.doesNotMatch(referenceReaderScript, /selector\.disabled = documents\.length <= 1/);
 });
 
 test('standalone and in-page reference views share the same renderer', () => {
