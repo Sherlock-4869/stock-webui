@@ -421,7 +421,9 @@ html[data-theme="light"] .chat-image-preview{background:#ffffffee}html[data-them
 @media (max-width:768px){.notes-layout{flex-direction:column}.note-sidebar{position:static;top:auto;align-self:stretch;width:100%;min-height:280px;max-height:340px}.note-folder-list{max-height:130px}.note-folder-actions{opacity:1}.note-toolbar{top:52px}.note-editor-wrap{min-height:300px}.note-folder-select-label{max-width:150px}.note-folder-select{max-width:115px}.note-create-folder-select{max-width:120px}}
 /* ====== Reference reader ====== */
 .reference-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.reference-actions .refresh-btn{display:inline-flex;align-items:center;justify-content:center;text-decoration:none;white-space:nowrap}
-.reference-reader{display:grid;grid-template-columns:210px minmax(0,1fr);gap:22px;max-width:1090px;margin:0 auto;align-items:start}
+.reference-reader{display:grid;grid-template-columns:190px 190px minmax(0,1fr);gap:16px;max-width:1240px;margin:0 auto;align-items:start}
+.reference-documents{position:sticky;top:66px;max-height:calc(100vh - 88px);overflow:auto;padding:13px 0;scrollbar-width:thin;scrollbar-color:#484f58 transparent}
+.reference-document-links a{display:block;padding:9px 10px;border:1px solid transparent;border-radius:7px;color:#8b949e;text-decoration:none;font-size:11px;line-height:1.45}.reference-document-links a:hover,.reference-document-links a:focus-visible{border-color:#58a6ff;background:#1f3a5f;color:#79c0ff;outline:none}.reference-document-links a.active{border-color:#1f6feb88;background:#1f3a5f;color:#fff}.reference-document-links small{display:block;margin-top:3px;overflow:hidden;color:#6e7681;font-size:9px;text-overflow:ellipsis;white-space:nowrap}
 .reference-toc{position:sticky;top:66px;max-height:calc(100vh - 88px);overflow:auto;padding:13px 10px 13px 0;scrollbar-width:thin;scrollbar-color:#484f58 transparent}
 .reference-toc-title{margin:0 0 10px 9px;color:#8b949e;font-size:10px;font-weight:700;letter-spacing:1.3px;text-transform:uppercase}
 .reference-toc-links a{display:block;padding:6px 9px;border-left:2px solid #30363d;color:#8b949e;text-decoration:none;font-size:11px;line-height:1.45}.reference-toc-links a:hover,.reference-toc-links a:focus-visible{border-color:#58a6ff;color:#79c0ff;outline:none}.reference-toc-links a.level-3{padding-left:20px;color:#6e7681}
@@ -430,7 +432,8 @@ html[data-theme="light"] .chat-image-preview{background:#ffffffee}html[data-them
 .reference-loading,.reference-empty{display:block;padding:20px 9px;color:#6e7681;font-size:11px}.reference-document>.reference-loading{padding:80px 20px;text-align:center}.reference-error{display:flex;min-height:260px;flex-direction:column;align-items:center;justify-content:center;gap:14px;color:#f85149}.reference-retry{padding:7px 13px;border:1px solid #30363d;border-radius:6px;background:#21262d;color:#e6edf3;cursor:pointer}.doc-footer{margin-top:42px;padding-top:18px;border-top:1px solid #30363d;color:#6e7681;font-size:11px;text-align:center}
 html[data-theme="light"] .reference-document{background:#fff;border-color:#d8dee4;box-shadow:0 14px 40px #1f3b5b12}html[data-theme="light"] .reference-document h1,html[data-theme="light"] .reference-document h2,html[data-theme="light"] .reference-document h3,html[data-theme="light"] .reference-document h4,html[data-theme="light"] .reference-document strong{color:#172033}html[data-theme="light"] .reference-document h2,html[data-theme="light"] .doc-footer{border-color:#d8dee4}html[data-theme="light"] .reference-document p,html[data-theme="light"] .reference-document li{color:#24292f}html[data-theme="light"] .reference-document blockquote{background:#eef6ff;color:#57606a}html[data-theme="light"] .reference-document code{background:#eff2f5;color:#0969da}html[data-theme="light"] .reference-document pre{background:#f6f8fa;border-color:#d0d7de;color:#243b53}html[data-theme="light"] .reference-document .table-scroll{border-color:#d0d7de}html[data-theme="light"] .reference-document table{background:#fff}html[data-theme="light"] .reference-document th{background:#f0f5fa;color:#172033}html[data-theme="light"] .reference-document td{border-color:#d8dee4}html[data-theme="light"] .reference-document tr:hover td{background:#f6f8fa}html[data-theme="light"] .reference-toc-links a{border-color:#d0d7de;color:#57606a}
 html[data-theme="light"] .reference-retry{background:#f6f8fa;border-color:#d0d7de;color:#1f2328}
-@media(max-width:820px){.reference-reader{display:block}.reference-toc{position:sticky;z-index:20;top:48px;max-height:none;margin-bottom:14px;padding:11px;border:1px solid #30363d;border-radius:8px;background:#161b22}.reference-toc-title{margin:0 0 6px}.reference-toc-links{display:flex;gap:4px;overflow:auto;scrollbar-width:none}.reference-toc-links::-webkit-scrollbar{display:none}.reference-toc-links a{flex:none;border-left:0;border-bottom:2px solid #30363d;padding:5px 8px}.reference-toc-links a.level-3{display:none}.reference-document{padding:27px 20px}.reference-document h1{font-size:27px}.reference-document h2{font-size:19px;margin-top:33px}html[data-theme="light"] .reference-toc{background:#fff;border-color:#d8dee4}}
+@media(max-width:1050px){.reference-reader{grid-template-columns:180px minmax(0,1fr)}.reference-toc{grid-column:1 / -1;grid-row:1;position:static;max-height:none;padding:11px;border:1px solid #30363d;border-radius:8px;background:#161b22}.reference-toc-title{margin:0 0 6px}.reference-toc-links{display:flex;gap:4px;overflow:auto;scrollbar-width:none}.reference-toc-links::-webkit-scrollbar{display:none}.reference-toc-links a{flex:none;border-left:0;border-bottom:2px solid #30363d;padding:5px 8px}.reference-toc-links a.level-3{display:none}.reference-documents{grid-column:1;grid-row:2;position:sticky;top:66px}.reference-document{grid-column:2;grid-row:2}}
+@media(max-width:820px){.reference-reader{display:block}.reference-documents{position:static;max-height:none;margin-bottom:14px;padding:11px;border:1px solid #30363d;border-radius:8px;background:#161b22}.reference-document-links{display:flex;gap:5px;overflow:auto}.reference-document-links a{flex:none;min-width:130px}.reference-toc{position:sticky;z-index:20;top:48px;max-height:none;margin-bottom:14px;padding:11px;border:1px solid #30363d;border-radius:8px;background:#161b22}.reference-document{padding:27px 20px}.reference-document h1{font-size:27px}.reference-document h2{font-size:19px;margin-top:33px}html[data-theme="light"] .reference-toc,html[data-theme="light"] .reference-documents{background:#fff;border-color:#d8dee4}}
 @media(max-width:820px){#page-reference .module-head{flex-direction:column}.reference-actions{width:100%}.reference-actions .refresh-btn{flex:1}}
 /* ====== Chat styles ====== */
 .chat-float{position:fixed;z-index:300;bottom:20px;right:20px;width:380px;height:520px;display:none;flex-direction:column;border:1px solid #30363d;border-radius:14px;background:#161b22e6;backdrop-filter:blur(18px);box-shadow:0 12px 40px #000a;overflow:hidden;transition:width .2s,height .2s;resize:both;min-width:300px;min-height:350px}
@@ -569,6 +572,7 @@ html[data-theme="light"] .mobile-app-bar{border-color:#dce3ec;background:#ffffff
 </style>
 <style>
 .admin-reference-editor-toolbar{display:flex;align-items:center;gap:6px;margin:0 0 8px;flex-wrap:wrap}.admin-reference-editor-toolbar .dialog-btn.active{border-color:#1f6feb;background:#1f3a5f;color:#fff}.admin-reference-count{margin-left:auto;color:#6e7681;font-size:10px}.admin-reference-editor{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px}.admin-reference-content{min-height:420px;resize:vertical;font:12px/1.6 ui-monospace,SFMono-Regular,Menlo,monospace}.admin-reference-preview{min-height:420px;max-height:620px;overflow:auto;padding:12px;border:1px solid #30363d;border-radius:7px;background:#0d1117;color:#c9d1d9;font-size:12px;line-height:1.7}.admin-reference-preview h1,.admin-reference-preview h2,.admin-reference-preview h3{margin:12px 0 7px;color:#f0f6fc}.admin-reference-preview h1{font-size:20px}.admin-reference-preview h2{font-size:16px;border-bottom:1px solid #30363d;padding-bottom:5px}.admin-reference-preview h3{font-size:14px}.admin-reference-preview p{margin:7px 0}.admin-reference-preview pre{padding:8px;overflow:auto;border:1px solid #30363d;border-radius:5px;background:#161b22}.admin-reference-preview code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}.admin-reference-preview a{color:#58a6ff}.admin-reference-editor.mode-edit{grid-template-columns:minmax(0,1fr)}.admin-reference-editor.mode-edit .admin-reference-preview{display:none}.admin-reference-editor.mode-preview{grid-template-columns:minmax(0,1fr)}.admin-reference-editor.mode-preview .admin-reference-content{display:none}@media(max-width:780px){.admin-reference-editor{grid-template-columns:minmax(0,1fr)}.admin-reference-editor.mode-split .admin-reference-preview{min-height:260px}.admin-reference-preview{max-height:none}}
+.admin-reference-editor-modal{display:flex;flex-direction:column;width:min(1100px,calc(100vw - 34px));height:min(820px,calc(100vh - 34px));max-width:none}.admin-reference-modal-toolbar{display:flex;align-items:center;gap:6px;margin:14px 0 8px;flex-wrap:wrap}.admin-reference-modal-editor{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px;min-height:0;flex:1}.admin-reference-modal-content{min-height:0;width:100%;resize:none;font:13px/1.7 ui-monospace,SFMono-Regular,Menlo,monospace}.admin-reference-modal-editor .admin-reference-preview{min-height:0;max-height:none}.admin-reference-modal-editor.mode-edit{grid-template-columns:minmax(0,1fr)}.admin-reference-modal-editor.mode-edit .admin-reference-preview{display:none}.admin-reference-modal-editor.mode-preview{grid-template-columns:minmax(0,1fr)}.admin-reference-modal-editor.mode-preview .admin-reference-modal-content{display:none}.admin-reference-editor-modal .dialog-actions{margin-top:12px;justify-content:flex-end}@media(max-width:780px){.admin-reference-modal-editor{grid-template-columns:minmax(0,1fr)}.admin-reference-modal-editor.mode-split .admin-reference-preview{display:none}.admin-reference-editor-modal{height:calc(100vh - 22px);width:calc(100vw - 22px)}}
 #page-admin-reference{max-width:1100px;margin:0 auto}
 .main #page-admin-reference{max-width:1100px;margin:0 auto}
 </style>
@@ -823,7 +827,8 @@ html[data-theme="light"] .mobile-app-bar{border-color:#dce3ec;background:#ffffff
 <section class="app-page" id="page-reference">
   <div class="module-head"><div><div class="market-kicker">Knowledge Base</div><h2 class="module-title">参考文档</h2><p class="module-desc">管理员维护的选股指标、行情基础和交易规则文档</p></div><div class="reference-actions"><label class="reference-document-picker">选择文档<select id="reference-document-select" aria-label="选择参考文档"></select></label><button class="refresh-btn" type="button" onclick="loadReferenceDocument(true)">↻ 重新加载</button><a class="refresh-btn" id="reference-download-link" href="/download/reference-document">⇩ 下载 Markdown</a><a class="refresh-btn" id="reference-new-window-link" href="/reference.html" target="_blank" rel="noopener noreferrer">↗ 新窗口打开</a></div></div>
   <div class="reference-reader">
-    <aside class="reference-toc" aria-label="参考文档目录"><div class="reference-toc-title">文档目录</div><div class="reference-toc-links" id="reference-toc-links"><span class="reference-loading">进入页面后加载...</span></div></aside>
+    <aside class="reference-documents" aria-label="参考文档列表"><div class="reference-toc-title">参考文档</div><nav class="reference-document-links" id="reference-document-list"><span class="reference-loading">进入页面后加载...</span></nav></aside>
+    <aside class="reference-toc" aria-label="当前文档目录"><div class="reference-toc-title">文档目录</div><div class="reference-toc-links" id="reference-toc-links"><span class="reference-loading">进入页面后加载...</span></div></aside>
     <article class="reference-document" id="reference-document" aria-live="polite"><div class="reference-loading">进入页面后加载参考文档...</div></article>
   </div>
 </section>
@@ -936,7 +941,7 @@ html[data-theme="light"] .mobile-app-bar{border-color:#dce3ec;background:#ffffff
       <div class="form-row"><label for="admin-reference-description">文档说明</label><input class="form-input" id="admin-reference-description" maxlength="500" placeholder="简要介绍文档内容"></div>
       <div class="form-row"><label for="admin-reference-sort">排序值</label><input class="form-input" id="admin-reference-sort" type="number" min="-100000" max="100000" step="1" value="0" required></div>
       <div class="form-row"><label for="admin-reference-file">导入文件</label><input class="form-input" id="admin-reference-file" type="file" accept=".md,.txt,.markdown" onchange="importAdminReferenceFile(event)"></div>
-      <div class="form-row"><label for="admin-reference-content">Markdown 内容</label><div class="admin-reference-editor-toolbar"><button class="dialog-btn active" type="button" data-admin-reference-mode="split" onclick="setAdminReferenceEditorMode('split')">分栏预览</button><button class="dialog-btn" type="button" data-admin-reference-mode="edit" onclick="setAdminReferenceEditorMode('edit')">专注编辑</button><button class="dialog-btn" type="button" data-admin-reference-mode="preview" onclick="setAdminReferenceEditorMode('preview')">仅看预览</button><span class="admin-reference-count" id="admin-reference-count">0 字符</span></div><div class="admin-reference-editor mode-split" id="admin-reference-editor"><textarea class="form-input admin-reference-content" id="admin-reference-content" maxlength="4194304" required placeholder="# 文档标题\n\n在此编辑参考内容…" oninput="updateAdminReferencePreview()" onkeydown="handleAdminReferenceEditorKeydown(event)"></textarea><div class="admin-reference-preview" id="admin-reference-preview" aria-label="Markdown 预览"></div></div></div>
+      <div class="form-row"><label for="admin-reference-content">Markdown 内容</label><div class="admin-reference-editor-toolbar"><button class="dialog-btn primary" type="button" id="admin-reference-open-editor" onclick="openAdminReferenceEditor()">↗ 弹窗编辑</button><button class="dialog-btn active" type="button" data-admin-reference-mode="split" onclick="setAdminReferenceEditorMode('split')">分栏预览</button><button class="dialog-btn" type="button" data-admin-reference-mode="edit" onclick="setAdminReferenceEditorMode('edit')">专注编辑</button><button class="dialog-btn" type="button" data-admin-reference-mode="preview" onclick="setAdminReferenceEditorMode('preview')">仅看预览</button><span class="admin-reference-count" id="admin-reference-count">0 字符</span></div><div class="admin-reference-editor mode-split" id="admin-reference-editor"><textarea class="form-input admin-reference-content" id="admin-reference-content" maxlength="4194304" required placeholder="# 文档标题\n\n在此编辑参考内容…" oninput="updateAdminReferencePreview()" onkeydown="handleAdminReferenceEditorKeydown(event)"></textarea><div class="admin-reference-preview" id="admin-reference-preview" aria-label="Markdown 预览"></div></div></div>
       <label class="admin-site-active"><input id="admin-reference-active" type="checkbox" checked> 在参考文档列表中展示</label>
       <div class="admin-site-status" id="admin-reference-form-status" aria-live="polite"></div>
       <div class="admin-site-form-actions"><button class="dialog-btn primary" id="admin-reference-save" type="submit">保存文档</button><button class="dialog-btn" type="button" onclick="resetAdminReferenceForm()">清空</button></div>
@@ -1067,6 +1072,15 @@ html[data-theme="light"] .mobile-app-bar{border-color:#dce3ec;background:#ffffff
     <div class="modal-sub" id="watchlist-add-stock"></div>
     <div class="form-row"><label>选择分组（可多选）</label><div class="group-picker" id="watchlist-add-groups"></div></div>
     <div class="dialog-actions"><button class="dialog-btn danger" id="watchlist-remove-all-btn" onclick="confirmRemoveFromAllWatchlist()" hidden>从所有分组移除</button><button class="dialog-btn" onclick="closeWatchlistAddDialog()">取消</button><button class="dialog-btn primary" onclick="confirmWatchlistAdd()">保存</button></div>
+  </div>
+</div>
+<div class="modal-mask" id="admin-reference-editor-mask" onclick="closeAdminReferenceEditor(event)">
+  <div class="modal admin-reference-editor-modal" role="dialog" aria-modal="true" aria-labelledby="admin-reference-editor-title">
+    <div class="dialog-title" id="admin-reference-editor-title">编辑 Markdown 内容</div>
+    <div class="modal-sub" id="admin-reference-editor-subtitle">可直接编辑，保存文档时一并提交</div>
+    <div class="admin-reference-modal-toolbar"><button class="dialog-btn active" type="button" data-admin-reference-modal-mode="split" onclick="setAdminReferenceModalMode('split')">分栏预览</button><button class="dialog-btn" type="button" data-admin-reference-modal-mode="edit" onclick="setAdminReferenceModalMode('edit')">专注编辑</button><button class="dialog-btn" type="button" data-admin-reference-modal-mode="preview" onclick="setAdminReferenceModalMode('preview')">仅看预览</button><span class="admin-reference-count" id="admin-reference-modal-count">0 字符</span></div>
+    <div class="admin-reference-modal-editor mode-split" id="admin-reference-modal-editor"><textarea class="form-input admin-reference-modal-content" id="admin-reference-modal-content" maxlength="4194304" placeholder="# 文档标题\n\n在此编辑参考内容…" oninput="syncAdminReferenceModalContent()" onkeydown="handleAdminReferenceEditorKeydown(event)"></textarea><div class="admin-reference-preview" id="admin-reference-modal-preview" aria-label="Markdown 预览"></div></div>
+    <div class="dialog-actions"><button class="dialog-btn" type="button" onclick="closeAdminReferenceEditor()">完成编辑</button></div>
   </div>
 </div>
 
@@ -2048,7 +2062,7 @@ function renderTable(data) {
     if (!q) return `<tr class="stock-row" data-sym="${sym}" onclick="handleRowClick(event,'${sym}')">
       <td><input class="batch-check" type="checkbox" aria-label="选择 ${sym}" ${selectedSymbols.has(sym)?'checked':''} onclick="event.stopPropagation()" onchange="setStockSelected('${sym}',this.checked)"><button class="drag-handle" type="button" title="拖动排序；也可用上下方向键调整" aria-label="调整 ${sym} 的顺序，可拖动或使用上下方向键" onclick="event.stopPropagation()">⠿</button>${marketTag(sym, q?.securityType)}<b>${watchlistCode(sym)}</b></td>
       <td colspan="10" style="color:#6e7681">数据加载中...</td>${renderOptionalMetricCells(sym, null)}
-      <td><div class="stock-actions"><button class="del-btn pin-btn" title="置顶" aria-label="将 ${sym} 置顶" ${i===0?'disabled':''} onclick="event.stopPropagation();pinStock('${sym}')">↑</button><button class="del-btn transfer-btn" title="复制、移动或从所有分组移除" onclick="event.stopPropagation();openTransferDialog('${sym}')">⇄</button><button class="del-btn" title="从当前分组删除" onclick="event.stopPropagation();removeStock('${sym}')">✕</button></div></td></tr>`;
+      <td><div class="stock-actions"><button class="del-btn pin-btn" title="置顶" aria-label="将 ${sym} 置顶" ${i===0?'disabled':''} onclick="event.stopPropagation();pinStock('${sym}')">↑</button><button class="del-btn pin-btn" title="置底" aria-label="将 ${sym} 置底" ${i===watchlist.length-1?'disabled':''} onclick="event.stopPropagation();bottomStock('${sym}')">↓</button><button class="del-btn transfer-btn" title="复制、移动或从所有分组移除" onclick="event.stopPropagation();openTransferDialog('${sym}')">⇄</button><button class="del-btn" title="从当前分组删除" onclick="event.stopPropagation();removeStock('${sym}')">✕</button></div></td></tr>`;
     const c = cls(q.chg);
     return `<tr class="stock-row${delayed ? ' quote-stale' : ''}" data-sym="${sym}" onclick="handleRowClick(event,'${sym}')">
       <td><input class="batch-check" type="checkbox" aria-label="选择 ${sym}" ${selectedSymbols.has(sym)?'checked':''} onclick="event.stopPropagation()" onchange="setStockSelected('${sym}',this.checked)"><button class="drag-handle" type="button" title="拖动排序；也可用上下方向键调整" aria-label="调整 ${sym} 的顺序，可拖动或使用上下方向键" onclick="event.stopPropagation()">⠿</button>${marketTag(sym, q.securityType)}<b>${watchlistCode(sym)}</b></td>
@@ -2059,14 +2073,14 @@ function renderTable(data) {
       <td>${fmt(q.open)}</td><td>${fmt(q.prevClose)}</td>
       <td class="up">${fmt(q.high)}</td><td class="down">${fmt(q.low)}</td>
       <td>${fmtVol(q.volume)}</td><td>${fmtAmt(q.amount)}</td>${renderOptionalMetricCells(sym, q)}
-      <td><div class="stock-actions"><button class="del-btn pin-btn" title="置顶" aria-label="将 ${q.name||sym} 置顶" ${i===0?'disabled':''} onclick="event.stopPropagation();pinStock('${sym}')">↑</button><button class="del-btn transfer-btn" title="复制、移动或从所有分组移除" onclick="event.stopPropagation();openTransferDialog('${sym}')">⇄</button><button class="del-btn" title="从当前分组删除" onclick="event.stopPropagation();removeStock('${sym}')">✕</button></div></td></tr>`;
+      <td><div class="stock-actions"><button class="del-btn pin-btn" title="置顶" aria-label="将 ${q.name||sym} 置顶" ${i===0?'disabled':''} onclick="event.stopPropagation();pinStock('${sym}')">↑</button><button class="del-btn pin-btn" title="置底" aria-label="将 ${q.name||sym} 置底" ${i===watchlist.length-1?'disabled':''} onclick="event.stopPropagation();bottomStock('${sym}')">↓</button><button class="del-btn transfer-btn" title="复制、移动或从所有分组移除" onclick="event.stopPropagation();openTransferDialog('${sym}')">⇄</button><button class="del-btn" title="从当前分组删除" onclick="event.stopPropagation();removeStock('${sym}')">✕</button></div></td></tr>`;
   }).join('');
 }
 
 function addStock(sym) {
   if (!sym) return;
   if (watchlist.includes(sym)) { clearSearch(); return; }
-  watchlist.push(sym);
+  watchlist.unshift(sym);
   save();
   renderGroupTabs();
   clearSearch();
@@ -2081,6 +2095,16 @@ function pinStock(sym) {
   save();
   renderTable(lastRawQuoteData);
   document.getElementById('status-text').textContent = '已置顶并保存顺序';
+}
+
+function bottomStock(sym) {
+  const index = watchlist.indexOf(sym);
+  if (index < 0 || index >= watchlist.length - 1) return;
+  watchlist.splice(index, 1);
+  watchlist.push(sym);
+  save();
+  renderTable(lastRawQuoteData);
+  document.getElementById('status-text').textContent = '已置底并保存顺序';
 }
 
 function removeStock(sym) {
@@ -2167,7 +2191,8 @@ function confirmTransfer() {
   }
   const target = groups.find(group => group.id === document.getElementById('transfer-target').value);
   if (!target) return;
-  transferSymbols.forEach(sym => { if (!target.stocks.includes(sym)) target.stocks.push(sym); });
+  const newTransferSymbols = transferSymbols.filter(sym => !target.stocks.includes(sym));
+  if (newTransferSymbols.length) target.stocks.unshift(...newTransferSymbols);
   if (mode === 'move') {
     const moved = new Set(transferSymbols); watchlist.splice(0, watchlist.length, ...watchlist.filter(sym => !moved.has(sym)));
   }
@@ -2681,8 +2706,13 @@ function confirmWatchlistAdd() {
   const sym = watchlistAddSymbol;
   if (!sym) return;
   const checked = [...document.querySelectorAll('#watchlist-add-groups input[name="watchlist-add-group"]:checked')].map(input => input.value);
+  const wasInActiveGroup = watchlist.includes(sym);
   const changed = syncSymbolGroups(groups, activeGroupId, sym, checked);
   if (changed) {
+    if (!wasInActiveGroup && checked.includes(activeGroupId)) {
+      const index = watchlist.indexOf(sym);
+      if (index > 0) watchlist.splice(0, 0, watchlist.splice(index, 1)[0]);
+    }
     save();
     renderGroupTabs();
     watchlist.length ? fetchQuotes() : renderEmpty();
@@ -4015,6 +4045,7 @@ async function loadReferenceDocument(force = false) {
     article:'reference-document',
     toc:'reference-toc-links',
     selector:'reference-document-select',
+    documentList:'reference-document-list',
     download:'reference-download-link',
     standalone:'reference-new-window-link',
     force,
@@ -6483,6 +6514,7 @@ function setAdminReferenceStatus(message = '', error = false) {
 }
 
 function resetAdminReferenceForm() {
+  document.getElementById('admin-reference-editor-mask')?.classList.remove('open');
   document.getElementById('admin-reference-form')?.reset();
   document.getElementById('admin-reference-id').value = '';
   document.getElementById('admin-reference-sort').value = '0';
@@ -6490,6 +6522,9 @@ function resetAdminReferenceForm() {
   document.getElementById('admin-reference-form-title').textContent = '新增参考文档';
   setAdminReferenceEditorMode('split');
   updateAdminReferencePreview();
+  const modalContent = document.getElementById('admin-reference-modal-content');
+  if (modalContent) modalContent.value = '';
+  updateAdminReferenceModalPreview();
   setAdminReferenceStatus();
 }
 
@@ -6514,6 +6549,58 @@ function updateAdminReferencePreview() {
   if (count) count.textContent = `${content.value.length} 字符`;
 }
 
+function openAdminReferenceEditor() {
+  const source = document.getElementById('admin-reference-content');
+  const modal = document.getElementById('admin-reference-editor-mask');
+  const target = document.getElementById('admin-reference-modal-content');
+  if (!source || !modal || !target) return;
+  target.value = source.value || '';
+  document.getElementById('admin-reference-editor-subtitle').textContent = document.getElementById('admin-reference-title')?.value
+    ? `正在编辑：${document.getElementById('admin-reference-title').value}`
+    : '可直接编辑，保存文档时一并提交';
+  setAdminReferenceModalMode('split');
+  modal.classList.add('open');
+  requestAnimationFrame(() => target.focus());
+}
+
+function closeAdminReferenceEditor(event) {
+  const mask = document.getElementById('admin-reference-editor-mask');
+  if (event && event.target !== event.currentTarget) return;
+  if (!mask) return;
+  syncAdminReferenceModalContent();
+  mask.classList.remove('open');
+}
+
+function setAdminReferenceModalMode(mode = 'split') {
+  const editor = document.getElementById('admin-reference-modal-editor');
+  if (!editor) return;
+  const selected = ['split', 'edit', 'preview'].includes(mode) ? mode : 'split';
+  editor.className = `admin-reference-modal-editor mode-${selected}`;
+  document.querySelectorAll('[data-admin-reference-modal-mode]').forEach(button => {
+    button.classList.toggle('active', button.dataset.adminReferenceModalMode === selected);
+  });
+  updateAdminReferenceModalPreview();
+  if (selected !== 'preview') document.getElementById('admin-reference-modal-content')?.focus();
+}
+
+function updateAdminReferenceModalPreview() {
+  const content = document.getElementById('admin-reference-modal-content');
+  const preview = document.getElementById('admin-reference-modal-preview');
+  const count = document.getElementById('admin-reference-modal-count');
+  if (!content || !preview) return;
+  preview.innerHTML = renderMarkdown(content.value || '');
+  if (count) count.textContent = `${content.value.length} 字符`;
+}
+
+function syncAdminReferenceModalContent() {
+  const source = document.getElementById('admin-reference-content');
+  const target = document.getElementById('admin-reference-modal-content');
+  if (!source || !target) return;
+  source.value = target.value;
+  updateAdminReferencePreview();
+  updateAdminReferenceModalPreview();
+}
+
 function handleAdminReferenceEditorKeydown(event) {
   if (!(event.ctrlKey || event.metaKey) || event.key.toLowerCase() !== 's') return;
   event.preventDefault();
@@ -6534,6 +6621,7 @@ function editAdminReferenceDocument(documentId) {
   updateAdminReferencePreview();
   setAdminReferenceStatus(`正在编辑：${documentInfo.title}`);
   document.getElementById('admin-reference-form')?.scrollIntoView({ behavior:'smooth', block:'start' });
+  openAdminReferenceEditor();
 }
 
 function renderAdminReferenceDocuments() {
@@ -6587,6 +6675,7 @@ function importAdminReferenceFile(event) {
     const title = document.getElementById('admin-reference-title');
     if (!title.value.trim()) title.value = file.name.replace(/\.(?:markdown?|txt)$/i, '').slice(0, 200);
     setAdminReferenceStatus(`已导入文件：${file.name}，请确认后保存`);
+    openAdminReferenceEditor();
   };
   reader.onerror = () => setAdminReferenceStatus('文件读取失败', true);
   reader.readAsText(file);

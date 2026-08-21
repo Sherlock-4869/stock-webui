@@ -142,15 +142,33 @@
     selector.disabled = false;
   }
 
+  function renderDocumentList(list, documents, selectedId, onSelect) {
+    if (!list) return;
+    list.replaceChildren();
+    documents.forEach(documentInfo => {
+      const link = document.createElement('a');
+      link.href = `?page=reference&id=${encodeURIComponent(documentInfo.id)}`;
+      link.dataset.documentId = String(documentInfo.id);
+      link.className = String(documentInfo.id) === String(selectedId) ? 'active' : '';
+      link.innerHTML = `${escapeHtml(documentInfo.title)}${documentInfo.description ? `<small>${escapeHtml(documentInfo.description)}</small>` : ''}`;
+      link.addEventListener('click', event => {
+        event.preventDefault();
+        if (typeof onSelect === 'function') onSelect(String(documentInfo.id));
+      });
+      list.appendChild(link);
+    });
+  }
+
   function updateReferenceLinks({ selectedId, download, standalone }) {
     if (download) download.href = `/download/reference-document?id=${encodeURIComponent(selectedId)}`;
     if (standalone) standalone.href = `/reference.html?id=${encodeURIComponent(selectedId)}`;
   }
 
-  async function mount({ article, toc, selector, download, standalone, force = false, footer = '本资料仅供学习参考，不构成任何投资建议' } = {}) {
+  async function mount({ article, toc, selector, documentList, download, standalone, force = false, footer = '本资料仅供学习参考，不构成任何投资建议' } = {}) {
     const articleElement = typeof article === 'string' ? document.getElementById(article) : article;
     const tocElement = typeof toc === 'string' ? document.getElementById(toc) : toc;
     const selectorElement = typeof selector === 'string' ? document.getElementById(selector) : selector;
+    const documentListElement = typeof documentList === 'string' ? document.getElementById(documentList) : documentList;
     const downloadElement = typeof download === 'string' ? document.getElementById(download) : download;
     const standaloneElement = typeof standalone === 'string' ? document.getElementById(standalone) : standalone;
     if (!articleElement || !tocElement) throw new Error('Reference reader container is missing');
@@ -172,6 +190,10 @@
       }
       const selectedId = selectedDocumentId(selectorElement, documents);
       renderDocumentSelector(selectorElement, documents, selectedId);
+      renderDocumentList(documentListElement, documents, selectedId, id => {
+        if (selectorElement) selectorElement.value = id;
+        mount({ article:articleElement, toc:tocElement, selector:selectorElement, documentList:documentListElement, download:downloadElement, standalone:standaloneElement, force:true, footer });
+      });
       updateReferenceLinks({ selectedId, download:downloadElement, standalone:standaloneElement });
       const suffix = `?id=${encodeURIComponent(selectedId)}${force ? `&t=${Date.now()}` : ''}`;
       const response = await fetch(`/api/reference-document${suffix}`, { headers: { Accept: 'text/markdown' } });
@@ -184,7 +206,7 @@
       buildToc(articleElement, tocElement);
       if (selectorElement && selectorElement.dataset.referenceBound !== 'true') {
         selectorElement.dataset.referenceBound = 'true';
-        selectorElement.addEventListener('change', () => mount({ article:articleElement, toc:tocElement, selector:selectorElement, download:downloadElement, standalone:standaloneElement, force:true, footer }));
+        selectorElement.addEventListener('change', () => mount({ article:articleElement, toc:tocElement, selector:selectorElement, documentList:documentListElement, download:downloadElement, standalone:standaloneElement, force:true, footer }));
       }
       return { loaded: true, cached: false, documentId:selectedId, documents };
     } catch (error) {
@@ -192,7 +214,7 @@
       articleElement.innerHTML = '<div class="reference-error"><div>参考文档加载失败，请稍后重试</div><button class="reference-retry" type="button">重新加载</button></div>';
       tocElement.innerHTML = '<span class="reference-empty">加载失败</span>';
       articleElement.querySelector('.reference-retry').addEventListener('click', () => {
-        mount({ article:articleElement, toc:tocElement, selector:selectorElement, download:downloadElement, standalone:standaloneElement, force:true, footer });
+        mount({ article:articleElement, toc:tocElement, selector:selectorElement, documentList:documentListElement, download:downloadElement, standalone:standaloneElement, force:true, footer });
       });
       return { loaded: false, error };
     } finally {
