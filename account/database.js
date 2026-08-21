@@ -471,9 +471,9 @@ class AccountDatabase {
     return rows;
   }
 
-  async listReferenceDocuments({ includeInactive = false } = {}) {
+  async listReferenceDocuments({ includeInactive = false, includeContent = false } = {}) {
     const [rows] = await this.requirePool().execute(
-      `SELECT id, title, description, sort_order, is_active, created_by_user_id, updated_by_user_id, created_at, updated_at
+      `SELECT id, title, description, ${includeContent ? 'content,' : ''} sort_order, is_active, created_by_user_id, updated_by_user_id, created_at, updated_at
        FROM reference_documents
        WHERE (?=1 OR is_active=1)
        ORDER BY sort_order ASC, id ASC LIMIT 200`,
@@ -1297,12 +1297,12 @@ class MemoryAccountDatabase {
     return true;
   }
 
-  async listReferenceDocuments({ includeInactive = false } = {}) {
+  async listReferenceDocuments({ includeInactive = false, includeContent = false } = {}) {
     return this.referenceDocuments
       .filter(document => includeInactive || document.is_active)
       .sort((a, b) => a.sort_order - b.sort_order || a.id - b.id)
       .slice(0, 200)
-      .map(document => ({ ...document, content:undefined }));
+      .map(document => includeContent ? { ...document } : { ...document, content:undefined });
   }
 
   async getReferenceDocument(id, { includeInactive = false } = {}) {

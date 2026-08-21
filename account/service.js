@@ -636,7 +636,7 @@ class AccountService {
         const documentId = adminReferenceDocumentsMatch[1];
 
         if (!documentId && req.method === 'GET') {
-          const documents = (await this.database.listReferenceDocuments({ includeInactive:true }))
+          const documents = (await this.database.listReferenceDocuments({ includeInactive:true, includeContent:true }))
             .map(document => publicReferenceDocument(document, { includeContent:true, includeAdminFields:true }))
             .filter(Boolean);
           sendJson(res, 200, { documents });
