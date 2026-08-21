@@ -21,8 +21,9 @@ html[data-theme="light"] .reference-retry{background:#f6f8fa;border-color:#d0d7d
   <div class="reader-nav-inner">
     <a class="brand" href="/"><img src="/favicon.svg" alt=""><span>深度学习</span></a>
     <span class="nav-spacer"></span>
+    <label class="nav-btn">选择文档 <select id="reference-document-select" aria-label="选择参考文档"></select></label>
     <a class="nav-btn" href="/">← 返回行情</a>
-    <a class="nav-btn primary" href="/download/reference-document">⇩ 下载原文</a>
+    <a class="nav-btn primary" id="reference-download-link" href="/download/reference-document">⇩ 下载原文</a>
   </div>
 </nav>
 <main class="reader-layout">
@@ -30,6 +31,6 @@ html[data-theme="light"] .reference-retry{background:#f6f8fa;border-color:#d0d7d
   <article class="document" id="document"><div class="loading">正在加载参考文档...</div></article>
 </main>
 <script src="/reference-reader.js"></script>
-<script>ReferenceReader.mount({article:'document',toc:'toc-links'});</script>
+<script>ReferenceReader.mount({article:'document',toc:'toc-links',selector:'reference-document-select',download:'reference-download-link'});</script>
 </body>
 </html>

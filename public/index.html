@@ -567,6 +567,11 @@ html[data-theme="light"] .quote-state-badge{border-color:#bf870055;background:#f
 html[data-theme="light"] .mobile-app-bar{border-color:#dce3ec;background:#ffffffeb;box-shadow:0 7px 24px #1f3b5b14}html[data-theme="light"] .mobile-app-bar strong{color:#172033}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
 </style>
+<style>
+.admin-reference-content{min-height:360px;resize:vertical;font:12px/1.6 ui-monospace,SFMono-Regular,Menlo,monospace}
+#page-admin-reference{max-width:1100px;margin:0 auto}
+.main #page-admin-reference{max-width:1100px;margin:0 auto}
+</style>
 </head>
 <body>
 <header class="mobile-app-bar" aria-label="移动端页面标题">
@@ -593,7 +598,7 @@ html[data-theme="light"] .mobile-app-bar{border-color:#dce3ec;background:#ffffff
       <div class="sidebar-group" id="sidebar-group-research">
         <button class="sidebar-group-toggle" type="button" onclick="toggleSidebarGroup('research')" aria-expanded="true" title="研究与工具"><svg class="app-tab-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="m14.5 9.5-2.2 4.8-4.8 2.2 2.2-4.8z"/></svg><span class="sidebar-group-label">研究与工具</span><svg class="sidebar-group-chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button>
         <div class="sidebar-group-items">
-          <button class="app-tab" data-page="notes" onclick="switchAppPage('notes')" title="笔记"><svg class="app-tab-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h9l3 3v15H6z"/><path d="M15 3v4h4M9 12h6M9 16h6"/></svg><span class="app-tab-label">笔记</span></button>
+          <button class="app-tab" data-page="notes" onclick="switchAppPage('notes')" title="个人笔记"><svg class="app-tab-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h9l3 3v15H6z"/><path d="M15 3v4h4M9 12h6M9 16h6"/></svg><span class="app-tab-label">个人笔记</span></button>
           <button class="app-tab" data-page="reference" type="button" onclick="switchAppPage('reference')" title="参考文档"><svg class="app-tab-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H11v17H6.5A2.5 2.5 0 0 0 4 22zM20 5.5A2.5 2.5 0 0 0 17.5 3H13v17h4.5A2.5 2.5 0 0 1 20 22z"/></svg><span class="app-tab-label">参考文档</span></button>
         </div>
       </div>
@@ -617,6 +622,7 @@ html[data-theme="light"] .mobile-app-bar{border-color:#dce3ec;background:#ffffff
           <button class="app-tab" data-page="admin-users" onclick="switchAppPage('admin-users')" title="用户与权限"><svg class="app-tab-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3"/><path d="M3.5 20a5.5 5.5 0 0 1 11 0M16 11a2.5 2.5 0 1 0-1.7-4.3M17 15.5a4.5 4.5 0 0 1 3.5 4.5"/></svg><span class="app-tab-label">用户与权限</span></button>
           <button class="app-tab" data-page="admin-ai" onclick="switchAppPage('admin-ai')" title="AI 问股管理"><svg class="app-tab-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 1.5 5.5L19 10l-5.5 1.5L12 17l-1.5-5.5L5 10l5.5-1.5zM19 16l.7 2.3L22 19l-2.3.7L19 22l-.7-2.3L16 19l2.3-.7z"/></svg><span class="app-tab-label">AI 问股管理</span></button>
           <button class="app-tab" data-page="admin-sites" onclick="switchAppPage('admin-sites')" title="站点推荐管理"><svg class="app-tab-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 6.5 17.5 3l3.5 3.5-3.5 3-1.8-1.8-7 7-2.5-2.5 7-7zM5 19l3-3 2.5 2.5-3 3H5z"/></svg><span class="app-tab-label">站点推荐管理</span></button>
+          <button class="app-tab" data-page="admin-reference" onclick="switchAppPage('admin-reference')" title="参考文档管理"><svg class="app-tab-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H11v17H6.5A2.5 2.5 0 0 0 4 22zM20 5.5A2.5 2.5 0 0 0 17.5 3H13v17h4.5A2.5 2.5 0 0 1 20 22z"/><path d="M8 8h1M15 8h1M8 12h1M15 12h1"/></svg><span class="app-tab-label">参考文档管理</span></button>
         </div>
       </div>
     </div>
@@ -785,7 +791,7 @@ html[data-theme="light"] .mobile-app-bar{border-color:#dce3ec;background:#ffffff
 </section>
 
 <section class="app-page" id="page-notes">
-  <div class="module-head"><div><div class="market-kicker">Personal Notes</div><h2 class="module-title">我的笔记</h2><p class="module-desc">Markdown 格式笔记，可指定文件夹新建、导入和重新归类</p></div><div class="module-actions"><div class="note-import-zone" id="note-import-zone" onclick="document.getElementById('note-import-input').click()" ondragover="event.preventDefault();this.classList.add('dragover')" ondragleave="this.classList.remove('dragover')" ondrop="handleNoteFileDrop(event)">📄 拖拽 .md/.txt 文件到此处导入<input type="file" id="note-import-input" accept=".md,.txt,.markdown" onchange="handleNoteFileSelect(event)"></div><label class="note-create-folder-label">新建/导入到<select class="note-create-folder-select" id="note-create-folder-select" onchange="setNoteCreateFolder(this.value)"><option value="">未分类</option></select></label><button class="refresh-btn" onclick="createNewNote()">✏ 新建笔记</button></div></div>
+  <div class="module-head"><div><div class="market-kicker">Personal Notes</div><h2 class="module-title">个人笔记</h2><p class="module-desc">Markdown 格式笔记，可指定文件夹新建、导入和重新归类</p></div><div class="module-actions"><div class="note-import-zone" id="note-import-zone" onclick="document.getElementById('note-import-input').click()" ondragover="event.preventDefault();this.classList.add('dragover')" ondragleave="this.classList.remove('dragover')" ondrop="handleNoteFileDrop(event)">📄 拖拽 .md/.txt 文件到此处导入<input type="file" id="note-import-input" accept=".md,.txt,.markdown" onchange="handleNoteFileSelect(event)"></div><label class="note-create-folder-label">新建/导入到<select class="note-create-folder-select" id="note-create-folder-select" onchange="setNoteCreateFolder(this.value)"><option value="">未分类</option></select></label><button class="refresh-btn" onclick="createNewNote()">✏ 新建笔记</button></div></div>
   <div class="notes-layout" id="notes-layout">
     <aside class="note-sidebar" aria-label="笔记侧栏">
       <div class="note-sidebar-tabs" role="tablist" aria-label="笔记导航">
@@ -806,7 +812,7 @@ html[data-theme="light"] .mobile-app-bar{border-color:#dce3ec;background:#ffffff
     <div class="note-main" id="note-main">
       <div class="note-empty" id="note-placeholder"><div class="note-empty-icon">📄</div><div>选择左侧笔记或新建一篇</div></div>
       <div id="note-editor" style="display:none;flex:1;flex-direction:column">
-        <div class="note-toolbar"><button class="refresh-btn" onclick="saveCurrentNote()" id="note-save-btn">💾 保存</button><button class="refresh-btn" onclick="deleteCurrentNote()">🗑 删除</button><label class="note-folder-select-label">归类到<select class="note-folder-select" id="note-folder-select" onchange="moveCurrentNoteToFolder(this.value)"><option value="">未分类</option></select></label><span id="note-status" style="font-size:10px;color:#6e7681"></span><div class="note-view-toggle"><button class="note-view-btn active" onclick="setNoteView('split')" data-view="split">分栏</button><button class="note-view-btn" onclick="setNoteView('edit')" data-view="edit">编辑</button><button class="note-view-btn" onclick="setNoteView('preview')" data-view="preview">预览</button></div></div>
+        <div class="note-toolbar"><button class="refresh-btn" onclick="saveCurrentNote()" id="note-save-btn">💾 保存</button><button class="refresh-btn" onclick="exportCurrentNote()">⇩ 导出 Markdown</button><button class="refresh-btn" onclick="openCurrentNoteInWindow()">↗ 新窗口打开</button><button class="refresh-btn" onclick="deleteCurrentNote()">🗑 删除</button><label class="note-folder-select-label">归类到<select class="note-folder-select" id="note-folder-select" onchange="moveCurrentNoteToFolder(this.value)"><option value="">未分类</option></select></label><span id="note-status" style="font-size:10px;color:#6e7681"></span><div class="note-view-toggle"><button class="note-view-btn active" onclick="setNoteView('split')" data-view="split">分栏</button><button class="note-view-btn" onclick="setNoteView('edit')" data-view="edit">编辑</button><button class="note-view-btn" onclick="setNoteView('preview')" data-view="preview">预览</button></div></div>
         <input class="note-title-input" id="note-title" placeholder="笔记标题..." maxlength="200">
         <div class="note-editor-wrap" id="note-editor-wrap"><textarea class="note-editor-area" id="note-content" placeholder="在此编写 Markdown 内容..."></textarea><div class="note-preview" id="note-preview"></div></div>
       </div>
@@ -815,7 +821,7 @@ html[data-theme="light"] .mobile-app-bar{border-color:#dce3ec;background:#ffffff
 </section>
 
 <section class="app-page" id="page-reference">
-  <div class="module-head"><div><div class="market-kicker">Knowledge Base</div><h2 class="module-title">参考文档</h2><p class="module-desc">选股指标、行情基础和交易规则的站内阅读手册</p></div><div class="reference-actions"><button class="refresh-btn" type="button" onclick="loadReferenceDocument(true)">↻ 重新加载</button><a class="refresh-btn" href="/download/reference-document">⇩ 下载 Markdown</a><a class="refresh-btn" href="/reference.html" target="_blank" rel="noopener noreferrer">↗ 新窗口打开</a></div></div>
+  <div class="module-head"><div><div class="market-kicker">Knowledge Base</div><h2 class="module-title">参考文档</h2><p class="module-desc">管理员维护的选股指标、行情基础和交易规则文档</p></div><div class="reference-actions"><label class="reference-document-picker">选择文档<select id="reference-document-select" aria-label="选择参考文档"></select></label><button class="refresh-btn" type="button" onclick="loadReferenceDocument(true)">↻ 重新加载</button><a class="refresh-btn" id="reference-download-link" href="/download/reference-document">⇩ 下载 Markdown</a><a class="refresh-btn" id="reference-new-window-link" href="/reference.html" target="_blank" rel="noopener noreferrer">↗ 新窗口打开</a></div></div>
   <div class="reference-reader">
     <aside class="reference-toc" aria-label="参考文档目录"><div class="reference-toc-title">文档目录</div><div class="reference-toc-links" id="reference-toc-links"><span class="reference-loading">进入页面后加载...</span></div></aside>
     <article class="reference-document" id="reference-document" aria-live="polite"><div class="reference-loading">进入页面后加载参考文档...</div></article>
@@ -916,6 +922,26 @@ html[data-theme="light"] .mobile-app-bar{border-color:#dce3ec;background:#ffffff
       <div class="admin-site-form-actions"><button class="dialog-btn primary" id="admin-site-save" type="submit">保存站点</button><button class="dialog-btn" type="button" onclick="resetAdminSiteForm()">清空</button></div>
     </form>
     <div class="admin-site-card"><h3>推荐站点列表</h3><p class="admin-site-card-copy">编辑会立即生效；删除操作需要再次确认。</p><div class="admin-site-list" id="admin-site-list"><div class="admin-site-empty">进入页面后加载站点列表…</div></div></div>
+  </div>
+</section>
+
+<section class="app-page" id="page-admin-reference">
+  <div class="module-head"><div><div class="market-kicker">Administration</div><h2 class="module-title">参考文档管理</h2><p class="module-desc">管理员可导入、编辑、排序、停用或删除多个 Markdown 参考文档；内容仅按纯文本 Markdown 安全渲染。</p></div><div class="module-actions"><button class="refresh-btn" type="button" onclick="loadAdminReferenceDocuments(true)">↻ 刷新列表</button></div></div>
+  <div class="admin-sites-layout">
+    <form class="admin-site-card" id="admin-reference-form" onsubmit="saveAdminReferenceDocument(event)">
+      <h3 id="admin-reference-form-title">新增参考文档</h3>
+      <p class="admin-site-card-copy">支持直接粘贴 Markdown，或使用下方文件选择器导入 .md/.txt 文件；单篇最大 4MB。</p>
+      <input id="admin-reference-id" type="hidden">
+      <div class="form-row"><label for="admin-reference-title">文档标题</label><input class="form-input" id="admin-reference-title" maxlength="200" required placeholder="例如：技术指标说明"></div>
+      <div class="form-row"><label for="admin-reference-description">文档说明</label><input class="form-input" id="admin-reference-description" maxlength="500" placeholder="简要介绍文档内容"></div>
+      <div class="form-row"><label for="admin-reference-sort">排序值</label><input class="form-input" id="admin-reference-sort" type="number" min="-100000" max="100000" step="1" value="0" required></div>
+      <div class="form-row"><label for="admin-reference-file">导入文件</label><input class="form-input" id="admin-reference-file" type="file" accept=".md,.txt,.markdown" onchange="importAdminReferenceFile(event)"></div>
+      <div class="form-row"><label for="admin-reference-content">Markdown 内容</label><textarea class="form-input admin-reference-content" id="admin-reference-content" maxlength="4194304" required placeholder="# 文档标题\n\n在此编辑参考内容…"></textarea></div>
+      <label class="admin-site-active"><input id="admin-reference-active" type="checkbox" checked> 在参考文档列表中展示</label>
+      <div class="admin-site-status" id="admin-reference-form-status" aria-live="polite"></div>
+      <div class="admin-site-form-actions"><button class="dialog-btn primary" id="admin-reference-save" type="submit">保存文档</button><button class="dialog-btn" type="button" onclick="resetAdminReferenceForm()">清空</button></div>
+    </form>
+    <div class="admin-site-card"><h3>参考文档列表</h3><p class="admin-site-card-copy">停用的文档仅管理员可见；删除操作需要再次确认。</p><div class="admin-site-list" id="admin-reference-list"><div class="admin-site-empty">进入页面后加载文档列表…</div></div></div>
   </div>
 </section>
 </div>
@@ -1259,6 +1285,8 @@ let siteRecommendationsLoadPromise = null;
 let siteRecommendations = [];
 let adminSites = [];
 let adminSitesLoaded = false;
+let adminReferenceDocuments = [];
+let adminReferenceDocumentsLoaded = false;
 let aiAccess = { enabled:false, isPublic:false, isGranted:false, canUse:false, isAdmin:false, models:[] };
 let aiConversations = [];
 let activeAiConversationId = null;
@@ -3950,7 +3978,7 @@ window.addEventListener('resize', () => {
 });
 
 // --- App pages / IPO calendar ---
-const APP_PAGES = ['market','boards','capital-flow','derivatives','funds','ipo','alerts','notes','reference','sites','ai','user-ai-models','admin-users','admin-sites','admin-ai'];
+const APP_PAGES = ['market','boards','capital-flow','derivatives','funds','ipo','alerts','notes','reference','sites','ai','user-ai-models','admin-users','admin-sites','admin-reference','admin-ai'];
 const requestedAppPage = new URLSearchParams(location.search).get('page');
 const storedAppPage = localStorage.getItem(APP_PAGE_STORAGE_KEY);
 let activeAppPage = APP_PAGES.includes(requestedAppPage)
@@ -3986,6 +4014,9 @@ async function loadReferenceDocument(force = false) {
   const result = await ReferenceReader.mount({
     article:'reference-document',
     toc:'reference-toc-links',
+    selector:'reference-document-select',
+    download:'reference-download-link',
+    standalone:'reference-new-window-link',
     force,
   });
   if (force) showToast(result.loaded ? '参考文档已重新加载' : '参考文档加载失败', !result.loaded);
@@ -3994,7 +4025,7 @@ async function loadReferenceDocument(force = false) {
 
 function switchAppPage(page, { historyMode = 'push', scroll = true } = {}) {
   if (!APP_PAGES.includes(page)) return;
-  if ((page === 'admin-users' || page === 'admin-sites' || page === 'admin-ai') && !currentUser?.isAdmin) {
+  if ((page === 'admin-users' || page === 'admin-sites' || page === 'admin-reference' || page === 'admin-ai') && !currentUser?.isAdmin) {
     page = 'market';
     historyMode = 'replace';
   }
@@ -4040,6 +4071,7 @@ function switchAppPage(page, { historyMode = 'push', scroll = true } = {}) {
   if (page === 'user-ai-models') loadUserAiModels();
   if (page === 'admin-users') loadAdminAiUsers(true);
   if (page === 'admin-sites') loadAdminSites();
+  if (page === 'admin-reference') loadAdminReferenceDocuments();
   if (page === 'admin-ai') loadAdminAi();
 }
 
@@ -6443,6 +6475,126 @@ async function deleteAdminSite(siteId) {
   }
 }
 
+function setAdminReferenceStatus(message = '', error = false) {
+  const status = document.getElementById('admin-reference-form-status');
+  if (!status) return;
+  status.textContent = message;
+  status.classList.toggle('error', error);
+}
+
+function resetAdminReferenceForm() {
+  document.getElementById('admin-reference-form')?.reset();
+  document.getElementById('admin-reference-id').value = '';
+  document.getElementById('admin-reference-sort').value = '0';
+  document.getElementById('admin-reference-active').checked = true;
+  document.getElementById('admin-reference-form-title').textContent = '新增参考文档';
+  setAdminReferenceStatus();
+}
+
+function editAdminReferenceDocument(documentId) {
+  const documentInfo = adminReferenceDocuments.find(item => String(item.id) === String(documentId));
+  if (!documentInfo) return;
+  document.getElementById('admin-reference-id').value = documentInfo.id;
+  document.getElementById('admin-reference-title').value = documentInfo.title || '';
+  document.getElementById('admin-reference-description').value = documentInfo.description || '';
+  document.getElementById('admin-reference-sort').value = String(documentInfo.sortOrder || 0);
+  document.getElementById('admin-reference-content').value = documentInfo.content || '';
+  document.getElementById('admin-reference-active').checked = documentInfo.isActive === true;
+  document.getElementById('admin-reference-form-title').textContent = '编辑参考文档';
+  setAdminReferenceStatus(`正在编辑：${documentInfo.title}`);
+  document.getElementById('admin-reference-form')?.scrollIntoView({ behavior:'smooth', block:'start' });
+}
+
+function renderAdminReferenceDocuments() {
+  const list = document.getElementById('admin-reference-list');
+  if (!list) return;
+  list.replaceChildren();
+  if (!adminReferenceDocuments.length) {
+    const empty = document.createElement('div');
+    empty.className = 'admin-site-empty'; empty.textContent = '暂无参考文档'; list.appendChild(empty); return;
+  }
+  adminReferenceDocuments.forEach(documentInfo => {
+    const row = document.createElement('div'); row.className = 'admin-site-row';
+    const copy = document.createElement('div');
+    const name = document.createElement('div'); name.className = 'admin-site-name'; name.textContent = documentInfo.title || '未命名文档';
+    const state = document.createElement('span'); state.className = `admin-site-state${documentInfo.isActive ? '' : ' off'}`; state.textContent = documentInfo.isActive ? '已启用' : '已停用'; name.appendChild(state);
+    const description = document.createElement('div'); description.className = 'admin-site-desc'; description.textContent = `${documentInfo.description || '无说明'} · 排序 ${documentInfo.sortOrder || 0} · ${documentInfo.content?.length || 0} 字符`;
+    copy.append(name, description);
+    const actions = document.createElement('div'); actions.className = 'admin-site-actions';
+    const edit = document.createElement('button'); edit.className = 'dialog-btn'; edit.type = 'button'; edit.textContent = '编辑'; edit.addEventListener('click', () => editAdminReferenceDocument(documentInfo.id));
+    const remove = document.createElement('button'); remove.className = 'dialog-btn danger'; remove.type = 'button'; remove.textContent = '删除'; remove.addEventListener('click', () => deleteAdminReferenceDocument(documentInfo.id));
+    actions.append(edit, remove); row.append(copy, actions); list.appendChild(row);
+  });
+}
+
+async function loadAdminReferenceDocuments(force = false) {
+  if (!currentUser?.isAdmin) return;
+  if (adminReferenceDocumentsLoaded && !force) return;
+  const list = document.getElementById('admin-reference-list');
+  if (list) list.innerHTML = '<div class="admin-site-empty">正在加载文档列表…</div>';
+  try {
+    const payload = await apiRequest('/api/admin/reference-documents', { method:'GET', headers:{} });
+    adminReferenceDocuments = Array.isArray(payload.documents) ? payload.documents : [];
+    adminReferenceDocumentsLoaded = true;
+    renderAdminReferenceDocuments();
+  } catch (error) {
+    if (list) list.innerHTML = '<div class="admin-site-empty">文档列表加载失败</div>';
+    showToast(error.message, true);
+  }
+}
+
+function importAdminReferenceFile(event) {
+  const file = event.target.files?.[0];
+  if (!file) return;
+  if (file.size > 4 * 1024 * 1024) {
+    setAdminReferenceStatus('文件超过 4MB 限制', true); event.target.value = ''; return;
+  }
+  const reader = new FileReader();
+  reader.onload = () => {
+    document.getElementById('admin-reference-content').value = String(reader.result || '');
+    const title = document.getElementById('admin-reference-title');
+    if (!title.value.trim()) title.value = file.name.replace(/\.(?:markdown?|txt)$/i, '').slice(0, 200);
+    setAdminReferenceStatus(`已导入文件：${file.name}，请确认后保存`);
+  };
+  reader.onerror = () => setAdminReferenceStatus('文件读取失败', true);
+  reader.readAsText(file);
+}
+
+async function saveAdminReferenceDocument(event) {
+  event.preventDefault();
+  if (!currentUser?.isAdmin) return;
+  const documentId = document.getElementById('admin-reference-id').value;
+  const body = {
+    title:document.getElementById('admin-reference-title').value,
+    description:document.getElementById('admin-reference-description').value,
+    sortOrder:Number(document.getElementById('admin-reference-sort').value),
+    content:document.getElementById('admin-reference-content').value,
+    isActive:document.getElementById('admin-reference-active').checked,
+  };
+  setButtonBusy('admin-reference-save', true, '保存中…'); setAdminReferenceStatus();
+  try {
+    await apiRequest(documentId ? `/api/admin/reference-documents/${encodeURIComponent(documentId)}` : '/api/admin/reference-documents', { method:documentId ? 'PUT' : 'POST', body:JSON.stringify(body) });
+    resetAdminReferenceForm(); adminReferenceDocumentsLoaded = false; await loadAdminReferenceDocuments(true);
+    const referencePage = document.getElementById('page-reference');
+    if (referencePage?.classList.contains('active')) await loadReferenceDocument(true);
+    showToast(documentId ? '参考文档已更新' : '参考文档已添加');
+  } catch (error) {
+    setAdminReferenceStatus(error.message, true);
+  } finally {
+    setButtonBusy('admin-reference-save', false, '');
+  }
+}
+
+async function deleteAdminReferenceDocument(documentId) {
+  const documentInfo = adminReferenceDocuments.find(item => String(item.id) === String(documentId));
+  if (!documentInfo || !confirm(`确定删除参考文档“${documentInfo.title}”吗？`)) return;
+  try {
+    await apiRequest(`/api/admin/reference-documents/${encodeURIComponent(documentId)}`, { method:'DELETE', body:'{}' });
+    if (document.getElementById('admin-reference-id').value === String(documentId)) resetAdminReferenceForm();
+    adminReferenceDocumentsLoaded = false; await loadAdminReferenceDocuments(true); await loadReferenceDocument(true); showToast('参考文档已删除');
+  } catch (error) { showToast(error.message, true); }
+}
+
 // ============================================================
 // AI stock research module
 // ============================================================
@@ -7921,6 +8073,36 @@ async function saveCurrentNote() {
   const draft = captureCurrentNoteDraft();
   pendingNoteDraft = null;
   await persistNoteDraft(draft);
+}
+
+function noteExportFileName(title) {
+  const name = String(title || '').trim().replace(/[\\/:*?"<>|\r\n]+/g, '_').slice(0, 80);
+  return `${name || '个人笔记'}.md`;
+}
+
+async function exportCurrentNote() {
+  if (!currentNoteId) return;
+  await flushPendingNoteSave();
+  const title = document.getElementById('note-title').value;
+  const content = document.getElementById('note-content').value;
+  const blob = new Blob([content], { type:'text/markdown;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = noteExportFileName(title);
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 0);
+}
+
+async function openCurrentNoteInWindow() {
+  if (!currentNoteId) return;
+  const viewer = window.open('about:blank', '_blank');
+  if (!viewer) { showToast('浏览器拦截了新窗口，请允许本站打开新窗口后重试', true); return; }
+  try { viewer.opener = null; } catch (_) {}
+  await flushPendingNoteSave();
+  viewer.location.replace(`/note.html?id=${encodeURIComponent(currentNoteId)}`);
 }
 
 function scheduleNoteAutoSave() {

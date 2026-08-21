@@ -11,6 +11,8 @@ const floatHtml = fs.readFileSync(path.join(__dirname, '..', 'public', 'float.ht
 const pipHtml = fs.readFileSync(path.join(__dirname, '..', 'public', 'pip.html'), 'utf8');
 const referenceHtml = fs.readFileSync(path.join(__dirname, '..', 'public', 'reference.html'), 'utf8');
 const referenceReaderScript = fs.readFileSync(path.join(__dirname, '..', 'public', 'reference-reader.js'), 'utf8');
+const noteReaderHtml = fs.readFileSync(path.join(__dirname, '..', 'public', 'note.html'), 'utf8');
+const noteReaderScript = fs.readFileSync(path.join(__dirname, '..', 'public', 'note-reader.js'), 'utf8');
 const serverSource = fs.readFileSync(path.join(__dirname, '..', 'server.js'), 'utf8');
 
 test('main browser script parses as JavaScript', () => {
@@ -73,6 +75,8 @@ test('Markdown heading navigation ignores fenced code and matches preview anchor
 });
 
 test('notes keep file and heading navigation in fixed sidebar tabs with folder controls', () => {
+  assert.match(html, /data-page="notes"[^>]*title="个人笔记"/);
+  assert.match(html, /<span class="app-tab-label">个人笔记<\/span>/);
   assert.match(html, /\.note-sidebar\{position:sticky;top:66px/);
   assert.match(html, /\.note-toolbar\{position:sticky;z-index:25;top:66px/);
   assert.match(html, /id="note-files-tab"[^>]*role="tab"[^>]*>文件列表<\/button>/);
@@ -89,6 +93,19 @@ test('notes keep file and heading navigation in fixed sidebar tabs with folder c
   assert.match(html, /async function deleteNoteFolder\(folderId\)/);
   assert.match(html, /笔记会移到“未分类”，不会被删除/);
   assert.doesNotMatch(html, /note-toc-popover|toggleNoteToc/);
+});
+
+test('personal notes can export Markdown and open a secured standalone reader', () => {
+  assert.match(html, /onclick="exportCurrentNote\(\)"[^>]*>⇩ 导出 Markdown/);
+  assert.match(html, /onclick="openCurrentNoteInWindow\(\)"[^>]*>↗ 新窗口打开/);
+  assert.match(html, /async function exportCurrentNote\(\)/);
+  assert.match(html, /async function openCurrentNoteInWindow\(\)/);
+  assert.match(html, /function noteExportFileName\(title\)/);
+  assert.match(noteReaderHtml, /<script src="\/reference-reader\.js"><\/script>/);
+  assert.match(noteReaderHtml, /<script src="\/note-reader\.js"><\/script>/);
+  assert.match(noteReaderScript, /fetch\(`\/api\/notes\/\$\{encodeURIComponent\(noteId\)\}`/);
+  assert.match(noteReaderScript, /ReferenceReader\.renderMarkdown/);
+  assert.doesNotThrow(() => new Function(noteReaderScript));
 });
 
 test('brand navigation returns home without reloading the current application', () => {
@@ -235,15 +252,30 @@ test('reference reader escapes source HTML and generates stable unique anchors',
   assert.match(rendered, /&lt;img src=x onerror=alert\(1\)&gt;/);
 });
 
+test('reference documents expose an administrator-managed multi-document reader', () => {
+  assert.match(html, /data-page="reference"[^>]*>.*参考文档/s);
+  assert.match(html, /id="reference-document-select"/);
+  assert.match(referenceReaderScript, /\/api\/reference-documents/);
+  assert.match(html, /id="page-admin-reference"/);
+  assert.match(html, /id="admin-reference-form"/);
+  assert.match(html, /id="admin-reference-content"/);
+  assert.match(html, /loadAdminReferenceDocuments\(force = false\)/);
+  assert.match(html, /importAdminReferenceFile\(event\)/);
+  assert.match(html, /\/api\/admin\/reference-documents/);
+  assert.match(referenceHtml, /id="reference-document-select"/);
+  assert.match(referenceReaderScript, /fetchDocumentList/);
+  assert.match(referenceReaderScript, /selectedDocumentId/);
+});
+
 test('standalone and in-page reference views share the same renderer', () => {
   assert.match(html, /<script src="\/reference-reader\.js"><\/script>/);
   assert.match(referenceHtml, /<script src="\/reference-reader\.js"><\/script>/);
-  assert.match(referenceHtml, /ReferenceReader\.mount\(\{article:'document',toc:'toc-links'\}\)/);
+  assert.match(referenceHtml, /ReferenceReader\.mount\(\{article:'document',toc:'toc-links',selector:'reference-document-select',download:'reference-download-link'\}\)/);
   assert.doesNotMatch(referenceHtml, /function renderMarkdown/);
 });
 
 test('all app pages support direct URL navigation and browser history', () => {
-  assert.match(html, /const APP_PAGES = \['market','boards','capital-flow','derivatives','funds','ipo','alerts','notes','reference','sites','ai','user-ai-models','admin-users','admin-sites','admin-ai'\]/);
+  assert.match(html, /const APP_PAGES = \['market','boards','capital-flow','derivatives','funds','ipo','alerts','notes','reference','sites','ai','user-ai-models','admin-users','admin-sites','admin-reference','admin-ai'\]/);
   assert.match(html, /document\.title = '深度学习';/);
   assert.doesNotMatch(html, /APP_PAGE_TITLES/);
   assert.match(html, /history\.pushState\(\{ page \}, '', url\)/);
@@ -777,6 +809,7 @@ test('IPO calendar expands a sanitized offering detail card using public fields'
 
 test('administrator UI keeps system tools in the sidebar and provides role plus AI access management', () => {
   assert.match(html, /id="page-admin-sites"/);
+  assert.match(html, /id="page-admin-reference"/);
   assert.match(html, /id="page-admin-users"/);
   assert.match(html, /id="admin-users-list"/);
   assert.match(html, /data-page="admin-users" onclick="switchAppPage\('admin-users'\)"/);
@@ -787,6 +820,7 @@ test('administrator UI keeps system tools in the sidebar and provides role plus 
   assert.match(html, /roleToggle\.textContent = isCurrentUser \? '当前账号' : \(user\.isAdmin \? '撤销管理员' : '授予管理员'\)/);
   assert.match(html, /id="admin-navigation" hidden/);
   assert.match(html, /data-page="admin-sites" onclick="switchAppPage\('admin-sites'\)"/);
+  assert.match(html, /data-page="admin-reference" onclick="switchAppPage\('admin-reference'\)"/);
   assert.match(html, /apiRequest\('\/api\/admin\/sites'/);
   assert.match(html, /async function saveAdminSite\(event\)/);
   assert.match(html, /async function deleteAdminSite\(siteId\)/);
@@ -794,7 +828,7 @@ test('administrator UI keeps system tools in the sidebar and provides role plus 
   assert.match(html, /isAdminOnly:document\.getElementById\('admin-site-admin-only'\)\.checked/);
   assert.match(html, /site\.isAdminOnly === true/);
   assert.match(html, /visibility\.textContent = '仅管理员可见'/);
-  assert.match(html, /page === 'admin-users' \|\| page === 'admin-sites' \|\| page === 'admin-ai'/);
+  assert.match(html, /page === 'admin-users' \|\| page === 'admin-sites' \|\| page === 'admin-reference' \|\| page === 'admin-ai'/);
   assert.match(html, /if \(user\.isAdmin\).*管理员默认可用/s);
   const accountRenderStart = html.indexOf('function renderAccountArea');
   const accountRenderEnd = html.indexOf('function positionAccountMenu', accountRenderStart);

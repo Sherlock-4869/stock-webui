@@ -9,11 +9,11 @@
 - 支持账号密码注册/登录、微信开放平台扫码登录及安全会话。
 - 登录后按账号同步股票与基金行情分组、主题、指标等页面配置；主题提供云白、暖纸、石墨、深海、松林、暮紫及跟随系统。
 - 账户设置支持修改显示名称、上传、裁切和压缩个人头像；未设置自定义头像时继续使用微信头像或名称首字。
-- 登录账号可以创建、编辑、删除、搜索和导入 Markdown 笔记；支持账号级文件夹分类，并可在左侧“文件列表 / 标题导航”之间切换。
+- 登录账号可以创建、编辑、删除、搜索、导入和导出 Markdown 个人笔记；支持账号级文件夹分类、独立阅读窗口，并可在左侧“文件列表 / 标题导航”之间切换。
 - 登录账号可以进入支持持久化历史、图片、剪贴板图片粘贴、表情、缩放和未读数字提示的网页聊天室；游客不可访问。
 - 管理员可配置网站全局 OpenAI 兼容模型、统一控制 AI 问股页面是否向已登录用户公开，或在用户管理中逐个授权，并查看按用户/模型汇总的 Token 用量；用户已配置个人模型时优先使用个人模型，否则使用有权限访问的网站模型；会话和历史按账号隔离保存。
 - 侧边栏“站点推荐”打开站内资源目录，集中展示数据库驱动的推荐链接，并在新标签页中打开。
-- 参考文档默认在当前页面内阅读，支持目录定位、重新加载、下载 Markdown 和新窗口打开。
+- 参考文档由管理员在“参考文档管理”中维护，可导入或编辑多篇 Markdown 文档；用户可在当前页面选择文档阅读、目录定位、重新加载、下载或新窗口打开。文档内容仅供参考。
 - 通过 `https://stock.sherlock-holmes.cn/?page=ipo` 直接打开打新页面。
 - 接收公众号关注、取消关注、文本消息和自定义菜单事件。
 - 每周一 `09:00` 按上海时区汇总本周可申购新股和新债。
@@ -215,6 +215,25 @@ CREATE TABLE IF NOT EXISTS site_recommendations (
   KEY idx_site_recommendations_visibility_sort (is_active, is_admin_only, sort_order, id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE IF NOT EXISTS reference_documents (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  title VARCHAR(200) NOT NULL,
+  description VARCHAR(500) NOT NULL DEFAULT '',
+  content MEDIUMTEXT NOT NULL,
+  sort_order INT NOT NULL DEFAULT 0,
+  is_active TINYINT(1) NOT NULL DEFAULT 1,
+  created_by_user_id BIGINT UNSIGNED NULL,
+  updated_by_user_id BIGINT UNSIGNED NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  KEY idx_reference_documents_visibility_sort (is_active, sort_order, id),
+  CONSTRAINT fk_reference_documents_created_by
+    FOREIGN KEY (created_by_user_id) REFERENCES users(id) ON DELETE SET NULL,
+  CONSTRAINT fk_reference_documents_updated_by
+    FOREIGN KEY (updated_by_user_id) REFERENCES users(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE IF NOT EXISTS stock_fund_flow_history_cache (
   symbol VARCHAR(16) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
   data_json JSON NOT NULL COMMENT '东方财富 daykline 最近成功数据（金额单位：元）',
@@ -300,6 +319,8 @@ ALTER TABLE site_recommendations
   ADD COLUMN is_admin_only TINYINT(1) NOT NULL DEFAULT 0 AFTER is_active,
   ADD KEY idx_site_recommendations_visibility_sort (is_active, is_admin_only, sort_order, id);
 ```
+
+已有版本不会覆盖固定的 `reference.md`。账号服务首次启动时，如果 `reference_documents` 为空，会把该文件作为“默认参考文档”导入；之后管理员可在系统管理页新增、修改、排序、停用或删除文档。生产数据库若未授予建表权限，请先执行上面的 `CREATE TABLE`，再重启应用。
 
 已有 `user_notes` 表的环境，先执行上面的 `user_note_folders` 建表语句，再执行一次以下迁移；应用启动时会自动完成这两步检测与升级：
 
@@ -602,7 +623,7 @@ test/chat.test.js               聊天登录、历史分页、图片安全、限
 
 - `server.js` 增加账号、聊天室和微信路由，并在服务启动后启动相关模块。
 - `run.sh` 启动时自动读取项目 `.env`，不会修改系统全局环境变量。
-- `public/index.html` 提供行情、打新、异动、账号笔记、站内参考文档和浮动聊天室界面；页面标签同步到 `?page=`，支持刷新、分享及浏览器前进/后退。
+- `public/index.html` 提供行情、打新、异动、个人笔记、站内参考文档管理和浮动聊天室界面；页面标签同步到 `?page=`，支持刷新、分享及浏览器前进/后退。
 - `public/reference.html` 保留独立阅读模式，供用户从站内文档页选择“新窗口打开”。
 - `.gitignore` 排除 `.env`、`node_modules` 和运行日志。
 

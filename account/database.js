@@ -85,6 +85,22 @@ const SCHEMA_STATEMENTS = [
     KEY idx_site_recommendations_active_sort (is_active, sort_order, id),
     KEY idx_site_recommendations_visibility_sort (is_active, is_admin_only, sort_order, id)
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
+  `CREATE TABLE IF NOT EXISTS reference_documents (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    title VARCHAR(200) NOT NULL,
+    description VARCHAR(500) NOT NULL DEFAULT '',
+    content MEDIUMTEXT NOT NULL,
+    sort_order INT NOT NULL DEFAULT 0,
+    is_active TINYINT(1) NOT NULL DEFAULT 1,
+    created_by_user_id BIGINT UNSIGNED NULL,
+    updated_by_user_id BIGINT UNSIGNED NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    KEY idx_reference_documents_visibility_sort (is_active, sort_order, id),
+    CONSTRAINT fk_reference_documents_created_by FOREIGN KEY (created_by_user_id) REFERENCES users(id) ON DELETE SET NULL,
+    CONSTRAINT fk_reference_documents_updated_by FOREIGN KEY (updated_by_user_id) REFERENCES users(id) ON DELETE SET NULL
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
   `CREATE TABLE IF NOT EXISTS stock_fund_flow_history_cache (
     symbol VARCHAR(16) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
     data_json JSON NOT NULL,
@@ -453,6 +469,60 @@ class AccountDatabase {
        FROM site_recommendations ORDER BY sort_order ASC, id ASC LIMIT 200`
     );
     return rows;
+  }
+
+  async listReferenceDocuments({ includeInactive = false } = {}) {
+    const [rows] = await this.requirePool().execute(
+      `SELECT id, title, description, sort_order, is_active, created_by_user_id, updated_by_user_id, created_at, updated_at
+       FROM reference_documents
+       WHERE (?=1 OR is_active=1)
+       ORDER BY sort_order ASC, id ASC LIMIT 200`,
+      [includeInactive ? 1 : 0]
+    );
+    return rows;
+  }
+
+  async getReferenceDocument(id, { includeInactive = false } = {}) {
+    const [rows] = await this.requirePool().execute(
+      `SELECT id, title, description, content, sort_order, is_active, created_by_user_id, updated_by_user_id, created_at, updated_at
+       FROM reference_documents WHERE id=? AND (?=1 OR is_active=1) LIMIT 1`,
+      [id, includeInactive ? 1 : 0]
+    );
+    return rows[0] || null;
+  }
+
+  async createReferenceDocument({ title, description, content, sortOrder, isActive, userId }) {
+    const [result] = await this.requirePool().execute(
+      `INSERT INTO reference_documents (title, description, content, sort_order, is_active, created_by_user_id, updated_by_user_id)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [title, description, content, sortOrder, isActive ? 1 : 0, userId, userId]
+    );
+    return this.getReferenceDocument(result.insertId, { includeInactive:true });
+  }
+
+  async updateReferenceDocument(id, { title, description, content, sortOrder, isActive, userId }) {
+    const [result] = await this.requirePool().execute(
+      `UPDATE reference_documents
+       SET title=?, description=?, content=?, sort_order=?, is_active=?, updated_by_user_id=? WHERE id=?`,
+      [title, description, content, sortOrder, isActive ? 1 : 0, userId, id]
+    );
+    return result.affectedRows ? this.getReferenceDocument(id, { includeInactive:true }) : null;
+  }
+
+  async deleteReferenceDocument(id) {
+    const [result] = await this.requirePool().execute('DELETE FROM reference_documents WHERE id=?', [id]);
+    return result.affectedRows > 0;
+  }
+
+  async seedReferenceDocument({ title, description = '', content, sortOrder = 0 }) {
+    const [rows] = await this.requirePool().execute('SELECT id FROM reference_documents LIMIT 1');
+    if (rows.length) return false;
+    await this.requirePool().execute(
+      `INSERT INTO reference_documents (title, description, content, sort_order, is_active)
+       VALUES (?, ?, ?, ?, 1)`,
+      [title, description, content, sortOrder]
+    );
+    return true;
   }
 
   async createSiteRecommendation({ name, url, description, sortOrder, isActive, isAdminOnly }) {
@@ -1150,6 +1220,7 @@ class MemoryAccountDatabase {
     this.fundFlowHistoryCache = new Map();
     this.chatMessages = [];
     this.siteRecommendations = [];
+    this.referenceDocuments = [];
     this.aiFeatureSetting = { is_public:0, updated_by_user_id:null, updated_at:null };
     this.aiUserPermissions = new Map();
     this.aiModels = [];
@@ -1162,6 +1233,7 @@ class MemoryAccountDatabase {
     this.nextNoteId = 1;
     this.nextNoteFolderId = 1;
     this.nextSiteRecommendationId = 1;
+    this.nextReferenceDocumentId = 1;
     this.nextChatMessageId = 1;
     this.nextAiModelId = 1;
     this.nextUserAiModelId = 1;
@@ -1222,6 +1294,56 @@ class MemoryAccountDatabase {
     const index = this.siteRecommendations.findIndex(item => item.id === Number(id));
     if (index < 0) return false;
     this.siteRecommendations.splice(index, 1);
+    return true;
+  }
+
+  async listReferenceDocuments({ includeInactive = false } = {}) {
+    return this.referenceDocuments
+      .filter(document => includeInactive || document.is_active)
+      .sort((a, b) => a.sort_order - b.sort_order || a.id - b.id)
+      .slice(0, 200)
+      .map(document => ({ ...document, content:undefined }));
+  }
+
+  async getReferenceDocument(id, { includeInactive = false } = {}) {
+    const document = this.referenceDocuments.find(item => item.id === Number(id));
+    if (!document || (!includeInactive && !document.is_active)) return null;
+    return { ...document };
+  }
+
+  async createReferenceDocument({ title, description, content, sortOrder, isActive, userId }) {
+    const now = new Date();
+    const document = {
+      id:this.nextReferenceDocumentId++, title, description, content,
+      sort_order:sortOrder, is_active:isActive ? 1 : 0,
+      created_by_user_id:userId == null ? null : Number(userId),
+      updated_by_user_id:userId == null ? null : Number(userId),
+      created_at:now, updated_at:now,
+    };
+    this.referenceDocuments.push(document);
+    return { ...document };
+  }
+
+  async updateReferenceDocument(id, { title, description, content, sortOrder, isActive, userId }) {
+    const document = this.referenceDocuments.find(item => item.id === Number(id));
+    if (!document) return null;
+    Object.assign(document, {
+      title, description, content, sort_order:sortOrder, is_active:isActive ? 1 : 0,
+      updated_by_user_id:userId == null ? null : Number(userId), updated_at:new Date(),
+    });
+    return { ...document };
+  }
+
+  async deleteReferenceDocument(id) {
+    const index = this.referenceDocuments.findIndex(item => item.id === Number(id));
+    if (index < 0) return false;
+    this.referenceDocuments.splice(index, 1);
+    return true;
+  }
+
+  async seedReferenceDocument({ title, description = '', content, sortOrder = 0 }) {
+    if (this.referenceDocuments.length) return false;
+    await this.createReferenceDocument({ title, description, content, sortOrder, isActive:true, userId:null });
     return true;
   }
 

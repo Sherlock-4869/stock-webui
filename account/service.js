@@ -29,6 +29,8 @@ function sendJson(res, status, payload, headers = {}) {
 const MAX_NOTE_BYTES = 1024 * 1024;
 const MAX_NOTES_PER_USER = 200;
 const MAX_NOTE_FOLDERS_PER_USER = 50;
+const MAX_REFERENCE_DOCUMENT_BYTES = 4 * 1024 * 1024;
+const MAX_REFERENCE_DOCUMENTS = 200;
 
 function validateNoteFolderName(value) {
   const name = String(value || '').trim();
@@ -205,6 +207,48 @@ function adminSiteRecommendation(site) {
   };
 }
 
+function publicReferenceDocument(document, { includeContent = false, includeAdminFields = false } = {}) {
+  if (!document) return null;
+  const value = {
+    id:String(document.id),
+    title:String(document.title || '').trim().slice(0, 200),
+    description:String(document.description || '').trim().slice(0, 500),
+    sortOrder:Number(document.sort_order) || 0,
+    isActive:Number(document.is_active) === 1,
+    updatedAt:document.updated_at || null,
+  };
+  if (includeContent) value.content = String(document.content || '');
+  if (includeAdminFields) {
+    value.createdAt = document.created_at || null;
+    value.createdByUserId = document.created_by_user_id == null ? null : String(document.created_by_user_id);
+    value.updatedByUserId = document.updated_by_user_id == null ? null : String(document.updated_by_user_id);
+  }
+  return value;
+}
+
+function validateReferenceDocument(value) {
+  const title = String(value?.title || '').trim();
+  const description = String(value?.description || '').trim();
+  const content = String(value?.content || '');
+  if (!title || title.length > 200) {
+    throw Object.assign(new Error('文档标题不能为空且不能超过 200 个字符'), { statusCode:400 });
+  }
+  if (description.length > 500) {
+    throw Object.assign(new Error('文档说明不能超过 500 个字符'), { statusCode:400 });
+  }
+  if (Buffer.byteLength(content, 'utf8') > MAX_REFERENCE_DOCUMENT_BYTES) {
+    throw Object.assign(new Error('参考文档内容超过 4MB 限制'), { statusCode:413 });
+  }
+  const sortOrder = Number(value?.sortOrder ?? 0);
+  if (!Number.isInteger(sortOrder) || sortOrder < -100000 || sortOrder > 100000) {
+    throw Object.assign(new Error('排序值必须是 -100000 到 100000 的整数'), { statusCode:400 });
+  }
+  return {
+    title, description, content, sortOrder,
+    isActive:value?.isActive !== false,
+  };
+}
+
 function validateSiteRecommendation(value) {
   const name = String(value?.name || '').trim();
   const description = String(value?.description || '').trim();
@@ -241,7 +285,7 @@ function callbackPage(payload, returnTo = '/') {
 }
 
 class AccountService {
-  constructor({ env = process.env, database = null } = {}) {
+  constructor({ env = process.env, database = null, referenceDocumentSeed = null } = {}) {
     this.config = loadAccountConfig(env);
     this.database = database || (this.config.driver === 'memory'
       ? new MemoryAccountDatabase()
@@ -250,6 +294,7 @@ class AccountService {
     this.initializationError = null;
     this.cleanupTimer = null;
     this.rateLimits = new Map();
+    this.referenceDocumentSeed = referenceDocumentSeed;
   }
 
   async start() {
@@ -269,6 +314,9 @@ class AccountService {
     }
     try {
       await this.database.initialize();
+      if (this.referenceDocumentSeed && typeof this.database.seedReferenceDocument === 'function') {
+        await this.database.seedReferenceDocument(this.referenceDocumentSeed);
+      }
       this.ready = true;
       console.log(`Account service ready (${this.config.driver}; WeChat login ${this.config.wechat.enabled ? 'enabled' : 'disabled'})`);
       this.cleanupTimer = setInterval(() => this.database.cleanup().catch(error => {
@@ -327,6 +375,18 @@ class AccountService {
       throw Object.assign(new Error('仅管理员可以执行此操作'), { statusCode:403 });
     }
     return session;
+  }
+
+  async listPublicReferenceDocuments() {
+    if (!this.config.enabled || !this.ready || typeof this.database.listReferenceDocuments !== 'function') return null;
+    const documents = await this.database.listReferenceDocuments();
+    return documents.map(document => publicReferenceDocument(document)).filter(document => document && document.title);
+  }
+
+  async getPublicReferenceDocument(id) {
+    if (!this.config.enabled || !this.ready || typeof this.database.getReferenceDocument !== 'function') return null;
+    const document = await this.database.getReferenceDocument(id);
+    return publicReferenceDocument(document, { includeContent:true });
   }
 
   async loadFundFlowHistoryCache(symbol) {
@@ -566,6 +626,57 @@ class AccountService {
         }
 
         sendJson(res, 405, { error:'Method Not Allowed' }, { Allow:siteId ? 'PUT, DELETE' : 'GET, POST' });
+        return true;
+      }
+
+      const adminReferenceDocumentsMatch = pathname.match(/^\/api\/admin\/reference-documents(?:\/(\d+))?$/);
+      if (adminReferenceDocumentsMatch) {
+        if (req.method !== 'GET') assertSameOrigin(req);
+        const session = await this.requireAdmin(req);
+        const documentId = adminReferenceDocumentsMatch[1];
+
+        if (!documentId && req.method === 'GET') {
+          const documents = (await this.database.listReferenceDocuments({ includeInactive:true }))
+            .map(document => publicReferenceDocument(document, { includeContent:true, includeAdminFields:true }))
+            .filter(Boolean);
+          sendJson(res, 200, { documents });
+          return true;
+        }
+
+        if (!documentId && req.method === 'POST') {
+          const existing = await this.database.listReferenceDocuments({ includeInactive:true });
+          if (existing.length >= MAX_REFERENCE_DOCUMENTS) {
+            throw Object.assign(new Error(`参考文档数量已达上限（${MAX_REFERENCE_DOCUMENTS}篇）`), { statusCode:400 });
+          }
+          const input = validateReferenceDocument(await readJson(req, MAX_REFERENCE_DOCUMENT_BYTES + 64 * 1024));
+          const document = await this.database.createReferenceDocument({ ...input, userId:session.user.id });
+          sendJson(res, 201, { document:publicReferenceDocument(document, { includeContent:true, includeAdminFields:true }) });
+          return true;
+        }
+
+        if (documentId && req.method === 'GET') {
+          const document = await this.database.getReferenceDocument(documentId, { includeInactive:true });
+          if (!document) throw Object.assign(new Error('参考文档不存在'), { statusCode:404 });
+          sendJson(res, 200, { document:publicReferenceDocument(document, { includeContent:true, includeAdminFields:true }) });
+          return true;
+        }
+
+        if (documentId && req.method === 'PUT') {
+          const input = validateReferenceDocument(await readJson(req, MAX_REFERENCE_DOCUMENT_BYTES + 64 * 1024));
+          const document = await this.database.updateReferenceDocument(documentId, { ...input, userId:session.user.id });
+          if (!document) throw Object.assign(new Error('参考文档不存在'), { statusCode:404 });
+          sendJson(res, 200, { document:publicReferenceDocument(document, { includeContent:true, includeAdminFields:true }) });
+          return true;
+        }
+
+        if (documentId && req.method === 'DELETE') {
+          const deleted = await this.database.deleteReferenceDocument(documentId);
+          if (!deleted) throw Object.assign(new Error('参考文档不存在'), { statusCode:404 });
+          sendJson(res, 200, { deleted:true });
+          return true;
+        }
+
+        sendJson(res, 405, { error:'Method Not Allowed' }, { Allow:documentId ? 'GET, PUT, DELETE' : 'GET, POST' });
         return true;
       }
 

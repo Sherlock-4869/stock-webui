@@ -109,11 +109,49 @@
       : '<span class="reference-empty">文档暂无标题</span>';
   }
 
-  async function mount({ article, toc, force = false, footer = '本资料仅供学习参考，不构成任何投资建议' } = {}) {
+  async function fetchDocumentList(force = false) {
+    const suffix = force ? `?t=${Date.now()}` : '';
+    const response = await fetch(`/api/reference-documents${suffix}`, { headers: { Accept: 'application/json' } });
+    if (!response.ok) throw new Error(`list failed (${response.status})`);
+    const payload = await response.json();
+    const documents = Array.isArray(payload.documents) ? payload.documents.filter(item => item && item.id && item.title) : [];
+    if (!documents.length) throw new Error('reference document list is empty');
+    return documents;
+  }
+
+  function selectedDocumentId(selector, documents) {
+    const queryId = new URLSearchParams(location.search).get('id');
+    const selected = selector?.value || queryId;
+    return documents.some(item => String(item.id) === String(selected)) ? String(selected) : String(documents[0].id);
+  }
+
+  function renderDocumentSelector(selector, documents, selectedId) {
+    if (!selector) return;
+    selector.replaceChildren();
+    documents.forEach(documentInfo => {
+      const option = document.createElement('option');
+      option.value = String(documentInfo.id);
+      option.textContent = documentInfo.title;
+      if (documentInfo.description) option.title = documentInfo.description;
+      selector.appendChild(option);
+    });
+    selector.value = selectedId;
+    selector.disabled = documents.length <= 1;
+  }
+
+  function updateReferenceLinks({ selectedId, download, standalone }) {
+    if (download) download.href = `/download/reference-document?id=${encodeURIComponent(selectedId)}`;
+    if (standalone) standalone.href = `/reference.html?id=${encodeURIComponent(selectedId)}`;
+  }
+
+  async function mount({ article, toc, selector, download, standalone, force = false, footer = '本资料仅供学习参考，不构成任何投资建议' } = {}) {
     const articleElement = typeof article === 'string' ? document.getElementById(article) : article;
     const tocElement = typeof toc === 'string' ? document.getElementById(toc) : toc;
+    const selectorElement = typeof selector === 'string' ? document.getElementById(selector) : selector;
+    const downloadElement = typeof download === 'string' ? document.getElementById(download) : download;
+    const standaloneElement = typeof standalone === 'string' ? document.getElementById(standalone) : standalone;
     if (!articleElement || !tocElement) throw new Error('Reference reader container is missing');
-    if (!force && articleElement.dataset.loaded === 'true') return { loaded: true, cached: true };
+    if (!force && articleElement.dataset.loaded === 'true') return { loaded: true, cached: true, documentId:articleElement.dataset.documentId || '' };
     if (!force && articleElement.dataset.loading === 'true') return { loaded: false, pending: true };
 
     articleElement.dataset.loading = 'true';
@@ -121,20 +159,35 @@
     articleElement.innerHTML = '<div class="reference-loading">正在加载参考文档...</div>';
     tocElement.innerHTML = '<span class="reference-loading">加载中...</span>';
     try {
-      const suffix = force ? `?t=${Date.now()}` : '';
+      let documents;
+      try {
+        documents = await fetchDocumentList(force);
+      } catch (listError) {
+        if (force) throw listError;
+        documents = [{ id:'static', title:'参考文档', description:'' }];
+      }
+      const selectedId = selectedDocumentId(selectorElement, documents);
+      renderDocumentSelector(selectorElement, documents, selectedId);
+      updateReferenceLinks({ selectedId, download:downloadElement, standalone:standaloneElement });
+      const suffix = `?id=${encodeURIComponent(selectedId)}${force ? `&t=${Date.now()}` : ''}`;
       const response = await fetch(`/api/reference-document${suffix}`, { headers: { Accept: 'text/markdown' } });
       if (!response.ok) throw new Error(`load failed (${response.status})`);
       const markdown = await response.text();
       articleElement.innerHTML = `${renderMarkdown(markdown)}<div class="doc-footer">${escapeHtml(footer)}</div>`;
       articleElement.dataset.loaded = 'true';
+      articleElement.dataset.documentId = selectedId;
       buildToc(articleElement, tocElement);
-      return { loaded: true, cached: false };
+      if (selectorElement && selectorElement.dataset.referenceBound !== 'true') {
+        selectorElement.dataset.referenceBound = 'true';
+        selectorElement.addEventListener('change', () => mount({ article:articleElement, toc:tocElement, selector:selectorElement, download:downloadElement, standalone:standaloneElement, force:true, footer }));
+      }
+      return { loaded: true, cached: false, documentId:selectedId, documents };
     } catch (error) {
       articleElement.dataset.loaded = 'false';
       articleElement.innerHTML = '<div class="reference-error"><div>参考文档加载失败，请稍后重试</div><button class="reference-retry" type="button">重新加载</button></div>';
       tocElement.innerHTML = '<span class="reference-empty">加载失败</span>';
       articleElement.querySelector('.reference-retry').addEventListener('click', () => {
-        mount({ article: articleElement, toc: tocElement, force: true, footer });
+        mount({ article:articleElement, toc:tocElement, selector:selectorElement, download:downloadElement, standalone:standaloneElement, force:true, footer });
       });
       return { loaded: false, error };
     } finally {

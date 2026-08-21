@@ -92,6 +92,7 @@ test('site recommendations start empty and remain publicly readable', async t =>
   const readme = fs.readFileSync(path.join(__dirname, '..', 'README.md'), 'utf8');
   for (const schema of [runtimeSchema, canonicalSchema, readme]) {
     assert.match(schema, /CREATE TABLE IF NOT EXISTS site_recommendations/);
+    assert.match(schema, /CREATE TABLE IF NOT EXISTS reference_documents/);
     assert.match(schema, /CREATE TABLE IF NOT EXISTS stock_fund_flow_history_cache/);
     assert.match(schema, /source VARCHAR\(40\)/);
     assert.match(schema, /CREATE TABLE IF NOT EXISTS chat_messages/);
@@ -236,6 +237,48 @@ test('only database-designated administrators can manage recommended sites', asy
   const removed = await jsonRequest(app.service, `/api/admin/sites/${siteId}`, {
     method:'DELETE', cookie, body:{},
   });
+  assert.equal(removed.payload.deleted, true);
+});
+
+test('administrators can create, edit, publish and delete reference documents', async t => {
+  const app = await startTestService();
+  t.after(app.close);
+
+  const registration = await jsonRequest(app.service, '/api/auth/register', {
+    method:'POST', body:{ username:'reference_admin', password:'password-123', displayName:'文档管理员' },
+  });
+  const cookie = cookieFrom(registration);
+  const denied = await jsonRequest(app.service, '/api/admin/reference-documents', { cookie });
+  assert.equal(denied.response.status, 403);
+  app.service.database.users.get(Number(registration.payload.user.id)).is_admin = 1;
+  const empty = await jsonRequest(app.service, '/api/admin/reference-documents', { cookie });
+  assert.equal(empty.response.status, 200);
+  assert.deepEqual(empty.payload.documents, []);
+
+  const created = await jsonRequest(app.service, '/api/admin/reference-documents', {
+    method:'POST', cookie,
+    body:{ title:'指标说明', description:'管理员维护的说明', content:'# 市盈率\n\n仅供参考', sortOrder:2, isActive:true },
+  });
+  assert.equal(created.response.status, 201);
+  assert.equal(created.payload.document.title, '指标说明');
+  assert.equal(created.payload.document.content, '# 市盈率\n\n仅供参考');
+  const documentId = created.payload.document.id;
+
+  const publicDocuments = await app.service.listPublicReferenceDocuments();
+  assert.equal(publicDocuments.some(document => document.id === documentId), true);
+  const publicDocument = await app.service.getPublicReferenceDocument(documentId);
+  assert.equal(publicDocument.content, '# 市盈率\n\n仅供参考');
+
+  const updated = await jsonRequest(app.service, `/api/admin/reference-documents/${documentId}`, {
+    method:'PUT', cookie,
+    body:{ title:'指标说明（更新）', description:'更新后的说明', content:'## 更新', sortOrder:1, isActive:false },
+  });
+  assert.equal(updated.response.status, 200);
+  assert.equal(updated.payload.document.isActive, false);
+  assert.equal(await app.service.getPublicReferenceDocument(documentId), null);
+
+  const removed = await jsonRequest(app.service, `/api/admin/reference-documents/${documentId}`, { method:'DELETE', cookie, body:{} });
+  assert.equal(removed.response.status, 200);
   assert.equal(removed.payload.deleted, true);
 });
 

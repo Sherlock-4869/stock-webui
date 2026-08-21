@@ -54,6 +54,12 @@ const PORT = 3000;
 const PUBLIC_DIR = path.join(__dirname, 'public');
 const REFERENCE_DOC_PATH = path.join(__dirname, 'doc', '参考文档.md');
 const gbkDecode = require('./iconv_gbk');
+const REFERENCE_DOCUMENT_SEED = {
+  title:'默认参考文档',
+  description:'选股指标、行情基础和交易规则的站内阅读手册',
+  content:fs.existsSync(REFERENCE_DOC_PATH) ? fs.readFileSync(REFERENCE_DOC_PATH, 'utf8') : '',
+  sortOrder:0,
+};
 
 const MIME = {
   '.html': 'text/html; charset=utf-8',
@@ -197,19 +203,26 @@ function serveFile(res, filePath) {
   });
 }
 
-function serveReferenceDocument(res, download=false) {
-  fs.readFile(REFERENCE_DOC_PATH, (err, data) => {
-    if (err) { res.writeHead(404); res.end('Not Found'); return; }
-    const headers = {
-      'Content-Type':'text/markdown; charset=utf-8',
-      'Cache-Control':'no-cache',
-    };
-    if (download) {
-      headers['Content-Disposition'] = `attachment; filename="reference-document.md"; filename*=UTF-8''${encodeURIComponent('参考文档.md')}`;
-    }
-    res.writeHead(200, headers);
-    res.end(data);
-  });
+function staticReferenceDocument() {
+  return {
+    id:'static', title:REFERENCE_DOCUMENT_SEED.title, description:REFERENCE_DOCUMENT_SEED.description,
+    sortOrder:REFERENCE_DOCUMENT_SEED.sortOrder, isActive:true, updatedAt:null,
+    content:REFERENCE_DOCUMENT_SEED.content,
+  };
+}
+
+function serveReferenceContent(res, document, download=false) {
+  if (!document) { res.writeHead(404); res.end('Not Found'); return; }
+  const headers = {
+    'Content-Type':'text/markdown; charset=utf-8',
+    'Cache-Control':'no-cache',
+  };
+  if (download) {
+    const filename = `${String(document.title || '参考文档').replace(/[\\/:*?"<>|\r\n]+/g, '_').slice(0, 80) || '参考文档'}.md`;
+    headers['Content-Disposition'] = `attachment; filename="reference-document.md"; filename*=UTF-8''${encodeURIComponent(filename)}`;
+  }
+  res.writeHead(200, headers);
+  res.end(String(document.content || ''));
 }
 
 async function proxyQuote(symbols, res) {
@@ -1660,7 +1673,7 @@ function oneYearAgoDate() {
 }
 
 const wechatService = createWechatService({ loadIpoCalendar });
-const accountService = createAccountService();
+const accountService = createAccountService({ referenceDocumentSeed:REFERENCE_DOCUMENT_SEED });
 const aiService = createAiService({ accountService });
 const chatService = createChatService({
   saveMessage:(userId, message) => accountService.createChatMessage(userId, message),
@@ -1733,13 +1746,36 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  if (pathname === '/api/reference-documents') {
+    const documents = await accountService.listPublicReferenceDocuments();
+    const fallback = documents && documents.length ? documents : [staticReferenceDocument()];
+    sendJson(res, 200, { documents:fallback });
+    return;
+  }
+
   if (pathname === '/api/reference-document') {
-    serveReferenceDocument(res);
+    const requestedId = urlObj.searchParams.get('id');
+    const documents = await accountService.listPublicReferenceDocuments();
+    let document = null;
+    if (requestedId && requestedId !== 'static') document = await accountService.getPublicReferenceDocument(requestedId);
+    if (!document && documents?.length) {
+      const selected = requestedId ? documents.find(item => String(item.id) === String(requestedId)) : documents[0];
+      if (selected) document = await accountService.getPublicReferenceDocument(selected.id);
+    }
+    serveReferenceContent(res, document || staticReferenceDocument());
     return;
   }
 
   if (pathname === '/download/reference-document') {
-    serveReferenceDocument(res, true);
+    const requestedId = urlObj.searchParams.get('id');
+    const documents = await accountService.listPublicReferenceDocuments();
+    let document = null;
+    if (requestedId && requestedId !== 'static') document = await accountService.getPublicReferenceDocument(requestedId);
+    if (!document && documents?.length) {
+      const selected = requestedId ? documents.find(item => String(item.id) === String(requestedId)) : documents[0];
+      if (selected) document = await accountService.getPublicReferenceDocument(selected.id);
+    }
+    serveReferenceContent(res, document || staticReferenceDocument(), true);
     return;
   }
 
