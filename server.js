@@ -771,33 +771,39 @@ async function proxyStockInformation(urlObj, res) {
     return;
   }
   const force = urlObj.searchParams.get('refresh') === '1';
-  const settled = await Promise.allSettled([
-    loadStockProfile(symbol, force),
-    loadStockBusinessAnalysis(symbol, force),
-    loadStockHolderNumber(symbol, force),
-    loadStockAnnouncements(symbol, force),
-    loadStockFinancials(symbol, force),
-    loadStockNews(symbol, force),
-  ]);
-  const labels = ['公司简况', '经营分析', '股东户数', '公告与财报原文', '财务指标', '相关新闻'];
-  const unavailable = settled.flatMap((result, index) => result.status === 'rejected' ? [labels[index]] : []);
+  const requestedSection = String(urlObj.searchParams.get('section') || 'overview').toLowerCase();
+  const sections = {
+    overview:[
+      ['profile', '公司简况', loadStockProfile],
+      ['businessAnalysis', '经营分析', loadStockBusinessAnalysis],
+      ['holderNumber', '股东户数', loadStockHolderNumber],
+    ],
+    financials:[['financials', '财务指标', loadStockFinancials]],
+    events:[['announcements', '公告与财报原文', loadStockAnnouncements]],
+    news:[['news', '相关新闻', loadStockNews]],
+  };
+  const section = Object.hasOwn(sections, requestedSection) ? requestedSection : 'overview';
+  const requested = sections[section];
+  const settled = await Promise.allSettled(requested.map(([, , load]) => load(symbol, force)));
+  const unavailable = settled.flatMap((result, index) => result.status === 'rejected' ? [requested[index][1]] : []);
   settled.forEach((result, index) => {
-    if (result.status === 'rejected') console.error(`Stock information ${labels[index]} error (${symbol}):`, result.reason?.message);
+    if (result.status === 'rejected') console.error(`Stock information ${requested[index][1]} error (${symbol}):`, result.reason?.message);
   });
   if (unavailable.length === settled.length) {
     sendJson(res, 502, { error:'公开资讯数据暂时不可用，请稍后重试', unavailable });
     return;
   }
-  const profile = settled[0].status === 'fulfilled' ? settled[0].value : null;
-  const businessAnalysis = settled[1].status === 'fulfilled' ? settled[1].value : null;
-  const holderNumber = settled[2].status === 'fulfilled' ? settled[2].value : null;
-  const announcements = settled[3].status === 'fulfilled' ? settled[3].value : null;
-  const financials = settled[4].status === 'fulfilled' ? settled[4].value : null;
-  const news = settled[5].status === 'fulfilled' ? settled[5].value : null;
+  const values = Object.fromEntries(requested.map(([key], index) => [key, settled[index].status === 'fulfilled' ? settled[index].value : null]));
+  const profile = values.profile;
+  const businessAnalysis = values.businessAnalysis;
+  const holderNumber = values.holderNumber;
+  const announcements = values.announcements;
+  const financials = values.financials;
+  const news = values.news;
   const announcementRows = announcements?.data || [];
-  const fetchedAt = Math.max(profile?.fetchedAt || 0, businessAnalysis?.fetchedAt || 0, holderNumber?.fetchedAt || 0, announcements?.fetchedAt || 0, financials?.fetchedAt || 0, news?.fetchedAt || 0);
+  const fetchedAt = Math.max(...Object.values(values).map(value => value?.fetchedAt || 0));
   sendJson(res, 200, {
-    symbol,
+    symbol, section,
     profile:profile?.data || null,
     businessAnalysis:businessAnalysis?.data || [],
     holderNumber:holderNumber?.data || null,
@@ -807,7 +813,7 @@ async function proxyStockInformation(urlObj, res) {
     news:news?.data || [],
     unavailable,
     partial:Boolean(unavailable.length),
-    stale:Boolean(profile?.stale || businessAnalysis?.stale || holderNumber?.stale || announcements?.stale || financials?.stale || news?.stale),
+    stale:Object.values(values).some(value => value?.stale),
     fetchedAt,
     sources:{ profile:profile?.source || '', businessAnalysis:businessAnalysis?.source || '', holderNumber:holderNumber?.source || '', announcements:announcements?.source || '', financials:financials?.source || '', news:news?.source || '' },
   });

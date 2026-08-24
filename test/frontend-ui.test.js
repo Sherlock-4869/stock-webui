@@ -437,12 +437,21 @@ test('K line volume pane includes five and ten period volume moving averages', (
   assert.match(html, /drawAverageLine\(ctx, chartState\.volumeMa10, xFor, vy, '#56d364'\)/);
   assert.match(html, /'VOL MA5'/);
   assert.match(html, /'VOL MA10'/);
+  assert.match(html, /const H = 340;/);
+  assert.match(html, /const volumeLegendH = 16;/);
+  assert.match(html, /const volumeBarsTop = volTop \+ volumeLegendH;/);
 });
 
-test('A-share detail exposes resilient public F10 profile, announcements, financials and linked news', () => {
+test('A-share detail exposes resilient, lazily loaded F10 profile, financials, events and linked news', () => {
   assert.match(html, /data-tab="information"[^>]*>简况 \/ F10</);
   assert.match(html, /id="stock-information-panel"/);
+  assert.match(html, /data-stock-info-section="overview"/);
+  assert.match(html, /data-stock-info-section="financials"/);
+  assert.match(html, /data-stock-info-section="events"/);
+  assert.match(html, /data-stock-info-section="news"/);
   assert.match(html, /\/api\/stock-information\?symbol=/);
+  assert.match(html, /&section=\$\{encodeURIComponent\(stockInformationSection\)\}/);
+  assert.match(html, /function switchStockInformationSection\(section\)/);
   assert.match(html, /function renderStockProfile\(profile\)/);
   assert.match(html, /function renderBusinessAnalysis\(rows\)/);
   assert.match(html, /function renderHolderNumber\(holder\)/);
@@ -457,9 +466,14 @@ test('A-share detail exposes resilient public F10 profile, announcements, financ
   assert.match(html, /function trustedStockInfoUrl\(value\)/);
   assert.match(serverSource, /pathname === '\/api\/stock-information'/);
   assert.match(serverSource, /allowStockInformationRequest\(req, res\)/);
-  assert.match(serverSource, /Promise\.allSettled\(\[/);
+  assert.match(serverSource, /requestedSection = String\(urlObj\.searchParams\.get\('section'\)/);
+  assert.match(serverSource, /overview:\[/);
+  assert.match(serverSource, /financials:\[\['financials'/);
+  assert.match(serverSource, /events:\[\['announcements'/);
+  assert.match(serverSource, /news:\[\['news'/);
+  assert.match(serverSource, /Promise\.allSettled\(requested\.map/);
   assert.match(serverSource, /目前资讯财报仅支持沪深 A 股/);
-  assert.match(serverSource, /loadStockProfile\(symbol, force\)/);
+  assert.match(serverSource, /\['profile', '公司简况', loadStockProfile\]/);
 });
 
 test('Hong Kong and US watchlist symbols generate intraday K lines from minute data', () => {
