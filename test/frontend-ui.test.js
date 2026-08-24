@@ -436,6 +436,7 @@ test('A-share detail exposes resilient public F10 profile, announcements, financ
   assert.match(html, /function renderStockProfile\(profile\)/);
   assert.match(html, /function renderBusinessAnalysis\(rows\)/);
   assert.match(html, /function renderHolderNumber\(holder\)/);
+  assert.match(html, /holder\.holderChangeRatio\) > 0 \? 'up' : Number\(holder\.holderChangeRatio\) < 0 \? 'down'/);
   assert.match(html, /股本与股东/);
   assert.match(html, /经营分析/);
   assert.match(html, /分红、回购与资本运作/);

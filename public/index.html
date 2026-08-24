@@ -2946,7 +2946,7 @@ function renderStockTopics(profile) {
 
 function renderHolderNumber(holder) {
   if (!holder || typeof holder !== 'object') return '';
-  const changeTone = Number(holder.holderChangeRatio) > 0 ? 'down' : Number(holder.holderChangeRatio) < 0 ? 'up' : '';
+  const changeTone = Number(holder.holderChangeRatio) > 0 ? 'up' : Number(holder.holderChangeRatio) < 0 ? 'down' : '';
   const cells = [
     ['最新户数', marketDetailNumber(holder.holderNumber), holder.reportDate || ''],
     ['环比变化', stockInfoPercent(holder.holderChangeRatio), holder.holderChange == null ? '' : `${marketDetailNumber(holder.holderChange)} 户`],
