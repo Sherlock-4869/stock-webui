@@ -105,6 +105,15 @@ test('personal notes can export Markdown and open a secured standalone reader', 
   assert.match(noteReaderHtml, /<script src="\/note-reader\.js"><\/script>/);
   assert.match(noteReaderScript, /fetch\(`\/api\/notes\/\$\{encodeURIComponent\(noteId\)\}`/);
   assert.match(noteReaderScript, /ReferenceReader\.renderMarkdown/);
+  assert.match(noteReaderHtml, /id="note-reader-font-decrease"/);
+  assert.match(noteReaderHtml, /id="note-reader-font-increase"/);
+  assert.match(noteReaderHtml, /--reader-font-scale:1/);
+  assert.match(noteReaderHtml, /grid-template-columns:minmax\(180px,220px\) minmax\(0,1fr\)/);
+  assert.doesNotMatch(noteReaderHtml, /max-width:1110px/);
+  assert.match(noteReaderScript, /FONT_SCALE_STORAGE_KEY = 'stock_note_reader_font_scale_v1'/);
+  assert.match(noteReaderScript, /FONT_SCALE_MIN = 0\.85/);
+  assert.match(noteReaderScript, /FONT_SCALE_MAX = 1\.8/);
+  assert.match(noteReaderScript, /function applyFontScale\(value, persist = false\)/);
   assert.doesNotThrow(() => new Function(noteReaderScript));
 });
 

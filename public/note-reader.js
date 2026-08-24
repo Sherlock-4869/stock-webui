@@ -1,5 +1,42 @@
 (function initializeNoteReader(global) {
   'use strict';
+  const FONT_SCALE_STORAGE_KEY = 'stock_note_reader_font_scale_v1';
+  const FONT_SCALE_MIN = 0.85;
+  const FONT_SCALE_MAX = 1.8;
+  const FONT_SCALE_STEP = 0.1;
+
+  function normalizedFontScale(value) {
+    const scale = Number(value);
+    if (!Number.isFinite(scale)) return 1;
+    return Math.min(FONT_SCALE_MAX, Math.max(FONT_SCALE_MIN, Math.round(scale / FONT_SCALE_STEP) * FONT_SCALE_STEP));
+  }
+
+  function applyFontScale(value, persist = false) {
+    const scale = normalizedFontScale(value);
+    document.documentElement.style.setProperty('--reader-font-scale', String(scale));
+    const output = document.getElementById('note-reader-font-size');
+    if (output) output.textContent = `${Math.round(scale * 100)}%`;
+    const decrease = document.getElementById('note-reader-font-decrease');
+    const increase = document.getElementById('note-reader-font-increase');
+    if (decrease) decrease.disabled = scale <= FONT_SCALE_MIN;
+    if (increase) increase.disabled = scale >= FONT_SCALE_MAX;
+    if (persist) {
+      try { localStorage.setItem(FONT_SCALE_STORAGE_KEY, String(scale)); } catch (_) {}
+    }
+    return scale;
+  }
+
+  function initializeFontControls() {
+    let savedScale = 1;
+    try { savedScale = localStorage.getItem(FONT_SCALE_STORAGE_KEY) || 1; } catch (_) {}
+    let currentScale = applyFontScale(savedScale);
+    document.getElementById('note-reader-font-decrease')?.addEventListener('click', () => {
+      currentScale = applyFontScale(currentScale - FONT_SCALE_STEP, true);
+    });
+    document.getElementById('note-reader-font-increase')?.addEventListener('click', () => {
+      currentScale = applyFontScale(currentScale + FONT_SCALE_STEP, true);
+    });
+  }
 
   function setStatus(message, error = false) {
     const element = document.getElementById('note-reader-status');
@@ -79,5 +116,8 @@
     }
   }
 
-  global.addEventListener('DOMContentLoaded', load, { once:true });
+  global.addEventListener('DOMContentLoaded', () => {
+    initializeFontControls();
+    load();
+  }, { once:true });
 })(window);
