@@ -46,6 +46,7 @@ function normalizeCompanySurvey(payload, symbol) {
     board:surveyValue(survey, 'ssb'),
     industry:surveyValue(survey, 'sshy'),
     csrcIndustry:surveyValue(survey, 'sszjhhy'),
+    marketCategory:surveyValue(survey, 'zqlb'),
     region:surveyValue(survey, 'qy'),
     province:surveyValue(survey, 'zqdb'),
     establishedAt:surveyValue(survey, 'clrq'),
@@ -62,6 +63,44 @@ function normalizeCompanySurvey(payload, symbol) {
     introduction:surveyValue(survey, 'gsjs'),
     coreBusiness:surveyValue(survey, 'zyyw'),
     businessScope:surveyValue(survey, 'jyfw'),
+  };
+}
+
+function normalizeBusinessAnalysisPayload(payload, symbol) {
+  const rows = Array.isArray(payload?.result?.data) ? payload.result.data : [];
+  const periods = [];
+  const seen = new Set();
+  for (const row of rows) {
+    if (String(row?.SECUCODE || '').toUpperCase() !== `${String(symbol || '').slice(2)}.${String(symbol || '').startsWith('sh') ? 'SH' : 'SZ'}` || seen.has(String(row?.REPORT_DATE))) continue;
+    const reportDate = String(row?.REPORT_DATE || '').slice(0, 10);
+    if (!reportDate) continue;
+    seen.add(String(row.REPORT_DATE));
+    periods.push({
+      reportDate,
+      reportName:cleanSurveyText(row.REPORT_NAME) || reportDate,
+      review:cleanSurveyText(row.BUSINESS_REVIEW),
+      outlook:cleanSurveyText(row.FUTURE_EXPECT),
+    });
+    if (periods.length >= 4) break;
+  }
+  return periods;
+}
+
+function normalizeHolderNumberPayload(payload, symbol) {
+  const row = Array.isArray(payload?.result?.data) ? payload.result.data[0] : null;
+  if (!row || String(row.SECURITY_CODE || '') !== String(symbol || '').slice(2)) throw new Error('Holder number payload is invalid');
+  return {
+    reportDate:String(row.END_DATE || '').slice(0, 10),
+    noticeDate:String(row.HOLD_NOTICE_DATE || '').slice(0, 10),
+    holderNumber:numberOrNull(row.HOLDER_NUM),
+    previousHolderNumber:numberOrNull(row.PRE_HOLDER_NUM),
+    holderChange:numberOrNull(row.HOLDER_NUM_CHANGE),
+    holderChangeRatio:numberOrNull(row.HOLDER_NUM_RATIO),
+    intervalChange:numberOrNull(row.INTERVAL_CHRATE),
+    averageMarketCap:numberOrNull(row.AVG_MARKET_CAP),
+    averageHolding:numberOrNull(row.AVG_HOLD_NUM),
+    totalMarketCap:numberOrNull(row.TOTAL_MARKET_CAP),
+    totalAShares:numberOrNull(row.TOTAL_A_SHARES),
   };
 }
 
@@ -180,8 +219,10 @@ function parseSinaStockNews(source, limit = 24) {
 
 module.exports = {
   normalizeAnnouncementPayload,
+  normalizeBusinessAnalysisPayload,
   normalizeCompanySurvey,
   normalizeFinancialPayload,
+  normalizeHolderNumberPayload,
   parseSinaStockNews,
   safeSinaNewsUrl,
 };

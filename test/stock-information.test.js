@@ -4,8 +4,10 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const {
   normalizeAnnouncementPayload,
+  normalizeBusinessAnalysisPayload,
   normalizeCompanySurvey,
   normalizeFinancialPayload,
+  normalizeHolderNumberPayload,
   parseSinaStockNews,
   safeSinaNewsUrl,
 } = require('../stock-information');
@@ -21,6 +23,19 @@ test('company survey normalizes only display-ready public company fields', () =>
   assert.equal(profile.industry, '食品制造业');
   assert.equal(profile.introduction, '测试公司简介');
   assert.equal(profile.coreBusiness, '白酒生产销售');
+});
+
+test('business analysis and latest holder count retain only structured research fields', () => {
+  const business = normalizeBusinessAnalysisPayload({ result:{ data:[{
+    SECUCODE:'600519.SH', REPORT_DATE:'2026-06-30 00:00:00', REPORT_NAME:'2026中报', BUSINESS_REVIEW:'<p>经营回顾</p>', FUTURE_EXPECT:'未来展望',
+  }] } }, 'sh600519');
+  assert.deepEqual(business, [{ reportDate:'2026-06-30', reportName:'2026中报', review:'经营回顾', outlook:'未来展望' }]);
+  const holder = normalizeHolderNumberPayload({ result:{ data:[{
+    SECURITY_CODE:'600519', END_DATE:'2026-06-30 00:00:00', HOLD_NOTICE_DATE:'2026-08-15 00:00:00', HOLDER_NUM:200, PRE_HOLDER_NUM:180, HOLDER_NUM_CHANGE:20, HOLDER_NUM_RATIO:11.11, INTERVAL_CHRATE:-2.5, AVG_MARKET_CAP:500000, AVG_HOLD_NUM:1000, TOTAL_MARKET_CAP:1000000000, TOTAL_A_SHARES:100000000,
+  }] } }, 'sh600519');
+  assert.equal(holder.holderNumber, 200);
+  assert.equal(holder.holderChangeRatio, 11.11);
+  assert.equal(holder.reportDate, '2026-06-30');
 });
 
 test('announcement payload keeps matching A-share disclosures and safe public PDF links', () => {

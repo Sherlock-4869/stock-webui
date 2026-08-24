@@ -46,8 +46,10 @@ const {
 } = require('./derivatives-market');
 const {
   normalizeAnnouncementPayload,
+  normalizeBusinessAnalysisPayload,
   normalizeCompanySurvey,
   normalizeFinancialPayload,
+  normalizeHolderNumberPayload,
   parseSinaStockNews,
 } = require('./stock-information');
 
@@ -111,6 +113,8 @@ const STOCK_ANNOUNCEMENT_CACHE_MS = 15 * 60 * 1000;
 const STOCK_FINANCIAL_CACHE_MS = 6 * 60 * 60 * 1000;
 const STOCK_NEWS_CACHE_MS = 5 * 60 * 1000;
 const STOCK_PROFILE_CACHE_MS = 6 * 60 * 60 * 1000;
+const STOCK_BUSINESS_ANALYSIS_CACHE_MS = 6 * 60 * 60 * 1000;
+const STOCK_HOLDER_NUMBER_CACHE_MS = 6 * 60 * 60 * 1000;
 const STOCK_INFORMATION_CACHE_MAX = 500;
 const fundamentalCache = new Map();
 const realtimeFundFlowCache = new Map();
@@ -138,6 +142,8 @@ const stockAnnouncementCache = new Map();
 const stockFinancialCache = new Map();
 const stockNewsCache = new Map();
 const stockProfileCache = new Map();
+const stockBusinessAnalysisCache = new Map();
+const stockHolderNumberCache = new Map();
 const stockInformationRateLimitBuckets = new Map();
 let derivativesQuoteRefreshPromise = null;
 const boardRequestQueue = createAsyncTaskQueue({ concurrency:3, maxQueued:30 });
@@ -685,6 +691,41 @@ async function loadStockProfile(symbol, force = false) {
   }, force);
 }
 
+async function loadStockBusinessAnalysis(symbol, force = false) {
+  reserveStockInformationCache(stockBusinessAnalysisCache, symbol);
+  return loadCachedFundValue(stockBusinessAnalysisCache, symbol, STOCK_BUSINESS_ANALYSIS_CACHE_MS, async () => {
+    const query = new URLSearchParams({
+      reportName:'RPT_F10_OP_BUSINESSANALYSIS', columns:'SECUCODE,REPORT_DATE,REPORT_NAME,BUSINESS_REVIEW,FUTURE_EXPECT',
+      filter:`(SECUCODE="${eastmoneySecuCode(symbol)}")`, pageNumber:'1', pageSize:'4',
+      sortColumns:'REPORT_DATE', sortTypes:'-1', source:'HSF10', client:'PC',
+    });
+    const raw = await requestBuffer(`https://datacenter.eastmoney.com/securities/api/data/v1/get?${query}`, {
+      ...UPSTREAM_HEADERS, Referer:'https://data.eastmoney.com/', Accept:'application/json,text/plain,*/*',
+    }, { timeoutMs:12000, maxBytes:4 * 1024 * 1024 });
+    return {
+      data:normalizeBusinessAnalysisPayload(JSON.parse(raw.toString('utf-8')), symbol),
+      source:'东方财富公开经营分析', fetchedAt:Date.now(),
+    };
+  }, force);
+}
+
+async function loadStockHolderNumber(symbol, force = false) {
+  reserveStockInformationCache(stockHolderNumberCache, symbol);
+  return loadCachedFundValue(stockHolderNumberCache, symbol, STOCK_HOLDER_NUMBER_CACHE_MS, async () => {
+    const query = new URLSearchParams({
+      reportName:'RPT_HOLDERNUMLATEST', columns:'SECURITY_CODE,END_DATE,HOLD_NOTICE_DATE,HOLDER_NUM,PRE_HOLDER_NUM,HOLDER_NUM_CHANGE,HOLDER_NUM_RATIO,INTERVAL_CHRATE,AVG_MARKET_CAP,AVG_HOLD_NUM,TOTAL_MARKET_CAP,TOTAL_A_SHARES',
+      filter:`(SECURITY_CODE="${symbol.slice(2)}")`, pageNumber:'1', pageSize:'1', source:'WEB', client:'WEB',
+    });
+    const raw = await requestBuffer(`https://datacenter-web.eastmoney.com/api/data/v1/get?${query}`, {
+      ...UPSTREAM_HEADERS, Referer:'https://data.eastmoney.com/', Accept:'application/json,text/plain,*/*',
+    }, { timeoutMs:12000, maxBytes:512 * 1024 });
+    return {
+      data:normalizeHolderNumberPayload(JSON.parse(raw.toString('utf-8')), symbol),
+      source:'东方财富公开股东户数', fetchedAt:Date.now(),
+    };
+  }, force);
+}
+
 async function loadStockFinancials(symbol, force = false) {
   reserveStockInformationCache(stockFinancialCache, symbol);
   return loadCachedFundValue(stockFinancialCache, symbol, STOCK_FINANCIAL_CACHE_MS, async () => {
@@ -732,11 +773,13 @@ async function proxyStockInformation(urlObj, res) {
   const force = urlObj.searchParams.get('refresh') === '1';
   const settled = await Promise.allSettled([
     loadStockProfile(symbol, force),
+    loadStockBusinessAnalysis(symbol, force),
+    loadStockHolderNumber(symbol, force),
     loadStockAnnouncements(symbol, force),
     loadStockFinancials(symbol, force),
     loadStockNews(symbol, force),
   ]);
-  const labels = ['公司简况', '公告与财报原文', '财务指标', '相关新闻'];
+  const labels = ['公司简况', '经营分析', '股东户数', '公告与财报原文', '财务指标', '相关新闻'];
   const unavailable = settled.flatMap((result, index) => result.status === 'rejected' ? [labels[index]] : []);
   settled.forEach((result, index) => {
     if (result.status === 'rejected') console.error(`Stock information ${labels[index]} error (${symbol}):`, result.reason?.message);
@@ -746,23 +789,27 @@ async function proxyStockInformation(urlObj, res) {
     return;
   }
   const profile = settled[0].status === 'fulfilled' ? settled[0].value : null;
-  const announcements = settled[1].status === 'fulfilled' ? settled[1].value : null;
-  const financials = settled[2].status === 'fulfilled' ? settled[2].value : null;
-  const news = settled[3].status === 'fulfilled' ? settled[3].value : null;
+  const businessAnalysis = settled[1].status === 'fulfilled' ? settled[1].value : null;
+  const holderNumber = settled[2].status === 'fulfilled' ? settled[2].value : null;
+  const announcements = settled[3].status === 'fulfilled' ? settled[3].value : null;
+  const financials = settled[4].status === 'fulfilled' ? settled[4].value : null;
+  const news = settled[5].status === 'fulfilled' ? settled[5].value : null;
   const announcementRows = announcements?.data || [];
-  const fetchedAt = Math.max(profile?.fetchedAt || 0, announcements?.fetchedAt || 0, financials?.fetchedAt || 0, news?.fetchedAt || 0);
+  const fetchedAt = Math.max(profile?.fetchedAt || 0, businessAnalysis?.fetchedAt || 0, holderNumber?.fetchedAt || 0, announcements?.fetchedAt || 0, financials?.fetchedAt || 0, news?.fetchedAt || 0);
   sendJson(res, 200, {
     symbol,
     profile:profile?.data || null,
+    businessAnalysis:businessAnalysis?.data || [],
+    holderNumber:holderNumber?.data || null,
     announcements:announcementRows,
     reports:announcementRows.filter(item => item.isReport),
     financials:financials?.data || [],
     news:news?.data || [],
     unavailable,
     partial:Boolean(unavailable.length),
-    stale:Boolean(profile?.stale || announcements?.stale || financials?.stale || news?.stale),
+    stale:Boolean(profile?.stale || businessAnalysis?.stale || holderNumber?.stale || announcements?.stale || financials?.stale || news?.stale),
     fetchedAt,
-    sources:{ profile:profile?.source || '', announcements:announcements?.source || '', financials:financials?.source || '', news:news?.source || '' },
+    sources:{ profile:profile?.source || '', businessAnalysis:businessAnalysis?.source || '', holderNumber:holderNumber?.source || '', announcements:announcements?.source || '', financials:financials?.source || '', news:news?.source || '' },
   });
 }
 

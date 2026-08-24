@@ -434,6 +434,12 @@ test('A-share detail exposes resilient public F10 profile, announcements, financ
   assert.match(html, /id="stock-information-panel"/);
   assert.match(html, /\/api\/stock-information\?symbol=/);
   assert.match(html, /function renderStockProfile\(profile\)/);
+  assert.match(html, /function renderBusinessAnalysis\(rows\)/);
+  assert.match(html, /function renderHolderNumber\(holder\)/);
+  assert.match(html, /股本与股东/);
+  assert.match(html, /经营分析/);
+  assert.match(html, /分红、回购与资本运作/);
+  assert.match(html, /机构观点与评级/);
   assert.match(html, /公司简况/);
   assert.match(html, /本站不复制新闻正文/);
   assert.match(html, /巨潮资讯/);
