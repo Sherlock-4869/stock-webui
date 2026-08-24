@@ -20,6 +20,51 @@ function decodeHtml(value) {
     .trim();
 }
 
+function cleanSurveyText(value) {
+  const text = decodeHtml(value);
+  return text && text !== '--' ? text : '';
+}
+
+function surveyValue(survey, ...keys) {
+  for (const key of keys) {
+    const value = cleanSurveyText(survey?.[key]);
+    if (value) return value;
+  }
+  return '';
+}
+
+function normalizeCompanySurvey(payload, symbol) {
+  const survey = payload?.jbzl;
+  if (!survey || typeof survey !== 'object' || Array.isArray(survey)) throw new Error('Company survey payload is invalid');
+  return {
+    symbol:String(symbol || '').toLowerCase(),
+    companyName:surveyValue(survey, 'gsmc'),
+    englishName:surveyValue(survey, 'ywmc'),
+    formerName:surveyValue(survey, 'cym'),
+    securityName:surveyValue(survey, 'agjc'),
+    exchange:surveyValue(survey, 'sssc'),
+    board:surveyValue(survey, 'ssb'),
+    industry:surveyValue(survey, 'sshy'),
+    csrcIndustry:surveyValue(survey, 'sszjhhy'),
+    region:surveyValue(survey, 'qy'),
+    province:surveyValue(survey, 'zqdb'),
+    establishedAt:surveyValue(survey, 'clrq'),
+    listedAt:surveyValue(survey, 'ssrq'),
+    legalRepresentative:surveyValue(survey, 'frdb'),
+    generalManager:surveyValue(survey, 'zjl', 'jl'),
+    boardSecretary:surveyValue(survey, 'dsms'),
+    registeredCapital:surveyValue(survey, 'zczb'),
+    website:surveyValue(survey, 'gswz'),
+    email:surveyValue(survey, 'email'),
+    phone:surveyValue(survey, 'dh'),
+    registeredAddress:surveyValue(survey, 'zcdz'),
+    officeAddress:surveyValue(survey, 'bgdz'),
+    introduction:surveyValue(survey, 'gsjs'),
+    coreBusiness:surveyValue(survey, 'zyyw'),
+    businessScope:surveyValue(survey, 'jyfw'),
+  };
+}
+
 function safeSinaNewsUrl(value) {
   try {
     const url = new URL(String(value || '').replace(/^http:/i, 'https:'));
@@ -135,6 +180,7 @@ function parseSinaStockNews(source, limit = 24) {
 
 module.exports = {
   normalizeAnnouncementPayload,
+  normalizeCompanySurvey,
   normalizeFinancialPayload,
   parseSinaStockNews,
   safeSinaNewsUrl,

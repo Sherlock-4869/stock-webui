@@ -46,6 +46,7 @@ const {
 } = require('./derivatives-market');
 const {
   normalizeAnnouncementPayload,
+  normalizeCompanySurvey,
   normalizeFinancialPayload,
   parseSinaStockNews,
 } = require('./stock-information');
@@ -103,11 +104,13 @@ const BOARD_COMPONENT_PAGE_SIZE = 1000;
 const CAPITAL_FLOW_RANKING_CACHE_MS = 12 * 1000;
 const CAPITAL_FLOW_INTRADAY_CACHE_MS = 4500;
 const CAPITAL_FLOW_HISTORY_CACHE_MS = 15 * 60 * 1000;
+const MARKET_OVERVIEW_CACHE_MS = 8 * 1000;
 const DERIVATIVES_QUOTE_CACHE_MS = 5 * 1000;
 const DERIVATIVES_NEWS_CACHE_MS = 2 * 60 * 1000;
 const STOCK_ANNOUNCEMENT_CACHE_MS = 15 * 60 * 1000;
 const STOCK_FINANCIAL_CACHE_MS = 6 * 60 * 60 * 1000;
 const STOCK_NEWS_CACHE_MS = 5 * 60 * 1000;
+const STOCK_PROFILE_CACHE_MS = 6 * 60 * 60 * 1000;
 const STOCK_INFORMATION_CACHE_MAX = 500;
 const fundamentalCache = new Map();
 const realtimeFundFlowCache = new Map();
@@ -127,12 +130,14 @@ const capitalFlowRateLimitBuckets = new Map();
 const capitalFlowRankingCache = new Map();
 const capitalFlowIntradayCache = new Map();
 const capitalFlowHistoryCache = new Map();
+const marketOverviewCache = new Map();
 const derivativesQuoteCache = new Map();
 const derivativesNewsCache = new Map();
 const derivativesRateLimitBuckets = new Map();
 const stockAnnouncementCache = new Map();
 const stockFinancialCache = new Map();
 const stockNewsCache = new Map();
+const stockProfileCache = new Map();
 const stockInformationRateLimitBuckets = new Map();
 let derivativesQuoteRefreshPromise = null;
 const boardRequestQueue = createAsyncTaskQueue({ concurrency:3, maxQueued:30 });
@@ -192,6 +197,13 @@ const STOCK_FLOW_MARKETS = {
   main:'m:0+t:6,m:1+t:2',
   cyb:'m:0+t:80',
   kcb:'m:1+t:23',
+};
+const MAINLAND_MARKET_INDEXES = {
+  '000001':{ name:'上证指数', secid:'1.000001' },
+  '399001':{ name:'深证成指', secid:'0.399001' },
+  '399006':{ name:'创业板指', secid:'0.399006' },
+  '000688':{ name:'科创50', secid:'1.000688' },
+  '899050':{ name:'北证50', secid:'0.899050' },
 };
 
 function serveFile(res, filePath) {
@@ -656,6 +668,23 @@ async function loadStockAnnouncements(symbol, force = false) {
   }, force);
 }
 
+async function loadStockProfile(symbol, force = false) {
+  reserveStockInformationCache(stockProfileCache, symbol);
+  return loadCachedFundValue(stockProfileCache, symbol, STOCK_PROFILE_CACHE_MS, async () => {
+    const code = `${symbol.startsWith('sh') ? 'SH' : 'SZ'}${symbol.slice(2)}`;
+    const raw = await requestBuffer(
+      `https://emweb.securities.eastmoney.com/PC_HSF10/CompanySurvey/CompanySurveyAjax?code=${code}`,
+      { ...UPSTREAM_HEADERS, Referer:'https://quote.eastmoney.com/', Accept:'application/json,text/plain,*/*' },
+      { timeoutMs:10000, maxBytes:2 * 1024 * 1024 }
+    );
+    return {
+      data:normalizeCompanySurvey(JSON.parse(raw.toString('utf-8')), symbol),
+      source:'东方财富公开公司资料',
+      fetchedAt:Date.now(),
+    };
+  }, force);
+}
+
 async function loadStockFinancials(symbol, force = false) {
   reserveStockInformationCache(stockFinancialCache, symbol);
   return loadCachedFundValue(stockFinancialCache, symbol, STOCK_FINANCIAL_CACHE_MS, async () => {
@@ -702,11 +731,12 @@ async function proxyStockInformation(urlObj, res) {
   }
   const force = urlObj.searchParams.get('refresh') === '1';
   const settled = await Promise.allSettled([
+    loadStockProfile(symbol, force),
     loadStockAnnouncements(symbol, force),
     loadStockFinancials(symbol, force),
     loadStockNews(symbol, force),
   ]);
-  const labels = ['公告与财报原文', '财务指标', '相关新闻'];
+  const labels = ['公司简况', '公告与财报原文', '财务指标', '相关新闻'];
   const unavailable = settled.flatMap((result, index) => result.status === 'rejected' ? [labels[index]] : []);
   settled.forEach((result, index) => {
     if (result.status === 'rejected') console.error(`Stock information ${labels[index]} error (${symbol}):`, result.reason?.message);
@@ -715,22 +745,24 @@ async function proxyStockInformation(urlObj, res) {
     sendJson(res, 502, { error:'公开资讯数据暂时不可用，请稍后重试', unavailable });
     return;
   }
-  const announcements = settled[0].status === 'fulfilled' ? settled[0].value : null;
-  const financials = settled[1].status === 'fulfilled' ? settled[1].value : null;
-  const news = settled[2].status === 'fulfilled' ? settled[2].value : null;
+  const profile = settled[0].status === 'fulfilled' ? settled[0].value : null;
+  const announcements = settled[1].status === 'fulfilled' ? settled[1].value : null;
+  const financials = settled[2].status === 'fulfilled' ? settled[2].value : null;
+  const news = settled[3].status === 'fulfilled' ? settled[3].value : null;
   const announcementRows = announcements?.data || [];
-  const fetchedAt = Math.max(announcements?.fetchedAt || 0, financials?.fetchedAt || 0, news?.fetchedAt || 0);
+  const fetchedAt = Math.max(profile?.fetchedAt || 0, announcements?.fetchedAt || 0, financials?.fetchedAt || 0, news?.fetchedAt || 0);
   sendJson(res, 200, {
     symbol,
+    profile:profile?.data || null,
     announcements:announcementRows,
     reports:announcementRows.filter(item => item.isReport),
     financials:financials?.data || [],
     news:news?.data || [],
     unavailable,
     partial:Boolean(unavailable.length),
-    stale:Boolean(announcements?.stale || financials?.stale || news?.stale),
+    stale:Boolean(profile?.stale || announcements?.stale || financials?.stale || news?.stale),
     fetchedAt,
-    sources:{ announcements:announcements?.source || '', financials:financials?.source || '', news:news?.source || '' },
+    sources:{ profile:profile?.source || '', announcements:announcements?.source || '', financials:financials?.source || '', news:news?.source || '' },
   });
 }
 
@@ -1084,6 +1116,88 @@ async function proxyCapitalFlowMarket(urlObj, res) {
     },
     partial:settled.some(market => market.unavailable.length), fetchedAt:Date.now(),
   });
+}
+
+function latestMarketFlowPoint(rows) {
+  const points = Array.isArray(rows) ? rows : [];
+  return points.length ? points[points.length - 1] : null;
+}
+
+async function fetchMainlandMarketOverview(code, force = false) {
+  const definition = MAINLAND_MARKET_INDEXES[code];
+  if (!definition) throw new Error('Unsupported mainland market index');
+  const quote = await requestEastmoneyFlowJson('/api/qt/stock/get', {
+    secid:definition.secid,
+    fields:'f43,f44,f45,f46,f47,f48,f57,f58,f60,f106,f107,f113,f114,f115,f116,f117,f124',
+  });
+  const raw = quote.data || {};
+  const flowMarkets = [
+    { key:'sh', name:'沪市', secid:'1.000001' },
+    { key:'sz', name:'深市', secid:'0.399001' },
+  ];
+  const [flowResult, boardResult] = await Promise.allSettled([
+    Promise.all(flowMarkets.map(async market => ({
+      ...market,
+      flow:latestMarketFlowPoint((await loadCapitalFlowIntraday(market.secid, force)).data),
+    }))),
+    loadBoardList('industry', force),
+  ]);
+  const flows = flowResult.status === 'fulfilled' ? flowResult.value : [];
+  const combinedFlow = flows.reduce((total, market) => {
+    const flow = market.flow || {};
+    for (const key of ['mainNet','smallNet','mediumNet','largeNet','superLargeNet']) {
+      const value = numberOrNull(flow[key]);
+      if (value != null) total[key] = (total[key] || 0) + value;
+    }
+    return total;
+  }, {});
+  const boardRows = boardResult.status === 'fulfilled' ? boardResult.value.data : [];
+  const comparableBoards = boardRows.filter(item => Number.isFinite(item.pct));
+  const flowBoards = boardRows.filter(item => Number.isFinite(item.mainNetInflow));
+  return {
+    code, name:String(raw.f58 || definition.name),
+    breadth:{
+      rising:numberOrNull(raw.f113), falling:numberOrNull(raw.f114), flat:numberOrNull(raw.f115),
+      limitUp:numberOrNull(raw.f106), limitDown:numberOrNull(raw.f107),
+    },
+    trading:{
+      volume:numberOrNull(raw.f47), amount:numberOrNull(raw.f48),
+      totalMarketCap:numberOrNull(raw.f116), floatMarketCap:numberOrNull(raw.f117),
+    },
+    funds:{
+      combined:Object.keys(combinedFlow).length ? combinedFlow : null,
+      markets:flows.map(market => ({ key:market.key, name:market.name, ...(market.flow || {}) })),
+    },
+    sectors:{
+      rising:[...comparableBoards].sort((left, right) => right.pct - left.pct).slice(0, 3),
+      falling:[...comparableBoards].sort((left, right) => left.pct - right.pct).slice(0, 3),
+      inflow:[...flowBoards].sort((left, right) => right.mainNetInflow - left.mainNetInflow).slice(0, 3),
+      outflow:[...flowBoards].sort((left, right) => left.mainNetInflow - right.mainNetInflow).slice(0, 3),
+    },
+    unavailable:[
+      flowResult.status === 'rejected' ? '沪深资金流向' : '',
+      boardResult.status === 'rejected' ? '行业强弱与行业资金' : '',
+    ].filter(Boolean),
+    partial:flowResult.status === 'rejected' || boardResult.status === 'rejected',
+    fetchedAt:Date.now(),
+  };
+}
+
+async function proxyMainlandMarketOverview(urlObj, res) {
+  const code = String(urlObj.searchParams.get('code') || '');
+  if (!MAINLAND_MARKET_INDEXES[code]) {
+    sendJson(res, 400, { error:'仅支持沪深主要指数的市场总览' }); return;
+  }
+  try {
+    const payload = await loadCachedFundValue(marketOverviewCache, code, MARKET_OVERVIEW_CACHE_MS,
+      () => fetchMainlandMarketOverview(code, urlObj.searchParams.get('refresh') === '1'),
+      urlObj.searchParams.get('refresh') === '1');
+    while (marketOverviewCache.size > 10) marketOverviewCache.delete(marketOverviewCache.keys().next().value);
+    sendJson(res, 200, payload);
+  } catch (error) {
+    console.error(`Mainland market overview error (${code}):`, error.message);
+    sendJson(res, 502, { error:'大盘总览暂时不可用' });
+  }
 }
 
 async function proxyCapitalFlowHistory(urlObj, res) {
@@ -1808,6 +1922,12 @@ const server = http.createServer(async (req, res) => {
   if (pathname === '/api/capital-flow/market') {
     if (!allowCapitalFlowRequest(req, res)) return;
     await proxyCapitalFlowMarket(urlObj, res);
+    return;
+  }
+
+  if (pathname === '/api/market-overview') {
+    if (!allowCapitalFlowRequest(req, res)) return;
+    await proxyMainlandMarketOverview(urlObj, res);
     return;
   }
 

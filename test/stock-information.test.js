@@ -4,10 +4,24 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const {
   normalizeAnnouncementPayload,
+  normalizeCompanySurvey,
   normalizeFinancialPayload,
   parseSinaStockNews,
   safeSinaNewsUrl,
 } = require('../stock-information');
+
+test('company survey normalizes only display-ready public company fields', () => {
+  const profile = normalizeCompanySurvey({ jbzl:{
+    gsmc:'测试股份有限公司', sshy:'食品制造业', sszjhhy:'制造业', qy:'贵州',
+    clrq:'1999-09-20', ssrq:'2001-08-27', frdb:'测试法人', zjl:'测试总经理',
+    dsms:'测试董秘', gswz:'https://example.test', gsjs:'<p>测试公司简介</p>', zyyw:'白酒生产销售',
+  } }, 'sh600519');
+  assert.equal(profile.symbol, 'sh600519');
+  assert.equal(profile.companyName, '测试股份有限公司');
+  assert.equal(profile.industry, '食品制造业');
+  assert.equal(profile.introduction, '测试公司简介');
+  assert.equal(profile.coreBusiness, '白酒生产销售');
+});
 
 test('announcement payload keeps matching A-share disclosures and safe public PDF links', () => {
   const rows = normalizeAnnouncementPayload({ success:1, data:{ list:[

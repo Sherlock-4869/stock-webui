@@ -374,9 +374,15 @@ test('derivatives page exposes CFFEX basis, US overnight futures, sessions and f
   assert.match(serverSource, /DERIVATIVES_RATE_LIMIT_MAX/);
 });
 
-test('global index cards open a quote detail with available curves and clearer price context', () => {
+test('global index cards open a quote detail with market-wide data for mainland benchmarks', () => {
   assert.match(html, /function openMarketIndex\(code\)/);
   assert.match(html, /function isGlobalIndexSymbol\(symbol\)/);
+  assert.match(html, /function isMainlandMarketIndex\(symbol\)/);
+  assert.match(html, /data-tab="market"[^>]*>市场总览</);
+  assert.match(html, /\/api\/market-overview\?code=/);
+  assert.match(html, /上涨家数/);
+  assert.match(html, /涨停家数/);
+  assert.match(html, /沪深主力资金/);
   assert.match(html, /class="market-card \$\{trend\}" data-code="\$\{code\}" onclick="openMarketIndex\('\$\{code\}'\)"/);
   assert.doesNotMatch(html, /market-card-open/);
   assert.match(html, /全球指数 ·/);
@@ -423,10 +429,12 @@ test('chart hover shows selected node details beside the pointer and in the char
   assert.match(hoverSource, /updateChartInfo\(chartState\.data\.length - 1\)/);
 });
 
-test('A-share detail exposes resilient public announcements, financials and linked news', () => {
-  assert.match(html, /data-tab="information"[^>]*>资讯财报</);
+test('A-share detail exposes resilient public F10 profile, announcements, financials and linked news', () => {
+  assert.match(html, /data-tab="information"[^>]*>简况 \/ F10</);
   assert.match(html, /id="stock-information-panel"/);
   assert.match(html, /\/api\/stock-information\?symbol=/);
+  assert.match(html, /function renderStockProfile\(profile\)/);
+  assert.match(html, /公司简况/);
   assert.match(html, /本站不复制新闻正文/);
   assert.match(html, /巨潮资讯/);
   assert.match(html, /function trustedStockInfoUrl\(value\)/);
@@ -434,6 +442,7 @@ test('A-share detail exposes resilient public announcements, financials and link
   assert.match(serverSource, /allowStockInformationRequest\(req, res\)/);
   assert.match(serverSource, /Promise\.allSettled\(\[/);
   assert.match(serverSource, /目前资讯财报仅支持沪深 A 股/);
+  assert.match(serverSource, /loadStockProfile\(symbol, force\)/);
 });
 
 test('Hong Kong and US watchlist symbols generate intraday K lines from minute data', () => {
