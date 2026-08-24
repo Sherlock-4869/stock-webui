@@ -429,6 +429,16 @@ test('chart hover shows selected node details beside the pointer and in the char
   assert.match(hoverSource, /updateChartInfo\(chartState\.data\.length - 1\)/);
 });
 
+test('K line volume pane includes five and ten period volume moving averages', () => {
+  assert.match(html, /fullVolumeMa5: \[\], fullVolumeMa10: \[\]/);
+  assert.match(html, /movingAverage\(chartState\.fullData, 5, 'volume'\)/);
+  assert.match(html, /movingAverage\(chartState\.fullData, 10, 'volume'\)/);
+  assert.match(html, /drawAverageLine\(ctx, chartState\.volumeMa5, xFor, vy, '#f0883e'\)/);
+  assert.match(html, /drawAverageLine\(ctx, chartState\.volumeMa10, xFor, vy, '#56d364'\)/);
+  assert.match(html, /'VOL MA5'/);
+  assert.match(html, /'VOL MA10'/);
+});
+
 test('A-share detail exposes resilient public F10 profile, announcements, financials and linked news', () => {
   assert.match(html, /data-tab="information"[^>]*>简况 \/ F10</);
   assert.match(html, /id="stock-information-panel"/);

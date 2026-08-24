@@ -3067,6 +3067,7 @@ let chartResizeTimer = null;
 const chartState = {
   type: '', data: [], fullData: [], prevClose: 0, date: '',
   ma5: [], ma10: [], ma20: [], fullMa5: [], fullMa10: [], fullMa20: [], period: '',
+  volumeMa5: [], volumeMa10: [], fullVolumeMa5: [], fullVolumeMa10: [],
   viewStart: 0, viewEnd: -1, defaultStart: 0, defaultEnd: -1,
   hoverIndex: null, layout: null,
 };
@@ -3278,11 +3279,11 @@ function parseFundFlowRows(rows) {
   }));
 }
 
-function movingAverage(data, period) {
+function movingAverage(data, period, field = 'close') {
   return data.map((_, i) => {
     if (i < period - 1) return null;
     let total = 0;
-    for (let j = i - period + 1; j <= i; j++) total += data[j].close;
+    for (let j = i - period + 1; j <= i; j++) total += Number(data[j][field]) || 0;
     return total / period;
   });
 }
@@ -3315,6 +3316,8 @@ function setChartViewport(start, end, options = {}) {
   chartState.ma5 = chartState.fullMa5.slice(nextStart, nextEnd + 1);
   chartState.ma10 = chartState.fullMa10.slice(nextStart, nextEnd + 1);
   chartState.ma20 = chartState.fullMa20.slice(nextStart, nextEnd + 1);
+  chartState.volumeMa5 = chartState.fullVolumeMa5.slice(nextStart, nextEnd + 1);
+  chartState.volumeMa10 = chartState.fullVolumeMa10.slice(nextStart, nextEnd + 1);
   chartState.hoverIndex = null;
   hideChartHoverTooltip();
   updateChartWindow();
@@ -3342,6 +3345,8 @@ function drawMinute(canvas, rows, prevClose, date = '') {
   chartState.fullMa5 = [];
   chartState.fullMa10 = [];
   chartState.fullMa20 = [];
+  chartState.fullVolumeMa5 = [];
+  chartState.fullVolumeMa10 = [];
   initializeChartViewport(chartState.fullData.length);
 }
 
@@ -3354,6 +3359,8 @@ function drawKline(canvas, rows, type = 'kline', period = '') {
   chartState.fullMa5 = movingAverage(chartState.fullData, 5);
   chartState.fullMa10 = movingAverage(chartState.fullData, 10);
   chartState.fullMa20 = movingAverage(chartState.fullData, 20);
+  chartState.fullVolumeMa5 = movingAverage(chartState.fullData, 5, 'volume');
+  chartState.fullVolumeMa10 = movingAverage(chartState.fullData, 10, 'volume');
   initializeChartViewport(type === 'kline' ? 30 : chartState.fullData.length);
 }
 
@@ -3366,6 +3373,8 @@ function drawFundFlow(rows, streak = null) {
   chartState.fullMa5 = [];
   chartState.fullMa10 = [];
   chartState.fullMa20 = [];
+  chartState.fullVolumeMa5 = [];
+  chartState.fullVolumeMa10 = [];
   renderFundFlowStats(chartState.fullData, streak);
   initializeChartViewport(30);
 }
@@ -3625,7 +3634,7 @@ function drawKlineChart(ctx, W, H) {
   ctx.fillStyle = '#58a6ff';
   ctx.fillText('MA20', plotLeft + 74, 11);
 
-  const maxVolume = Math.max(...data.map(p => p.volume), 1);
+  const maxVolume = Math.max(...data.map(p => p.volume), ...chartState.volumeMa5.filter(Number.isFinite), ...chartState.volumeMa10.filter(Number.isFinite), 1);
   ctx.fillStyle = chartThemeColor('muted');
   ctx.textAlign = 'right';
   ctx.fillText('成交量', plotLeft - 5, volTop + 10);
@@ -3634,6 +3643,14 @@ function drawKlineChart(ctx, W, H) {
     ctx.fillStyle = point.close >= point.open ? '#f8514966' : '#3fb95066';
     ctx.fillRect(xFor(i) - barW / 2, volTop + volH - height, barW, height);
   });
+  const vy = value => volTop + volH - value / maxVolume * volH;
+  drawAverageLine(ctx, chartState.volumeMa5, xFor, vy, '#f0883e');
+  drawAverageLine(ctx, chartState.volumeMa10, xFor, vy, '#56d364');
+  ctx.textAlign = 'left';
+  ctx.fillStyle = '#f0883e';
+  ctx.fillText('VOL MA5', plotLeft + 4, volTop + 10);
+  ctx.fillStyle = '#56d364';
+  ctx.fillText('VOL MA10', plotLeft + 60, volTop + 10);
   drawGridLine(ctx, plotLeft, volTop, plotRight, volTop);
 
   chartState.layout = { W, H, plotLeft, plotRight, cw, priceTop, priceH, volTop, volH, priceMin, priceMax, xFor, py };
@@ -3984,6 +4001,8 @@ function updateChartInfo(index) {
       chartState.ma5[index] == null ? '' : infoItem('MA5', chartNumber(chartState.ma5[index])),
       chartState.ma10[index] == null ? '' : infoItem('MA10', chartNumber(chartState.ma10[index])),
       chartState.ma20[index] == null ? '' : infoItem('MA20', chartNumber(chartState.ma20[index])),
+      chartState.volumeMa5[index] == null ? '' : infoItem('VOL MA5', `${chartVolume(chartState.volumeMa5[index])}手`),
+      chartState.volumeMa10[index] == null ? '' : infoItem('VOL MA10', `${chartVolume(chartState.volumeMa10[index])}手`),
     ].join('');
   }
 }
@@ -4030,6 +4049,8 @@ function chartTooltipDetail(index) {
       ['涨跌', `${pct > 0 ? '+' : ''}${chartNumber(pct)}%`, tone], ['成交量', `${chartVolume(point.volume)}手`, ''],
       ['MA5', chartNumber(chartState.ma5[index]), ''], ['MA10', chartNumber(chartState.ma10[index]), ''],
       ['MA20', chartNumber(chartState.ma20[index]), ''],
+      ['VOL MA5', `${chartVolume(chartState.volumeMa5[index])}手`, ''],
+      ['VOL MA10', `${chartVolume(chartState.volumeMa10[index])}手`, ''],
     ],
   };
 }
