@@ -48,6 +48,7 @@ const {
   normalizeAnnouncementPayload,
   normalizeBusinessAnalysisPayload,
   normalizeCompanySurvey,
+  normalizeEarningsForecastPayload,
   normalizeFinancialPayload,
   normalizeHolderNumberPayload,
   parseSinaStockNews,
@@ -111,6 +112,7 @@ const DERIVATIVES_QUOTE_CACHE_MS = 5 * 1000;
 const DERIVATIVES_NEWS_CACHE_MS = 2 * 60 * 1000;
 const STOCK_ANNOUNCEMENT_CACHE_MS = 15 * 60 * 1000;
 const STOCK_FINANCIAL_CACHE_MS = 6 * 60 * 60 * 1000;
+const STOCK_EARNINGS_FORECAST_CACHE_MS = 6 * 60 * 60 * 1000;
 const STOCK_NEWS_CACHE_MS = 5 * 60 * 1000;
 const STOCK_PROFILE_CACHE_MS = 6 * 60 * 60 * 1000;
 const STOCK_BUSINESS_ANALYSIS_CACHE_MS = 6 * 60 * 60 * 1000;
@@ -140,6 +142,7 @@ const derivativesNewsCache = new Map();
 const derivativesRateLimitBuckets = new Map();
 const stockAnnouncementCache = new Map();
 const stockFinancialCache = new Map();
+const stockEarningsForecastCache = new Map();
 const stockNewsCache = new Map();
 const stockProfileCache = new Map();
 const stockBusinessAnalysisCache = new Map();
@@ -749,6 +752,26 @@ async function loadStockFinancials(symbol, force = false) {
   }, force);
 }
 
+async function loadStockEarningsForecasts(symbol, force = false) {
+  reserveStockInformationCache(stockEarningsForecastCache, symbol);
+  return loadCachedFundValue(stockEarningsForecastCache, symbol, STOCK_EARNINGS_FORECAST_CACHE_MS, async () => {
+    const query = new URLSearchParams({
+      reportName:'RPT_PUBLIC_OP_NEWPREDICT',
+      columns:'SECURITY_CODE,NOTICE_DATE,REPORT_DATE,PREDICT_FINANCE,PREDICT_AMT_LOWER,PREDICT_AMT_UPPER,PREDICT_TYPE',
+      filter:`(SECURITY_CODE="${symbol.slice(2)}")`, pageNumber:'1', pageSize:'100',
+      sortColumns:'REPORT_DATE,NOTICE_DATE', sortTypes:'-1,-1', source:'WEB', client:'WEB',
+    });
+    const raw = await requestBuffer(`https://datacenter-web.eastmoney.com/api/data/v1/get?${query}`, {
+      ...UPSTREAM_HEADERS, Referer:'https://data.eastmoney.com/bbsj/202603/yjyg.html', Accept:'application/json,text/plain,*/*',
+    }, { timeoutMs:10000, maxBytes:2 * 1024 * 1024 });
+    return {
+      data:normalizeEarningsForecastPayload(JSON.parse(raw.toString('utf-8')), symbol),
+      source:'东方财富公开业绩预告',
+      fetchedAt:Date.now(),
+    };
+  }, force);
+}
+
 async function loadStockNews(symbol, force = false) {
   reserveStockInformationCache(stockNewsCache, symbol);
   return loadCachedFundValue(stockNewsCache, symbol, STOCK_NEWS_CACHE_MS, async () => {
@@ -778,7 +801,7 @@ async function proxyStockInformation(urlObj, res) {
       ['businessAnalysis', '经营分析', loadStockBusinessAnalysis],
       ['holderNumber', '股东户数', loadStockHolderNumber],
     ],
-    financials:[['financials', '财务指标', loadStockFinancials]],
+    financials:[['financials', '财务指标', loadStockFinancials], ['earningsForecasts', '业绩预告', loadStockEarningsForecasts]],
     events:[['announcements', '公告与财报原文', loadStockAnnouncements]],
     news:[['news', '相关新闻', loadStockNews]],
   };
@@ -799,6 +822,7 @@ async function proxyStockInformation(urlObj, res) {
   const holderNumber = values.holderNumber;
   const announcements = values.announcements;
   const financials = values.financials;
+  const earningsForecasts = values.earningsForecasts;
   const news = values.news;
   const announcementRows = announcements?.data || [];
   const fetchedAt = Math.max(...Object.values(values).map(value => value?.fetchedAt || 0));
@@ -810,12 +834,13 @@ async function proxyStockInformation(urlObj, res) {
     announcements:announcementRows,
     reports:announcementRows.filter(item => item.isReport),
     financials:financials?.data || [],
+    earningsForecasts:earningsForecasts?.data || [],
     news:news?.data || [],
     unavailable,
     partial:Boolean(unavailable.length),
     stale:Object.values(values).some(value => value?.stale),
     fetchedAt,
-    sources:{ profile:profile?.source || '', businessAnalysis:businessAnalysis?.source || '', holderNumber:holderNumber?.source || '', announcements:announcements?.source || '', financials:financials?.source || '', news:news?.source || '' },
+    sources:{ profile:profile?.source || '', businessAnalysis:businessAnalysis?.source || '', holderNumber:holderNumber?.source || '', announcements:announcements?.source || '', financials:financials?.source || '', earningsForecasts:earningsForecasts?.source || '', news:news?.source || '' },
   });
 }
 

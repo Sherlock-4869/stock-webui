@@ -2899,12 +2899,23 @@ function renderStockInfoItems(rows, emptyText) {
   return safeRows.map(item => `<a class="stock-info-item" href="${escapeHtml(item.url)}" target="_blank" rel="noopener noreferrer"><div class="stock-info-item-title">${escapeHtml(item.title)}</div><div class="stock-info-item-meta"><span class="stock-info-kind${item.important ? ' important' : ''}">${escapeHtml(item.kind || '资讯')}</span><span>${escapeHtml(String(item.publishedAt || '').slice(0, 16))}</span><span>${escapeHtml(item.source || '')}</span></div></a>`).join('');
 }
 
-function renderStockFinancialTable(rows) {
+function earningsForecastComparison(row, forecast) {
+  if (!forecast || !Number.isFinite(row?.netProfit) || !Number.isFinite(forecast.lowerBound) || !Number.isFinite(forecast.upperBound)) return { label:'暂无可比预告', detail:'' };
+  const rangeText = `${stockInfoMoney(forecast.lowerBound)}至${stockInfoMoney(forecast.upperBound)}`;
+  const detail = `公司业绩预告区间：${rangeText}；实际归母净利润：${stockInfoMoney(row.netProfit)}。`;
+  if (row.netProfit > forecast.upperBound) return { label:'高于预期', tone:'up', detail };
+  if (row.netProfit < forecast.lowerBound) return { label:'低于预期', tone:'down', detail };
+  return { label:'符合预期', detail };
+}
+
+function renderStockFinancialTable(rows, earningsForecasts = []) {
   if (!rows.length) return '<div class="stock-info-empty">暂未取得结构化财务指标</div>';
-  return `<div class="stock-financial-table-wrap"><table class="stock-financial-table"><thead><tr><th>报告期</th><th>营业收入</th><th>同比</th><th>归母净利润</th><th>同比</th><th>ROE</th><th>毛利率</th><th>EPS</th><th>每股经营现金流</th></tr></thead><tbody>${rows.map(row => {
+  const forecastsByDate = new Map((Array.isArray(earningsForecasts) ? earningsForecasts : []).map(item => [item?.reportDate, item]));
+  return `<div class="stock-financial-table-wrap"><table class="stock-financial-table"><thead><tr><th>报告期</th><th>营业收入</th><th>同比</th><th>归母净利润</th><th>同比</th><th>业绩预告对比</th><th>ROE</th><th>毛利率</th><th>EPS</th><th>每股经营现金流</th></tr></thead><tbody>${rows.map(row => {
     const revenueTone = row.revenueGrowth > 0 ? 'up' : row.revenueGrowth < 0 ? 'down' : '';
     const profitTone = row.netProfitGrowth > 0 ? 'up' : row.netProfitGrowth < 0 ? 'down' : '';
-    return `<tr><td>${escapeHtml(row.reportName || row.reportDate)}</td><td>${escapeHtml(stockInfoMoney(row.revenue))}</td><td class="${revenueTone}">${escapeHtml(stockInfoPercent(row.revenueGrowth))}</td><td>${escapeHtml(stockInfoMoney(row.netProfit))}</td><td class="${profitTone}">${escapeHtml(stockInfoPercent(row.netProfitGrowth))}</td><td>${escapeHtml(stockInfoPercent(row.roe, false))}</td><td>${escapeHtml(stockInfoPercent(row.grossMargin, false))}</td><td>${escapeHtml(stockInfoNumber(row.eps))}</td><td>${escapeHtml(stockInfoNumber(row.operatingCashFlowPerShare))}</td></tr>`;
+    const comparison = earningsForecastComparison(row, forecastsByDate.get(row.reportDate));
+    return `<tr><td>${escapeHtml(row.reportName || row.reportDate)}</td><td>${escapeHtml(stockInfoMoney(row.revenue))}</td><td class="${revenueTone}">${escapeHtml(stockInfoPercent(row.revenueGrowth))}</td><td>${escapeHtml(stockInfoMoney(row.netProfit))}</td><td class="${profitTone}">${escapeHtml(stockInfoPercent(row.netProfitGrowth))}</td><td class="${comparison.tone || ''}" title="${escapeHtml(comparison.detail)}">${escapeHtml(comparison.label)}</td><td>${escapeHtml(stockInfoPercent(row.roe, false))}</td><td>${escapeHtml(stockInfoPercent(row.grossMargin, false))}</td><td>${escapeHtml(stockInfoNumber(row.eps))}</td><td>${escapeHtml(stockInfoNumber(row.operatingCashFlowPerShare))}</td></tr>`;
   }).join('')}</tbody></table></div>`;
 }
 
@@ -2995,7 +3006,9 @@ function renderStockInformation(payload) {
   const businessAnalysis = Array.isArray(payload.businessAnalysis) ? payload.businessAnalysis : [];
   const holderNumber = payload.holderNumber && typeof payload.holderNumber === 'object' ? payload.holderNumber : null;
   const financials = Array.isArray(payload.financials) ? payload.financials : [];
+  const earningsForecasts = Array.isArray(payload.earningsForecasts) ? payload.earningsForecasts : [];
   const latest = financials[0];
+  const latestForecastComparison = latest ? earningsForecastComparison(latest, earningsForecasts.find(item => item?.reportDate === latest.reportDate)) : null;
   const quote = lastQuoteData[modalSym] || {};
   const summary = [
     ['最新价', fmt(quote.price), ''],
@@ -3015,6 +3028,7 @@ function renderStockInformation(payload) {
     ['ROE', stockInfoPercent(latest.roe, false), ''],
     ['毛利率', stockInfoPercent(latest.grossMargin, false), ''],
     ['每股收益', stockInfoNumber(latest.eps), ''],
+    ['业绩预告对比', latestForecastComparison?.label || '--', latestForecastComparison?.tone || ''],
     ] : []),
   ].filter(([, value]) => value !== '--');
   const reports = Array.isArray(payload.reports) ? payload.reports.slice(0, 12) : [];
@@ -3023,7 +3037,7 @@ function renderStockInformation(payload) {
   const capitalEvents = announcements.filter(item => /分红|派息|权益分派|回购|增持|减持|并购|重组|再融资|定增|配股|可转债/.test(`${item.kind || ''} ${item.title || ''}`)).slice(0, 12);
   const researchNews = news.filter(item => item.kind === '研报观点').slice(0, 12);
   const body = section === 'financials'
-    ? `${summary.length ? `<div class="stock-info-summary">${summary.map(item => renderStockInfoMetric(...item)).join('')}</div>` : ''}<section class="stock-info-section"><div class="stock-info-section-head"><strong>财务指标趋势</strong><span>最近报告期 · 法定累计口径</span></div>${renderStockFinancialTable(financials)}</section>`
+    ? `${summary.length ? `<div class="stock-info-summary">${summary.map(item => renderStockInfoMetric(...item)).join('')}</div>` : ''}<section class="stock-info-section"><div class="stock-info-section-head"><strong>财务指标趋势</strong><span>业绩预告对比为公司预告区间 vs 实际归母净利润</span></div>${renderStockFinancialTable(financials, earningsForecasts)}</section>`
     : section === 'events'
       ? `<div class="stock-info-columns"><section class="stock-info-section"><div class="stock-info-section-head"><strong>分红、回购与资本运作</strong><span>${capitalEvents.length} 项公开公告</span></div>${renderStockEventItems(capitalEvents, '暂未取得明确的分红、回购或资本运作公告')}</section><section class="stock-info-section"><div class="stock-info-section-head"><strong>财报原文</strong><span>${reports.length} 项</span></div><div class="stock-info-list">${renderStockInfoItems(reports, '暂未取得定期报告原文')}</div></section></div><section class="stock-info-section"><div class="stock-info-section-head"><strong>公司公告</strong><span>${announcements.length} 项</span></div><div class="stock-info-list">${renderStockInfoItems(announcements, '暂未取得公司公告')}</div></section>`
       : section === 'news'

@@ -464,6 +464,8 @@ test('A-share detail exposes resilient, lazily loaded F10 profile, financials, e
   assert.match(html, /function renderStockProfile\(profile\)/);
   assert.match(html, /function renderBusinessAnalysis\(rows\)/);
   assert.match(html, /function renderHolderNumber\(holder\)/);
+  assert.match(html, /function earningsForecastComparison\(row, forecast\)/);
+  assert.match(html, /业绩预告对比/);
   assert.match(html, /holder\.holderChangeRatio\) > 0 \? 'up' : Number\(holder\.holderChangeRatio\) < 0 \? 'down'/);
   assert.match(html, /股本与股东/);
   assert.match(html, /经营分析/);
@@ -478,6 +480,7 @@ test('A-share detail exposes resilient, lazily loaded F10 profile, financials, e
   assert.match(serverSource, /requestedSection = String\(urlObj\.searchParams\.get\('section'\)/);
   assert.match(serverSource, /overview:\[/);
   assert.match(serverSource, /financials:\[\['financials'/);
+  assert.match(serverSource, /\['earningsForecasts', '业绩预告', loadStockEarningsForecasts\]/);
   assert.match(serverSource, /events:\[\['announcements'/);
   assert.match(serverSource, /news:\[\['news'/);
   assert.match(serverSource, /Promise\.allSettled\(requested\.map/);

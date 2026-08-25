@@ -6,6 +6,7 @@ const {
   normalizeAnnouncementPayload,
   normalizeBusinessAnalysisPayload,
   normalizeCompanySurvey,
+  normalizeEarningsForecastPayload,
   normalizeFinancialPayload,
   normalizeHolderNumberPayload,
   parseSinaStockNews,
@@ -82,6 +83,15 @@ test('financial payload normalizes recent reports and removes duplicate report d
   assert.equal(periods[0].revenue, 92278072083.21);
   assert.equal(periods[0].netProfitGrowth, -1.95);
   assert.equal(periods[0].operatingCashFlowPerShare, 56.55);
+});
+
+test('earnings forecast payload keeps comparable parent-net-profit guidance only', () => {
+  const forecasts = normalizeEarningsForecastPayload({ result:{ data:[
+    { SECURITY_CODE:'600519', REPORT_DATE:'2026-12-31 00:00:00', NOTICE_DATE:'2027-01-20', PREDICT_FINANCE:'归属于上市公司股东的净利润', PREDICT_AMT_LOWER:100, PREDICT_AMT_UPPER:120, PREDICT_TYPE:'预增' },
+    { SECURITY_CODE:'600519', REPORT_DATE:'2026-12-31 00:00:00', PREDICT_FINANCE:'扣除非经常性损益后的净利润', PREDICT_AMT_LOWER:90, PREDICT_AMT_UPPER:110 },
+    { SECURITY_CODE:'000001', REPORT_DATE:'2026-12-31 00:00:00', PREDICT_FINANCE:'归属于上市公司股东的净利润', PREDICT_AMT_LOWER:1, PREDICT_AMT_UPPER:2 },
+  ] } }, 'sh600519');
+  assert.deepEqual(forecasts, [{ reportDate:'2026-12-31', noticeDate:'2027-01-20', lowerBound:100, upperBound:120, forecastType:'预增' }]);
 });
 
 test('Sina stock news parser keeps only allowlisted HTTPS links and deduplicates titles', () => {

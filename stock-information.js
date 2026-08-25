@@ -187,6 +187,30 @@ function normalizeFinancialPayload(payload, symbol) {
   return periods;
 }
 
+function normalizeEarningsForecastPayload(payload, symbol) {
+  if (!payload?.result || !Array.isArray(payload.result.data)) throw new Error('Earnings forecast payload is invalid');
+  const code = String(symbol || '').slice(2);
+  const forecasts = [];
+  const seen = new Set();
+  for (const row of payload.result.data) {
+    if (String(row?.SECURITY_CODE || '') !== code || String(row?.PREDICT_FINANCE || '').trim() !== '归属于上市公司股东的净利润') continue;
+    const reportDate = String(row.REPORT_DATE || '').slice(0, 10);
+    const lowerBound = numberOrNull(row.PREDICT_AMT_LOWER);
+    const upperBound = numberOrNull(row.PREDICT_AMT_UPPER);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(reportDate) || seen.has(reportDate) || lowerBound == null || upperBound == null) continue;
+    seen.add(reportDate);
+    forecasts.push({
+      reportDate,
+      noticeDate:String(row.NOTICE_DATE || '').slice(0, 10),
+      lowerBound:Math.min(lowerBound, upperBound),
+      upperBound:Math.max(lowerBound, upperBound),
+      forecastType:cleanSurveyText(row.PREDICT_TYPE),
+    });
+    if (forecasts.length >= 12) break;
+  }
+  return forecasts;
+}
+
 function newsKind(title, url) {
   if (/vReport_Show|研报|评级|券商/.test(`${url} ${title}`)) return '研报观点';
   if (/公告|年报|季报|中报|业绩/.test(title)) return '财报动态';
@@ -221,6 +245,7 @@ module.exports = {
   normalizeAnnouncementPayload,
   normalizeBusinessAnalysisPayload,
   normalizeCompanySurvey,
+  normalizeEarningsForecastPayload,
   normalizeFinancialPayload,
   normalizeHolderNumberPayload,
   parseSinaStockNews,
