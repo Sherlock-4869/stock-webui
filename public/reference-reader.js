@@ -104,9 +104,28 @@
 
   function buildToc(article, toc) {
     const headings = [...article.querySelectorAll('h2,h3')];
-    toc.innerHTML = headings.length
-      ? headings.map(heading => `<a class="level-${heading.tagName.slice(1)}" href="#${heading.id}">${escapeHtml(heading.textContent)}</a>`).join('')
-      : '<span class="reference-empty">文档暂无标题</span>';
+    toc.replaceChildren();
+    if (!headings.length) {
+      const empty = document.createElement('span');
+      empty.className = 'reference-empty';
+      empty.textContent = '文档暂无标题';
+      toc.appendChild(empty);
+      return;
+    }
+    headings.forEach(heading => {
+      const link = document.createElement('a');
+      link.className = `level-${heading.tagName.slice(1)}`;
+      link.href = `#${heading.id}`;
+      link.textContent = heading.textContent;
+      link.addEventListener('click', event => {
+        event.preventDefault();
+        const url = new URL(location.href);
+        url.hash = heading.id;
+        history.replaceState(history.state, '', `${url.pathname}${url.search}${url.hash}`);
+        heading.scrollIntoView({ behavior:'smooth', block:'start', inline:'nearest' });
+      });
+      toc.appendChild(link);
+    });
   }
 
   async function fetchDocumentList(force = false) {

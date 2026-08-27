@@ -283,6 +283,12 @@ test('reference documents expose an administrator-managed multi-document reader'
   assert.doesNotMatch(referenceReaderScript, /selector\.disabled = documents\.length <= 1/);
 });
 
+test('reference document table of contents explicitly scrolls to the selected heading', () => {
+  assert.match(referenceReaderScript, /link\.addEventListener\('click', event =>/);
+  assert.match(referenceReaderScript, /event\.preventDefault\(\)/);
+  assert.match(referenceReaderScript, /heading\.scrollIntoView\(\{ behavior:'smooth', block:'start', inline:'nearest' \}\)/);
+});
+
 test('standalone and in-page reference views share the same renderer', () => {
   assert.match(html, /<script src="\/reference-reader\.js"><\/script>/);
   assert.match(referenceHtml, /<script src="\/reference-reader\.js"><\/script>/);
