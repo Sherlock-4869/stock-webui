@@ -36,6 +36,7 @@ html.has-metrics .app-nav-inner{max-width:calc(1240px + var(--optional-metric-wi
 .module-head{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:18px}.module-title{font-size:22px}.module-desc{margin-top:5px;color:#8b949e;font-size:12px}.module-actions{display:flex;gap:8px;align-items:center}
 .metric-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:18px}.metric-card{padding:15px 16px;border:1px solid #30363d;border-radius:9px;background:linear-gradient(145deg,#1a2028,#161b22)}.metric-label{color:#8b949e;font-size:11px}.metric-value{margin-top:5px;font-size:23px;font-weight:700}.metric-note{margin-top:3px;color:#6e7681;font-size:10px}
 .module-panel{border:1px solid #30363d;border-radius:9px;background:#161b22;overflow:hidden}.panel-toolbar{display:flex;align-items:center;gap:7px;padding:10px 12px;border-bottom:1px solid #30363d}.filter-chip{border:1px solid #30363d;border-radius:15px;background:#21262d;color:#8b949e;padding:5px 11px;font-size:11px;cursor:pointer}.filter-chip.active{color:#79c0ff;border-color:#1f6feb;background:#1f3a5f}.panel-status{margin-left:auto;color:#6e7681;font-size:11px}
+.limit-pool-table-wrap{overflow:auto}.limit-pool-table{width:100%;min-width:880px;border-collapse:collapse;font-size:12px}.limit-pool-table th{padding:10px 12px;background:#1c2128;color:#8b949e;font-size:10px;font-weight:650;text-align:right;white-space:nowrap}.limit-pool-table td{padding:11px 12px;border-top:1px solid #21262d;text-align:right;white-space:nowrap}.limit-pool-table th:nth-child(2),.limit-pool-table td:nth-child(2),.limit-pool-table th:last-child,.limit-pool-table td:last-child{text-align:left}.limit-pool-table tr:hover td{background:#1c2128}.limit-pool-stock{border:0;background:transparent;color:#e6edf3;font:inherit;font-weight:650;cursor:pointer}.limit-pool-stock:hover,.limit-pool-stock:focus-visible{color:#79c0ff;outline:none}.limit-pool-stock small{display:block;margin-top:3px;color:#6e7681;font:10px ui-monospace,SFMono-Regular,monospace}.limit-pool-empty{padding:70px 20px;color:#6e7681;text-align:center}.limit-pool-disclaimer{margin-top:12px;color:#6e7681;font-size:11px;line-height:1.65}
 .ipo-type-tabs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-bottom:12px}.ipo-type-tab{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:12px 14px;border:1px solid #30363d;border-radius:9px;background:#161b22;color:#8b949e;font-size:13px;font-weight:650;cursor:pointer;transition:border-color .15s,background .15s,color .15s}.ipo-type-tab:hover{border-color:#58a6ff;color:#c9d1d9}.ipo-type-tab.active{border-color:#1f6feb;background:#1f3a5f;color:#fff}.ipo-type-count{display:grid;place-items:center;min-width:22px;height:20px;padding:0 6px;border-radius:10px;background:#30363d;color:#8b949e;font:10px ui-monospace,SFMono-Regular,monospace}.ipo-type-tab.active .ipo-type-count{background:#58a6ff;color:#0d1117}
 .ipo-list,.alert-list{padding:4px 14px}.ipo-row{border-top:1px solid #21262d}.ipo-row:first-child{border-top:0}.ipo-row-summary{display:grid;grid-template-columns:92px minmax(150px,1.3fr) repeat(3,minmax(95px,1fr)) 136px;align-items:center;gap:12px;width:100%;border:0;background:transparent;color:inherit;padding:14px 4px;text-align:left;cursor:pointer;transition:background .15s}.ipo-row-summary:hover{background:#161b22}.ipo-row-summary:focus-visible{position:relative;z-index:1;outline:2px solid #58a6ff;outline-offset:-2px}.ipo-row.open .ipo-row-summary{background:#161b22}.ipo-date{font:600 13px ui-monospace,SFMono-Regular,monospace}.ipo-date small{display:block;margin-top:3px;color:#6e7681;font:10px sans-serif}.ipo-name{font-weight:650}.ipo-board{display:inline-flex;margin-left:7px;vertical-align:middle;border-radius:10px;padding:2px 6px;background:#1f3a5f;color:#79c0ff;font-size:10px;font-weight:650;line-height:1.2}.ipo-code{margin-top:3px;color:#8b949e;font:11px ui-monospace,SFMono-Regular,monospace}.ipo-field label{display:block;color:#6e7681;font-size:10px;margin-bottom:3px}.ipo-field span{font-size:12px}.ipo-row-action{display:flex;align-items:center;justify-content:flex-end;gap:8px}.ipo-status{border-radius:12px;padding:4px 9px;background:#21262d;color:#8b949e;font-size:10px;white-space:nowrap}.ipo-status.today{background:#3d2d13;color:#e3b341}.ipo-status.upcoming{background:#1f3a5f;color:#79c0ff}.ipo-status.done{background:#1f2d25;color:#3fb950}.ipo-expand-hint{display:inline-flex;align-items:center;gap:3px;color:#6e7681;font-size:10px;white-space:nowrap}.ipo-expand-hint svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;transition:transform .16s ease}.ipo-row.open .ipo-expand-hint{color:#79c0ff}.ipo-row.open .ipo-expand-hint svg{transform:rotate(180deg)}.ipo-details{margin:0 4px 14px;padding:14px;border:1px solid #30363d;border-radius:9px;background:linear-gradient(145deg,#111820,#0d1117);box-shadow:inset 0 1px #ffffff05}.ipo-details[hidden]{display:none!important}.ipo-detail-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px}.ipo-detail-cell{min-width:0;padding:9px 10px;border:1px solid #30363d;border-radius:7px;background:#161b22}.ipo-detail-cell.wide{grid-column:span 2}.ipo-detail-cell span{display:block;margin-bottom:4px;color:#6e7681;font-size:10px}.ipo-detail-cell strong{display:block;overflow:hidden;color:#c9d1d9;font-size:12px;font-weight:650;line-height:1.45;text-overflow:ellipsis;white-space:nowrap}.ipo-detail-cell.wide strong{display:-webkit-box;overflow:visible;text-overflow:clip;white-space:normal;-webkit-line-clamp:3;-webkit-box-orient:vertical}.ipo-detail-section+.ipo-detail-section{margin-top:13px}.ipo-detail-section h3{margin-bottom:8px;color:#8b949e;font-size:10px;font-weight:750;letter-spacing:.08em;text-transform:uppercase}.ipo-detail-source{margin-top:11px;color:#6e7681;font-size:10px;line-height:1.5}
 .alert-empty,.module-loading{padding:60px 20px;text-align:center;color:#6e7681}.module-loading::before{content:'◌';display:block;font-size:28px;color:#58a6ff;margin-bottom:8px;animation:market-spin 1s linear infinite}.alert-row{display:grid;grid-template-columns:8px minmax(150px,1fr) minmax(150px,2fr) 80px;gap:12px;align-items:center;padding:13px 4px;border-top:1px solid #21262d}.alert-row:first-child{border-top:0}.alert-mark{width:7px;height:32px;border-radius:4px;background:#8b949e}.alert-mark.up{background:#f85149}.alert-mark.down{background:#3fb950}.alert-stock{font-weight:650}.alert-stock small{display:block;margin-top:3px;color:#6e7681;font:10px ui-monospace,SFMono-Regular,monospace}.alert-message{font-size:12px;color:#c9d1d9}.alert-message strong{margin-right:6px}.alert-time{text-align:right;color:#6e7681;font-size:10px}.live-dot{display:inline-block;width:6px;height:6px;margin-right:5px;border-radius:50%;background:#3fb950;box-shadow:0 0 0 3px #3fb95022}
@@ -596,6 +597,7 @@ html[data-theme="light"] .mobile-app-bar{border-color:#dce3ec;background:#ffffff
       <div class="sidebar-section-title">市场行情</div>
       <button class="app-tab active" data-page="market" onclick="switchAppPage('market')" title="自选行情"><svg class="app-tab-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m4 16 5-5 4 3 7-8"/><path d="M4 20h16"/></svg><span class="app-tab-label">自选行情</span></button>
       <button class="app-tab" data-page="boards" onclick="switchAppPage('boards')" title="板块行情"><svg class="app-tab-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 15v2M11 11v6M15 8v9M19 12v5"/></svg><span class="app-tab-label">板块行情</span></button>
+      <button class="app-tab" data-page="limit-pools" onclick="switchAppPage('limit-pools')" title="涨跌停"><svg class="app-tab-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v18M6 9l6-6 6 6M6 15l6 6 6-6"/><path d="M4 12h16"/></svg><span class="app-tab-label">涨跌停</span></button>
       <button class="app-tab" data-page="capital-flow" onclick="switchAppPage('capital-flow')" title="资金流向"><svg class="app-tab-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 18V8m0 0 3 3M4 8 1 11M20 6v10m0 0-3-3m3 3 3-3"/><path d="M9 7h6M9 12h6M9 17h6"/></svg><span class="app-tab-label">资金流向</span></button>
       <button class="app-tab" data-page="derivatives" onclick="switchAppPage('derivatives')" title="期指与夜盘"><svg class="app-tab-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 17 8 9l4 4 4-7 5 4"/><path d="M3 21h18M6 5v3M18 14v4"/></svg><span class="app-tab-label">期指与夜盘</span></button>
       <button class="app-tab" data-page="funds" onclick="switchAppPage('funds')" title="基金行情"><svg class="app-tab-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19V9l5-4 4 3 7-5v16"/><path d="M4 19h16M8 19v-5M13 19v-7M18 19V8"/></svg><span class="app-tab-label">基金行情</span></button>
@@ -759,6 +761,13 @@ html[data-theme="light"] .mobile-app-bar{border-color:#dce3ec;background:#ffffff
     <div class="module-panel board-directory"><div class="panel-toolbar board-directory-toolbar"><div class="board-type-tabs" id="board-type-tabs"><button class="filter-chip active" data-board-type="industry" onclick="setBoardType('industry')">行业</button><button class="filter-chip" data-board-type="concept" onclick="setBoardType('concept')">概念</button><button class="filter-chip" data-board-type="region" onclick="setBoardType('region')">地域</button></div><div class="board-type-tabs" aria-label="板块资金周期"><button class="filter-chip active" data-board-flow-period="today" onclick="setBoardFlowPeriod('today')">今日资金</button><button class="filter-chip" data-board-flow-period="3d" onclick="setBoardFlowPeriod('3d')">3日</button><button class="filter-chip" data-board-flow-period="5d" onclick="setBoardFlowPeriod('5d')">5日</button><button class="filter-chip" data-board-flow-period="10d" onclick="setBoardFlowPeriod('10d')">10日</button></div><input class="board-search" id="board-search" type="search" maxlength="40" autocomplete="off" placeholder="搜索当前板块" oninput="filterBoardList()"><span class="panel-status" id="board-list-status">正在加载板块行情…</span></div><div class="board-list" id="board-list" aria-live="polite"><div class="module-loading">正在同步板块行情</div></div></div>
     <div class="module-panel board-detail" id="board-detail" aria-live="polite"><div class="board-detail-empty"><div><strong>选择一个板块</strong>即可查看全部成分股、涨跌幅前十和主力资金净流入前五。</div></div></div>
   </div>
+</section>
+
+<section class="app-page" id="page-limit-pools">
+  <div class="module-head"><div><div class="market-kicker">Limit-up / Limit-down Radar</div><h2 class="module-title">涨跌停</h2><p class="module-desc">查看沪深 A 股当日涨停、跌停股票池，包含连板、封板时间、封单金额和开板次数。</p></div><div class="module-actions"><button class="refresh-btn" type="button" onclick="loadLimitPools(true)">↻ 刷新涨跌停</button></div></div>
+  <div class="metric-grid"><div class="metric-card"><div class="metric-label">涨停家数</div><div class="metric-value up" id="limit-up-count">--</div><div class="metric-note" id="limit-up-note">等待同步</div></div><div class="metric-card"><div class="metric-label">最高连板</div><div class="metric-value up" id="limit-max-board">--</div><div class="metric-note">按涨停池连板统计</div></div><div class="metric-card"><div class="metric-label">跌停家数</div><div class="metric-value down" id="limit-down-count">--</div><div class="metric-note" id="limit-down-note">等待同步</div></div></div>
+  <section class="module-panel"><div class="panel-toolbar"><button class="filter-chip active" type="button" data-limit-pool-view="up" onclick="setLimitPoolView('up')">涨停池</button><button class="filter-chip" type="button" data-limit-pool-view="down" onclick="setLimitPoolView('down')">跌停池</button><span class="panel-status" id="limit-pool-status">进入页面后加载</span></div><div class="limit-pool-table-wrap" id="limit-pool-content"><div class="module-loading">正在同步涨跌停数据</div></div></section>
+  <div class="limit-pool-disclaimer">数据来自东方财富公开行情接口；非交易日或盘前盘后可能为空，盘中数据会随行情变动。仅供市场观察，不构成投资建议。</div>
 </section>
 
 <section class="app-page" id="page-capital-flow">
@@ -4269,7 +4278,7 @@ window.addEventListener('resize', () => {
 });
 
 // --- App pages / IPO calendar ---
-const APP_PAGES = ['market','boards','capital-flow','derivatives','funds','ipo','alerts','notes','reference','sites','ai','user-ai-models','admin-users','admin-sites','admin-reference','admin-ai'];
+const APP_PAGES = ['market','boards','limit-pools','capital-flow','derivatives','funds','ipo','alerts','notes','reference','sites','ai','user-ai-models','admin-users','admin-sites','admin-reference','admin-ai'];
 const requestedAppPage = new URLSearchParams(location.search).get('page');
 const storedAppPage = localStorage.getItem(APP_PAGE_STORAGE_KEY);
 let activeAppPage = APP_PAGES.includes(requestedAppPage)
@@ -4352,6 +4361,7 @@ function switchAppPage(page, { historyMode = 'push', scroll = true } = {}) {
   if (changed && sidebarUsesOverlay()) closeSidebar();
   if (page === 'ipo' && !ipoRows.length) fetchIpos();
   if (page === 'boards' && !boardRows.length) loadBoards();
+  if (page === 'limit-pools' && !limitPoolsLoaded) loadLimitPools();
   if (page === 'capital-flow') loadCapitalFlow();
   if (page === 'derivatives') loadDerivativesOverview();
   if (page === 'funds' && !fundRows.length) loadFunds();
@@ -4368,6 +4378,102 @@ function switchAppPage(page, { historyMode = 'push', scroll = true } = {}) {
 }
 
 window.addEventListener('popstate', () => switchAppPage(appPageFromLocation(), { historyMode:'none', scroll:false }));
+
+// --- Limit-up / limit-down pools ---
+let limitPoolsLoaded = false;
+let limitPoolView = 'up';
+let limitPoolsPayload = null;
+let limitPoolVisibleRows = [];
+let limitPoolRequestPending = false;
+let limitPoolRequestId = 0;
+
+function limitPoolTime(value) {
+  const number = Number(value);
+  if (!Number.isFinite(number) || number <= 0) return '--';
+  const text = String(Math.trunc(number)).padStart(6, '0');
+  return `${text.slice(0, 2)}:${text.slice(2, 4)}:${text.slice(4, 6)}`;
+}
+
+function limitPoolDate(value) {
+  const text = String(value || '');
+  return /^\d{8}$/.test(text) ? `${text.slice(0, 4)}-${text.slice(4, 6)}-${text.slice(6, 8)}` : '--';
+}
+
+function renderLimitPools() {
+  const content = document.getElementById('limit-pool-content');
+  const status = document.getElementById('limit-pool-status');
+  const up = limitPoolsPayload?.limitUp || {};
+  const down = limitPoolsPayload?.limitDown || {};
+  const upRows = Array.isArray(up.data) ? up.data : [];
+  const maxBoard = upRows.reduce((max, row) => Math.max(max, Number(row.continuousCount) || 0), 0);
+  document.getElementById('limit-up-count').textContent = Number(up.total) || 0;
+  document.getElementById('limit-up-note').textContent = `交易日 ${limitPoolDate(up.date || limitPoolsPayload?.date)}`;
+  document.getElementById('limit-max-board').textContent = maxBoard ? `${maxBoard} 板` : '--';
+  document.getElementById('limit-down-count').textContent = Number(down.total) || 0;
+  document.getElementById('limit-down-note').textContent = `交易日 ${limitPoolDate(down.date || limitPoolsPayload?.date)}`;
+  const active = limitPoolView === 'up' ? up : down;
+  const sideLabel = limitPoolView === 'up' ? '涨停' : '跌停';
+  limitPoolVisibleRows = Array.isArray(active.data) ? active.data : [];
+  const fetchedAt = Number(limitPoolsPayload?.fetchedAt)
+    ? new Date(limitPoolsPayload.fetchedAt).toLocaleTimeString('zh-CN', { hour:'2-digit', minute:'2-digit', second:'2-digit' }) : '刚刚';
+  status.textContent = `${sideLabel}池 ${Number(active.total) || 0} 家 · ${limitPoolsPayload?.stale ? '展示缓存' : `${fetchedAt} 更新`}`;
+  if (!limitPoolVisibleRows.length) {
+    content.innerHTML = `<div class="limit-pool-empty">当前交易日暂无${sideLabel}股票池数据</div>`;
+    return;
+  }
+  const boardHeader = limitPoolView === 'up' ? '连板' : '连续跌停';
+  const timeHeader = limitPoolView === 'up' ? '首次封板' : '最后封板';
+  content.innerHTML = `<table class="limit-pool-table"><thead><tr><th>序号</th><th>股票</th><th>最新价</th><th>涨跌幅</th><th>${boardHeader}</th><th>${timeHeader}</th><th>封单金额</th><th>开板次数</th><th>成交额</th><th>所属行业</th></tr></thead><tbody>${limitPoolVisibleRows.map((row, index) => {
+    const stock = row.symbol
+      ? `<button class="limit-pool-stock" type="button" onclick="openLimitPoolStock(${index})">${escapeHtml(row.name)}<small>${escapeHtml(row.code)}</small></button>`
+      : `<span>${escapeHtml(row.name)}<small>${escapeHtml(row.code)}</small></span>`;
+    const time = limitPoolView === 'up' ? row.firstSealTime : row.lastSealTime;
+    return `<tr><td>${index + 1}</td><td>${stock}</td><td>${boardNumber(row.price)}</td><td class="${cls(row.pct)}">${boardPct(row.pct)}</td><td>${Number(row.continuousCount) || '--'}</td><td>${limitPoolTime(time)}</td><td>${boardMoney(row.sealAmount)}</td><td>${Number(row.openCount) || 0}</td><td>${boardMoney(row.amount)}</td><td>${escapeHtml(row.industry || '--')}</td></tr>`;
+  }).join('')}</tbody></table>`;
+}
+
+function setLimitPoolView(view) {
+  if (!['up', 'down'].includes(view)) return;
+  limitPoolView = view;
+  document.querySelectorAll('[data-limit-pool-view]').forEach(button => button.classList.toggle('active', button.dataset.limitPoolView === view));
+  if (limitPoolsPayload) renderLimitPools();
+}
+
+function openLimitPoolStock(index) {
+  const row = limitPoolVisibleRows[index];
+  if (!row?.symbol) return;
+  lastQuoteData[row.symbol] = {
+    name:row.name, price:row.price, prevClose:'', open:'', chg:null, pct:row.pct, high:'', low:'',
+    volume:null, amount:row.amount,
+  };
+  openModal(row.symbol);
+}
+
+async function loadLimitPools(force = false) {
+  if (limitPoolRequestPending) return;
+  const requestId = ++limitPoolRequestId;
+  limitPoolRequestPending = true;
+  const content = document.getElementById('limit-pool-content');
+  const status = document.getElementById('limit-pool-status');
+  status.textContent = force ? '正在重新同步涨跌停数据…' : '正在同步涨跌停数据…';
+  if (!limitPoolsPayload || force) content.innerHTML = '<div class="module-loading">正在同步涨跌停数据</div>';
+  try {
+    const response = await fetch(`/api/limit-pools${force ? '?refresh=1' : ''}`);
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(payload.error || 'limit pools request failed');
+    if (requestId !== limitPoolRequestId) return;
+    limitPoolsPayload = payload;
+    limitPoolsLoaded = true;
+    renderLimitPools();
+  } catch (error) {
+    if (requestId !== limitPoolRequestId) return;
+    console.error('loadLimitPools error:', error);
+    status.textContent = '涨跌停数据暂时不可用';
+    content.innerHTML = `<div class="limit-pool-empty">${escapeHtml(error.message || '请稍后重试')}<br><button class="refresh-btn" type="button" onclick="loadLimitPools(true)">重新获取</button></div>`;
+  } finally {
+    if (requestId === limitPoolRequestId) limitPoolRequestPending = false;
+  }
+}
 
 const BOARD_TYPE_LABELS = { industry:'行业板块', concept:'概念板块', region:'地域板块' };
 let boardType = 'industry';

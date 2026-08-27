@@ -297,12 +297,25 @@ test('standalone and in-page reference views share the same renderer', () => {
 });
 
 test('all app pages support direct URL navigation and browser history', () => {
-  assert.match(html, /const APP_PAGES = \['market','boards','capital-flow','derivatives','funds','ipo','alerts','notes','reference','sites','ai','user-ai-models','admin-users','admin-sites','admin-reference','admin-ai'\]/);
+  assert.match(html, /const APP_PAGES = \['market','boards','limit-pools','capital-flow','derivatives','funds','ipo','alerts','notes','reference','sites','ai','user-ai-models','admin-users','admin-sites','admin-reference','admin-ai'\]/);
   assert.match(html, /document\.title = '深度学习';/);
   assert.doesNotMatch(html, /APP_PAGE_TITLES/);
   assert.match(html, /history\.pushState\(\{ page \}, '', url\)/);
   assert.match(html, /addEventListener\('popstate'/);
   assert.match(html, /aria-current/);
+});
+
+test('limit-up and limit-down pools are available in market navigation with guarded data loading', () => {
+  assert.match(html, /data-page="limit-pools"[^>]*onclick="switchAppPage\('limit-pools'\)"/);
+  assert.match(html, /id="page-limit-pools"/);
+  assert.match(html, /id="limit-up-count"/);
+  assert.match(html, /id="limit-down-count"/);
+  assert.match(html, /function setLimitPoolView\(view\)/);
+  assert.match(html, /fetch\(`\/api\/limit-pools\$\{force \? '\?refresh=1' : ''\}`\)/);
+  assert.match(serverSource, /pathname === '\/api\/limit-pools'/);
+  assert.match(serverSource, /allowLimitPoolRequest/);
+  assert.match(serverSource, /getTopicZTPool/);
+  assert.match(serverSource, /getTopicDTPool/);
 });
 
 test('board market page exposes sector categories, rankings, and stock drill-down', () => {

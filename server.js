@@ -53,6 +53,7 @@ const {
   normalizeHolderNumberPayload,
   parseSinaStockNews,
 } = require('./stock-information');
+const { normalizeLimitPoolPayload } = require('./limit-pools');
 
 const PORT = 3000;
 const PUBLIC_DIR = path.join(__dirname, 'public');
@@ -108,6 +109,7 @@ const CAPITAL_FLOW_RANKING_CACHE_MS = 12 * 1000;
 const CAPITAL_FLOW_INTRADAY_CACHE_MS = 4500;
 const CAPITAL_FLOW_HISTORY_CACHE_MS = 15 * 60 * 1000;
 const MARKET_OVERVIEW_CACHE_MS = 8 * 1000;
+const LIMIT_POOL_CACHE_MS = 10 * 1000;
 const DERIVATIVES_QUOTE_CACHE_MS = 5 * 1000;
 const DERIVATIVES_NEWS_CACHE_MS = 2 * 60 * 1000;
 const STOCK_ANNOUNCEMENT_CACHE_MS = 15 * 60 * 1000;
@@ -133,10 +135,12 @@ const fundSearchCache = new Map();
 const fundQuoteCache = new Map();
 const fundRateLimitBuckets = new Map();
 const capitalFlowRateLimitBuckets = new Map();
+const limitPoolRateLimitBuckets = new Map();
 const capitalFlowRankingCache = new Map();
 const capitalFlowIntradayCache = new Map();
 const capitalFlowHistoryCache = new Map();
 const marketOverviewCache = new Map();
+const limitPoolCache = new Map();
 const derivativesQuoteCache = new Map();
 const derivativesNewsCache = new Map();
 const derivativesRateLimitBuckets = new Map();
@@ -190,6 +194,7 @@ const FUND_QUOTE_CACHE_MAX = 1000;
 const FUND_RATE_LIMIT_WINDOW_MS = 60 * 1000;
 const FUND_RATE_LIMIT_MAX = 90;
 const CAPITAL_FLOW_RATE_LIMIT_MAX = 120;
+const LIMIT_POOL_RATE_LIMIT_MAX = 60;
 const DERIVATIVES_RATE_LIMIT_MAX = 120;
 const STOCK_INFORMATION_RATE_LIMIT_MAX = 60;
 
@@ -1095,6 +1100,43 @@ async function requestEastmoneyFlowJson(pathname, params, { historical = false }
   throw lastError || new Error('Capital flow upstream is unavailable');
 }
 
+async function fetchLimitPool(side, date) {
+  const definition = side === 'up'
+    ? { pathname:'/getTopicZTPool', sort:'fbt:asc' }
+    : { pathname:'/getTopicDTPool', sort:'fund:asc' };
+  const query = new URLSearchParams({
+    ut:'7eea3edcaed734bea9cbfc24409ed989', dpt:'wz.ztzt', Pageindex:'0', pagesize:'10000',
+    sort:definition.sort, date,
+  });
+  const raw = await boardRequestQueue.run(() => requestBuffer(
+    `https://push2ex.eastmoney.com${definition.pathname}?${query}`,
+    { ...UPSTREAM_HEADERS, Referer:'https://quote.eastmoney.com/' },
+    { timeoutMs:9000, maxBytes:4 * 1024 * 1024 }
+  ));
+  const payload = JSON.parse(raw.toString('utf-8'));
+  if (Number(payload?.rc) !== 0) throw new Error('Invalid limit pool payload');
+  return normalizeLimitPoolPayload(payload, side, date);
+}
+
+async function loadLimitPools(force = false) {
+  const date = shanghaiDateKey().replace(/-/g, '');
+  const payload = await loadCachedFundValue(limitPoolCache, date, LIMIT_POOL_CACHE_MS, async () => {
+    const [limitUp, limitDown] = await Promise.all([fetchLimitPool('up', date), fetchLimitPool('down', date)]);
+    return { date, limitUp, limitDown, fetchedAt:Date.now() };
+  }, force);
+  while (limitPoolCache.size > 8) limitPoolCache.delete(limitPoolCache.keys().next().value);
+  return payload;
+}
+
+async function proxyLimitPools(urlObj, res) {
+  try {
+    sendJson(res, 200, await loadLimitPools(urlObj.searchParams.get('refresh') === '1'));
+  } catch (error) {
+    console.error('Limit pools error:', error.message);
+    sendJson(res, 502, { limitUp:{ data:[], total:0 }, limitDown:{ data:[], total:0 }, error:'涨跌停数据暂时不可用' });
+  }
+}
+
 async function fetchCapitalFlowRankings({ scope, type, market, period, direction, limit }) {
   const definition = FLOW_PERIODS[period];
   const fs = scope === 'board' ? BOARD_TYPES[type]?.fs : STOCK_FLOW_MARKETS[market];
@@ -1650,6 +1692,29 @@ function allowCapitalFlowRequest(req, res) {
   return false;
 }
 
+function allowLimitPoolRequest(req, res) {
+  const now = Date.now();
+  if (limitPoolRateLimitBuckets.size > 1000) {
+    for (const [key, value] of limitPoolRateLimitBuckets) {
+      if (now - value.startedAt >= FUND_RATE_LIMIT_WINDOW_MS) limitPoolRateLimitBuckets.delete(key);
+    }
+  }
+  const address = String(req.socket?.remoteAddress || 'unknown').slice(0, 100);
+  let bucket = limitPoolRateLimitBuckets.get(address);
+  if (!bucket || now - bucket.startedAt >= FUND_RATE_LIMIT_WINDOW_MS) {
+    bucket = { startedAt:now, count:0 };
+    limitPoolRateLimitBuckets.set(address, bucket);
+  }
+  bucket.count += 1;
+  if (bucket.count <= LIMIT_POOL_RATE_LIMIT_MAX) return true;
+  res.writeHead(429, {
+    'Content-Type':'application/json; charset=utf-8', 'Cache-Control':'no-store',
+    'Retry-After':String(Math.max(1, Math.ceil((bucket.startedAt + FUND_RATE_LIMIT_WINDOW_MS - now) / 1000))),
+  });
+  res.end(JSON.stringify({ error:'涨跌停数据请求过于频繁，请稍后再试' }));
+  return false;
+}
+
 function allowDerivativesRequest(req, res) {
   const now = Date.now();
   if (derivativesRateLimitBuckets.size > 1000) {
@@ -2006,6 +2071,12 @@ const server = http.createServer(async (req, res) => {
   if (pathname === '/api/market-overview') {
     if (!allowCapitalFlowRequest(req, res)) return;
     await proxyMainlandMarketOverview(urlObj, res);
+    return;
+  }
+
+  if (pathname === '/api/limit-pools') {
+    if (!allowLimitPoolRequest(req, res)) return;
+    await proxyLimitPools(urlObj, res);
     return;
   }
 
