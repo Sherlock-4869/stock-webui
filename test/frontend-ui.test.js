@@ -305,8 +305,14 @@ test('all app pages support direct URL navigation and browser history', () => {
   assert.match(html, /aria-current/);
 });
 
-test('limit-up and limit-down pools are available in market navigation with guarded data loading', () => {
-  assert.match(html, /data-page="limit-pools"[^>]*onclick="switchAppPage\('limit-pools'\)"/);
+test('market hub groups limit pools with the other market views and guards data loading', () => {
+  assert.match(html, /data-page="boards"[^>]*data-market-hub="true"[^>]*onclick="switchAppPage\('boards'\)"/);
+  assert.match(html, /id="market-hub-navigation"/);
+  assert.match(html, /data-market-hub-page="boards"[^>]*onclick="switchAppPage\('boards'\)"/);
+  assert.match(html, /data-market-hub-page="limit-pools"[^>]*onclick="switchAppPage\('limit-pools'\)"/);
+  assert.match(html, /data-market-hub-page="capital-flow"[^>]*onclick="switchAppPage\('capital-flow'\)"/);
+  assert.match(html, /data-market-hub-page="funds"[^>]*onclick="switchAppPage\('funds'\)"/);
+  assert.match(html, /const MARKET_HUB_PAGES = new Set\(\['boards','limit-pools','capital-flow','funds'\]\)/);
   assert.match(html, /id="page-limit-pools"/);
   assert.match(html, /id="limit-up-count"/);
   assert.match(html, /id="limit-down-count"/);
@@ -366,7 +372,7 @@ test('board market page exposes sector categories, rankings, and stock drill-dow
 });
 
 test('capital flow radar exposes market, board, stock, history and intraday views', () => {
-  assert.match(html, /data-page="capital-flow"[^>]*onclick="switchAppPage\('capital-flow'\)"/);
+  assert.match(html, /data-market-hub-page="capital-flow"[^>]*onclick="switchAppPage\('capital-flow'\)"/);
   assert.match(html, /id="page-capital-flow"/);
   assert.match(html, /id="capital-market-chart"/);
   assert.match(html, /id="capital-board-ranking"/);
@@ -529,7 +535,7 @@ test('Hong Kong and US watchlist symbols generate intraday K lines from minute d
 });
 
 test('fund center exposes rankings, search, curves, holdings and public information drill-down', () => {
-  assert.match(html, /data-page="funds"[^>]*onclick="switchAppPage\('funds'\)"/);
+  assert.match(html, /data-market-hub-page="funds"[^>]*onclick="switchAppPage\('funds'\)"/);
   assert.match(html, /id="page-funds"/);
   assert.match(html, /id="fund-search-input"[^>]*placeholder="搜索基金名称、代码或拼音"/);
   assert.match(html, /data-fund-type="stock"/);
