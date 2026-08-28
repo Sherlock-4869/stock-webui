@@ -4283,7 +4283,7 @@ const MARKET_HUB_PAGES = new Set(['boards','limit-pools','capital-flow','funds']
 const requestedAppPage = new URLSearchParams(location.search).get('page');
 let activeAppPage = APP_PAGES.includes(requestedAppPage)
   ? requestedAppPage
-  : 'boards';
+  : 'market';
 let ipoRows = [];
 let ipoType = 'stock';
 let ipoFilter = 'all';
@@ -4291,13 +4291,13 @@ let ipoRequestPending = false;
 
 function appPageFromLocation() {
   const page = new URLSearchParams(location.search).get('page');
-  return APP_PAGES.includes(page) ? page : 'boards';
+  return APP_PAGES.includes(page) ? page : 'market';
 }
 
 function updateAppPageHistory(page, mode) {
   if (mode === 'none') return;
   const url = new URL(location.href);
-  if (page === 'boards') url.searchParams.delete('page');
+  if (page === 'market') url.searchParams.delete('page');
   else url.searchParams.set('page', page);
   url.hash = '';
   if (mode === 'replace') history.replaceState({ page }, '', url);
@@ -6043,7 +6043,7 @@ function reloadRuntimeConfigFromStorage() {
   themePreference = THEME_PREFERENCES.includes(localStorage.getItem(THEME_STORAGE_KEY))
     ? localStorage.getItem(THEME_STORAGE_KEY)
     : 'dark';
-  activeAppPage = APP_PAGES.includes(requestedAppPage) ? requestedAppPage : 'boards';
+  activeAppPage = APP_PAGES.includes(requestedAppPage) ? requestedAppPage : 'market';
   anomalyEvents = Array.isArray(storedEvents) ? storedEvents : [];
 }
 

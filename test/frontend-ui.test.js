@@ -298,6 +298,9 @@ test('standalone and in-page reference views share the same renderer', () => {
 
 test('all app pages support direct URL navigation and browser history', () => {
   assert.match(html, /const APP_PAGES = \['market','boards','limit-pools','capital-flow','derivatives','funds','ipo','alerts','notes','reference','sites','ai','user-ai-models','admin-users','admin-sites','admin-reference','admin-ai'\]/);
+  assert.match(html, /let activeAppPage = APP_PAGES\.includes\(requestedAppPage\)\s*\? requestedAppPage\s*: 'market';/);
+  assert.match(html, /return APP_PAGES\.includes\(page\) \? page : 'market';/);
+  assert.match(html, /if \(page === 'market'\) url\.searchParams\.delete\('page'\);/);
   assert.match(html, /document\.title = '深度学习';/);
   assert.doesNotMatch(html, /APP_PAGE_TITLES/);
   assert.match(html, /history\.pushState\(\{ page \}, '', url\)/);
