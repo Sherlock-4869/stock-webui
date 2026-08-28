@@ -308,11 +308,13 @@ test('all app pages support direct URL navigation and browser history', () => {
 test('market hub groups limit pools with the other market views and guards data loading', () => {
   assert.match(html, /data-page="boards"[^>]*data-market-hub="true"[^>]*onclick="switchAppPage\('boards'\)"/);
   assert.match(html, /id="market-hub-navigation"/);
+  assert.match(html, /\.market-hub-navigation\[hidden\]\{display:none!important\}/);
   assert.match(html, /data-market-hub-page="boards"[^>]*onclick="switchAppPage\('boards'\)"/);
   assert.match(html, /data-market-hub-page="limit-pools"[^>]*onclick="switchAppPage\('limit-pools'\)"/);
   assert.match(html, /data-market-hub-page="capital-flow"[^>]*onclick="switchAppPage\('capital-flow'\)"/);
   assert.match(html, /data-market-hub-page="funds"[^>]*onclick="switchAppPage\('funds'\)"/);
   assert.match(html, /const MARKET_HUB_PAGES = new Set\(\['boards','limit-pools','capital-flow','funds'\]\)/);
+  assert.match(html, /marketHubNavigation\.hidden = !MARKET_HUB_PAGES\.has\(page\)/);
   assert.match(html, /id="page-limit-pools"/);
   assert.match(html, /id="limit-up-count"/);
   assert.match(html, /id="limit-down-count"/);
