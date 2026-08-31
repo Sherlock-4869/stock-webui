@@ -113,7 +113,7 @@
     if (ok) closeTradeDialog();
   }
   function closeTradeDialog(event) {
-    if (event && event.target !== event.currentTarget) return;
+    if (event && (event.target !== event.currentTarget || event.currentTarget?.dataset.pointerStartedOnMask !== 'true')) return;
     document.getElementById('trade-mask')?.classList.remove('open');
     activeTrade = null;
   }
@@ -139,7 +139,7 @@
     save(); render(); show('预警规则已保存'); closeAlertDialog();
   }
   function closeAlertDialog(event) {
-    if (event && event.target !== event.currentTarget) return;
+    if (event && (event.target !== event.currentTarget || event.currentTarget?.dataset.pointerStartedOnMask !== 'true')) return;
     document.getElementById('alert-mask')?.classList.remove('open');
   }
   function removePosition(index) { state.positions.splice(index, 1); save(); render(); }

@@ -996,7 +996,7 @@ html[data-theme="light"] .mobile-app-bar{border-color:#dce3ec;background:#ffffff
 </section>
 </div>
 
-<div class="modal-mask" id="auth-mask" onclick="closeAuthModal(event)">
+<div class="modal-mask" id="auth-mask" onpointerdown="rememberModalMaskPointer(event)" onclick="closeAuthModal(event)">
   <div class="modal auth-modal" role="dialog" aria-modal="true" aria-labelledby="auth-title">
     <div class="auth-hero">
       <div class="auth-hero-row"><div class="auth-brand"><img src="/favicon.svg" alt=""><div><div class="dialog-title" id="auth-title">登录深度学习</div><div class="modal-sub">同步你的行情分组和页面显示配置</div></div></div><button class="auth-close" type="button" onclick="closeAuthModal()" aria-label="关闭">✕</button></div>
@@ -1035,7 +1035,7 @@ html[data-theme="light"] .mobile-app-bar{border-color:#dce3ec;background:#ffffff
   </div>
 </div>
 
-<div class="modal-mask" id="account-settings-mask" onclick="closeAccountSettings(event)">
+<div class="modal-mask" id="account-settings-mask" onpointerdown="rememberModalMaskPointer(event)" onclick="closeAccountSettings(event)">
   <div class="modal dialog-modal" role="dialog" aria-modal="true" aria-labelledby="account-settings-title">
     <div class="dialog-title" id="account-settings-title">账户设置</div>
     <div class="settings-user" id="settings-user"></div>
@@ -1119,7 +1119,7 @@ html[data-theme="light"] .mobile-app-bar{border-color:#dce3ec;background:#ffffff
     <div class="dialog-actions"><button class="dialog-btn danger" id="watchlist-remove-all-btn" onclick="confirmRemoveFromAllWatchlist()" hidden>从所有分组移除</button><button class="dialog-btn" onclick="closeWatchlistAddDialog()">取消</button><button class="dialog-btn primary" onclick="confirmWatchlistAdd()">保存</button></div>
   </div>
 </div>
-<div class="modal-mask" id="trade-mask" onclick="InvestmentWorkbench.closeTradeDialog(event)">
+<div class="modal-mask" id="trade-mask" onpointerdown="rememberModalMaskPointer(event)" onclick="InvestmentWorkbench.closeTradeDialog(event)">
   <div class="modal dialog-modal trade-dialog" id="trade-dialog" role="dialog" aria-modal="true" aria-labelledby="trade-title">
     <div class="dialog-title" id="trade-title">模拟买入</div>
     <div class="modal-sub" id="trade-stock"></div>
@@ -1131,7 +1131,7 @@ html[data-theme="light"] .mobile-app-bar{border-color:#dce3ec;background:#ffffff
     </form>
   </div>
 </div>
-<div class="modal-mask" id="alert-mask" onclick="InvestmentWorkbench.closeAlertDialog(event)">
+<div class="modal-mask" id="alert-mask" onpointerdown="rememberModalMaskPointer(event)" onclick="InvestmentWorkbench.closeAlertDialog(event)">
   <div class="modal dialog-modal alert-dialog" role="dialog" aria-modal="true" aria-labelledby="alert-title">
     <div class="dialog-title" id="alert-title">设置预警规则</div>
     <div class="modal-sub" id="alert-stock"></div>
@@ -6282,23 +6282,17 @@ function openAuthModal(mode = 'login') {
 }
 
 function closeAuthModal(event) {
-  if (event && event.target !== event.currentTarget) return;
+  if (event && !isModalBackdropClick(event)) return;
   document.getElementById('auth-mask').classList.remove('open');
   setAuthError('login-error'); setAuthError('register-error');
 }
 
-// Only dismiss a modal when a click starts and ends on the empty mask area.
-// This prevents text-selection drags from closing the dialog on mouseup.
-function installModalMaskGuards() {
-  document.querySelectorAll('.modal-mask').forEach(mask => {
-    let startedOnMask = false;
-    mask.addEventListener('pointerdown', event => { startedOnMask = event.target === mask; }, true);
-    mask.addEventListener('click', event => {
-      const dismiss = event.target === mask && startedOnMask;
-      startedOnMask = false;
-      if (!dismiss) event.stopImmediatePropagation();
-    }, true);
-  });
+// Only dismiss when the pointer both starts and ends on the empty mask area.
+function rememberModalMaskPointer(event) {
+  if (event?.currentTarget) event.currentTarget.dataset.pointerStartedOnMask = String(event.target === event.currentTarget);
+}
+function isModalBackdropClick(event) {
+  return event.target === event.currentTarget && event.currentTarget?.dataset.pointerStartedOnMask === 'true';
 }
 
 function switchAuthMode(mode) {
@@ -6483,7 +6477,7 @@ async function removeAccountAvatar() {
 }
 
 function closeAccountSettings(event) {
-  if (event && event.target !== event.currentTarget) return;
+  if (event && !isModalBackdropClick(event)) return;
   document.getElementById('account-settings-mask').classList.remove('open');
   setAuthError('password-error');
   setAuthError('profile-error');
@@ -7763,7 +7757,6 @@ window.addEventListener('message', event => {
 });
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') syncAccountPreferences(); });
 initializeApplication();
-installModalMaskGuards();
 
 // --- Float Window ---
 let floatWindow = null;
