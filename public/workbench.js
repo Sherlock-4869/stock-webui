@@ -17,6 +17,11 @@
   function num(v) { const n = Number(v); return Number.isFinite(n) ? n : 0; }
   function money(v) { return Number.isFinite(v) ? v.toLocaleString('zh-CN', { maximumFractionDigits: 2 }) : '--'; }
   function pct(v) { return Number.isFinite(v) ? `${v >= 0 ? '+' : ''}${v.toFixed(2)}%` : '--'; }
+  function normalizeSymbol(value) {
+    const raw = String(value || '').trim();
+    if (/^\d{6}$/.test(raw)) return /^[56]/.test(raw) ? `sh${raw}` : `sz${raw}`;
+    return raw;
+  }
   function esc(v) { return typeof window.escapeHtml === 'function' ? window.escapeHtml(String(v)) : String(v).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
   function parseQuote(text) {
     const out = {};
@@ -31,21 +36,21 @@
       if (!response.ok) throw new Error('quote unavailable');
       Object.assign(quotes, parseQuote(await response.text()));
       render();
-    } catch (_) { show('行情暂时不可用，保留上次估值'); }
+    } catch (_) { const note = document.getElementById('wb-alert-note'); if (note) note.textContent = '交易已保存 · 实时行情暂不可用，稍后可重试'; }
   }
   function show(message) { if (typeof window.showToast === 'function') window.showToast(message, false); }
   function addPosition(event) {
     event.preventDefault(); const f = new FormData(event.target);
-    const symbol = String(f.get('symbol') || '').trim(); const quantity = num(f.get('quantity')); const cost = num(f.get('cost')); const side = f.get('side') || 'buy';
+    const symbol = normalizeSymbol(f.get('symbol')); const quantity = num(f.get('quantity')); const cost = num(f.get('cost')); const side = f.get('side') || 'buy';
     if (!symbol || quantity <= 0 || cost <= 0) return;
     const old = state.positions.find(p => p.symbol === symbol);
     if (side === 'sell') { if (!old) return show('没有可卖出的持仓'); old.quantity = Math.max(0, old.quantity - quantity); if (!old.quantity) state.positions = state.positions.filter(p => p !== old); }
     else if (old) { const total = old.quantity + quantity; old.cost = (old.cost * old.quantity + cost * quantity) / total; old.quantity = total; if (!old.name) old.name = String(f.get('name') || symbol); }
     else state.positions.push({ symbol, name: String(f.get('name') || symbol), quantity, cost });
-    state.trades.push({ at: Date.now(), symbol, side: side.toUpperCase(), quantity, price: cost }); save(); event.target.reset(); refreshQuotes();
+    state.trades.push({ at: Date.now(), symbol, side: side.toUpperCase(), quantity, price: cost }); save(); event.target.reset(); show('交易已保存'); refreshQuotes();
   }
   function removePosition(index) { state.positions.splice(index, 1); save(); render(); }
-  function addAlert(event) { event.preventDefault(); const f = new FormData(event.target); state.alerts.push({ symbol: String(f.get('symbol') || '').trim(), type: f.get('type'), target: num(f.get('target')), active: true }); save(); event.target.reset(); render(); }
+  function addAlert(event) { event.preventDefault(); const f = new FormData(event.target); state.alerts.push({ symbol: normalizeSymbol(f.get('symbol')), type: f.get('type'), target: num(f.get('target')), active: true }); save(); event.target.reset(); render(); }
   function removeAlert(index) { state.alerts.splice(index, 1); save(); render(); }
   function addEvent(event) { event.preventDefault(); const f = new FormData(event.target); state.events.push({ date: f.get('date'), title: String(f.get('title') || '').trim(), kind: f.get('kind') }); state.events.sort((a, b) => a.date.localeCompare(b.date)); save(); event.target.reset(); render(); }
   function removeEvent(index) { state.events.splice(index, 1); save(); render(); }
