@@ -510,6 +510,7 @@ class AccountService {
       }
 
       if (pathname === '/api/inbox' || pathname === '/api/inbox/read' || pathname === '/api/inbox/alerts') {
+        if (!this.config.enabled || !this.ready) { sendJson(res, 503, { error:'站内消息服务暂不可用' }); return true; }
         const session = await this.requireUser(req);
         if (req.method === 'GET' && pathname === '/api/inbox') {
           const unreadOnly = urlObject.searchParams.get('unread') === '1';
@@ -533,6 +534,7 @@ class AccountService {
       const adminInboxMatch = pathname.match(/^\/api\/admin\/inbox(?:\/(\d+))?$/);
       if (adminInboxMatch) {
         if (req.method !== 'GET') assertSameOrigin(req);
+        if (!this.config.enabled || !this.ready) { sendJson(res, 503, { error:'站内消息服务暂不可用' }); return true; }
         const session = await this.requireAdmin(req); const messageId = adminInboxMatch[1];
         if (!messageId && req.method === 'GET') {
           const rows = typeof this.database.listRecentInboxMessages === 'function' ? await this.database.listRecentInboxMessages(200) : [];
