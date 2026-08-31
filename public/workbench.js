@@ -135,36 +135,55 @@
     const symbol = document.getElementById('alert-symbol')?.value;
     const type = document.getElementById('alert-type')?.value;
     if (!symbol || target <= 0 || !['above', 'below'].includes(type)) { show('请输入有效的目标价格'); return; }
-    state.alerts.push({ symbol: normalizeSymbol(symbol), type, target: normalizePrice(target), active: true });
+    state.alerts.push({ symbol: normalizeSymbol(symbol), name: document.getElementById('alert-name')?.value || '', type, target: normalizePrice(target), active: true });
     save(); render(); show('预警规则已保存'); closeAlertDialog();
   }
   function closeAlertDialog(event) {
     if (event && (event.target !== event.currentTarget || event.currentTarget?.dataset.pointerStartedOnMask !== 'true')) return;
     document.getElementById('alert-mask')?.classList.remove('open');
   }
+  function ruleName(rule) { return String(rule.name || quotes[rule.symbol]?.name || rule.symbol || ''); }
   function removePosition(index) { state.positions.splice(index, 1); save(); render(); }
-  function addAlert(event) { event.preventDefault(); const f = new FormData(event.target); state.alerts.push({ symbol: normalizeSymbol(f.get('symbol')), type: f.get('type'), target: num(f.get('target')), active: true }); save(); event.target.reset(); render(); }
+  function addAlert(event) { event.preventDefault(); const f = new FormData(event.target); const symbol = normalizeSymbol(f.get('symbol')); state.alerts.push({ symbol, name: String(f.get('name') || quotes[symbol]?.name || ''), type: f.get('type'), target: normalizePrice(f.get('target')), active: true }); save(); event.target.reset(); render(); }
   function removeAlert(index) { state.alerts.splice(index, 1); save(); render(); }
   function addEvent(event) { event.preventDefault(); const f = new FormData(event.target); state.events.push({ date: f.get('date'), title: String(f.get('title') || '').trim(), kind: f.get('kind') }); state.events.sort((a, b) => a.date.localeCompare(b.date)); save(); event.target.reset(); render(); }
   function removeEvent(index) { state.events.splice(index, 1); save(); render(); }
   function evaluateAlerts() { return state.alerts.filter(a => { const q = quotes[a.symbol]; return q && ((a.type === 'above' && q.price >= a.target) || (a.type === 'below' && q.price <= a.target)); }); }
+  let draggedPositionSymbol = '';
+  function bindPositionDrag(body) {
+    body.querySelectorAll('tr[data-position-symbol]').forEach(row => {
+      row.addEventListener('dragstart', event => { draggedPositionSymbol = row.dataset.positionSymbol; row.classList.add('workbench-dragging'); event.dataTransfer.effectAllowed = 'move'; });
+      row.addEventListener('dragend', () => { draggedPositionSymbol = ''; row.classList.remove('workbench-dragging'); body.querySelectorAll('.workbench-drag-over').forEach(item => item.classList.remove('workbench-drag-over')); });
+      row.addEventListener('dragover', event => { event.preventDefault(); if (row.dataset.positionSymbol !== draggedPositionSymbol) row.classList.add('workbench-drag-over'); });
+      row.addEventListener('dragleave', () => row.classList.remove('workbench-drag-over'));
+      row.addEventListener('drop', event => { event.preventDefault(); row.classList.remove('workbench-drag-over'); const from = state.positions.findIndex(item => item.symbol === draggedPositionSymbol); const to = state.positions.findIndex(item => item.symbol === row.dataset.positionSymbol); if (from < 0 || to < 0 || from === to) return; const [moved] = state.positions.splice(from, 1); state.positions.splice(to, 0, moved); save(); render(); });
+    });
+  }
   function notifyTriggeredAlerts() {
     if (!window.Inbox?.pushAlert || !window.currentUser) return;
     const today = new Date().toISOString().slice(0, 10);
     state.alerts.forEach(rule => {
       const q = quotes[rule.symbol]; const key = `${today}:${rule.symbol}:${rule.type}:${rule.target}`;
       if (!q || state.alertNotified[key] || !((rule.type === 'above' && q.price >= rule.target) || (rule.type === 'below' && q.price <= rule.target))) return;
-      state.alertNotified[key] = true; save(); window.Inbox.pushAlert({ title:`价格预警 · ${rule.symbol}`, content:`${rule.symbol} 当前价格 ${q.price.toFixed(3)}，已${rule.type === 'above' ? '高于' : '低于'}设定价 ${rule.target.toFixed(3)}。` });
+      state.alertNotified[key] = true; save(); window.Inbox.pushAlert({ title:`价格预警 · ${ruleName(rule)}`, content:`${ruleName(rule)}（${rule.symbol}）当前价格 ${q.price.toFixed(3)}，已${rule.type === 'above' ? '高于' : '低于'}设定价 ${rule.target.toFixed(3)}。` });
     });
   }
   function render() {
+    const grid = document.querySelector('#page-workbench .workbench-grid');
+    if (grid && !document.getElementById('wb-today-profit')) {
+      const card = document.createElement('div'); card.className = 'workbench-card'; card.innerHTML = '<label>今日盈亏</label><b id="wb-today-profit">--</b><small>按昨收与持仓量估算</small>'; grid.appendChild(card);
+    }
+    const positionsBody = document.getElementById('wb-positions');
     const rows = state.positions.map((p, i) => { const q = quotes[p.symbol] || {}; const price = q.price || p.lastPrice || p.cost; const value = price * p.quantity; const profit = (price - p.cost) * p.quantity; return { p, i, price, value, profit, q }; });
     rows.forEach(r => { r.p.lastPrice = r.price; if (r.q.name && r.p.name === r.p.symbol) r.p.name = r.q.name; }); save();
     const cost = rows.reduce((s, r) => s + r.p.cost * r.p.quantity, 0); const value = rows.reduce((s, r) => s + r.value, 0); const profit = value - cost; const maxWeight = value ? Math.max(...rows.map(r => r.value / value), 0) * 100 : 0;
+    const todayRows = rows.filter(r => Number.isFinite(r.q.prev) && r.q.prev > 0);
+    const todayProfit = todayRows.reduce((s, r) => s + (r.price - r.q.prev) * r.p.quantity, 0);
     const set = (id, text, cls) => { const el = document.getElementById(id); if (el) { el.textContent = text; el.className = cls ? `workbench-${cls}` : ''; } };
     set('wb-market-value', value ? money(value) : '--'); set('wb-cost-value', `成本 ${cost ? money(cost) : '--'}`); set('wb-profit', value ? `${profit >= 0 ? '+' : ''}${money(profit)}` : '--', profit >= 0 ? 'positive' : 'negative'); set('wb-profit-rate', `收益率 ${cost ? pct(profit / cost * 100) : '--'}`); set('wb-concentration', value ? `${maxWeight.toFixed(1)}%` : '--'); set('wb-concentration-note', rows.length ? `${rows.length} 个持仓` : '尚无持仓'); set('wb-alert-count', String(evaluateAlerts().length));
-    const body = document.getElementById('wb-positions'); if (body) body.innerHTML = rows.length ? rows.map(r => `<tr><td>${esc(r.p.symbol)}</td><td><strong>${esc(r.p.name)}</strong></td><td>${money(r.p.quantity)}</td><td>${r.p.cost.toFixed(3)}</td><td>${r.price.toFixed(3)}</td><td>${money(r.value)}</td><td class="${r.profit >= 0 ? 'workbench-positive' : 'workbench-negative'}">${r.profit >= 0 ? '+' : ''}${money(r.profit)}</td><td><button type="button" onclick="InvestmentWorkbench.removePosition(${r.i})">删除</button></td></tr>`).join('') : '<tr><td colspan="8" class="workbench-empty">还没有模拟持仓，先记录一笔买入</td></tr>';
-    const alertEl = document.getElementById('wb-alerts'); if (alertEl) alertEl.innerHTML = state.alerts.length ? state.alerts.map((a, i) => { const q = quotes[a.symbol]; const hit = evaluateAlerts().includes(a); return `<div class="workbench-item"><span><strong>${esc(a.symbol)}</strong><small>${a.type === 'above' ? '价格高于' : '价格低于'} ${money(a.target)} · 当前 ${q ? money(q.price) : '--'}</small></span><span class="${hit ? 'workbench-positive' : 'workbench-muted'}">${hit ? '已触发' : '等待'} <button type="button" onclick="InvestmentWorkbench.removeAlert(${i})">✕</button></span></div>`; }).join('') : '<div class="workbench-empty">添加价格条件后，刷新估值会自动检查</div>';
+    set('wb-today-profit', todayRows.length ? `${todayProfit >= 0 ? '+' : ''}${money(todayProfit)}` : '--', todayProfit > 0 ? 'positive' : todayProfit < 0 ? 'negative' : 'muted');
+    const body = positionsBody; if (body) { body.innerHTML = rows.length ? rows.map(r => `<tr draggable="true" data-position-symbol="${esc(r.p.symbol)}"><td><span class="workbench-drag-handle" title="拖动调整顺序">⠿</span>${esc(r.p.symbol)}</td><td><strong>${esc(r.p.name)}</strong></td><td>${money(r.p.quantity)}</td><td>${r.p.cost.toFixed(3)}</td><td>${r.price.toFixed(3)}</td><td>${money(r.value)}</td><td class="${r.profit >= 0 ? 'workbench-positive' : 'workbench-negative'}">${r.profit >= 0 ? '+' : ''}${money(r.profit)}</td><td><button type="button" onclick="InvestmentWorkbench.removePosition(${r.i})">删除</button></td></tr>`).join('') : '<tr><td colspan="8" class="workbench-empty">还没有模拟持仓，先记录一笔买入</td></tr>'; bindPositionDrag(body); }
+    const alertEl = document.getElementById('wb-alerts'); if (alertEl) alertEl.innerHTML = state.alerts.length ? state.alerts.map((a, i) => { const q = quotes[a.symbol]; const hit = evaluateAlerts().includes(a); return `<div class="workbench-item"><span><strong>${esc(ruleName(a))}</strong><small>${esc(a.symbol)} · ${a.type === 'above' ? '价格高于' : '价格低于'} ${money(a.target)} · 当前 ${q ? money(q.price) : '--'}</small></span><span class="${hit ? 'workbench-positive' : 'workbench-muted'}">${hit ? '已触发' : '等待'} <button type="button" onclick="InvestmentWorkbench.removeAlert(${i})">✕</button></span></div>`; }).join('') : '<div class="workbench-empty">添加价格条件后，刷新估值会自动检查</div>';
     const eventEl = document.getElementById('wb-events'); if (eventEl) eventEl.innerHTML = state.events.length ? state.events.map((e, i) => `<div class="workbench-item"><span><strong>${esc(e.title)}</strong><small>${esc(e.kind)} · ${esc(e.date)}</small></span><button type="button" onclick="InvestmentWorkbench.removeEvent(${i})">✕</button></div>`).join('') : '<div class="workbench-empty">暂无事件</div>';
     const select = document.getElementById('wb-replay-symbol'); if (select) { const current = select.value; select.innerHTML = rows.length ? rows.map(r => `<option value="${esc(r.p.symbol)}">${esc(r.p.name)} · ${esc(r.p.symbol)}</option>`).join('') : '<option value="">先添加持仓</option>'; if (rows.some(r => r.p.symbol === current)) select.value = current; }
     replay();

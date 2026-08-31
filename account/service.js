@@ -509,7 +509,8 @@ class AccountService {
         return true;
       }
 
-      if (pathname === '/api/inbox' || pathname === '/api/inbox/read' || pathname === '/api/inbox/alerts') {
+      const userInboxDeleteMatch = pathname.match(/^\/api\/inbox\/(\d+)$/);
+      if (pathname === '/api/inbox' || pathname === '/api/inbox/read' || pathname === '/api/inbox/alerts' || userInboxDeleteMatch) {
         if (!this.config.enabled || !this.ready) { sendJson(res, 503, { error:'站内消息服务暂不可用' }); return true; }
         const session = await this.requireUser(req);
         if (req.method === 'GET' && pathname === '/api/inbox') {
@@ -528,7 +529,13 @@ class AccountService {
           const message = await this.createInboxMessage({ recipientUserId:session.user.id, ...input, type:'alert' });
           sendJson(res, 201, { message:publicInboxMessage(message) }); return true;
         }
-        sendJson(res, 405, { error:'Method Not Allowed' }, { Allow:pathname === '/api/inbox' ? 'GET' : pathname === '/api/inbox/read' ? 'PUT' : 'POST' }); return true;
+        if (req.method === 'DELETE' && userInboxDeleteMatch) {
+          assertSameOrigin(req);
+          const deleted = await this.database.deleteUserAlertMessage(session.user.id, userInboxDeleteMatch[1]);
+          if (!deleted) throw Object.assign(new Error('仅可删除自己的价格预警消息'), { statusCode:404 });
+          sendJson(res, 200, { deleted:true }); return true;
+        }
+        sendJson(res, 405, { error:'Method Not Allowed' }, { Allow:pathname === '/api/inbox' ? 'GET' : pathname === '/api/inbox/read' ? 'PUT' : pathname === '/api/inbox/alerts' ? 'POST' : 'DELETE' }); return true;
       }
 
       const adminInboxMatch = pathname.match(/^\/api\/admin\/inbox(?:\/(\d+))?$/);

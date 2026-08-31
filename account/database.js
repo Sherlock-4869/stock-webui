@@ -708,6 +708,10 @@ class AccountDatabase {
     const [result] = await this.requirePool().execute('DELETE FROM inbox_messages WHERE title=? AND content=? AND created_at=?', [rows[0].title, rows[0].content, rows[0].created_at]);
     return result.affectedRows > 0;
   }
+  async deleteUserAlertMessage(userId, id) {
+    const [result] = await this.requirePool().execute('DELETE FROM inbox_messages WHERE id=? AND recipient_user_id=? AND message_type=?', [id, userId, 'alert']);
+    return result.affectedRows > 0;
+  }
   async listRecentInboxMessages(limit = 200) {
     const safeLimit = Math.max(1, Math.min(500, Number(limit) || 200));
     const [rows] = await this.requirePool().execute(`SELECT id, message_type, title, content, is_read, created_at FROM inbox_messages ORDER BY id DESC LIMIT ${safeLimit}`);
@@ -1491,6 +1495,7 @@ class MemoryAccountDatabase {
     return count;
   }
   async deleteInboxMessage(id) { const row = this.inboxMessages.find(item => item.id === Number(id)); if (!row) return false; this.inboxMessages = this.inboxMessages.filter(item => !(item.title === row.title && item.content === row.content && item.created_at.getTime() === row.created_at.getTime())); return true; }
+  async deleteUserAlertMessage(userId, id) { const index = this.inboxMessages.findIndex(item => item.id === Number(id) && item.recipient_user_id === Number(userId) && item.message_type === 'alert'); if (index < 0) return false; this.inboxMessages.splice(index, 1); return true; }
   async listRecentInboxMessages(limit = 200) { return structuredClone(this.inboxMessages.slice().sort((a, b) => b.id - a.id).slice(0, Math.min(500, Number(limit) || 200))); }
 
   cloneUser(user) { return user ? { ...user } : null; }
