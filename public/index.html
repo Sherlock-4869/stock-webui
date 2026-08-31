@@ -1363,7 +1363,7 @@ try {
 } catch (_) {}
 const systemThemeQuery = window.matchMedia('(prefers-color-scheme: light)');
 let themePreference = THEME_PREFERENCES.includes(localStorage.getItem(THEME_STORAGE_KEY)) ? localStorage.getItem(THEME_STORAGE_KEY) : 'dark';
-var currentUser = null;
+let currentUser = null;
 Object.defineProperty(window, 'currentUser', { configurable:true, get:() => currentUser });
 let accountServiceEnabled = null;
 let wechatLoginEnabled = false;
