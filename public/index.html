@@ -1126,7 +1126,7 @@ html[data-theme="light"] .mobile-app-bar{border-color:#dce3ec;background:#ffffff
     <form id="trade-form" onsubmit="InvestmentWorkbench.submitTrade(event)">
       <input type="hidden" id="trade-symbol"><input type="hidden" id="trade-name"><input type="hidden" id="trade-side">
       <div class="form-row"><label for="trade-quantity">交易数量</label><input class="form-input" id="trade-quantity" type="number" min="0.0001" step="any" required placeholder="请输入买入或卖出数量"></div>
-      <div class="form-row"><label for="trade-price">成交价</label><div class="trade-price-row"><input class="form-input" id="trade-price" type="number" min="0.0001" step="0.001" required placeholder="可手动输入，最多 3 位小数"><button class="dialog-btn trade-fetch-btn" type="button" id="trade-fetch-price" onclick="InvestmentWorkbench.fillRealtimePrice()">获取实时股价</button></div><div class="trade-price-hint" id="trade-price-hint">价格不会自动跟随行情成交，可手动输入模拟成交价。</div></div>
+      <div class="form-row"><label for="trade-price">成交价</label><div class="trade-price-row"><input class="form-input" id="trade-price" type="number" min="0.001" step="0.001" required placeholder="可手动输入，最多 3 位小数"><button class="dialog-btn trade-fetch-btn" type="button" id="trade-fetch-price" onclick="InvestmentWorkbench.fillRealtimePrice()">获取实时股价</button></div><div class="trade-price-hint" id="trade-price-hint">价格不会自动跟随行情成交，可手动输入模拟成交价。</div></div>
       <div class="dialog-actions"><button class="dialog-btn" type="button" onclick="InvestmentWorkbench.closeTradeDialog()">取消</button><button class="dialog-btn primary" id="trade-submit" type="submit">确认买入</button></div>
     </form>
   </div>
@@ -1138,7 +1138,7 @@ html[data-theme="light"] .mobile-app-bar{border-color:#dce3ec;background:#ffffff
     <form id="quick-alert-form" onsubmit="InvestmentWorkbench.submitAlert(event)">
       <input type="hidden" id="alert-symbol"><input type="hidden" id="alert-name">
       <div class="form-row"><label for="alert-type">触发条件</label><select class="form-select" id="alert-type"><option value="above">价格高于</option><option value="below">价格低于</option></select></div>
-      <div class="form-row"><label for="alert-target">目标价格</label><input class="form-input" id="alert-target" type="number" min="0.0001" step="0.001" required placeholder="例如 12.345"></div>
+      <div class="form-row"><label for="alert-target">目标价格</label><input class="form-input" id="alert-target" type="number" min="0.001" step="0.001" required placeholder="例如 12.345"></div>
       <div class="dialog-actions"><button class="dialog-btn" type="button" onclick="InvestmentWorkbench.closeAlertDialog()">取消</button><button class="dialog-btn primary" type="submit">保存预警</button></div>
     </form>
   </div>
