@@ -2,11 +2,16 @@
   'use strict';
   function esc(value) { return typeof window.escapeHtml === 'function' ? window.escapeHtml(String(value ?? '')) : String(value ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c])); }
   function fmt(value) { const date = new Date(value); return Number.isNaN(date.getTime()) ? '--' : date.toLocaleString('zh-CN', { hour12:false }); }
-  function setBadge(count) { const badge = document.getElementById('inbox-badge'); if (badge) badge.textContent = String(Math.max(0, Number(count) || 0)); }
+  function setBadge(count) {
+    const unread = Math.max(0, Number(count) || 0);
+    const badge = document.getElementById('inbox-badge'); if (badge) badge.textContent = String(unread);
+    const floatingBadge = document.getElementById('inbox-float-badge'); if (floatingBadge) floatingBadge.textContent = unread ? (unread > 99 ? '99+' : String(unread)) : '';
+    const floatingStatus = document.getElementById('inbox-float-status'); if (floatingStatus && window.currentUser) floatingStatus.textContent = unread ? `${unread} 条未读消息` : '暂无未读消息';
+  }
   function setStatus(text, error = false) { const el = document.getElementById('inbox-status'); if (el) { el.textContent = text; el.style.color = error ? '#ff7b72' : ''; } }
   async function request(path, options = {}) { const response = await fetch(path, { ...options, headers:{ 'Content-Type':'application/json', ...(options.headers || {}) } }); let payload = {}; try { payload = await response.json(); } catch (_) {} if (!response.ok) throw new Error(payload.error || `请求失败（${response.status}）`); return payload; }
   async function refresh() {
-    if (!window.currentUser) { setStatus('登录后查看消息'); const list = document.getElementById('inbox-list'); if (list) list.innerHTML = '<div class="inbox-empty">请先登录，再查看站内消息</div>'; setBadge(0); return; }
+    if (!window.currentUser) { setStatus('登录后查看消息'); const list = document.getElementById('inbox-list'); if (list) list.innerHTML = '<div class="inbox-empty">请先登录，再查看站内消息</div>'; const status = document.getElementById('inbox-float-status'); if (status) status.textContent = '登录后查看'; setBadge(0); return; }
     try { const payload = await request('/api/inbox?limit=100', { method:'GET', headers:{} }); const messages = Array.isArray(payload.messages) ? payload.messages : []; setBadge(payload.unreadCount); setStatus(`${messages.length} 条消息 · 未读 ${payload.unreadCount || 0}`); const list = document.getElementById('inbox-list'); if (list) list.innerHTML = messages.length ? messages.map(message => `<article class="inbox-message${message.isRead ? '' : ' unread'}" data-id="${esc(message.id)}"><div class="inbox-message-head"><span class="inbox-message-title">${esc(message.title)}</span><span class="inbox-message-meta">${esc(fmt(message.createdAt))}${message.isRead ? '' : ' · 未读'}</span></div><div class="inbox-message-content">${esc(message.content)}</div></article>`).join('') : '<div class="inbox-empty">暂无站内消息</div>'; }
     catch (error) { setStatus(error.message || '消息加载失败', true); }
   }

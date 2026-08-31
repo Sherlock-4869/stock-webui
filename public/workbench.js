@@ -13,6 +13,7 @@
   state.alertNotified = state.alertNotified && typeof state.alertNotified === 'object' ? state.alertNotified : {};
   const quotes = {};
   let replayRows = [];
+  let activeTrade = null;
 
   function save() { localStorage.setItem(KEY, JSON.stringify(state)); }
   function num(v) { const n = Number(v); return Number.isFinite(n) ? n : 0; }
@@ -56,11 +57,90 @@
     recordTrade({ symbol:f.get('symbol'), name:f.get('name'), quantity:f.get('quantity'), cost:f.get('cost'), side:f.get('side') || 'buy' }); event.target.reset();
   }
   function openTrade(symbol, name, side) {
-    const quantity = window.prompt(`${side === 'sell' ? '模拟卖出' : '模拟买入'} ${name || symbol}\n请输入数量`);
-    if (quantity == null) return;
-    const cost = window.prompt('请输入成交价（正数，最多 3 位小数）');
-    if (cost == null) return;
-    recordTrade({ symbol, name, quantity, cost, side });
+    activeTrade = { symbol: normalizeSymbol(symbol), name: String(name || symbol), side: side === 'sell' ? 'sell' : 'buy' };
+    const mask = document.getElementById('trade-mask');
+    const dialog = document.getElementById('trade-dialog');
+    const title = document.getElementById('trade-title');
+    const stock = document.getElementById('trade-stock');
+    const symbolInput = document.getElementById('trade-symbol');
+    const nameInput = document.getElementById('trade-name');
+    const sideInput = document.getElementById('trade-side');
+    const quantity = document.getElementById('trade-quantity');
+    const price = document.getElementById('trade-price');
+    const submit = document.getElementById('trade-submit');
+    const hint = document.getElementById('trade-price-hint');
+    if (!mask || !quantity || !price) return;
+    if (dialog) dialog.classList.toggle('sell', activeTrade.side === 'sell');
+    if (title) title.textContent = activeTrade.side === 'sell' ? '模拟卖出' : '模拟买入';
+    if (stock) stock.textContent = `${activeTrade.name} · ${activeTrade.symbol}`;
+    if (symbolInput) symbolInput.value = activeTrade.symbol;
+    if (nameInput) nameInput.value = activeTrade.name;
+    if (sideInput) sideInput.value = activeTrade.side;
+    quantity.value = '';
+    price.value = '';
+    if (hint) hint.textContent = '价格不会自动跟随行情成交，可手动输入模拟成交价。';
+    if (submit) { submit.textContent = activeTrade.side === 'sell' ? '确认卖出' : '确认买入'; submit.classList.toggle('sell-action', activeTrade.side === 'sell'); submit.classList.toggle('buy-action', activeTrade.side !== 'sell'); }
+    mask.classList.add('open');
+    window.setTimeout(() => quantity.focus(), 30);
+  }
+  async function fillRealtimePrice() {
+    const symbol = document.getElementById('trade-symbol')?.value || activeTrade?.symbol;
+    const input = document.getElementById('trade-price');
+    const hint = document.getElementById('trade-price-hint');
+    const button = document.getElementById('trade-fetch-price');
+    if (!symbol || !input) return;
+    if (button) { button.disabled = true; button.textContent = '获取中…'; }
+    try {
+      let quote = quotes[symbol];
+      if (!quote?.price) {
+        const response = await fetch(`/api/quote?symbols=${encodeURIComponent(symbol)}`);
+        if (!response.ok) throw new Error('quote unavailable');
+        quote = parseQuote(await response.text())[symbol];
+        if (quote) quotes[symbol] = quote;
+      }
+      if (!quote?.price) throw new Error('price unavailable');
+      input.value = quote.price.toFixed(3);
+      if (hint) hint.textContent = `已填入实时价 ${quote.price.toFixed(3)}；确认后按该价格模拟成交。`;
+    } catch (_) {
+      if (hint) hint.textContent = '暂时获取不到实时价，请手动输入成交价。';
+    } finally {
+      if (button) { button.disabled = false; button.textContent = '获取实时股价'; }
+    }
+  }
+  function submitTrade(event) {
+    event.preventDefault();
+    const ok = recordTrade({ symbol: document.getElementById('trade-symbol')?.value, name: document.getElementById('trade-name')?.value, side: document.getElementById('trade-side')?.value, quantity: document.getElementById('trade-quantity')?.value, cost: document.getElementById('trade-price')?.value });
+    if (ok) closeTradeDialog();
+  }
+  function closeTradeDialog(event) {
+    if (event && event.target !== event.currentTarget) return;
+    document.getElementById('trade-mask')?.classList.remove('open');
+    activeTrade = null;
+  }
+  function openAlert(symbol, name) {
+    const normalized = normalizeSymbol(symbol);
+    const mask = document.getElementById('alert-mask');
+    if (!mask || !normalized) return;
+    document.getElementById('alert-symbol').value = normalized;
+    document.getElementById('alert-name').value = String(name || symbol || normalized);
+    document.getElementById('alert-stock').textContent = `${String(name || symbol || normalized)} · ${normalized}`;
+    document.getElementById('alert-target').value = '';
+    document.getElementById('alert-type').value = 'above';
+    mask.classList.add('open');
+    window.setTimeout(() => document.getElementById('alert-target')?.focus(), 30);
+  }
+  function submitAlert(event) {
+    event.preventDefault();
+    const target = num(document.getElementById('alert-target')?.value);
+    const symbol = document.getElementById('alert-symbol')?.value;
+    const type = document.getElementById('alert-type')?.value;
+    if (!symbol || target <= 0 || !['above', 'below'].includes(type)) { show('请输入有效的目标价格'); return; }
+    state.alerts.push({ symbol: normalizeSymbol(symbol), type, target: normalizePrice(target), active: true });
+    save(); render(); show('预警规则已保存'); closeAlertDialog();
+  }
+  function closeAlertDialog(event) {
+    if (event && event.target !== event.currentTarget) return;
+    document.getElementById('alert-mask')?.classList.remove('open');
   }
   function removePosition(index) { state.positions.splice(index, 1); save(); render(); }
   function addAlert(event) { event.preventDefault(); const f = new FormData(event.target); state.alerts.push({ symbol: normalizeSymbol(f.get('symbol')), type: f.get('type'), target: num(f.get('target')), active: true }); save(); event.target.reset(); render(); }
@@ -99,7 +179,7 @@
   function exportData() { const lines = [['symbol', 'name', 'quantity', 'cost', 'lastPrice', 'marketValue'], ...state.positions.map(p => [p.symbol, p.name, p.quantity, p.cost, p.lastPrice || '', (p.lastPrice || p.cost) * p.quantity]), [], ['alerts'], ['symbol', 'type', 'target'], ...state.alerts.map(a => [a.symbol, a.type, a.target]), [], ['events'], ['date', 'kind', 'title'], ...state.events.map(e => [e.date, e.kind, e.title])]; const csv = lines.map(row => row.map(v => `"${String(v ?? '').replace(/"/g, '""')}"`).join(',')).join('\n'); const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `investment-workbench-${new Date().toISOString().slice(0, 10)}.csv`; a.click(); URL.revokeObjectURL(a.href); }
   function openResearch() { const symbol = document.getElementById('wb-replay-symbol')?.value; if (symbol && typeof window.openModal === 'function') window.openModal(symbol); else show('请先添加并选择一个持仓'); }
   function aiSummary() { const p = state.positions.map(x => `${x.name}(${x.symbol}) ${x.quantity}股，成本${x.cost}`).join('；'); const input = document.getElementById('ai-message-input'); if (typeof window.switchAppPage === 'function' && window.hasAiMenuAccess?.()) { window.switchAppPage('ai'); setTimeout(() => { if (input) input.value = `请基于我的模拟持仓生成研究摘要，列出基本面、估值、催化剂和风险：${p || '目前没有持仓'}`; }, 50); } else show('请先开启 AI 问股权限'); }
-  window.InvestmentWorkbench = { render, refreshQuotes, addPosition, recordTrade, openTrade, removePosition, addAlert, removeAlert, addEvent, removeEvent, replay, runBacktest, exportData, aiSummary, openResearch };
+  window.InvestmentWorkbench = { render, refreshQuotes, addPosition, recordTrade, openTrade, submitTrade, fillRealtimePrice, closeTradeDialog, openAlert, submitAlert, closeAlertDialog, removePosition, addAlert, removeAlert, addEvent, removeEvent, replay, runBacktest, exportData, aiSummary, openResearch };
   window.addEventListener('resize', () => { if (document.getElementById('page-workbench')?.classList.contains('active')) draw(replayRows); });
   window.setInterval(() => { if (window.currentUser && state.alerts.length) refreshQuotes(); }, 15000);
   render();

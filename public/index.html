@@ -169,7 +169,8 @@ tr:hover td{background:#1c2128}
 .up{color:#f85149}.down{color:#3fb950}.flat{color:#8b949e}
 .del-btn{background:none;border:none;color:#6e7681;cursor:pointer;font-size:15px;padding:2px 6px;border-radius:4px;transition:color .15s,background .15s}
 .del-btn:hover{color:#f85149;background:#21262d}
-.stock-actions{display:flex;justify-content:center;gap:2px}.transfer-btn{font-size:13px}.trade-btn{border:1px solid #30363d;border-radius:4px;background:#21262d;color:#c9d1d9;padding:3px 6px;font-size:10px;cursor:pointer}.trade-btn.buy{border-color:#23863688;color:#56d364}.trade-btn.sell{border-color:#f8514988;color:#ff7b72}.trade-btn:hover{background:#30363d}
+.stock-actions{display:flex;justify-content:center;gap:2px}.transfer-btn{font-size:13px}.trade-btn{display:none;border:1px solid #30363d;border-radius:4px;background:#21262d;color:#c9d1d9;padding:3px 7px;font-size:10px;cursor:pointer;transition:background .15s,transform .15s}.paper-trading-enabled .trade-btn{display:inline-flex;align-items:center;justify-content:center}.trade-btn.buy{border-color:#23863688;color:#56d364}.trade-btn.sell{border-color:#f8514988;color:#ff7b72}.trade-btn:hover{background:#30363d;transform:translateY(-1px)}.alert-btn{display:inline-flex;align-items:center;justify-content:center;border:1px solid #1f6feb88;border-radius:4px;background:#1f6feb18;color:#79c0ff;padding:3px 7px;font-size:10px;cursor:pointer}.alert-btn:hover{background:#1f6feb2e}.alert-dialog{width:400px;padding:20px}.alert-dialog .dialog-title{display:flex;align-items:center;gap:8px}.alert-dialog .dialog-title::before{content:'⌁';display:grid;place-items:center;width:24px;height:24px;border-radius:7px;background:#1f6feb22;color:#79c0ff;font-size:16px}.alert-dialog .modal-sub{margin-top:6px}.alert-dialog .dialog-actions{margin-top:20px}
+.paper-trading-toggle{position:relative}.paper-trading-toggle.is-active{border-color:#238636;color:#56d364;background:#23863618}.paper-trading-toggle.is-active .market-tool-state{color:#56d364}.trade-dialog{width:400px;padding:20px}.trade-dialog .dialog-title{display:flex;align-items:center;gap:8px}.trade-dialog .dialog-title::before{content:'↗';display:grid;place-items:center;width:24px;height:24px;border-radius:7px;background:#23863622;color:#56d364;font-size:15px}.trade-dialog.sell .dialog-title::before{content:'↘';background:#f8514922;color:#ff7b72}.trade-price-row{display:flex;align-items:stretch;gap:7px}.trade-price-row .form-input{min-width:0;flex:1}.trade-fetch-btn{flex:none;padding:7px 9px;font-size:11px}.trade-price-hint{margin-top:5px;color:#6e7681;font-size:10px;line-height:1.45}.trade-dialog .dialog-actions{margin-top:20px}.trade-dialog .dialog-btn.primary.buy-action{background:#238636;border-color:#238636}.trade-dialog .dialog-btn.primary.sell-action{background:#da3633;border-color:#da3633}
 .pin-btn{font-size:14px}.pin-btn:hover{color:#58a6ff;background:#21262d}.pin-btn:disabled{opacity:.25;cursor:default;background:none;color:#6e7681}
 .form-row{margin-top:14px}.form-row label{display:block;color:#8b949e;font-size:12px;margin-bottom:6px}
 .form-input,.form-select{width:100%;background:#21262d;border:1px solid #30363d;border-radius:6px;color:#e6edf3;padding:8px 10px;font-size:13px;outline:none}
@@ -486,6 +487,7 @@ html[data-theme="light"] .reference-retry{background:#f6f8fa;border-color:#d0d7d
 .chat-badge{position:absolute;top:-2px;right:-2px;min-width:16px;height:16px;border-radius:8px;background:#f85149;color:#fff;font-size:9px;font-weight:700;display:none;align-items:center;justify-content:center;padding:0 4px}
 .chat-badge.visible{display:flex}
 .chat-image-preview{position:fixed;z-index:520;inset:0;display:none;align-items:center;justify-content:center;padding:30px;background:#0d1117ee;backdrop-filter:blur(8px)}.chat-image-preview.open{display:flex}.chat-image-preview img{max-width:min(100%,1100px);max-height:calc(100vh - 60px);border-radius:10px;box-shadow:0 18px 60px #000c}.chat-image-preview-close{position:absolute;top:18px;right:18px;width:36px;height:36px;border:1px solid #30363d;border-radius:50%;background:#161b22;color:#e6edf3;font-size:18px;cursor:pointer}
+@media(max-width:500px){.inbox-float{right:8px;bottom:76px;min-width:0;padding:8px 10px}.inbox-float-copy small{font-size:9px}}
 @media(max-width:500px){.chat-float{left:8px!important;right:8px!important;top:auto!important;bottom:8px!important;width:auto;height:min(76vh,560px);min-width:0;resize:none}.chat-input-area{gap:5px;padding:8px}.chat-tool-btn{width:32px;height:34px}.chat-send-btn{padding:8px 11px}.chat-emoji-panel{grid-template-columns:repeat(8,30px);left:8px;width:298px;max-width:calc(100% - 16px)}}
 /* Application shell: grouped, collapsible sidebar navigation. */
 :root{--sidebar-width:246px;--sidebar-collapsed-width:74px}
@@ -500,6 +502,7 @@ body{padding-left:var(--sidebar-width);transition:padding-left .2s ease}
 body.sidebar-collapsed{padding-left:var(--sidebar-collapsed-width)}body.sidebar-collapsed .app-nav{width:var(--sidebar-collapsed-width)}body.sidebar-collapsed .app-brand{display:none}body.sidebar-collapsed .app-brand span,body.sidebar-collapsed .app-tab-label,body.sidebar-collapsed .sidebar-section-title,body.sidebar-collapsed .sidebar-group-label,body.sidebar-collapsed .sidebar-group-chevron,body.sidebar-collapsed .theme-setting .nav-label,body.sidebar-collapsed .theme-setting select,body.sidebar-collapsed .account-label,body.sidebar-collapsed .account-chevron{display:none}body.sidebar-collapsed .sidebar-header{justify-content:center}body.sidebar-collapsed .sidebar-collapse{width:46px;height:42px}.sidebar-collapsed .sidebar-collapse-icon{transform:rotate(180deg)}body.sidebar-collapsed .sidebar-scroll{align-items:center}body.sidebar-collapsed .sidebar-group{width:100%;margin-top:2px;padding-top:0;border-top:0}body.sidebar-collapsed .sidebar-group-items{display:flex;width:100%;margin:0;padding-left:0;border-left:0}body.sidebar-collapsed .sidebar-group-toggle{justify-content:center;padding:9px}body.sidebar-collapsed .app-tab,body.sidebar-collapsed .sidebar-group-items .app-tab{justify-content:center;padding:10px;font-size:12px}body.sidebar-collapsed .app-tab-badge{position:absolute;top:3px;right:2px;min-width:13px;padding:1px 3px;font-size:8px}body.sidebar-collapsed .site-recommendation-menu{left:calc(100% + 10px)}body.sidebar-collapsed .sidebar-footer{align-items:center}body.sidebar-collapsed .theme-setting{padding:7px}body.sidebar-collapsed .account-area{padding:2px}body.sidebar-collapsed .account-trigger{width:48px;height:48px;padding:0;justify-content:center;border-color:#3a4654;border-radius:12px;background:linear-gradient(145deg,#1c2b3e,#161b22)}body.sidebar-collapsed .account-trigger .account-avatar{width:32px;height:32px;font-size:12px}.app-nav:has(.site-recommendations.open),.app-nav:has(.account-menu.open){overflow:visible}
 @media(min-width:861px){body.sidebar-collapsed .sidebar-scroll{gap:7px;padding-top:15px}body.sidebar-collapsed .sidebar-scroll>.app-tab{width:52px;min-height:42px;border:1px solid transparent;border-radius:10px}body.sidebar-collapsed .sidebar-group{position:relative;width:52px;margin:1px 0 3px;padding:5px 0 0;border-top:1px solid #30363d}body.sidebar-collapsed .sidebar-group-toggle{position:relative;width:52px;min-height:42px;border:1px solid #30363d;border-radius:10px;background:linear-gradient(145deg,#1c2734,#141a21);color:#79c0ff;box-shadow:inset 0 1px #ffffff0a,0 3px 9px #0002}body.sidebar-collapsed .sidebar-group-toggle::after{content:"";position:absolute;right:7px;bottom:7px;width:4px;height:4px;border-radius:50%;background:currentColor;box-shadow:0 0 0 2px #0d1117}body.sidebar-collapsed .sidebar-group-toggle:hover{border-color:#58a6ff;background:linear-gradient(145deg,#22384f,#172331);color:#fff}body.sidebar-collapsed .sidebar-group-items{position:relative;align-items:center;gap:2px;margin:3px 0 0;padding:2px 0 1px}body.sidebar-collapsed .sidebar-group-items::before{content:"";position:absolute;top:3px;bottom:3px;left:50%;width:1px;background:#30363d}body.sidebar-collapsed .sidebar-group-items .app-tab{z-index:1;width:40px;min-height:34px;padding:7px;border:1px solid transparent;border-radius:8px;background:#0d1117;color:#8b949e;box-shadow:0 1px 3px #0002}body.sidebar-collapsed .sidebar-group-items .app-tab:hover{border-color:#3d566e;background:#161f29;color:#c9d1d9}body.sidebar-collapsed .sidebar-group-items .app-tab.active{border-color:#1f6feb;background:#173a63;color:#fff;box-shadow:0 3px 10px #1f6feb33}body.sidebar-collapsed .sidebar-group-items .app-tab-icon{width:16px;height:16px}body.sidebar-collapsed .sidebar-group-items .site-recommendations{z-index:1;width:40px}body.sidebar-collapsed .sidebar-group-items .site-recommendation-trigger{width:40px;min-width:0}html[data-theme="light"] body.sidebar-collapsed .sidebar-group{border-color:#d3deea}html[data-theme="light"] body.sidebar-collapsed .sidebar-group-toggle{border-color:#c6d7e7;background:linear-gradient(145deg,#fff,#eaf2fa);color:#0969da;box-shadow:inset 0 1px #fff,0 3px 9px #1f3b5b12}html[data-theme="light"] body.sidebar-collapsed .sidebar-group-toggle::after{box-shadow:0 0 0 2px #f6f9fc}html[data-theme="light"] body.sidebar-collapsed .sidebar-group-items::before{background:#cbd9e7}html[data-theme="light"] body.sidebar-collapsed .sidebar-group-items .app-tab{border-color:#e2eaf2;background:#fff;color:#64748b;box-shadow:0 1px 3px #1f3b5b0c}html[data-theme="light"] body.sidebar-collapsed .sidebar-group-items .app-tab:hover{border-color:#9dcaef;background:#eef7ff;color:#0969da}html[data-theme="light"] body.sidebar-collapsed .sidebar-group-items .app-tab.active{border-color:#54aeff;background:#e1f1ff;color:#0969da;box-shadow:0 3px 10px #1f6feb20}}
 #sidebar-hover-label{position:fixed;z-index:700;display:none;max-width:220px;padding:7px 10px;border:1px solid #30363d;border-radius:7px;background:#161b22;color:#e6edf3;box-shadow:0 8px 24px #0008;font-size:12px;font-weight:650;pointer-events:none;white-space:nowrap}#sidebar-hover-label.visible{display:block}html[data-theme="light"] #sidebar-hover-label{border-color:#d0d7de;background:#fff;color:#1f2328;box-shadow:0 8px 24px #1f232826}
+.inbox-float{position:fixed;z-index:290;right:20px;bottom:88px;display:flex;align-items:center;gap:8px;min-width:132px;padding:10px 12px;border:1px solid #2f81f7;border-radius:11px;background:#161b22ee;color:#c9d1d9;box-shadow:0 8px 24px #0006;backdrop-filter:blur(12px);font-size:12px;font-weight:600;cursor:pointer}.inbox-float:hover{border-color:#58a6ff;background:#1c2734}.inbox-float-icon{display:grid;place-items:center;width:25px;height:25px;border-radius:7px;background:#1f6feb22;color:#79c0ff;font-size:15px}.inbox-float-copy{display:flex;min-width:0;flex:1;flex-direction:column;gap:2px;text-align:left}.inbox-float-copy small{color:#8b949e;font-size:10px;font-weight:400}.inbox-float-badge{display:grid;place-items:center;min-width:19px;height:19px;padding:0 5px;border-radius:10px;background:#f85149;color:#fff;font-size:10px;font-weight:750}.inbox-float-badge:empty{display:none}html[data-theme="light"] .inbox-float{border-color:#54aeff;background:#ffffffeF;color:#1f2328;box-shadow:0 8px 24px #1f3b5b22}html[data-theme="light"] .inbox-float-icon{background:#ddf4ff;color:#0969da}html[data-theme="light"] .inbox-float-copy small{color:#57606a}
 html[data-theme="light"] .app-nav{background:#fffffff7;border-color:#dce3ec;box-shadow:2px 0 12px #1f3b5b0a}html[data-theme="light"] .sidebar-header,html[data-theme="light"] .sidebar-footer{border-color:#dce3ec}
 @media(max-width:860px){body,body.sidebar-collapsed{padding-left:0}.app-nav,body.sidebar-collapsed .app-nav{width:min(278px,calc(100vw - 54px));transform:translateX(-105%);box-shadow:8px 0 30px #0008}.app-nav-inner{width:100%;margin:0}.sidebar-mobile-toggle{display:grid;position:fixed;z-index:340;top:12px;left:12px;place-items:center;width:38px;height:38px;border:1px solid #30363d;border-radius:9px;background:#161b22ed;color:#c9d1d9;box-shadow:0 5px 18px #0005;cursor:pointer}.sidebar-backdrop{position:fixed;z-index:330;inset:0;background:#0008}.sidebar-open .app-nav{transform:translateX(0)}.sidebar-open .sidebar-backdrop{display:block}.main{padding:62px 12px 16px}.sidebar-collapse{display:grid;width:38px}body.sidebar-collapsed .app-brand{display:inline-flex;flex:1;padding:7px 8px}body.sidebar-collapsed .app-brand span,body.sidebar-collapsed .app-tab-label,body.sidebar-collapsed .sidebar-section-title,body.sidebar-collapsed .sidebar-group-label,body.sidebar-collapsed .sidebar-group-chevron,body.sidebar-collapsed .theme-setting .nav-label,body.sidebar-collapsed .theme-setting select,body.sidebar-collapsed .account-label,body.sidebar-collapsed .account-chevron{display:inline}body.sidebar-collapsed .sidebar-header{justify-content:flex-start}body.sidebar-collapsed .sidebar-scroll{align-items:stretch}body.sidebar-collapsed .sidebar-group-items{padding-left:8px}body.sidebar-collapsed .sidebar-group-toggle{justify-content:flex-start;padding:8px 10px}body.sidebar-collapsed .app-tab{justify-content:flex-start;padding:9px 10px}body.sidebar-collapsed .app-tab-badge{position:static;margin-left:auto}body.sidebar-collapsed .sidebar-footer{align-items:stretch}body.sidebar-collapsed .theme-setting{padding:0 8px}body.sidebar-collapsed .account-trigger{width:100%;height:46px;padding:7px;justify-content:flex-start}body.sidebar-collapsed .sidebar-collapse{width:38px;height:38px}.site-recommendation-menu,body.sidebar-collapsed .site-recommendation-menu{position:fixed;top:60px;bottom:12px;left:12px;width:calc(100vw - 24px);max-width:360px;overflow:auto}.site-recommendations::after{display:none!important}}
 /* Keep the composer visible while long AI replies scroll inside the chat pane. */
@@ -592,6 +595,7 @@ html[data-theme="light"] .mobile-app-bar{border-color:#dce3ec;background:#ffffff
 </header>
 <div class="sidebar-backdrop" id="sidebar-backdrop" onclick="closeSidebar()"></div>
 <div id="sidebar-hover-label" role="tooltip"></div>
+<button class="inbox-float" id="inbox-float" type="button" onclick="openInboxFloat()" aria-label="打开站内消息"><span class="inbox-float-icon" aria-hidden="true">✉</span><span class="inbox-float-copy"><span>站内消息</span><small id="inbox-float-status">登录后查看</small></span><span class="inbox-float-badge" id="inbox-float-badge"></span></button>
 <nav class="app-nav" id="app-navigation" aria-label="功能导航">
   <div class="app-nav-inner">
     <div class="sidebar-header">
@@ -708,6 +712,10 @@ html[data-theme="light"] .mobile-app-bar{border-color:#dce3ec;background:#ffffff
       <button class="refresh-btn market-tool-btn" id="metrics-btn" type="button" onclick="openMetricSettings()" title="配置自选股列表指标">
         <svg class="market-tool-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19V10M10 19V5M16 19v-7M22 19H2"/><path d="M4 7.5 9 3l4 3 7-4"/></svg>
         <span class="market-tool-label">指标</span><span class="market-tool-state" id="metrics-btn-state">自定义</span>
+      </button>
+      <button class="refresh-btn market-tool-btn paper-trading-toggle" id="paper-trading-toggle" type="button" aria-pressed="false" onclick="togglePaperTrading()" title="开启后显示自选行情中的模拟买卖按钮">
+        <svg class="market-tool-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16v13H4z"/><path d="M8 7V5h8v2M8 12h8M8 16h5"/></svg>
+        <span class="market-tool-label">模拟炒股</span><span class="market-tool-state" id="paper-trading-toggle-state">关</span>
       </button>
     </div>
     <button class="refresh-btn mobile-tools-toggle" id="mobile-tools-toggle" type="button" aria-expanded="false" aria-controls="market-secondary-tools" onclick="toggleMobileMarketTools()"><span>更多盯盘工具</span><span aria-hidden="true">⌄</span></button>
@@ -1111,6 +1119,30 @@ html[data-theme="light"] .mobile-app-bar{border-color:#dce3ec;background:#ffffff
     <div class="dialog-actions"><button class="dialog-btn danger" id="watchlist-remove-all-btn" onclick="confirmRemoveFromAllWatchlist()" hidden>从所有分组移除</button><button class="dialog-btn" onclick="closeWatchlistAddDialog()">取消</button><button class="dialog-btn primary" onclick="confirmWatchlistAdd()">保存</button></div>
   </div>
 </div>
+<div class="modal-mask" id="trade-mask" onclick="InvestmentWorkbench.closeTradeDialog(event)">
+  <div class="modal dialog-modal trade-dialog" id="trade-dialog" role="dialog" aria-modal="true" aria-labelledby="trade-title">
+    <div class="dialog-title" id="trade-title">模拟买入</div>
+    <div class="modal-sub" id="trade-stock"></div>
+    <form id="trade-form" onsubmit="InvestmentWorkbench.submitTrade(event)">
+      <input type="hidden" id="trade-symbol"><input type="hidden" id="trade-name"><input type="hidden" id="trade-side">
+      <div class="form-row"><label for="trade-quantity">交易数量</label><input class="form-input" id="trade-quantity" type="number" min="0.0001" step="any" required placeholder="请输入买入或卖出数量"></div>
+      <div class="form-row"><label for="trade-price">成交价</label><div class="trade-price-row"><input class="form-input" id="trade-price" type="number" min="0.0001" step="0.001" required placeholder="可手动输入，最多 3 位小数"><button class="dialog-btn trade-fetch-btn" type="button" id="trade-fetch-price" onclick="InvestmentWorkbench.fillRealtimePrice()">获取实时股价</button></div><div class="trade-price-hint" id="trade-price-hint">价格不会自动跟随行情成交，可手动输入模拟成交价。</div></div>
+      <div class="dialog-actions"><button class="dialog-btn" type="button" onclick="InvestmentWorkbench.closeTradeDialog()">取消</button><button class="dialog-btn primary" id="trade-submit" type="submit">确认买入</button></div>
+    </form>
+  </div>
+</div>
+<div class="modal-mask" id="alert-mask" onclick="InvestmentWorkbench.closeAlertDialog(event)">
+  <div class="modal dialog-modal alert-dialog" role="dialog" aria-modal="true" aria-labelledby="alert-title">
+    <div class="dialog-title" id="alert-title">设置预警规则</div>
+    <div class="modal-sub" id="alert-stock"></div>
+    <form id="quick-alert-form" onsubmit="InvestmentWorkbench.submitAlert(event)">
+      <input type="hidden" id="alert-symbol"><input type="hidden" id="alert-name">
+      <div class="form-row"><label for="alert-type">触发条件</label><select class="form-select" id="alert-type"><option value="above">价格高于</option><option value="below">价格低于</option></select></div>
+      <div class="form-row"><label for="alert-target">目标价格</label><input class="form-input" id="alert-target" type="number" min="0.0001" step="0.001" required placeholder="例如 12.345"></div>
+      <div class="dialog-actions"><button class="dialog-btn" type="button" onclick="InvestmentWorkbench.closeAlertDialog()">取消</button><button class="dialog-btn primary" type="submit">保存预警</button></div>
+    </form>
+  </div>
+</div>
 <div class="modal-mask" id="admin-reference-editor-mask" onclick="closeAdminReferenceEditor(event)">
   <div class="modal admin-reference-editor-modal" role="dialog" aria-modal="true" aria-labelledby="admin-reference-editor-title">
     <div class="dialog-title" id="admin-reference-editor-title">编辑 Markdown 内容</div>
@@ -1198,6 +1230,7 @@ const LEGACY_FUND_WATCHLIST_STORAGE_KEY = 'fund_watchlist_v1';
 const SIDEBAR_COLLAPSED_STORAGE_KEY = 'stock_sidebar_collapsed_v1';
 const ANOMALY_STORAGE_KEY = 'stock_anomaly_events_v1';
 const THEME_STORAGE_KEY = 'stock_theme_v1';
+const PAPER_TRADING_STORAGE_KEY = 'stock_paper_trading_v1';
 const THEME_PREFERENCES = ['light','paper','dark','ocean','forest','violet','system'];
 const LIGHT_THEME_PREFERENCES = new Set(['light','paper']);
 const THEME_META_COLORS = { light:'#f3f6fa', paper:'#f8f2e8', dark:'#0d1117', ocean:'#071b2b', forest:'#10261f', violet:'#20172f' };
@@ -1330,7 +1363,7 @@ try {
 } catch (_) {}
 const systemThemeQuery = window.matchMedia('(prefers-color-scheme: light)');
 let themePreference = THEME_PREFERENCES.includes(localStorage.getItem(THEME_STORAGE_KEY)) ? localStorage.getItem(THEME_STORAGE_KEY) : 'dark';
-let currentUser = null;
+var currentUser = null;
 Object.defineProperty(window, 'currentUser', { configurable:true, get:() => currentUser });
 let accountServiceEnabled = null;
 let wechatLoginEnabled = false;
@@ -1373,6 +1406,22 @@ function applyThemePreference() {
 function setThemePreference(value) {
   if (!THEME_PREFERENCES.includes(value)) return;
   themePreference = value; localStorage.setItem(THEME_STORAGE_KEY, value); applyThemePreference();
+}
+
+let paperTradingEnabled = localStorage.getItem(PAPER_TRADING_STORAGE_KEY) === 'true';
+function applyPaperTradingPreference() {
+  document.body.classList.toggle('paper-trading-enabled', paperTradingEnabled);
+  const button = document.getElementById('paper-trading-toggle');
+  const state = document.getElementById('paper-trading-toggle-state');
+  if (button) { button.classList.toggle('is-active', paperTradingEnabled); button.setAttribute('aria-pressed', String(paperTradingEnabled)); button.title = paperTradingEnabled ? '关闭后隐藏自选行情中的模拟买卖按钮' : '开启后显示自选行情中的模拟买卖按钮'; }
+  if (state) state.textContent = paperTradingEnabled ? '开' : '关';
+}
+function togglePaperTrading() {
+  paperTradingEnabled = !paperTradingEnabled;
+  localStorage.setItem(PAPER_TRADING_STORAGE_KEY, String(paperTradingEnabled));
+  applyPaperTradingPreference();
+  if (lastRawQuoteData && Object.keys(lastRawQuoteData).length) renderTable(lastRawQuoteData);
+  if (typeof showToast === 'function') showToast(paperTradingEnabled ? '已开启模拟炒股，自选行情可进行买卖' : '已关闭模拟炒股');
 }
 
 function toggleMobileMarketTools() {
@@ -2201,6 +2250,17 @@ function renderTable(data) {
       <td>${fmtVol(q.volume)}</td><td>${fmtAmt(q.amount)}</td>${renderOptionalMetricCells(sym, q)}
       <td><div class="stock-actions"><button class="trade-btn buy" title="模拟买入" onclick="event.stopPropagation();InvestmentWorkbench.openTrade('${sym}','${escapeHtml(q.name||sym)}','buy')">买</button><button class="trade-btn sell" title="模拟卖出" onclick="event.stopPropagation();InvestmentWorkbench.openTrade('${sym}','${escapeHtml(q.name||sym)}','sell')">卖</button><button class="del-btn pin-btn" title="置顶" aria-label="将 ${q.name||sym} 置顶" ${i===0?'disabled':''} onclick="event.stopPropagation();pinStock('${sym}')">↑</button><button class="del-btn pin-btn" title="置底" aria-label="将 ${q.name||sym} 置底" ${i===watchlist.length-1?'disabled':''} onclick="event.stopPropagation();bottomStock('${sym}')">↓</button><button class="del-btn transfer-btn" title="复制、移动或从所有分组移除" onclick="event.stopPropagation();openTransferDialog('${sym}')">⇄</button><button class="del-btn" title="从当前分组删除" onclick="event.stopPropagation();removeStock('${sym}')">✕</button></div></td></tr>`;
   }).join('');
+  document.querySelectorAll('#tbody tr.stock-row').forEach(row => {
+    const actions = row.querySelector('.stock-actions');
+    if (!actions || actions.querySelector('.alert-btn')) return;
+    const sym = row.dataset.sym || '';
+    const nameCell = row.querySelector('td:nth-child(2)');
+    const name = nameCell && nameCell.colSpan > 1 ? sym : (nameCell?.querySelector('strong')?.textContent?.trim() || nameCell?.textContent?.replace('延迟', '').trim() || sym);
+    const button = document.createElement('button');
+    button.className = 'alert-btn'; button.type = 'button'; button.title = '设置预警规则'; button.textContent = '预警';
+    button.addEventListener('click', event => { event.stopPropagation(); window.InvestmentWorkbench?.openAlert(sym, name || sym); });
+    actions.insertBefore(button, actions.querySelector('.pin-btn') || null);
+  });
 }
 
 function addStock(sym) {
@@ -4417,6 +4477,15 @@ function switchAppPage(page, { historyMode = 'push', scroll = true } = {}) {
   if (page === 'admin-sites') loadAdminSites();
   if (page === 'admin-reference') loadAdminReferenceDocuments();
   if (page === 'admin-ai') loadAdminAi();
+}
+
+function openInboxFloat() {
+  if (!currentUser) {
+    showToast('请先登录后查看站内消息', true);
+    openAuthModal('login');
+    return;
+  }
+  switchAppPage('inbox');
 }
 
 window.addEventListener('popstate', () => switchAppPage(appPageFromLocation(), { historyMode:'none', scroll:false }));
@@ -7640,10 +7709,12 @@ async function loadUserAiModels(force = false) {
 async function initializeApplication() {
   initializeSidebarNavigation();
   await bootstrapAccount();
+  window.Inbox?.refresh();
   loadSiteRecommendations();
   reloadRuntimeConfigFromStorage();
   applyListColorPreference();
   applyThemePreference();
+  applyPaperTradingPreference();
   applyMetricSettings();
   save();
   renderGroupTabs();
