@@ -6287,6 +6287,20 @@ function closeAuthModal(event) {
   setAuthError('login-error'); setAuthError('register-error');
 }
 
+// Only dismiss a modal when a click starts and ends on the empty mask area.
+// This prevents text-selection drags from closing the dialog on mouseup.
+function installModalMaskGuards() {
+  document.querySelectorAll('.modal-mask').forEach(mask => {
+    let startedOnMask = false;
+    mask.addEventListener('pointerdown', event => { startedOnMask = event.target === mask; }, true);
+    mask.addEventListener('click', event => {
+      const dismiss = event.target === mask && startedOnMask;
+      startedOnMask = false;
+      if (!dismiss) event.stopImmediatePropagation();
+    }, true);
+  });
+}
+
 function switchAuthMode(mode) {
   const register = mode === 'register';
   document.getElementById('login-form').classList.toggle('active', !register);
@@ -7749,6 +7763,7 @@ window.addEventListener('message', event => {
 });
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') syncAccountPreferences(); });
 initializeApplication();
+installModalMaskGuards();
 
 // --- Float Window ---
 let floatWindow = null;
