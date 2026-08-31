@@ -126,6 +126,21 @@ const SCHEMA_STATEMENTS = [
     KEY idx_chat_messages_user (user_id, id),
     CONSTRAINT fk_chat_messages_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
+  `CREATE TABLE IF NOT EXISTS inbox_messages (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    recipient_user_id BIGINT UNSIGNED NOT NULL,
+    message_type VARCHAR(20) CHARACTER SET ascii COLLATE ascii_bin NOT NULL DEFAULT 'system',
+    title VARCHAR(160) NOT NULL,
+    content VARCHAR(2000) NOT NULL,
+    is_read TINYINT(1) NOT NULL DEFAULT 0,
+    created_by_user_id BIGINT UNSIGNED NULL,
+    created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    PRIMARY KEY (id),
+    KEY idx_inbox_recipient_created (recipient_user_id, created_at, id),
+    KEY idx_inbox_recipient_read (recipient_user_id, is_read, id),
+    CONSTRAINT fk_inbox_recipient_user FOREIGN KEY (recipient_user_id) REFERENCES users(id) ON DELETE CASCADE,
+    CONSTRAINT fk_inbox_created_by_user FOREIGN KEY (created_by_user_id) REFERENCES users(id) ON DELETE SET NULL
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
   `CREATE TABLE IF NOT EXISTS user_note_folders (
     id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
     user_id BIGINT UNSIGNED NOT NULL,
@@ -637,6 +652,66 @@ class AccountDatabase {
       }
     }
     return { messages:rows.reverse(), nextCursor:hasMore ? nextCursor : null, hasMore };
+  }
+
+  async listInboxMessages(userId, { unreadOnly = false, limit = 100 } = {}) {
+    const safeLimit = Math.max(1, Math.min(200, Number(limit) || 100));
+    const [rows] = await this.requirePool().execute(
+      `SELECT id, message_type, title, content, is_read, created_by_user_id, created_at
+       FROM inbox_messages WHERE recipient_user_id=? AND (?=0 OR is_read=0)
+       ORDER BY id DESC LIMIT ${safeLimit}`,
+      [userId, unreadOnly ? 1 : 0]
+    );
+    return rows;
+  }
+
+  async createInboxMessage({ recipientUserId, type = 'system', title, content, createdByUserId = null, createdAt = null }) {
+    const fields = createdAt ? 'recipient_user_id, message_type, title, content, created_by_user_id, created_at' : 'recipient_user_id, message_type, title, content, created_by_user_id';
+    const values = createdAt ? [recipientUserId, type, title, content, createdByUserId, createdAt] : [recipientUserId, type, title, content, createdByUserId];
+    const [result] = await this.requirePool().execute(
+      `INSERT INTO inbox_messages (${fields}) VALUES (${values.map(() => '?').join(', ')})`, values
+    );
+    const [rows] = await this.requirePool().execute('SELECT id, recipient_user_id, message_type, title, content, is_read, created_at FROM inbox_messages WHERE id=?', [result.insertId]);
+    return rows[0] || null;
+  }
+
+  async createInboxBroadcast({ type = 'system', title, content, createdByUserId = null }) {
+    const connection = await this.requirePool().getConnection();
+    try {
+      await connection.beginTransaction();
+      const [users] = await connection.execute("SELECT id FROM users WHERE status='active'");
+      const createdAt = new Date();
+      for (const user of users) await connection.execute(
+        `INSERT INTO inbox_messages (recipient_user_id, message_type, title, content, created_by_user_id, created_at) VALUES (?, ?, ?, ?, ?, ?)`,
+        [user.id, type, title, content, createdByUserId, createdAt]
+      );
+      await connection.commit();
+      return users.length;
+    } catch (error) { await connection.rollback(); throw error; }
+    finally { connection.release(); }
+  }
+
+  async markInboxRead(userId, ids = null) {
+    if (Array.isArray(ids) && ids.length) {
+      const safeIds = ids.filter(id => /^\d+$/.test(String(id))).slice(0, 200);
+      if (!safeIds.length) return 0;
+      const [result] = await this.requirePool().execute(`UPDATE inbox_messages SET is_read=1 WHERE recipient_user_id=? AND id IN (${safeIds.map(() => '?').join(',')})`, [userId, ...safeIds]);
+      return result.affectedRows;
+    }
+    const [result] = await this.requirePool().execute('UPDATE inbox_messages SET is_read=1 WHERE recipient_user_id=? AND is_read=0', [userId]);
+    return result.affectedRows;
+  }
+
+  async deleteInboxMessage(id) {
+    const [rows] = await this.requirePool().execute('SELECT title, content, created_at FROM inbox_messages WHERE id=? LIMIT 1', [id]);
+    if (!rows[0]) return false;
+    const [result] = await this.requirePool().execute('DELETE FROM inbox_messages WHERE title=? AND content=? AND created_at=?', [rows[0].title, rows[0].content, rows[0].created_at]);
+    return result.affectedRows > 0;
+  }
+  async listRecentInboxMessages(limit = 200) {
+    const safeLimit = Math.max(1, Math.min(500, Number(limit) || 200));
+    const [rows] = await this.requirePool().execute(`SELECT id, message_type, title, content, is_read, created_at FROM inbox_messages ORDER BY id DESC LIMIT ${safeLimit}`);
+    return rows;
   }
 
   async createPasswordUser({ username, passwordHash, displayName }) {
@@ -1219,6 +1294,7 @@ class MemoryAccountDatabase {
     this.noteFolders = new Map();
     this.fundFlowHistoryCache = new Map();
     this.chatMessages = [];
+    this.inboxMessages = [];
     this.siteRecommendations = [];
     this.referenceDocuments = [];
     this.aiFeatureSetting = { is_public:0, updated_by_user_id:null, updated_at:null };
@@ -1235,6 +1311,7 @@ class MemoryAccountDatabase {
     this.nextSiteRecommendationId = 1;
     this.nextReferenceDocumentId = 1;
     this.nextChatMessageId = 1;
+    this.nextInboxMessageId = 1;
     this.nextAiModelId = 1;
     this.nextUserAiModelId = 1;
     this.nextAiMessageId = 1;
@@ -1393,6 +1470,28 @@ class MemoryAccountDatabase {
     }
     return { messages:structuredClone(rows.reverse()), nextCursor:hasMore ? nextCursor : null, hasMore };
   }
+
+  async listInboxMessages(userId, { unreadOnly = false, limit = 100 } = {}) {
+    const safeLimit = Math.max(1, Math.min(200, Number(limit) || 100));
+    return structuredClone(this.inboxMessages.filter(row => row.recipient_user_id === Number(userId) && (!unreadOnly || !row.is_read)).sort((a, b) => b.id - a.id).slice(0, safeLimit));
+  }
+  async createInboxMessage({ recipientUserId, type = 'system', title, content, createdByUserId = null, createdAt = null }) {
+    const row = { id:this.nextInboxMessageId++, recipient_user_id:Number(recipientUserId), message_type:type, title, content, is_read:0, created_by_user_id:createdByUserId == null ? null : Number(createdByUserId), created_at:createdAt ? new Date(createdAt) : new Date() };
+    this.inboxMessages.push(row); return structuredClone(row);
+  }
+  async createInboxBroadcast({ type = 'system', title, content, createdByUserId = null }) {
+    const users = [...this.users.values()].filter(user => user.status === 'active');
+    const createdAt = new Date();
+    for (const user of users) await this.createInboxMessage({ recipientUserId:user.id, type, title, content, createdByUserId, createdAt });
+    return users.length;
+  }
+  async markInboxRead(userId, ids = null) {
+    const allowed = Array.isArray(ids) && ids.length ? new Set(ids.map(Number)) : null; let count = 0;
+    for (const row of this.inboxMessages) if (row.recipient_user_id === Number(userId) && (!allowed || allowed.has(row.id)) && !row.is_read) { row.is_read = 1; count++; }
+    return count;
+  }
+  async deleteInboxMessage(id) { const row = this.inboxMessages.find(item => item.id === Number(id)); if (!row) return false; this.inboxMessages = this.inboxMessages.filter(item => !(item.title === row.title && item.content === row.content && item.created_at.getTime() === row.created_at.getTime())); return true; }
+  async listRecentInboxMessages(limit = 200) { return structuredClone(this.inboxMessages.slice().sort((a, b) => b.id - a.id).slice(0, Math.min(500, Number(limit) || 200))); }
 
   cloneUser(user) { return user ? { ...user } : null; }
 

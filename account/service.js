@@ -31,6 +31,16 @@ const MAX_NOTES_PER_USER = 200;
 const MAX_NOTE_FOLDERS_PER_USER = 50;
 const MAX_REFERENCE_DOCUMENT_BYTES = 4 * 1024 * 1024;
 const MAX_REFERENCE_DOCUMENTS = 200;
+const MAX_INBOX_TITLE = 160;
+const MAX_INBOX_CONTENT = 2000;
+
+function validateInboxMessage(body) {
+  const title = String(body?.title || '').trim();
+  const content = String(body?.content || '').trim();
+  if (!title || title.length > MAX_INBOX_TITLE) throw Object.assign(new Error(`消息标题不能为空且不能超过 ${MAX_INBOX_TITLE} 个字符`), { statusCode:400 });
+  if (!content || content.length > MAX_INBOX_CONTENT) throw Object.assign(new Error(`消息内容不能为空且不能超过 ${MAX_INBOX_CONTENT} 个字符`), { statusCode:400 });
+  return { title, content, type:String(body?.type || 'system').slice(0, 20) || 'system' };
+}
 
 function validateNoteFolderName(value) {
   const name = String(value || '').trim();
@@ -205,6 +215,10 @@ function adminSiteRecommendation(site) {
     createdAt:site.created_at || null,
     updatedAt:site.updated_at || null,
   };
+}
+
+function publicInboxMessage(row) {
+  return { id:String(row.id), type:String(row.message_type || 'system'), title:String(row.title || ''), content:String(row.content || ''), isRead:Number(row.is_read) === 1, createdAt:row.created_at || null };
 }
 
 function publicReferenceDocument(document, { includeContent = false, includeAdminFields = false } = {}) {
@@ -414,6 +428,16 @@ class AccountService {
     return this.database.listChatMessages(options);
   }
 
+  async listInboxMessages(userId, options) {
+    if (!this.ready || typeof this.database.listInboxMessages !== 'function') throw Object.assign(new Error('站内消息服务暂不可用'), { statusCode:503 });
+    return this.database.listInboxMessages(userId, options);
+  }
+
+  async createInboxMessage(input) {
+    if (!this.ready || typeof this.database.createInboxMessage !== 'function') throw Object.assign(new Error('站内消息服务暂不可用'), { statusCode:503 });
+    return this.database.createInboxMessage(input);
+  }
+
   async authPayload(user) {
     const config = await this.database.getPreferences(user.id);
     return {
@@ -447,7 +471,7 @@ class AccountService {
     // AI administration has its own service, but keeps this account service as
     // the authentication and persistence authority.
     if (pathname.startsWith('/api/admin/ai/')) return false;
-    if (!pathname.startsWith('/api/auth/') && !pathname.startsWith('/api/notes') && !pathname.startsWith('/api/note-folders') && !pathname.startsWith('/api/admin/') && pathname !== '/api/site-recommendations') return false;
+    if (!pathname.startsWith('/api/auth/') && !pathname.startsWith('/api/notes') && !pathname.startsWith('/api/note-folders') && !pathname.startsWith('/api/admin/') && !pathname.startsWith('/api/inbox') && pathname !== '/api/site-recommendations') return false;
 
     try {
       if (pathname === '/api/site-recommendations') {
@@ -483,6 +507,47 @@ class AccountService {
           ? await this.authPayload(session.user)
           : { enabled: true, wechatEnabled: this.config.wechat.enabled, user: null, config: null, needsConfigDecision: false });
         return true;
+      }
+
+      if (pathname === '/api/inbox' || pathname === '/api/inbox/read' || pathname === '/api/inbox/alerts') {
+        const session = await this.requireUser(req);
+        if (req.method === 'GET' && pathname === '/api/inbox') {
+          const unreadOnly = urlObject.searchParams.get('unread') === '1';
+          const messages = (await this.listInboxMessages(session.user.id, { unreadOnly, limit:urlObject.searchParams.get('limit') })).map(publicInboxMessage);
+          sendJson(res, 200, { messages, unreadCount:unreadOnly ? messages.length : (await this.listInboxMessages(session.user.id, { unreadOnly:true, limit:200 })).length });
+          return true;
+        }
+        if (req.method === 'PUT' && pathname === '/api/inbox/read') {
+          assertSameOrigin(req); const body = await readJson(req, 16 * 1024);
+          const count = await this.database.markInboxRead(session.user.id, Array.isArray(body.ids) ? body.ids : null);
+          sendJson(res, 200, { marked:count }); return true;
+        }
+        if (req.method === 'POST' && pathname === '/api/inbox/alerts') {
+          assertSameOrigin(req); const input = validateInboxMessage(await readJson(req, 16 * 1024));
+          const message = await this.createInboxMessage({ recipientUserId:session.user.id, ...input, type:'alert' });
+          sendJson(res, 201, { message:publicInboxMessage(message) }); return true;
+        }
+        sendJson(res, 405, { error:'Method Not Allowed' }, { Allow:pathname === '/api/inbox' ? 'GET' : pathname === '/api/inbox/read' ? 'PUT' : 'POST' }); return true;
+      }
+
+      const adminInboxMatch = pathname.match(/^\/api\/admin\/inbox(?:\/(\d+))?$/);
+      if (adminInboxMatch) {
+        if (req.method !== 'GET') assertSameOrigin(req);
+        const session = await this.requireAdmin(req); const messageId = adminInboxMatch[1];
+        if (!messageId && req.method === 'GET') {
+          const rows = typeof this.database.listRecentInboxMessages === 'function' ? await this.database.listRecentInboxMessages(200) : [];
+          sendJson(res, 200, { messages:rows.map(publicInboxMessage) }); return true;
+        }
+        if (!messageId && req.method === 'POST') {
+          const input = validateInboxMessage(await readJson(req, 32 * 1024));
+          const count = await this.database.createInboxBroadcast({ ...input, createdByUserId:session.user.id });
+          sendJson(res, 201, { sent:count }); return true;
+        }
+        if (messageId && req.method === 'DELETE') {
+          const deleted = await this.database.deleteInboxMessage(messageId); if (!deleted) throw Object.assign(new Error('消息不存在'), { statusCode:404 });
+          sendJson(res, 200, { deleted:true }); return true;
+        }
+        sendJson(res, 405, { error:'Method Not Allowed' }, { Allow:messageId ? 'DELETE' : 'GET, POST' }); return true;
       }
 
       if (!this.config.enabled || !this.ready) {

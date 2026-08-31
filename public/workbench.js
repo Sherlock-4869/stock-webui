@@ -10,6 +10,7 @@
     { date: new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10), title: '记录下周观察重点', kind: '研究' },
   ];
   state.trades = Array.isArray(state.trades) ? state.trades : [];
+  state.alertNotified = state.alertNotified && typeof state.alertNotified === 'object' ? state.alertNotified : {};
   const quotes = {};
   let replayRows = [];
 
@@ -67,6 +68,15 @@
   function addEvent(event) { event.preventDefault(); const f = new FormData(event.target); state.events.push({ date: f.get('date'), title: String(f.get('title') || '').trim(), kind: f.get('kind') }); state.events.sort((a, b) => a.date.localeCompare(b.date)); save(); event.target.reset(); render(); }
   function removeEvent(index) { state.events.splice(index, 1); save(); render(); }
   function evaluateAlerts() { return state.alerts.filter(a => { const q = quotes[a.symbol]; return q && ((a.type === 'above' && q.price >= a.target) || (a.type === 'below' && q.price <= a.target)); }); }
+  function notifyTriggeredAlerts() {
+    if (!window.Inbox?.pushAlert || !window.currentUser) return;
+    const today = new Date().toISOString().slice(0, 10);
+    state.alerts.forEach(rule => {
+      const q = quotes[rule.symbol]; const key = `${today}:${rule.symbol}:${rule.type}:${rule.target}`;
+      if (!q || state.alertNotified[key] || !((rule.type === 'above' && q.price >= rule.target) || (rule.type === 'below' && q.price <= rule.target))) return;
+      state.alertNotified[key] = true; save(); window.Inbox.pushAlert({ title:`价格预警 · ${rule.symbol}`, content:`${rule.symbol} 当前价格 ${q.price.toFixed(3)}，已${rule.type === 'above' ? '高于' : '低于'}设定价 ${rule.target.toFixed(3)}。` });
+    });
+  }
   function render() {
     const rows = state.positions.map((p, i) => { const q = quotes[p.symbol] || {}; const price = q.price || p.lastPrice || p.cost; const value = price * p.quantity; const profit = (price - p.cost) * p.quantity; return { p, i, price, value, profit, q }; });
     rows.forEach(r => { r.p.lastPrice = r.price; if (r.q.name && r.p.name === r.p.symbol) r.p.name = r.q.name; }); save();
@@ -78,6 +88,7 @@
     const eventEl = document.getElementById('wb-events'); if (eventEl) eventEl.innerHTML = state.events.length ? state.events.map((e, i) => `<div class="workbench-item"><span><strong>${esc(e.title)}</strong><small>${esc(e.kind)} · ${esc(e.date)}</small></span><button type="button" onclick="InvestmentWorkbench.removeEvent(${i})">✕</button></div>`).join('') : '<div class="workbench-empty">暂无事件</div>';
     const select = document.getElementById('wb-replay-symbol'); if (select) { const current = select.value; select.innerHTML = rows.length ? rows.map(r => `<option value="${esc(r.p.symbol)}">${esc(r.p.name)} · ${esc(r.p.symbol)}</option>`).join('') : '<option value="">先添加持仓</option>'; if (rows.some(r => r.p.symbol === current)) select.value = current; }
     replay();
+    notifyTriggeredAlerts();
   }
   async function replay() {
     const symbol = document.getElementById('wb-replay-symbol')?.value; if (!symbol) { draw([]); return; }
@@ -90,5 +101,6 @@
   function aiSummary() { const p = state.positions.map(x => `${x.name}(${x.symbol}) ${x.quantity}股，成本${x.cost}`).join('；'); const input = document.getElementById('ai-message-input'); if (typeof window.switchAppPage === 'function' && window.hasAiMenuAccess?.()) { window.switchAppPage('ai'); setTimeout(() => { if (input) input.value = `请基于我的模拟持仓生成研究摘要，列出基本面、估值、催化剂和风险：${p || '目前没有持仓'}`; }, 50); } else show('请先开启 AI 问股权限'); }
   window.InvestmentWorkbench = { render, refreshQuotes, addPosition, recordTrade, openTrade, removePosition, addAlert, removeAlert, addEvent, removeEvent, replay, runBacktest, exportData, aiSummary, openResearch };
   window.addEventListener('resize', () => { if (document.getElementById('page-workbench')?.classList.contains('active')) draw(replayRows); });
+  window.setInterval(() => { if (window.currentUser && state.alerts.length) refreshQuotes(); }, 15000);
   render();
 })();

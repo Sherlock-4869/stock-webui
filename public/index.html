@@ -31,8 +31,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;b
 .dot.offline{background:#f85149}
 .main{padding:24px;max-width:calc(1100px + var(--optional-metric-width,0px));margin:0 auto;transition:max-width .2s ease}
 html.has-metrics .app-nav-inner{max-width:calc(1240px + var(--optional-metric-width,0px))}
-#page-ipo,#page-alerts,#page-boards,#page-notes,#page-reference,#page-sites,#page-admin-sites,#page-ai,#page-admin-ai,#page-user-ai-models,#page-workbench{max-width:1100px;margin:0 auto}
+#page-ipo,#page-alerts,#page-boards,#page-notes,#page-reference,#page-sites,#page-admin-sites,#page-ai,#page-admin-ai,#page-user-ai-models,#page-workbench,#page-inbox,#page-admin-inbox{max-width:1100px;margin:0 auto}
 .workbench-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:14px}.workbench-card{border:1px solid #30363d;border-radius:9px;background:#161b22;padding:13px}.workbench-card label{display:block;color:#8b949e;font-size:10px}.workbench-card b{display:block;margin-top:7px;font-size:20px}.workbench-card small{display:block;margin-top:4px;color:#6e7681;font-size:10px}.workbench-layout{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(280px,.8fr);gap:14px}.workbench-panel{border:1px solid #30363d;border-radius:9px;background:#161b22;overflow:hidden}.workbench-panel h3{margin:0;font-size:13px}.workbench-head{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:13px;border-bottom:1px solid #30363d}.workbench-form{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;padding:12px}.workbench-form input,.workbench-form select{width:100%;box-sizing:border-box}.workbench-form .wide{grid-column:span 2}.workbench-table{width:100%;border-collapse:collapse;font-size:11px}.workbench-table th,.workbench-table td{padding:9px 10px;border-top:1px solid #21262d;text-align:right;white-space:nowrap}.workbench-table th{color:#8b949e;font-size:10px}.workbench-table th:first-child,.workbench-table td:first-child{text-align:left}.workbench-table button{border:0;background:transparent;color:#8b949e;cursor:pointer}.workbench-table button:hover{color:#ff7b72}.workbench-list{padding:0 12px}.workbench-item{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 0;border-top:1px solid #21262d;font-size:11px}.workbench-item:first-child{border-top:0}.workbench-item small{display:block;color:#6e7681;margin-top:3px}.workbench-positive{color:#f85149}.workbench-negative{color:#3fb950}.workbench-muted{color:#8b949e}.workbench-chart{height:180px;padding:12px}.workbench-chart canvas{width:100%;height:100%;border-radius:6px;background:#0d1117}.workbench-note{padding:10px 12px;color:#6e7681;font-size:10px;line-height:1.6}.workbench-actions{display:flex;flex-wrap:wrap;gap:7px}.workbench-empty{padding:30px 12px;text-align:center;color:#6e7681;font-size:11px}@media(max-width:820px){.workbench-grid{grid-template-columns:repeat(2,1fr)}.workbench-layout{grid-template-columns:1fr}}@media(max-width:560px){.workbench-form{grid-template-columns:repeat(2,1fr)}.workbench-form .wide{grid-column:span 2}}
+.inbox-list{display:flex;flex-direction:column;gap:8px}.inbox-message{padding:13px;border:1px solid #30363d;border-radius:8px;background:#161b22}.inbox-message.unread{border-color:#2f81f7;background:#1f3a5f33}.inbox-message-head{display:flex;align-items:center;justify-content:space-between;gap:10px}.inbox-message-title{font-size:13px;font-weight:700}.inbox-message-meta{color:#8b949e;font-size:10px}.inbox-message-content{margin-top:7px;color:#c9d1d9;font-size:12px;line-height:1.65;white-space:pre-wrap;word-break:break-word}.inbox-empty{padding:55px 20px;color:#6e7681;text-align:center}.admin-inbox-form{max-width:620px;padding:18px;border:1px solid #30363d;border-radius:9px;background:#161b22}.admin-inbox-form textarea{min-height:130px;resize:vertical}.admin-inbox-list{margin-top:14px}.admin-inbox-item{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:11px 0;border-top:1px solid #30363d}.admin-inbox-item small{display:block;margin-top:4px;color:#8b949e}@media(max-width:620px){.inbox-message-head,.admin-inbox-item{align-items:flex-start;flex-direction:column;gap:5px}}
 .market-page-note{margin:-5px 0 10px;color:#6e7681;font-size:10px;letter-spacing:.2px}
 .module-head{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:18px}.module-title{font-size:22px}.module-desc{margin-top:5px;color:#8b949e;font-size:12px}.module-actions{display:flex;gap:8px;align-items:center}
 .metric-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:18px}.metric-card{padding:15px 16px;border:1px solid #30363d;border-radius:9px;background:linear-gradient(145deg,#1a2028,#161b22)}.metric-label{color:#8b949e;font-size:11px}.metric-value{margin-top:5px;font-size:23px;font-weight:700}.metric-note{margin-top:3px;color:#6e7681;font-size:10px}
@@ -605,6 +606,7 @@ html[data-theme="light"] .mobile-app-bar{border-color:#dce3ec;background:#ffffff
       <button class="app-tab" data-page="ipo" onclick="switchAppPage('ipo')" title="打新消息"><svg class="app-tab-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 3v4M17 3v4M3 10h18M8 14h3M8 17h6"/></svg><span class="app-tab-label">打新消息</span><span class="app-tab-badge" id="ipo-badge">--</span></button>
       <button class="app-tab" data-page="alerts" onclick="switchAppPage('alerts')" title="自选异动"><svg class="app-tab-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></svg><span class="app-tab-label">自选异动</span><span class="app-tab-badge" id="alert-badge">0</span></button>
       <button class="app-tab" data-page="workbench" onclick="switchAppPage('workbench')" title="投资工作台"><svg class="app-tab-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/><path d="m4 7 6-3 6 5 5-7"/></svg><span class="app-tab-label">投资工作台</span></button>
+      <button class="app-tab" data-page="inbox" onclick="switchAppPage('inbox')" title="站内消息"><svg class="app-tab-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v14H4z"/><path d="m4 7 8 6 8-6"/></svg><span class="app-tab-label">站内消息</span><span class="app-tab-badge" id="inbox-badge">0</span></button>
       <div class="sidebar-group" id="sidebar-group-research">
         <button class="sidebar-group-toggle" type="button" onclick="toggleSidebarGroup('research')" aria-expanded="true" title="研究与工具"><svg class="app-tab-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="m14.5 9.5-2.2 4.8-4.8 2.2 2.2-4.8z"/></svg><span class="sidebar-group-label">研究与工具</span><svg class="sidebar-group-chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button>
         <div class="sidebar-group-items">
@@ -629,6 +631,7 @@ html[data-theme="light"] .mobile-app-bar{border-color:#dce3ec;background:#ffffff
       <div class="sidebar-group" id="admin-navigation" hidden>
         <button class="sidebar-group-toggle" type="button" onclick="toggleSidebarGroup('admin')" aria-expanded="true" title="系统管理"><svg class="app-tab-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-2.1 2.1-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.5v.2h-3v-.2a1.7 1.7 0 0 0-1-1.5 1.7 1.7 0 0 0-1.9.3l-.1.1-2.1-2.1.1-.1A1.7 1.7 0 0 0 7 15a1.7 1.7 0 0 0-1.5-1H5.3v-3h.2A1.7 1.7 0 0 0 7 10a1.7 1.7 0 0 0-.3-1.9l-.1-.1 2.1-2.1.1.1a1.7 1.7 0 0 0 1.9.3 1.7 1.7 0 0 0 1-1.5v-.2h3v.2a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.9-.3l.1-.1 2.1 2.1-.1.1A1.7 1.7 0 0 0 19.4 10a1.7 1.7 0 0 0 1.5 1h.2v3h-.2a1.7 1.7 0 0 0-1.5 1z"/></svg><span class="sidebar-group-label">系统管理</span><svg class="sidebar-group-chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button>
         <div class="sidebar-group-items" id="sidebar-group-admin">
+          <button class="app-tab" data-page="admin-inbox" onclick="switchAppPage('admin-inbox')" title="站内消息推送"><svg class="app-tab-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v14H4z"/><path d="M8 10h8M8 14h5"/></svg><span class="app-tab-label">站内消息推送</span></button>
           <button class="app-tab" data-page="admin-users" onclick="switchAppPage('admin-users')" title="用户与权限"><svg class="app-tab-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3"/><path d="M3.5 20a5.5 5.5 0 0 1 11 0M16 11a2.5 2.5 0 1 0-1.7-4.3M17 15.5a4.5 4.5 0 0 1 3.5 4.5"/></svg><span class="app-tab-label">用户与权限</span></button>
           <button class="app-tab" data-page="admin-ai" onclick="switchAppPage('admin-ai')" title="AI 问股管理"><svg class="app-tab-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 1.5 5.5L19 10l-5.5 1.5L12 17l-1.5-5.5L5 10l5.5-1.5zM19 16l.7 2.3L22 19l-2.3.7L19 22l-.7-2.3L16 19l2.3-.7z"/></svg><span class="app-tab-label">AI 问股管理</span></button>
           <button class="app-tab" data-page="admin-sites" onclick="switchAppPage('admin-sites')" title="站点推荐管理"><svg class="app-tab-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 6.5 17.5 3l3.5 3.5-3.5 3-1.8-1.8-7 7-2.5-2.5 7-7zM5 19l3-3 2.5 2.5-3 3H5z"/></svg><span class="app-tab-label">站点推荐管理</span></button>
@@ -755,6 +758,11 @@ html[data-theme="light"] .mobile-app-bar{border-color:#dce3ec;background:#ffffff
   <div class="module-head"><div><div class="market-kicker">Watchlist Signals</div><h2 class="module-title">自选股异动消息</h2><p class="module-desc">监控全部分组，识别大幅涨跌、快速拉升/跳水、临近涨跌停及主力资金突变</p></div><div class="module-actions"><button class="refresh-btn" onclick="clearAnomalyEvents()">清空消息</button><button class="refresh-btn" onclick="fetchAnomalyQuotes()">立即扫描</button></div></div>
   <div class="metric-grid"><div class="metric-card"><div class="metric-label">监控股票</div><div class="metric-value" id="alert-stock-count">0</div><div class="metric-note">已自动去重</div></div><div class="metric-card"><div class="metric-label">今日异动</div><div class="metric-value" id="alert-event-count">0</div><div class="metric-note">仅保存在当前浏览器</div></div><div class="metric-card"><div class="metric-label">监控状态</div><div class="metric-value" style="font-size:15px;margin-top:10px"><span class="live-dot"></span><span id="alert-live-status">等待扫描</span></div><div class="metric-note">随自选刷新频率更新</div></div></div>
   <div class="module-panel"><div class="panel-toolbar"><button class="filter-chip active" data-alert-filter="all" onclick="setAlertFilter('all')">全部</button><button class="filter-chip" data-alert-filter="up" onclick="setAlertFilter('up')">上涨异动</button><button class="filter-chip" data-alert-filter="down" onclick="setAlertFilter('down')">下跌异动</button><span class="panel-status">仅供行情观察，不构成投资建议</span></div><div class="alert-list" id="alert-list"><div class="alert-empty">正在等待第一轮行情扫描…</div></div></div>
+</section>
+
+<section class="app-page" id="page-inbox">
+  <div class="module-head"><div><div class="market-kicker">Inbox</div><h2 class="module-title">站内消息</h2><p class="module-desc">接收管理员公告和自定义规则预警消息。</p></div><div class="module-actions"><button class="refresh-btn" type="button" onclick="Inbox.refresh()">↻ 刷新</button><button class="refresh-btn" type="button" onclick="Inbox.markAllRead()">全部已读</button></div></div>
+  <div class="module-panel"><div class="panel-toolbar"><span class="panel-status" id="inbox-status">登录后查看消息</span></div><div class="inbox-list" id="inbox-list"><div class="inbox-empty">正在加载站内消息…</div></div></div>
 </section>
 
 <section class="app-page" id="page-workbench">
@@ -931,6 +939,12 @@ html[data-theme="light"] .mobile-app-bar{border-color:#dce3ec;background:#ffffff
     <div class="admin-users-toolbar"><input class="admin-users-search" id="admin-users-search" type="search" maxlength="100" autocomplete="off" placeholder="搜索显示名称、账号或用户 ID" oninput="renderAdminAiUsers()"><span class="admin-users-count" id="admin-users-count">正在加载…</span></div>
     <div class="admin-users-list" id="admin-users-list"><div class="admin-site-empty">进入页面后加载用户列表…</div></div>
   </div>
+</section>
+
+<section class="app-page" id="page-admin-inbox">
+  <div class="module-head"><div><div class="market-kicker">Administration</div><h2 class="module-title">站内消息推送</h2><p class="module-desc">向所有启用中的账号实时发送站内文本消息，也可以删除已发送消息。</p></div><div class="module-actions"><button class="refresh-btn" type="button" onclick="Inbox.adminRefresh()">↻ 刷新记录</button></div></div>
+  <form class="admin-inbox-form" onsubmit="Inbox.adminSend(event)"><div class="form-row"><label for="inbox-admin-title">消息标题</label><input class="form-input" id="inbox-admin-title" name="title" maxlength="160" required placeholder="例如：系统维护通知"></div><div class="form-row"><label for="inbox-admin-content">消息内容</label><textarea class="form-input" id="inbox-admin-content" name="content" maxlength="2000" required placeholder="输入要推送给所有用户的文本内容"></textarea></div><div class="admin-site-status" id="inbox-admin-status" aria-live="polite"></div><div class="admin-site-form-actions"><button class="dialog-btn primary" type="submit">立即推送给所有用户</button></div></form>
+  <div class="module-panel admin-inbox-list"><div class="panel-toolbar"><strong>最近消息</strong><span class="panel-status">删除会从所有收件箱移除</span></div><div class="workbench-list" id="inbox-admin-list"><div class="inbox-empty">进入页面后加载</div></div></div>
 </section>
 
 <section class="app-page" id="page-admin-sites">
@@ -1174,6 +1188,7 @@ html[data-theme="light"] .mobile-app-bar{border-color:#dce3ec;background:#ffffff
 </div>
 
 <script src="/reference-reader.js"></script>
+<script src="/inbox.js"></script>
 <script src="/workbench.js"></script>
 <script>
 const STORAGE_KEY = 'watchlist_v1';
@@ -1316,6 +1331,7 @@ try {
 const systemThemeQuery = window.matchMedia('(prefers-color-scheme: light)');
 let themePreference = THEME_PREFERENCES.includes(localStorage.getItem(THEME_STORAGE_KEY)) ? localStorage.getItem(THEME_STORAGE_KEY) : 'dark';
 let currentUser = null;
+Object.defineProperty(window, 'currentUser', { configurable:true, get:() => currentUser });
 let accountServiceEnabled = null;
 let wechatLoginEnabled = false;
 let accountNeedsConfigDecision = false;
@@ -4291,7 +4307,7 @@ window.addEventListener('resize', () => {
 
 // --- App pages / IPO calendar ---
 const APP_PAGES = ['market','boards','limit-pools','capital-flow','derivatives','funds','ipo','alerts','notes','reference','sites','ai','user-ai-models','admin-users','admin-sites','admin-reference','admin-ai'];
-APP_PAGES.push('workbench');
+APP_PAGES.push('workbench','inbox','admin-inbox');
 const MARKET_HUB_PAGES = new Set(['boards','limit-pools','capital-flow','funds']);
 const requestedAppPage = new URLSearchParams(location.search).get('page');
 let activeAppPage = APP_PAGES.includes(requestedAppPage)
@@ -4339,7 +4355,7 @@ async function loadReferenceDocument(force = false) {
 
 function switchAppPage(page, { historyMode = 'push', scroll = true } = {}) {
   if (!APP_PAGES.includes(page)) return;
-  if ((page === 'admin-users' || page === 'admin-sites' || page === 'admin-reference' || page === 'admin-ai') && !currentUser?.isAdmin) {
+  if ((page === 'admin-users' || page === 'admin-sites' || page === 'admin-reference' || page === 'admin-ai' || page === 'admin-inbox') && !currentUser?.isAdmin) {
     page = 'market';
     historyMode = 'replace';
   }
@@ -4390,6 +4406,8 @@ function switchAppPage(page, { historyMode = 'push', scroll = true } = {}) {
   if (page === 'funds' && !fundRows.length) loadFunds();
   if (page === 'alerts') { renderAnomalyEvents(); fetchAnomalyQuotes(); }
   if (page === 'workbench') window.InvestmentWorkbench?.render();
+  if (page === 'inbox') window.Inbox?.refresh();
+  if (page === 'admin-inbox') window.Inbox?.adminRefresh();
   if (page === 'notes') { loadNotesList({ reloadFolders:true }); }
   if (page === 'reference') loadReferenceDocument();
   if (page === 'sites') loadSiteRecommendations();

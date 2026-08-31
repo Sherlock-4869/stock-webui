@@ -7,6 +7,7 @@
 - 浏览股票、ETF、基金净值、全球指数、K 线和打新日历；基金中心查看到的任意基金均可加入现有行情展示分组，交易所上市 ETF 展示盘中行情，普通基金展示最新披露净值；资金流向中心提供沪深大盘、板块和个股的今日、3 日、5 日、10 日资金排行及历史/分钟曲线；期指与夜盘页展示中金所四类股指期货、现货基差、美股三大指数期货和相关快讯。
 - 自选行情会明确区分实时、部分延迟和连接失败状态；单只行情本轮未更新时保留最近成功值并标记“延迟”，避免把旧数据误认为本轮实时结果。移动端将低频盯盘入口折叠到“更多盯盘工具”，优先展示搜索、自选和行情表。
 - 支持账号密码注册/登录、微信开放平台扫码登录及安全会话。
+- 站内消息中心：管理员可向所有启用账号广播文本，用户可查看未读数并全部标记已读；投资工作台价格预警触发后会生成个人站内消息。消息按账号隔离保存，前端每 15 秒轮询更新。
 - 登录后按账号同步股票与基金行情分组、主题、指标等页面配置；主题提供云白、暖纸、石墨、深海、松林、暮紫及跟随系统。
 - 账户设置支持修改显示名称、上传、裁切和压缩个人头像；未设置自定义头像时继续使用微信头像或名称首字。
 - 登录账号可以创建、编辑、删除、搜索、导入和导出 Markdown 个人笔记；支持账号级文件夹分类、独立阅读窗口，并可在左侧“文件列表 / 标题导航”之间切换。
@@ -261,6 +262,22 @@ CREATE TABLE IF NOT EXISTS chat_messages (
   KEY idx_chat_messages_user (user_id, id),
   CONSTRAINT fk_chat_messages_user
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS inbox_messages (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  recipient_user_id BIGINT UNSIGNED NOT NULL,
+  message_type VARCHAR(20) CHARACTER SET ascii COLLATE ascii_bin NOT NULL DEFAULT 'system',
+  title VARCHAR(160) NOT NULL,
+  content VARCHAR(2000) NOT NULL,
+  is_read TINYINT(1) NOT NULL DEFAULT 0,
+  created_by_user_id BIGINT UNSIGNED NULL,
+  created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  PRIMARY KEY (id),
+  KEY idx_inbox_recipient_created (recipient_user_id, created_at, id),
+  KEY idx_inbox_recipient_read (recipient_user_id, is_read, id),
+  CONSTRAINT fk_inbox_recipient_user FOREIGN KEY (recipient_user_id) REFERENCES users(id) ON DELETE CASCADE,
+  CONSTRAINT fk_inbox_created_by_user FOREIGN KEY (created_by_user_id) REFERENCES users(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS user_note_folders (

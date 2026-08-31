@@ -137,6 +137,22 @@ CREATE TABLE IF NOT EXISTS chat_messages (
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE IF NOT EXISTS inbox_messages (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  recipient_user_id BIGINT UNSIGNED NOT NULL,
+  message_type VARCHAR(20) CHARACTER SET ascii COLLATE ascii_bin NOT NULL DEFAULT 'system',
+  title VARCHAR(160) NOT NULL,
+  content VARCHAR(2000) NOT NULL,
+  is_read TINYINT(1) NOT NULL DEFAULT 0,
+  created_by_user_id BIGINT UNSIGNED NULL,
+  created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  PRIMARY KEY (id),
+  KEY idx_inbox_recipient_created (recipient_user_id, created_at, id),
+  KEY idx_inbox_recipient_read (recipient_user_id, is_read, id),
+  CONSTRAINT fk_inbox_recipient_user FOREIGN KEY (recipient_user_id) REFERENCES users(id) ON DELETE CASCADE,
+  CONSTRAINT fk_inbox_created_by_user FOREIGN KEY (created_by_user_id) REFERENCES users(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE IF NOT EXISTS user_note_folders (
   id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
   user_id BIGINT UNSIGNED NOT NULL,
