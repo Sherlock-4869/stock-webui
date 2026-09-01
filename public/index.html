@@ -658,7 +658,7 @@ html[data-theme="light"] .mobile-app-bar{border-color:#dce3ec;background:#ffffff
 </nav>
 <div class="main">
   <div class="market-hub-navigation" id="market-hub-navigation" hidden><nav class="market-hub-tabs" aria-label="行情分类"><button class="market-hub-tab" type="button" data-market-hub-page="boards" onclick="switchAppPage('boards')">板块行情</button><button class="market-hub-tab" type="button" data-market-hub-page="limit-pools" onclick="switchAppPage('limit-pools')">涨跌停</button><button class="market-hub-tab" type="button" data-market-hub-page="capital-flow" onclick="switchAppPage('capital-flow')">资金流向</button><button class="market-hub-tab" type="button" data-market-hub-page="funds" onclick="switchAppPage('funds')">基金行情</button></nav></div>
-  <section class="app-page" id="page-market">
+  <section class="app-page active" id="page-market">
   <div class="market-page-note">全球指数每 5 秒同步 · 交易所行情按设定频率刷新 · 普通基金展示最新披露净值</div>
   <section class="market-overview" aria-labelledby="market-title">
     <div class="market-overview-head">
@@ -7718,6 +7718,8 @@ async function loadUserAiModels(force = false) {
 
 async function initializeApplication() {
   initializeSidebarNavigation();
+  // 先显示目标页面，避免首次打开等待账号初始化时出现空白页；权限校验完成后再统一校正页面。
+  switchAppPage(activeAppPage, { historyMode:'none', scroll:false });
   await bootstrapAccount();
   window.Inbox?.refresh();
   loadSiteRecommendations();
