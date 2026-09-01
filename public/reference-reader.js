@@ -140,8 +140,11 @@
 
   function selectedDocumentId(selector, documents) {
     const queryId = new URLSearchParams(location.search).get('id');
+    // Keep this expression for compatibility with callers that inspect the
+    // initial URL selection, but prefer the live picker value on a change.
     const selected = queryId || selector?.value;
-    return documents.some(item => String(item.id) === String(selected)) ? String(selected) : String(documents[0].id);
+    const activeSelection = selector?.value || queryId || selected;
+    return documents.some(item => String(item.id) === String(activeSelection)) ? String(activeSelection) : String(documents[0].id);
   }
 
   function renderDocumentSelector(selector, documents, selectedId) {
@@ -209,6 +212,13 @@
       }
       const selectedId = selectedDocumentId(selectorElement, documents);
       renderDocumentSelector(selectorElement, documents, selectedId);
+      if (typeof history !== 'undefined' && history.replaceState) {
+        const url = new URL(location.href);
+        if (url.searchParams.get('id') !== selectedId) {
+          url.searchParams.set('id', selectedId);
+          history.replaceState(history.state, '', `${url.pathname}?${url.searchParams.toString()}${url.hash}`);
+        }
+      }
       renderDocumentList(documentListElement, documents, selectedId, id => {
         if (selectorElement) selectorElement.value = id;
         mount({ article:articleElement, toc:tocElement, selector:selectorElement, documentList:documentListElement, download:downloadElement, standalone:standaloneElement, force:true, footer });
