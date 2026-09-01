@@ -198,7 +198,8 @@
     }
     const positionsBody = document.getElementById('wb-positions');
     const rows = state.positions.map((p, i) => { const q = quotes[p.symbol] || {}; const price = q.price || p.lastPrice || p.cost; const value = price * p.quantity; const profit = (price - p.cost) * p.quantity; return { p, i, price, value, profit, q }; });
-    rows.forEach(r => { r.p.lastPrice = r.price; if (r.q.name && r.p.name === r.p.symbol) r.p.name = r.q.name; }); save();
+    rows.forEach(r => { r.p.lastPrice = r.price; if (r.q.name && r.p.name === r.p.symbol) r.p.name = r.q.name; });
+    state.trades.forEach(trade => { if (!trade.name) trade.name = quotes[trade.symbol]?.name || state.positions.find(position => position.symbol === trade.symbol)?.name || trade.symbol; }); save();
     const cost = rows.reduce((s, r) => s + r.p.cost * r.p.quantity, 0); const value = rows.reduce((s, r) => s + r.value, 0); const profit = value - cost; const maxWeight = value ? Math.max(...rows.map(r => r.value / value), 0) * 100 : 0;
     const todayRows = rows.filter(r => Number.isFinite(r.q.prev) && r.q.prev > 0);
     const todayProfit = todayRows.reduce((s, r) => s + (r.price - r.q.prev) * r.p.quantity, 0);
