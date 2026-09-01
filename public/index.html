@@ -788,7 +788,7 @@ html[data-theme="light"] .mobile-app-bar{border-color:#dce3ec;background:#ffffff
   <div class="module-head"><div><div class="market-kicker">Sector Pulse</div><h2 class="module-title">板块行情</h2><p class="module-desc">覆盖行业、概念和地域板块；查看领涨领跌、成分股分布及资金净流入。</p></div><div class="module-actions"><button class="refresh-btn" type="button" onclick="loadBoards(true)">↻ 刷新板块</button></div></div>
   <div class="board-summary-grid is-empty" id="board-summary-grid"><div class="metric-card"><div class="metric-label">当前板块</div><div class="metric-value" id="board-summary-name">--</div><div class="metric-note" id="board-summary-code">从左侧选择板块</div></div><div class="metric-card"><div class="metric-label">板块涨跌幅</div><div class="metric-value" id="board-summary-pct">--</div><div class="metric-note" id="board-summary-leader">领涨股 --</div></div><div class="metric-card"><div class="metric-label">成分股家数</div><div class="metric-value" id="board-summary-total">--</div><div class="metric-note" id="board-summary-breadth">涨跌分布 --</div></div><div class="metric-card"><div class="metric-label">主力净流入</div><div class="metric-value" id="board-summary-flow">--</div><div class="metric-note" id="board-summary-flow-note">今日板块资金</div></div></div>
   <div class="board-workspace">
-    <div class="module-panel board-directory"><div class="panel-toolbar board-directory-toolbar"><div class="board-type-tabs" id="board-type-tabs"><button class="filter-chip active" data-board-type="industry" onclick="setBoardType('industry')">行业</button><button class="filter-chip" data-board-type="concept" onclick="setBoardType('concept')">概念</button><button class="filter-chip" data-board-type="region" onclick="setBoardType('region')">地域</button></div><div class="board-type-tabs" aria-label="板块资金周期"><button class="filter-chip active" data-board-flow-period="today" onclick="setBoardFlowPeriod('today')">今日资金</button><button class="filter-chip" data-board-flow-period="3d" onclick="setBoardFlowPeriod('3d')">3日</button><button class="filter-chip" data-board-flow-period="5d" onclick="setBoardFlowPeriod('5d')">5日</button><button class="filter-chip" data-board-flow-period="10d" onclick="setBoardFlowPeriod('10d')">10日</button></div><input class="board-search" id="board-search" type="search" maxlength="40" autocomplete="off" placeholder="搜索当前板块" oninput="filterBoardList()"><span class="panel-status" id="board-list-status">正在加载板块行情…</span></div><div class="board-list" id="board-list" aria-live="polite"><div class="module-loading">正在同步板块行情</div></div></div>
+  <div class="module-panel board-directory"><div class="panel-toolbar board-directory-toolbar"><div class="board-type-tabs" id="board-type-tabs"><button class="filter-chip active" data-board-type="industry" onclick="setBoardType('industry')">行业</button><button class="filter-chip" data-board-type="concept" onclick="setBoardType('concept')">概念</button><button class="filter-chip" data-board-type="region" onclick="setBoardType('region')">地域</button></div><div class="board-type-tabs" aria-label="板块排行方式"><button class="filter-chip active" data-board-sort="pctDesc" onclick="setBoardSortMode('pctDesc')">涨幅榜</button><button class="filter-chip" data-board-sort="pctAsc" onclick="setBoardSortMode('pctAsc')">跌幅榜</button><button class="filter-chip" data-board-sort="flowDesc" onclick="setBoardSortMode('flowDesc')">资金榜</button></div><div class="board-type-tabs" aria-label="板块资金周期"><button class="filter-chip active" data-board-flow-period="today" onclick="setBoardFlowPeriod('today')">今日资金</button><button class="filter-chip" data-board-flow-period="3d" onclick="setBoardFlowPeriod('3d')">3日</button><button class="filter-chip" data-board-flow-period="5d" onclick="setBoardFlowPeriod('5d')">5日</button><button class="filter-chip" data-board-flow-period="10d" onclick="setBoardFlowPeriod('10d')">10日</button></div><input class="board-search" id="board-search" type="search" maxlength="40" autocomplete="off" placeholder="搜索当前板块" oninput="filterBoardList()"><span class="panel-status" id="board-list-status">正在加载板块行情…</span></div><div class="board-list" id="board-list" aria-live="polite"><div class="module-loading">正在同步板块行情</div></div></div>
     <div class="module-panel board-detail" id="board-detail" aria-live="polite"><div class="board-detail-empty board-detail-welcome"><div class="board-welcome-icon" aria-hidden="true">⌁</div><div><strong>从左侧选择一个板块</strong><span>先切换板块分类或资金周期，再查看成分股、涨跌幅和主力资金。</span></div><div class="board-welcome-steps" aria-hidden="true"><span>1 选分类</span><i></i><span>2 选板块</span><i></i><span>3 看详情</span></div></div></div>
   </div>
 </section>
@@ -1175,6 +1175,7 @@ html[data-theme="light"] .mobile-app-bar{border-color:#dce3ec;background:#ffffff
       <div class="tab active" data-tab="minute" onclick="switchTab(this)">分时</div>
       <div class="tab" data-tab="minuteK" onclick="switchTab(this)">分时K</div>
       <div class="tab" data-tab="kline" onclick="switchTab(this)">K线</div>
+      <div class="tab" data-tab="technical" onclick="switchTab(this)">技术指标</div>
       <div class="tab" data-tab="fundFlow" onclick="switchTab(this)">主力资金</div>
       <div class="tab" data-tab="market" onclick="switchTab(this)">市场总览</div>
       <div class="tab" data-tab="information" onclick="switchTab(this)">简况 / F10</div>
@@ -1186,6 +1187,16 @@ html[data-theme="light"] .mobile-app-bar{border-color:#dce3ec;background:#ffffff
         <button class="period-btn" data-period="m15" onclick="switchMinuteKPeriod('m15')">15分</button>
         <button class="period-btn" data-period="m30" onclick="switchMinuteKPeriod('m30')">30分</button>
         <button class="period-btn" data-period="m60" onclick="switchMinuteKPeriod('m60')">60分</button>
+      </div>
+      <div class="period-bar technical-indicator-bar" id="technical-indicator-bar" aria-label="技术指标">
+        <button class="period-btn active" data-indicator="volume" onclick="switchTechnicalIndicator('volume')">成交量</button>
+        <button class="period-btn" data-indicator="macd" onclick="switchTechnicalIndicator('macd')">MACD</button>
+        <button class="period-btn" data-indicator="kdj" onclick="switchTechnicalIndicator('kdj')">KDJ</button>
+        <button class="period-btn" data-indicator="rsi" onclick="switchTechnicalIndicator('rsi')">RSI</button>
+        <button class="period-btn" data-indicator="boll" onclick="switchTechnicalIndicator('boll')">布林带</button>
+        <button class="period-btn" data-indicator="obv" onclick="switchTechnicalIndicator('obv')">OBV</button>
+        <button class="period-btn" data-indicator="atr" onclick="switchTechnicalIndicator('atr')">ATR</button>
+        <button class="period-btn" data-indicator="cci" onclick="switchTechnicalIndicator('cci')">CCI</button>
       </div>
       <div class="chart-readout">
         <div class="chart-info" id="chart-info"></div>
@@ -2681,6 +2692,7 @@ async function doSearch(q) {
 let modalSym = null;
 let currentTab = 'minute';
 let currentMinuteKPeriod = 'm5';
+let currentTechnicalIndicator = 'volume';
 let lastQuoteData = {};
 let stockBoardRequestId = 0;
 let stockInformationRequestId = 0;
@@ -2794,6 +2806,7 @@ function openModal(sym) {
   const mainlandMarket = isMainlandMarketIndex(sym);
   currentTab = mainlandMarket ? 'market' : isIndex ? 'kline' : 'minute';
   currentMinuteKPeriod = 'm5';
+  currentTechnicalIndicator = 'volume';
   document.getElementById('m-name').textContent = q ? q.name : sym;
   const isEtf = isEtfSymbol(sym, q);
   document.getElementById('m-sub').textContent = isIndex
@@ -2812,6 +2825,7 @@ function openModal(sym) {
   document.querySelectorAll('.tab').forEach(t => {
     t.hidden = (t.dataset.tab === 'minuteK' && !supportsMinuteKline(sym)) ||
       (t.dataset.tab === 'fundFlow' && (isEtf || isIndex)) ||
+      (t.dataset.tab === 'technical' && mainlandMarket) ||
       (t.dataset.tab === 'market' && !mainlandMarket) ||
       (t.dataset.tab === 'information' && !isAStockSymbol(sym));
     t.classList.toggle('active', t.dataset.tab === currentTab);
@@ -2825,7 +2839,9 @@ function openModal(sym) {
   stockInformationSection = 'overview';
   updateStockInformationTabs();
   document.getElementById('period-bar').classList.remove('visible');
-  document.querySelectorAll('.period-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.period === 'm5'));
+  document.getElementById('technical-indicator-bar').classList.remove('visible');
+  document.querySelectorAll('[data-indicator]').forEach(btn => btn.classList.toggle('active', btn.dataset.indicator === currentTechnicalIndicator));
+  document.querySelectorAll('.period-btn[data-period]').forEach(btn => btn.classList.toggle('active', btn.dataset.period === 'm5'));
   document.getElementById('modal-mask').classList.add('open');
   updateModalWatchlistButton();
   loadStockBoards(sym);
@@ -2938,11 +2954,13 @@ function switchTab(el) {
   currentTab = el.dataset.tab;
   const information = currentTab === 'information';
   const marketOverview = currentTab === 'market';
+  const technical = currentTab === 'technical';
   document.getElementById('quote-chart-panel').hidden = information || marketOverview;
   document.getElementById('stats-grid').hidden = information || marketOverview;
   document.getElementById('market-overview-panel').hidden = !marketOverview;
   document.getElementById('stock-information-panel').hidden = !information;
   document.getElementById('period-bar').classList.toggle('visible', !information && !marketOverview && currentTab === 'minuteK');
+  document.getElementById('technical-indicator-bar').classList.toggle('visible', technical);
   hideChartHoverTooltip();
   if (information) { loadStockInformation(); return; }
   if (marketOverview) { loadMarketOverview(); return; }
@@ -2950,10 +2968,17 @@ function switchTab(el) {
   loadChart(currentTab);
 }
 
+function switchTechnicalIndicator(indicator) {
+  if (!['volume','macd','kdj','rsi','boll','obv','atr','cci'].includes(indicator)) return;
+  currentTechnicalIndicator = indicator;
+  document.querySelectorAll('[data-indicator]').forEach(btn => btn.classList.toggle('active', btn.dataset.indicator === indicator));
+  if (currentTab === 'technical') loadChart('technical');
+}
+
 function switchMinuteKPeriod(period) {
   if (!/^m(?:1|5|15|30|60)$/.test(period) || period === currentMinuteKPeriod) return;
   currentMinuteKPeriod = period;
-  document.querySelectorAll('.period-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.period === period));
+  document.querySelectorAll('.period-btn[data-period]').forEach(btn => btn.classList.toggle('active', btn.dataset.period === period));
   if (currentTab === 'minuteK') loadChart('minuteK');
 }
 
@@ -3220,6 +3245,7 @@ const chartState = {
   volumeMa5: [], volumeMa10: [], fullVolumeMa5: [], fullVolumeMa10: [],
   viewStart: 0, viewEnd: -1, defaultStart: 0, defaultEnd: -1,
   hoverIndex: null, layout: null,
+  indicator: 'volume', technicalSeries: {}, fullTechnicalSeries: {},
 };
 
 async function loadChart(type, options = {}) {
@@ -3235,6 +3261,8 @@ async function loadChart(type, options = {}) {
   chartState.data = [];
   chartState.layout = null;
   chartState.hoverIndex = null;
+  chartState.technicalSeries = {};
+  chartState.fullTechnicalSeries = {};
   if (dataNotice) { dataNotice.textContent = ''; dataNotice.classList.remove('visible'); }
   try {
     if (type === 'minute') {
@@ -3321,7 +3349,7 @@ async function loadChart(type, options = {}) {
       if (requestId !== chartRequestId || currentTab !== type) return;
       const symKey = Object.keys(d.data || {})[0];
       const key = Object.keys(d.data?.[symKey] || {}).find(k => /day$/i.test(k));
-      drawKline(chartCanvas, d.data?.[symKey]?.[key] || [], 'kline');
+      drawKline(chartCanvas, d.data?.[symKey]?.[key] || [], type === 'technical' ? 'technical' : 'kline');
     }
     if (!chartState.data.length) throw new Error('empty chart data');
     loading.style.display = 'none';
@@ -3468,6 +3496,7 @@ function setChartViewport(start, end, options = {}) {
   chartState.ma20 = chartState.fullMa20.slice(nextStart, nextEnd + 1);
   chartState.volumeMa5 = chartState.fullVolumeMa5.slice(nextStart, nextEnd + 1);
   chartState.volumeMa10 = chartState.fullVolumeMa10.slice(nextStart, nextEnd + 1);
+  chartState.technicalSeries = Object.fromEntries(Object.entries(chartState.fullTechnicalSeries || {}).map(([key, values]) => [key, values.slice(nextStart, nextEnd + 1)]));
   chartState.hoverIndex = null;
   hideChartHoverTooltip();
   updateChartWindow();
@@ -3511,7 +3540,26 @@ function drawKline(canvas, rows, type = 'kline', period = '') {
   chartState.fullMa20 = movingAverage(chartState.fullData, 20);
   chartState.fullVolumeMa5 = movingAverage(chartState.fullData, 5, 'volume');
   chartState.fullVolumeMa10 = movingAverage(chartState.fullData, 10, 'volume');
-  initializeChartViewport(type === 'kline' ? 30 : chartState.fullData.length);
+  chartState.indicator = currentTechnicalIndicator;
+  chartState.fullTechnicalSeries = type === 'technical' ? calculateTechnicalSeries(chartState.fullData, chartState.indicator) : {};
+  initializeChartViewport(type === 'kline' ? 30 : type === 'technical' ? 90 : chartState.fullData.length);
+}
+
+function ema(values, period) {
+  const out = []; let prev = null; const alpha = 2 / (period + 1);
+  values.forEach((value, i) => { const n = Number(value); if (!Number.isFinite(n)) { out.push(null); return; } prev = prev == null ? n : n * alpha + prev * (1 - alpha); out.push(i < period - 1 ? null : prev); });
+  return out;
+}
+function calculateTechnicalSeries(data, indicator) {
+  const close = data.map(p => p.close), high = data.map(p => p.high), low = data.map(p => p.low), volume = data.map(p => p.volume);
+  if (indicator === 'volume') return { volume, ma5:movingAverage(data, 5, 'volume'), ma10:movingAverage(data, 10, 'volume') };
+  if (indicator === 'macd') { const fast=ema(close,12), slow=ema(close,26); const dif=close.map((_,i)=>fast[i]!=null&&slow[i]!=null?fast[i]-slow[i]:null); const dea=ema(dif,9); return { dif, dea, hist:dif.map((v,i)=>v!=null&&dea[i]!=null?(v-dea[i])*2:null) }; }
+  if (indicator === 'kdj') { let k=50,d=50; const K=[],D=[],J=[]; data.forEach((p,i)=>{ const start=Math.max(0,i-8), hh=Math.max(...high.slice(start,i+1)), ll=Math.min(...low.slice(start,i+1)); const rsv=hh===ll?50:(p.close-ll)/(hh-ll)*100; k=k*2/3+rsv/3; d=d*2/3+k/3; K.push(i<8?null:k); D.push(i<8?null:d); J.push(i<8?null:3*k-2*d); }); return { k:K,d:D,j:J }; }
+  if (indicator === 'rsi') { const r=[]; for(let i=0;i<data.length;i++){ if(i<14){r.push(null);continue;} let gain=0,loss=0; for(let j=i-13;j<=i;j++){const diff=close[j]-close[j-1]; if(diff>0)gain+=diff; else loss-=diff;} r.push(loss===0?100:100-100/(1+gain/loss)); } return { rsi:r }; }
+  if (indicator === 'boll') { const mid=movingAverage(data,20), upper=[], lower=[]; data.forEach((_,i)=>{if(i<19){upper.push(null);lower.push(null);return;} const vals=close.slice(i-19,i+1), avg=mid[i], sd=Math.sqrt(vals.reduce((s,v)=>s+(v-avg)**2,0)/20); upper.push(avg+2*sd); lower.push(avg-2*sd);}); return { upper, mid, lower }; }
+  if (indicator === 'obv') { let value=0; return { obv:close.map((v,i)=>{if(i)value += v>close[i-1]?volume[i]:v<close[i-1]?-volume[i]:0; return i<1?null:value;}) }; }
+  if (indicator === 'atr') { const tr=data.map((p,i)=>i?Math.max(p.high-p.low,Math.abs(p.high-close[i-1]),Math.abs(p.low-close[i-1])):p.high-p.low); return { atr:movingAverage(tr.map(v=>({value:v})),14,'value') }; }
+  const cci=[]; for(let i=0;i<data.length;i++){if(i<19){cci.push(null);continue;} const tp=data.slice(i-19,i+1).map(p=>(p.high+p.low+p.close)/3), avg=tp.reduce((a,b)=>a+b,0)/20, md=tp.reduce((a,b)=>a+Math.abs(b-avg),0)/20; cci.push(md?((tp[19]-avg)/(.015*md)):0);} return { cci };
 }
 
 function drawFundFlow(rows, streak = null) {
@@ -3884,10 +3932,34 @@ function drawFundFlowChart(ctx, W, H) {
   chartState.layout = { W, H, plotLeft, plotRight, cw, priceTop, priceH, volTop, volH, priceMin, priceMax, xFor, py };
 }
 
+function technicalLabel(indicator) {
+  return ({volume:'成交量（VOL）',macd:'MACD（12,26,9）',kdj:'KDJ（9,3,3）',rsi:'RSI（14）',boll:'布林带（20,2）',obv:'能量潮（OBV）',atr:'真实波幅均值（ATR14）',cci:'顺势指标（CCI20）'})[indicator] || '技术指标';
+}
+function drawTechnicalChart(ctx, W, H) {
+  const data=chartState.data, s=chartState.technicalSeries || {}, indicator=chartState.indicator;
+  if (!data.length) return;
+  const plotLeft=58, plotRight=W-16, plotTop=24, plotBottom=H-30, cw=plotRight-plotLeft, ch=plotBottom-plotTop;
+  const keys=Object.keys(s), values=keys.flatMap(k=>s[k]).filter(Number.isFinite);
+  if (!values.length) return;
+  let min=Math.min(...values), max=Math.max(...values); if (indicator==='rsi'||indicator==='kdj'){min=0;max=100;} if(indicator==='macd') { const a=Math.max(Math.abs(min),Math.abs(max),.01); min=-a;max=a; }
+  const margin=(max-min)*.08||1; min-=margin; max+=margin; const range=max-min;
+  const xFor=i=>plotLeft+(data.length===1?0:i/(data.length-1))*cw, py=v=>plotTop+(max-v)/range*ch;
+  ctx.fillStyle=chartThemeColor('bg'); ctx.fillRect(0,0,W,H); ctx.font='10px ui-monospace,monospace';
+  for(let i=0;i<=4;i++){const y=plotTop+i*ch/4; drawGridLine(ctx,plotLeft,y,plotRight,y); ctx.fillStyle=chartThemeColor('muted'); ctx.textAlign='right'; const v=max-i*range/4; ctx.fillText(indicator==='volume'||indicator==='obv'?chartVolume(v):v.toFixed(2),plotLeft-6,y+3);}
+  if(indicator==='rsi'||indicator==='kdj'){[20,50,80].forEach(v=>{const y=py(v);ctx.strokeStyle='#8b949e55';ctx.setLineDash([3,3]);ctx.beginPath();ctx.moveTo(plotLeft,y);ctx.lineTo(plotRight,y);ctx.stroke();ctx.setLineDash([]);});}
+  if(indicator==='macd'){const zero=py(0);ctx.strokeStyle=chartThemeColor('subtle');ctx.beginPath();ctx.moveTo(plotLeft,zero);ctx.lineTo(plotRight,zero);ctx.stroke(); const hist=s.hist||[]; const step=cw/data.length; hist.forEach((v,i)=>{if(!Number.isFinite(v))return;ctx.fillStyle=v>=0?'#f8514977':'#3fb95077';const y=py(v);ctx.fillRect(xFor(i)-Math.max(1,step*.3),Math.min(y,zero),Math.max(2,step*.6),Math.max(1,Math.abs(zero-y)));});}
+  if(indicator==='volume'){const step=cw/data.length, base=py(0); (s.volume||[]).forEach((v,i)=>{if(!Number.isFinite(v))return;const y=py(v);ctx.fillStyle=data[i].close>= (i?data[i-1].close:data[i].open)?'#f8514966':'#3fb95066';ctx.fillRect(xFor(i)-Math.max(1,step*.3),Math.min(y,base),Math.max(2,step*.6),Math.max(1,Math.abs(base-y)));});}
+  const colors=['#58a6ff','#e3b341','#bc8cff','#f0883e']; keys.forEach((key,idx)=>{if(key==='hist')return; drawAverageLine(ctx,s[key],xFor,py,colors[idx%colors.length]);});
+  ctx.fillStyle=chartThemeColor('text');ctx.textAlign='left';ctx.fillText(technicalLabel(indicator),plotLeft,13); let lx=plotLeft+150; keys.filter(k=>k!=='hist').forEach((key,idx)=>{ctx.fillStyle=colors[idx%colors.length];ctx.fillText(key.toUpperCase(),lx,13);lx+=48;});
+  const ticks=[0,Math.round((data.length-1)*.25),Math.round((data.length-1)*.5),Math.round((data.length-1)*.75),data.length-1]; ticks.forEach((i,n)=>{const x=xFor(i);drawGridLine(ctx,x,plotTop,x,plotBottom);ctx.fillStyle=chartThemeColor('muted');ctx.textAlign=n===0?'left':n===ticks.length-1?'right':'center';ctx.fillText(String(data[i].date).slice(5),x,H-8);});
+  chartState.layout={W,H,plotLeft,plotRight,cw,priceTop:plotTop,priceH:ch,volTop:plotTop,volH:ch,priceMin:min,priceMax:max,xFor,py};
+}
+
 function renderChart() {
   const { ctx, W, H } = prepareChartCanvas();
   if (chartState.type === 'minute') drawMinuteChart(ctx, W, H);
   else if (chartState.type === 'fundFlow') drawFundFlowChart(ctx, W, H);
+  else if (chartState.type === 'technical') drawTechnicalChart(ctx, W, H);
   else drawKlineChart(ctx, W, H);
   if (chartState.hoverIndex != null) drawCrosshair(ctx);
 }
@@ -3908,7 +3980,9 @@ function drawCrosshair(ctx) {
   const index = Math.max(0, Math.min(chartState.data.length - 1, chartState.hoverIndex));
   const point = chartState.data[index];
   const value = chartState.type === 'minute' ? point.price : chartState.type === 'fundFlow' ? point.mainNet : point.close;
+  const crossValue = chartState.type === 'technical' ? (chartState.technicalSeries[Object.keys(chartState.technicalSeries)[0]]?.[index] ?? 0) : value;
   const x = layout.xFor(index), y = layout.py(value);
+  const crossY = chartState.type === 'technical' ? layout.py(crossValue) : y;
   ctx.save();
   ctx.strokeStyle = chartThemeColor('cross');
   ctx.lineWidth = 1;
@@ -3918,15 +3992,16 @@ function drawCrosshair(ctx) {
   ctx.lineTo(x, layout.volTop + layout.volH);
   ctx.stroke();
   ctx.beginPath();
-  ctx.moveTo(layout.plotLeft, y);
-  ctx.lineTo(layout.plotRight, y);
+  ctx.moveTo(layout.plotLeft, crossY);
+  ctx.lineTo(layout.plotRight, crossY);
   ctx.stroke();
   const yLabel = chartState.type === 'fundFlow' ? fundAxisAmount(value) : value.toFixed(2);
-  drawBadge(ctx, yLabel, layout.plotRight - 32, y - 9, chartState.type === 'fundFlow' ? 68 : 58);
+  const technicalYLabel = chartState.type === 'technical' && (chartState.indicator === 'volume' || chartState.indicator === 'obv') ? chartVolume(crossValue) : chartState.type === 'technical' ? crossValue.toFixed(2) : yLabel;
+  drawBadge(ctx, technicalYLabel, layout.plotRight - 32, crossY - 9, chartState.type === 'fundFlow' ? 68 : 58);
   ctx.setLineDash([]);
   ctx.fillStyle = chartThemeColor('text');
   ctx.beginPath();
-  ctx.arc(x, y, 3, 0, Math.PI * 2);
+  ctx.arc(x, crossY, 3, 0, Math.PI * 2);
   ctx.fill();
   const xText = chartState.type === 'minute'
     ? formatTime(point.time)
@@ -4138,6 +4213,13 @@ function updateChartInfo(index) {
       infoItem('累计量', `${chartVolume(point.volume)}手`),
       infoItem('成交额', chartAmount(point.amount)),
     ].join('');
+  } else if (chartState.type === 'technical') {
+    const values = chartState.technicalSeries || {};
+    chartInfo.innerHTML = [infoItem('日期', point.date), ...Object.entries(values).map(([key, series]) => {
+      const value = series[index];
+      if (!Number.isFinite(value)) return '';
+      return infoItem(key.toUpperCase(), chartState.indicator === 'volume' || chartState.indicator === 'obv' ? `${chartVolume(value)}手` : chartNumber(value));
+    }), infoItem('收盘', chartNumber(point.close))].join('');
   } else {
     const absoluteIndex = chartState.viewStart + index;
     const previousClose = absoluteIndex > 0 ? chartState.fullData[absoluteIndex - 1].close : point.open;
@@ -4189,6 +4271,15 @@ function chartTooltipDetail(index) {
         ['成交额', chartAmount(point.amount), ''],
       ],
     };
+  }
+  if (chartState.type === 'technical') {
+    const rows = Object.entries(chartState.technicalSeries || {}).map(([key, series]) => {
+      const value = series[index];
+      if (!Number.isFinite(value)) return null;
+      return [key.toUpperCase(), chartState.indicator === 'volume' || chartState.indicator === 'obv' ? `${chartVolume(value)}手` : chartNumber(value), ''];
+    }).filter(Boolean);
+    rows.push(['收盘', chartNumber(point.close), '']);
+    return { title: point.date, rows };
   }
   const absoluteIndex = chartState.viewStart + index;
   const previousClose = absoluteIndex > 0 ? chartState.fullData[absoluteIndex - 1].close : point.open;
@@ -4591,6 +4682,7 @@ async function loadLimitPools(force = false) {
 const BOARD_TYPE_LABELS = { industry:'行业板块', concept:'概念板块', region:'地域板块' };
 let boardType = 'industry';
 let boardFlowPeriod = 'today';
+let boardSortMode = 'pctDesc';
 let boardRows = [];
 let activeBoard = null;
 let activeBoardDetail = null;
@@ -4674,6 +4766,12 @@ function filteredBoardRows() {
 function renderBoardList() {
   const list = document.getElementById('board-list');
   const rows = filteredBoardRows().sort((left, right) => {
+    if (boardSortMode === 'pctDesc' || boardSortMode === 'pctAsc') {
+      const leftPct = Number(left.pct), rightPct = Number(right.pct);
+      const leftValue = Number.isFinite(leftPct) ? leftPct : (boardSortMode === 'pctDesc' ? -Infinity : Infinity);
+      const rightValue = Number.isFinite(rightPct) ? rightPct : (boardSortMode === 'pctDesc' ? -Infinity : Infinity);
+      return boardSortMode === 'pctDesc' ? rightValue - leftValue : leftValue - rightValue;
+    }
     const leftRaw = boardPeriodFlow(left), rightRaw = boardPeriodFlow(right);
     const leftFlow = leftRaw == null ? -Infinity : Number(leftRaw), rightFlow = rightRaw == null ? -Infinity : Number(rightRaw);
     return (Number.isFinite(rightFlow) ? rightFlow : -Infinity) - (Number.isFinite(leftFlow) ? leftFlow : -Infinity);
@@ -4690,6 +4788,13 @@ function renderBoardList() {
 }
 
 function filterBoardList() { renderBoardList(); }
+
+function setBoardSortMode(mode) {
+  if (!['pctDesc', 'pctAsc', 'flowDesc'].includes(mode) || mode === boardSortMode) return;
+  boardSortMode = mode;
+  document.querySelectorAll('[data-board-sort]').forEach(button => button.classList.toggle('active', button.dataset.boardSort === mode));
+  renderBoardList();
+}
 
 function setBoardFlowPeriod(period) {
   if (!CAPITAL_PERIOD_LABELS?.[period] || period === boardFlowPeriod) return;
