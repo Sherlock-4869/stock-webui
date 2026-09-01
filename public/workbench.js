@@ -42,6 +42,24 @@
     } catch (_) { const note = document.getElementById('wb-alert-note'); if (note) note.textContent = '交易已保存 · 实时行情暂不可用，稍后可重试'; }
   }
   function show(message) { if (typeof window.showToast === 'function') window.showToast(message, false); }
+  function rebuildPositionsFromTrades() {
+    if (!state.trades.length) { state.positions = []; return; }
+    const positions = [];
+    state.trades.forEach(trade => {
+      const symbol = normalizeSymbol(trade.symbol); const quantity = num(trade.quantity); const price = normalizePrice(trade.price); if (!symbol || quantity <= 0 || price <= 0) return;
+      const existing = positions.find(item => item.symbol === symbol); const side = String(trade.side || '').toLowerCase();
+      if (side === 'sell') {
+        if (!existing) return;
+        existing.quantity = Math.max(0, existing.quantity - quantity);
+        if (!existing.quantity) positions.splice(positions.indexOf(existing), 1);
+      } else if (existing) {
+        const total = existing.quantity + quantity; existing.cost = (existing.cost * existing.quantity + price * quantity) / total; existing.quantity = total;
+      } else positions.push({ symbol, name: String(trade.name || symbol), quantity, cost: price });
+    });
+    const oldOrder = state.positions.map(item => item.symbol); positions.forEach(position => { const old = state.positions.find(item => item.symbol === position.symbol); if (old?.lastPrice) position.lastPrice = old.lastPrice; });
+    positions.sort((a, b) => { const ai = oldOrder.indexOf(a.symbol); const bi = oldOrder.indexOf(b.symbol); return (ai < 0 ? oldOrder.length : ai) - (bi < 0 ? oldOrder.length : bi); });
+    state.positions = positions;
+  }
   function recordTrade({ symbol: rawSymbol, name = '', quantity: rawQuantity, cost: rawCost, side = 'buy' }) {
     const symbol = normalizeSymbol(rawSymbol); const quantity = num(rawQuantity); const cost = normalizePrice(rawCost);
     if (!symbol || quantity <= 0 || cost <= 0) return false;
@@ -49,7 +67,7 @@
     if (side === 'sell') { if (!old) { show('没有可卖出的持仓'); return false; } if (quantity > old.quantity) { show(`卖出数量不能超过当前持仓（${old.quantity}）`); return false; } old.quantity = Math.max(0, old.quantity - quantity); if (!old.quantity) state.positions = state.positions.filter(p => p !== old); }
     else if (old) { const total = old.quantity + quantity; old.cost = (old.cost * old.quantity + cost * quantity) / total; old.quantity = total; if (!old.name) old.name = String(name || symbol); }
     else state.positions.push({ symbol, name: String(name || symbol), quantity, cost });
-    state.trades.push({ at: Date.now(), symbol, side: side.toUpperCase(), quantity, price: cost }); save(); show('交易已保存'); refreshQuotes();
+    state.trades.push({ at: Date.now(), symbol, name: String(name || old?.name || symbol), side: side.toUpperCase(), quantity, price: cost }); save(); show('交易已保存'); refreshQuotes();
     return true;
   }
   function addPosition(event) {
@@ -144,6 +162,11 @@
   }
   function ruleName(rule) { return String(rule.name || quotes[rule.symbol]?.name || rule.symbol || ''); }
   function removePosition(index) { state.positions.splice(index, 1); save(); render(); }
+  function removeTrade(index) {
+    if (!Number.isInteger(index) || index < 0 || index >= state.trades.length) return;
+    if (!window.confirm('删除这条买卖记录后，将按剩余记录重新计算持仓。确定继续吗？')) return;
+    state.trades.splice(index, 1); rebuildPositionsFromTrades(); save(); render(); refreshQuotes(); show('操作记录已删除，持仓已刷新');
+  }
   function addAlert(event) { event.preventDefault(); const f = new FormData(event.target); const symbol = normalizeSymbol(f.get('symbol')); state.alerts.push({ symbol, name: String(f.get('name') || quotes[symbol]?.name || ''), type: f.get('type'), target: normalizePrice(f.get('target')), active: true }); save(); event.target.reset(); render(); }
   function removeAlert(index) { state.alerts.splice(index, 1); save(); render(); }
   function addEvent(event) { event.preventDefault(); const f = new FormData(event.target); state.events.push({ date: f.get('date'), title: String(f.get('title') || '').trim(), kind: f.get('kind') }); state.events.sort((a, b) => a.date.localeCompare(b.date)); save(); event.target.reset(); render(); }
@@ -185,6 +208,7 @@
     const body = positionsBody; if (body) { body.innerHTML = rows.length ? rows.map(r => `<tr draggable="true" data-position-symbol="${esc(r.p.symbol)}"><td><span class="workbench-drag-handle" title="拖动调整顺序">⠿</span>${esc(r.p.symbol)}</td><td><strong>${esc(r.p.name)}</strong></td><td>${money(r.p.quantity)}</td><td>${r.p.cost.toFixed(3)}</td><td>${r.price.toFixed(3)}</td><td>${money(r.value)}</td><td class="${r.profit >= 0 ? 'workbench-positive' : 'workbench-negative'}">${r.profit >= 0 ? '+' : ''}${money(r.profit)}</td><td><button type="button" onclick="InvestmentWorkbench.removePosition(${r.i})">删除</button></td></tr>`).join('') : '<tr><td colspan="8" class="workbench-empty">还没有模拟持仓，先记录一笔买入</td></tr>'; bindPositionDrag(body); }
     const alertEl = document.getElementById('wb-alerts'); if (alertEl) alertEl.innerHTML = state.alerts.length ? state.alerts.map((a, i) => { const q = quotes[a.symbol]; const hit = evaluateAlerts().includes(a); return `<div class="workbench-item"><span><strong>${esc(ruleName(a))}</strong><small>${esc(a.symbol)} · ${a.type === 'above' ? '价格高于' : '价格低于'} ${money(a.target)} · 当前 ${q ? money(q.price) : '--'}</small></span><span class="${hit ? 'workbench-positive' : 'workbench-muted'}">${hit ? '已触发' : '等待'} <button type="button" onclick="InvestmentWorkbench.removeAlert(${i})">✕</button></span></div>`; }).join('') : '<div class="workbench-empty">添加价格条件后，刷新估值会自动检查</div>';
     const eventEl = document.getElementById('wb-events'); if (eventEl) eventEl.innerHTML = state.events.length ? state.events.map((e, i) => `<div class="workbench-item"><span><strong>${esc(e.title)}</strong><small>${esc(e.kind)} · ${esc(e.date)}</small></span><button type="button" onclick="InvestmentWorkbench.removeEvent(${i})">✕</button></div>`).join('') : '<div class="workbench-empty">暂无事件</div>';
+    const tradesEl = document.getElementById('wb-trades'); if (tradesEl) tradesEl.innerHTML = state.trades.length ? state.trades.slice().reverse().map((t, i) => { const index = state.trades.length - 1 - i; const side = String(t.side || '').toLowerCase() === 'sell'; const timestamp = num(t.at); const time = timestamp > 0 ? new Date(timestamp).toLocaleString('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }) : '--'; return `<div class="workbench-item trade-record"><span><strong class="${side ? 'workbench-negative' : 'workbench-positive'}">${side ? '卖出' : '买入'} · ${esc(t.name || t.symbol)}</strong><small>${esc(t.symbol)} · ${time} · ${money(num(t.quantity))} 股 · ${num(t.price).toFixed(3)}</small></span><button type="button" title="删除后按剩余记录重算持仓" onclick="InvestmentWorkbench.removeTrade(${index})">删除</button></div>`; }).join('') : '<div class="workbench-empty">暂无买卖操作记录</div>';
     const select = document.getElementById('wb-replay-symbol'); if (select) { const current = select.value; select.innerHTML = rows.length ? rows.map(r => `<option value="${esc(r.p.symbol)}">${esc(r.p.name)} · ${esc(r.p.symbol)}</option>`).join('') : '<option value="">先添加持仓</option>'; if (rows.some(r => r.p.symbol === current)) select.value = current; }
     replay();
     notifyTriggeredAlerts();
@@ -198,7 +222,7 @@
   function exportData() { const lines = [['symbol', 'name', 'quantity', 'cost', 'lastPrice', 'marketValue'], ...state.positions.map(p => [p.symbol, p.name, p.quantity, p.cost, p.lastPrice || '', (p.lastPrice || p.cost) * p.quantity]), [], ['alerts'], ['symbol', 'type', 'target'], ...state.alerts.map(a => [a.symbol, a.type, a.target]), [], ['events'], ['date', 'kind', 'title'], ...state.events.map(e => [e.date, e.kind, e.title])]; const csv = lines.map(row => row.map(v => `"${String(v ?? '').replace(/"/g, '""')}"`).join(',')).join('\n'); const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `investment-workbench-${new Date().toISOString().slice(0, 10)}.csv`; a.click(); URL.revokeObjectURL(a.href); }
   function openResearch() { const symbol = document.getElementById('wb-replay-symbol')?.value; if (symbol && typeof window.openModal === 'function') window.openModal(symbol); else show('请先添加并选择一个持仓'); }
   function aiSummary() { const p = state.positions.map(x => `${x.name}(${x.symbol}) ${x.quantity}股，成本${x.cost}`).join('；'); const input = document.getElementById('ai-message-input'); if (typeof window.switchAppPage === 'function' && window.hasAiMenuAccess?.()) { window.switchAppPage('ai'); setTimeout(() => { if (input) input.value = `请基于我的模拟持仓生成研究摘要，列出基本面、估值、催化剂和风险：${p || '目前没有持仓'}`; }, 50); } else show('请先开启 AI 问股权限'); }
-  window.InvestmentWorkbench = { render, refreshQuotes, addPosition, recordTrade, openTrade, submitTrade, fillRealtimePrice, closeTradeDialog, openAlert, submitAlert, closeAlertDialog, removePosition, addAlert, removeAlert, addEvent, removeEvent, replay, runBacktest, exportData, aiSummary, openResearch };
+  window.InvestmentWorkbench = { render, refreshQuotes, addPosition, recordTrade, openTrade, submitTrade, fillRealtimePrice, closeTradeDialog, openAlert, submitAlert, closeAlertDialog, removePosition, removeTrade, addAlert, removeAlert, addEvent, removeEvent, replay, runBacktest, exportData, aiSummary, openResearch };
   window.addEventListener('resize', () => { if (document.getElementById('page-workbench')?.classList.contains('active')) draw(replayRows); });
   window.setInterval(() => { if (window.currentUser && state.positions.length) refreshQuotes(); }, 15000);
   render();
