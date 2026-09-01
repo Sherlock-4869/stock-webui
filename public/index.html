@@ -142,7 +142,7 @@ body.market-sorting,body.market-sorting *{cursor:grabbing!important;user-select:
 .batch-bar.visible{display:flex}.batch-count{color:#8b949e;font-size:12px;margin-right:auto}.batch-check{display:none;width:15px;height:15px;margin-right:7px;vertical-align:-2px;accent-color:#238636;cursor:pointer}
 #stock-table.selection-mode .batch-check{display:inline-block}
 .batch-action:disabled{opacity:.4;cursor:not-allowed}
-.search-wrap{position:relative;width:320px}
+.search-wrap{position:relative;width:320px;min-width:220px;flex:0 1 320px}
 .search-wrap input{width:100%;background:#21262d;border:1px solid #30363d;border-radius:6px;color:#e6edf3;padding:8px 32px 8px 12px;font-size:14px;outline:none;transition:border-color .15s}
 .search-wrap input:focus{border-color:#58a6ff}
 .search-wrap input::placeholder{color:#6e7681}
@@ -153,11 +153,11 @@ body.market-sorting,body.market-sorting *{cursor:grabbing!important;user-select:
 .add-btn.ready:hover{background:#2ea043}
 .dropdown{position:absolute;top:calc(100% + 4px);left:0;right:0;background:#21262d;border:1px solid #30363d;border-radius:6px;overflow:hidden;z-index:100;box-shadow:0 8px 24px rgba(0,0,0,.4);display:none}
 .dropdown.open{display:block}
-.dd-item{display:flex;align-items:center;gap:10px;padding:9px 12px;cursor:pointer;font-size:13px;transition:background .1s}
+.dd-item{display:flex;align-items:center;gap:10px;min-width:0;padding:9px 12px;cursor:pointer;font-size:13px;transition:background .1s}
 .dd-item:hover,.dd-item.active{background:#2d333b}
 .dd-item.selected{background:#1f3a5f}
-.dd-name{flex:1;font-weight:500}
-.dd-code{color:#8b949e;font-size:12px;font-family:monospace}
+.dd-name{flex:1;min-width:0;overflow:hidden;font-weight:500;text-overflow:ellipsis;white-space:nowrap}
+.dd-code{flex:none;max-width:42%;overflow:hidden;color:#8b949e;font-size:12px;font-family:monospace;text-overflow:ellipsis;white-space:nowrap}
 .dd-empty{padding:12px;color:#6e7681;font-size:13px;text-align:center}
 .dd-loading{padding:12px;color:#8b949e;font-size:13px;text-align:center}
 table{width:100%;border-collapse:collapse;background:#161b22;border-radius:8px;overflow:hidden;border:1px solid #30363d}
