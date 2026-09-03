@@ -16,7 +16,7 @@
 - 侧边栏“站点推荐”打开站内资源目录，集中展示数据库驱动的推荐链接，并在新标签页中打开。
 - 参考文档由管理员在“参考文档管理”中维护，可导入或编辑多篇 Markdown 文档；编辑器支持分栏预览、专注编辑、实时字符计数和快捷保存。用户可在当前页面选择文档阅读、目录定位、重新加载、下载或新窗口打开。文档内容仅供参考。
 - 通过 `https://stock.sherlock-holmes.cn/?page=ipo` 直接打开打新页面。
-- “投资工作台”提供浏览器本地的模拟持仓与买卖记录、实时估值、集中度风险、自定义价格预警、事件日历、F10 研究卡入口、AI 摘要入口、日 K 行情回放、5/20 日均线简化回测和 CSV 导出；自选行情列表末尾也可直接模拟买入/卖出；不连接真实券商，也不会发出交易指令。预警目前只在浏览器内标记触发，不会自动发送微信、短信或邮件。
+- “投资工作台”提供模拟持仓与买卖记录、实时估值、集中度风险、自定义价格预警、事件日历、F10 研究卡入口、AI 摘要入口、日 K 行情回放、5/20 日均线简化回测和 CSV 导出；登录后工作台数据按账号保存并在多设备间同步，游客继续使用本地数据，首次登录可将本地数据迁入账号；自选行情列表末尾也可直接模拟买入/卖出；不连接真实券商，也不会发出交易指令。预警目前只在浏览器内标记触发，不会自动发送微信、短信或邮件。
 - 接收公众号关注、取消关注、文本消息和自定义菜单事件。
 - 每周一 `09:00` 按上海时区汇总本周可申购新股和新债。
 - 每天 `09:00` 检查当日可申购新股和新债，有数据时追加发送当日提醒，无数据时不推送。
@@ -187,6 +187,17 @@ CREATE TABLE IF NOT EXISTS user_page_preferences (
   updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (user_id),
   CONSTRAINT fk_user_preferences_user
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS user_workbench_data (
+  user_id BIGINT UNSIGNED NOT NULL,
+  data_json JSON NOT NULL COMMENT '投资工作台持仓、交易、预警和事件数据',
+  data_version INT UNSIGNED NOT NULL DEFAULT 1,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (user_id),
+  CONSTRAINT fk_user_workbench_user
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 

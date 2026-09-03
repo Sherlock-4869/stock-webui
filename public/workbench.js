@@ -1,21 +1,78 @@
-/* Investment workbench: a browser-local portfolio, alert, replay and backtest MVP. */
+/* Investment workbench: guest-local data with account-scoped cloud synchronization. */
 (function () {
   'use strict';
-  const KEY = 'investment_workbench_v1';
-  const state = (() => { try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch (_) { return {}; } })();
-  state.positions = Array.isArray(state.positions) ? state.positions : [];
-  state.alerts = Array.isArray(state.alerts) ? state.alerts : [];
-  state.events = Array.isArray(state.events) ? state.events : [
-    { date: new Date().toISOString().slice(0, 10), title: '今日市场复盘', kind: '复盘' },
-    { date: new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10), title: '记录下周观察重点', kind: '研究' },
-  ];
-  state.trades = Array.isArray(state.trades) ? state.trades : [];
-  state.alertNotified = state.alertNotified && typeof state.alertNotified === 'object' ? state.alertNotified : {};
+  const GUEST_KEY = 'investment_workbench_v1';
+  const USER_KEY_PREFIX = 'investment_workbench_user_';
+  const state = {};
+  let activeUserId = null;
+  let syncTimer = null;
+  let lastSynced = '';
+  function storageKey() { return activeUserId ? `${USER_KEY_PREFIX}${activeUserId}` : GUEST_KEY; }
+  function readLocal(key = storageKey()) { try { return JSON.parse(localStorage.getItem(key)) || {}; } catch (_) { return {}; } }
+  function applyState(value) {
+    const source = value && typeof value === 'object' ? value : {};
+    state.positions = Array.isArray(source.positions) ? source.positions : [];
+    state.alerts = Array.isArray(source.alerts) ? source.alerts : [];
+    state.events = Array.isArray(source.events) ? source.events : [
+      { date: new Date().toISOString().slice(0, 10), title: '今日市场复盘', kind: '复盘' },
+      { date: new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10), title: '记录下周观察重点', kind: '研究' },
+    ];
+    state.trades = Array.isArray(source.trades) ? source.trades : [];
+    state.alertNotified = source.alertNotified && typeof source.alertNotified === 'object' ? source.alertNotified : {};
+  }
+  applyState(readLocal());
   const quotes = {};
   let replayRows = [];
   let activeTrade = null;
 
-  function save() { localStorage.setItem(KEY, JSON.stringify(state)); }
+  function cloudData() { return { version:1, positions:state.positions, trades:state.trades, alerts:state.alerts, events:state.events }; }
+  function save() {
+    localStorage.setItem(storageKey(), JSON.stringify({ ...cloudData(), alertNotified:state.alertNotified }));
+    if (activeUserId) scheduleSync();
+  }
+  function scheduleSync() {
+    clearTimeout(syncTimer);
+    syncTimer = setTimeout(() => syncToAccount(), 700);
+  }
+  async function syncToAccount({ force = false } = {}) {
+    if (!activeUserId || typeof window.apiRequest !== 'function') return false;
+    const data = cloudData(); const serialized = JSON.stringify(data);
+    if (!force && serialized === lastSynced) return true;
+    try {
+      const payload = await window.apiRequest('/api/workbench', { method:'PUT', body:JSON.stringify({ data }) });
+      lastSynced = JSON.stringify(payload.data || data);
+      return true;
+    } catch (_) { return false; }
+  }
+  async function activateAccount(userId) {
+    const normalizedUserId = String(userId || '');
+    if (!normalizedUserId) return;
+    await syncToAccount({ force:true });
+    activeUserId = normalizedUserId;
+    lastSynced = '';
+    const guestData = readLocal(GUEST_KEY);
+    const cachedUserData = readLocal(storageKey());
+    try {
+      const payload = await window.apiRequest('/api/workbench', { method:'GET', headers:{} });
+      const remoteData = payload.data;
+      if (remoteData) {
+        applyState(remoteData);
+        localStorage.setItem(storageKey(), JSON.stringify({ ...remoteData, alertNotified:cachedUserData.alertNotified || {} }));
+        lastSynced = JSON.stringify(remoteData);
+      } else {
+        const initial = cachedUserData.positions?.length || cachedUserData.trades?.length || cachedUserData.alerts?.length || cachedUserData.events?.length ? cachedUserData : guestData;
+        applyState(initial);
+        save();
+        await syncToAccount({ force:true });
+        if (initial === guestData && (guestData.positions?.length || guestData.trades?.length || guestData.alerts?.length)) show('已将当前浏览器的投资工作台迁入此账号');
+      }
+      render(); refreshQuotes();
+    } catch (_) {
+      applyState(cachedUserData);
+      render();
+      show('工作台云端同步暂不可用，暂时使用本机副本');
+    }
+  }
   function num(v) { const n = Number(v); return Number.isFinite(n) ? n : 0; }
   function money(v) { return Number.isFinite(v) ? v.toLocaleString('zh-CN', { maximumFractionDigits: 2 }) : '--'; }
   function pct(v) { return Number.isFinite(v) ? `${v >= 0 ? '+' : ''}${v.toFixed(2)}%` : '--'; }
@@ -229,7 +286,7 @@
   function exportData() { const lines = [['symbol', 'name', 'quantity', 'cost', 'lastPrice', 'marketValue'], ...state.positions.map(p => [p.symbol, p.name, p.quantity, p.cost, p.lastPrice || '', (p.lastPrice || p.cost) * p.quantity]), [], ['alerts'], ['symbol', 'type', 'target'], ...state.alerts.map(a => [a.symbol, a.type, a.target]), [], ['events'], ['date', 'kind', 'title'], ...state.events.map(e => [e.date, e.kind, e.title])]; const csv = lines.map(row => row.map(v => `"${String(v ?? '').replace(/"/g, '""')}"`).join(',')).join('\n'); const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `investment-workbench-${new Date().toISOString().slice(0, 10)}.csv`; a.click(); URL.revokeObjectURL(a.href); }
   function openResearch() { const symbol = document.getElementById('wb-replay-symbol')?.value; if (symbol && typeof window.openModal === 'function') window.openModal(symbol); else show('请先添加并选择一个持仓'); }
   function aiSummary() { const p = state.positions.map(x => `${x.name}(${x.symbol}) ${x.quantity}股，成本${x.cost}`).join('；'); const input = document.getElementById('ai-message-input'); if (typeof window.switchAppPage === 'function' && window.hasAiMenuAccess?.()) { window.switchAppPage('ai'); setTimeout(() => { if (input) input.value = `请基于我的模拟持仓生成研究摘要，列出基本面、估值、催化剂和风险：${p || '目前没有持仓'}`; }, 50); } else show('请先开启 AI 问股权限'); }
-  window.InvestmentWorkbench = { render, refreshQuotes, addPosition, recordTrade, openTrade, submitTrade, fillRealtimePrice, closeTradeDialog, openAlert, submitAlert, closeAlertDialog, removePosition, removeTrade, addAlert, removeAlert, addEvent, removeEvent, replay, runBacktest, exportData, aiSummary, openResearch };
+  window.InvestmentWorkbench = { render, refreshQuotes, addPosition, recordTrade, openTrade, submitTrade, fillRealtimePrice, closeTradeDialog, openAlert, submitAlert, removePosition, removeTrade, addAlert, removeAlert, addEvent, removeEvent, replay, runBacktest, exportData, aiSummary, openResearch, activateAccount, flushSync:() => syncToAccount({ force:true }) };
   window.addEventListener('resize', () => { if (document.getElementById('page-workbench')?.classList.contains('active')) draw(replayRows); });
   window.setInterval(() => { if (window.currentUser && state.positions.length) refreshQuotes(); }, 15000);
   render();

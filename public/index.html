@@ -6687,6 +6687,7 @@ async function logoutAccount() {
     closeChatRoom();
     await flushPendingNoteSave();
     await syncAccountPreferences(true);
+    await window.InvestmentWorkbench?.flushSync?.();
     await apiRequest('/api/auth/logout', { method:'POST', body:'{}' });
     restoreGuestConfigBackup();
     location.reload();
@@ -6712,6 +6713,7 @@ async function bootstrapAccount() {
     } else if (!currentUser && localStorage.getItem(ACCOUNT_GUEST_BACKUP_KEY)) {
       restoreGuestConfigBackup();
     }
+    if (currentUser) await window.InvestmentWorkbench?.activateAccount?.(currentUser.id);
   } catch (_) {
     accountServiceEnabled = null;
     wechatLoginEnabled = false;

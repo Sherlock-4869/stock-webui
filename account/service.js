@@ -13,6 +13,7 @@ const {
   validateAvatarData,
   safeAvatarUrl,
   sanitizePageConfig,
+  sanitizeWorkbenchState,
   randomToken,
   tokenHash,
 } = require('./security');
@@ -471,7 +472,7 @@ class AccountService {
     // AI administration has its own service, but keeps this account service as
     // the authentication and persistence authority.
     if (pathname.startsWith('/api/admin/ai/')) return false;
-    if (!pathname.startsWith('/api/auth/') && !pathname.startsWith('/api/notes') && !pathname.startsWith('/api/note-folders') && !pathname.startsWith('/api/admin/') && !pathname.startsWith('/api/inbox') && pathname !== '/api/site-recommendations') return false;
+    if (!pathname.startsWith('/api/auth/') && !pathname.startsWith('/api/notes') && !pathname.startsWith('/api/note-folders') && !pathname.startsWith('/api/admin/') && !pathname.startsWith('/api/inbox') && pathname !== '/api/site-recommendations' && pathname !== '/api/workbench') return false;
 
     try {
       if (pathname === '/api/site-recommendations') {
@@ -506,6 +507,26 @@ class AccountService {
         sendJson(res, 200, session
           ? await this.authPayload(session.user)
           : { enabled: true, wechatEnabled: this.config.wechat.enabled, user: null, config: null, needsConfigDecision: false });
+        return true;
+      }
+
+      if (pathname === '/api/workbench') {
+        if (!this.config.enabled || !this.ready) { sendJson(res, 503, { error:'投资工作台同步暂不可用' }); return true; }
+        const session = await this.requireUser(req);
+        if (req.method === 'GET') {
+          const data = await this.database.getWorkbench(session.user.id);
+          sendJson(res, 200, { data });
+          return true;
+        }
+        if (req.method === 'PUT') {
+          assertSameOrigin(req);
+          const body = await readJson(req, 768 * 1024);
+          const data = sanitizeWorkbenchState(body.data);
+          await this.database.saveWorkbench(session.user.id, data);
+          sendJson(res, 200, { saved:true, data });
+          return true;
+        }
+        sendJson(res, 405, { error:'Method Not Allowed' }, { Allow:'GET, PUT' });
         return true;
       }
 

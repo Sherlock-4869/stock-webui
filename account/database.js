@@ -60,6 +60,15 @@ const SCHEMA_STATEMENTS = [
     PRIMARY KEY (user_id),
     CONSTRAINT fk_user_preferences_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
+  `CREATE TABLE IF NOT EXISTS user_workbench_data (
+    user_id BIGINT UNSIGNED NOT NULL,
+    data_json JSON NOT NULL,
+    data_version INT UNSIGNED NOT NULL DEFAULT 1,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (user_id),
+    CONSTRAINT fk_user_workbench_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
   `CREATE TABLE IF NOT EXISTS user_oauth_states (
     state_hash CHAR(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
     provider VARCHAR(20) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
@@ -873,6 +882,22 @@ class AccountDatabase {
     );
   }
 
+  async getWorkbench(userId) {
+    const [rows] = await this.requirePool().execute(
+      'SELECT data_json FROM user_workbench_data WHERE user_id=?', [userId]
+    );
+    return rows[0] ? parseJson(rows[0].data_json) : null;
+  }
+
+  async saveWorkbench(userId, data) {
+    await this.requirePool().execute(
+      `INSERT INTO user_workbench_data (user_id, data_json, data_version)
+       VALUES (?, ?, 1)
+       ON DUPLICATE KEY UPDATE data_json=VALUES(data_json), data_version=data_version+1`,
+      [userId, JSON.stringify(data)]
+    );
+  }
+
   async markConfigDecided(userId) {
     await this.requirePool().execute(
       'UPDATE users SET config_decided_at=COALESCE(config_decided_at, NOW()) WHERE id=?',
@@ -1293,6 +1318,7 @@ class MemoryAccountDatabase {
     this.identities = new Map();
     this.sessions = new Map();
     this.preferences = new Map();
+    this.workbench = new Map();
     this.states = new Map();
     this.notes = new Map();
     this.noteFolders = new Map();
@@ -1591,6 +1617,8 @@ class MemoryAccountDatabase {
   async deleteSession(tokenHash) { this.sessions.delete(tokenHash); }
   async getPreferences(userId) { return this.preferences.has(Number(userId)) ? structuredClone(this.preferences.get(Number(userId))) : null; }
   async savePreferences(userId, config) { this.preferences.set(Number(userId), structuredClone(config)); }
+  async getWorkbench(userId) { return this.workbench.has(Number(userId)) ? structuredClone(this.workbench.get(Number(userId))) : null; }
+  async saveWorkbench(userId, data) { this.workbench.set(Number(userId), structuredClone(data)); }
   async markConfigDecided(userId) {
     const user = this.users.get(Number(userId));
     if (user && !user.config_decided_at) user.config_decided_at = new Date();

@@ -9,6 +9,7 @@ const SCRYPT_R = 8;
 const SCRYPT_P = 1;
 const SCRYPT_LENGTH = 64;
 const MAX_CONFIG_BYTES = 256 * 1024;
+const MAX_WORKBENCH_BYTES = 512 * 1024;
 const MAX_AVATAR_BYTES = 160 * 1024;
 const AVATAR_IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
 const CONFIG_KEYS = Object.freeze([
@@ -137,6 +138,51 @@ function sanitizePageConfig(input) {
   return config;
 }
 
+function sanitizeWorkbenchState(input) {
+  const source = input && typeof input === 'object' && !Array.isArray(input) ? input : {};
+  const cleanSymbol = value => {
+    const symbol = String(value || '').trim().toLowerCase();
+    return /^[a-z0-9._-]{1,32}$/.test(symbol) ? symbol : '';
+  };
+  const cleanNumber = (value, { positive = false } = {}) => {
+    const number = Number(value);
+    if (!Number.isFinite(number) || (positive && number <= 0)) return null;
+    return Math.round(number * 1000000) / 1000000;
+  };
+  const positions = (Array.isArray(source.positions) ? source.positions : []).slice(0, 500).map(item => ({
+    symbol: cleanSymbol(item?.symbol),
+    name: String(item?.name || '').trim().slice(0, 80),
+    quantity: cleanNumber(item?.quantity, { positive:true }),
+    cost: cleanNumber(item?.cost, { positive:true }),
+    lastPrice: cleanNumber(item?.lastPrice, { positive:true }),
+  })).filter(item => item.symbol && item.quantity !== null && item.cost !== null);
+  const trades = (Array.isArray(source.trades) ? source.trades : []).slice(-2000).map(item => ({
+    at: Math.max(0, Math.floor(Number(item?.at) || 0)),
+    symbol: cleanSymbol(item?.symbol),
+    name: String(item?.name || '').trim().slice(0, 80),
+    side: String(item?.side || '').toUpperCase() === 'SELL' ? 'SELL' : 'BUY',
+    quantity: cleanNumber(item?.quantity, { positive:true }),
+    price: cleanNumber(item?.price, { positive:true }),
+  })).filter(item => item.symbol && item.quantity !== null && item.price !== null);
+  const alerts = (Array.isArray(source.alerts) ? source.alerts : []).slice(0, 500).map(item => ({
+    symbol: cleanSymbol(item?.symbol),
+    name: String(item?.name || '').trim().slice(0, 80),
+    type: item?.type === 'below' ? 'below' : 'above',
+    target: cleanNumber(item?.target, { positive:true }),
+    active: item?.active !== false,
+  })).filter(item => item.symbol && item.target !== null);
+  const events = (Array.isArray(source.events) ? source.events : []).slice(0, 500).map(item => ({
+    date: String(item?.date || '').slice(0, 10),
+    title: String(item?.title || '').trim().slice(0, 160),
+    kind: String(item?.kind || '其他').trim().slice(0, 40),
+  })).filter(item => /^\d{4}-\d{2}-\d{2}$/.test(item.date) && item.title);
+  const value = { version:1, positions, trades, alerts, events };
+  if (Buffer.byteLength(JSON.stringify(value), 'utf8') > MAX_WORKBENCH_BYTES) {
+    throw Object.assign(new Error('投资工作台数据超过 512KB 限制'), { statusCode: 413 });
+  }
+  return value;
+}
+
 function randomToken(bytes = 32) {
   return crypto.randomBytes(bytes).toString('base64url');
 }
@@ -157,6 +203,8 @@ module.exports = {
   validateAvatarData,
   safeAvatarUrl,
   sanitizePageConfig,
+  sanitizeWorkbenchState,
+  MAX_WORKBENCH_BYTES,
   randomToken,
   tokenHash,
 };

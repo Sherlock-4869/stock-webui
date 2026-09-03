@@ -9,7 +9,7 @@ const { AccountService } = require('../account/service');
 const {
   MemoryAccountDatabase, SCHEMA_STATEMENTS, ensureSiteRecommendationVisibilitySchema, ensureAvatarSchema,
 } = require('../account/database');
-const { hashPassword, verifyPassword, sanitizePageConfig } = require('../account/security');
+const { hashPassword, verifyPassword, sanitizePageConfig, sanitizeWorkbenchState } = require('../account/security');
 
 async function startTestService() {
   const service = new AccountService({
@@ -86,6 +86,57 @@ test('page config keeps only supported LocalStorage keys', () => {
   } });
 });
 
+test('workbench data is bounded and keeps only valid fields', () => {
+  const data = sanitizeWorkbenchState({
+    positions:[{ symbol:'SH600519', name:'贵州茅台', quantity:100, cost:1500, ignored:'x' }],
+    trades:[{ at:1, symbol:'sh600519', side:'sell', quantity:20, price:1600 }],
+    alerts:[{ symbol:'sh600519', type:'below', target:1400, active:false }],
+    events:[{ date:'2026-09-03', title:'查看公告', kind:'研究' }],
+    arbitrary:'discarded',
+  });
+  assert.deepEqual(data, {
+    version:1,
+    positions:[{ symbol:'sh600519', name:'贵州茅台', quantity:100, cost:1500, lastPrice:null }],
+    trades:[{ at:1, symbol:'sh600519', name:'', side:'SELL', quantity:20, price:1600 }],
+    alerts:[{ symbol:'sh600519', name:'', type:'below', target:1400, active:false }],
+    events:[{ date:'2026-09-03', title:'查看公告', kind:'研究' }],
+  });
+});
+
+test('investment workbench is persisted and isolated by account', async t => {
+  const app = await startTestService();
+  t.after(app.close);
+  const first = await jsonRequest(app.service, '/api/auth/register', {
+    method:'POST', body:{ username:'workbench_one', password:'password-123', displayName:'甲' },
+  });
+  const second = await jsonRequest(app.service, '/api/auth/register', {
+    method:'POST', body:{ username:'workbench_two', password:'password-123', displayName:'乙' },
+  });
+  const firstCookie = cookieFrom(first), secondCookie = cookieFrom(second);
+  const beforeLogin = await jsonRequest(app.service, '/api/workbench');
+  assert.equal(beforeLogin.response.status, 401);
+
+  const saved = await jsonRequest(app.service, '/api/workbench', {
+    method:'PUT', cookie:firstCookie,
+    body:{ data:{ positions:[{ symbol:'sh600519', name:'贵州茅台', quantity:100, cost:1500 }], trades:[], alerts:[], events:[] } },
+  });
+  assert.equal(saved.response.status, 200);
+  assert.equal(saved.payload.data.positions[0].symbol, 'sh600519');
+
+  const firstRead = await jsonRequest(app.service, '/api/workbench', { cookie:firstCookie });
+  const secondRead = await jsonRequest(app.service, '/api/workbench', { cookie:secondCookie });
+  assert.equal(firstRead.payload.data.positions.length, 1);
+  assert.equal(secondRead.payload.data, null);
+
+  const secondSaved = await jsonRequest(app.service, '/api/workbench', {
+    method:'PUT', cookie:secondCookie,
+    body:{ data:{ positions:[{ symbol:'sz000001', quantity:200, cost:12 }], trades:[], alerts:[], events:[] } },
+  });
+  assert.equal(secondSaved.response.status, 200);
+  const firstAfterSecondWrite = await jsonRequest(app.service, '/api/workbench', { cookie:firstCookie });
+  assert.equal(firstAfterSecondWrite.payload.data.positions[0].symbol, 'sh600519');
+});
+
 test('site recommendations start empty and remain publicly readable', async t => {
   const runtimeSchema = SCHEMA_STATEMENTS.join('\n');
   const canonicalSchema = fs.readFileSync(path.join(__dirname, '..', 'database', 'account_schema.sql'), 'utf8');
@@ -94,6 +145,8 @@ test('site recommendations start empty and remain publicly readable', async t =>
     assert.match(schema, /CREATE TABLE IF NOT EXISTS site_recommendations/);
     assert.match(schema, /CREATE TABLE IF NOT EXISTS reference_documents/);
     assert.match(schema, /CREATE TABLE IF NOT EXISTS stock_fund_flow_history_cache/);
+    assert.match(schema, /CREATE TABLE IF NOT EXISTS user_workbench_data/);
+    assert.match(schema, /data_json JSON NOT NULL/);
     assert.match(schema, /source VARCHAR\(40\)/);
     assert.match(schema, /CREATE TABLE IF NOT EXISTS chat_messages/);
     assert.match(schema, /is_admin TINYINT\(1\) NOT NULL DEFAULT 0/);
