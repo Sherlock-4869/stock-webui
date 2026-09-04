@@ -3027,6 +3027,7 @@ async function loadOrderBook({ force = false } = {}) {
     const response = await fetch(`/api/order-book?symbol=${encodeURIComponent(symbol)}${force ? '&refresh=1' : ''}`);
     const payload = await response.json().catch(() => ({}));
     if (!response.ok) throw new Error(payload.error || 'order book request failed');
+    if (payload.stale) throw new Error('stale order book snapshot');
     if (requestId !== orderBookRequestId || modalSym !== symbol || currentTab !== 'orderBook') return;
     renderOrderBook(payload);
     if (status) status.textContent = `${payload.stale ? '缓存快照（上游暂不可用）' : '实时快照'} · ${new Date(payload.fetchedAt || Date.now()).toLocaleTimeString('zh-CN', {hour:'2-digit',minute:'2-digit',second:'2-digit'})}`;
