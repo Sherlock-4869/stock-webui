@@ -200,6 +200,8 @@ const DERIVATIVES_RATE_LIMIT_MAX = 120;
 const STOCK_INFORMATION_RATE_LIMIT_MAX = 60;
 const ORDER_BOOK_CACHE_MS = 2500;
 const orderBookCache = new Map();
+const ORDER_BOOK_RATE_LIMIT_MAX = 180;
+const orderBookRateLimitBuckets = new Map();
 
 const CFFEX_NODES = { IF:'qz_qh', IH:'szgz_qh', IC:'zzgz_qh', IM:'im_qh' };
 const US_NEWS_KEYWORDS = [
@@ -319,6 +321,16 @@ async function proxyOrderBook(urlObj, res) {
     if (cached?.data) {
       sendJson(res, 200, { ...cached.data, updatedAt:cached.data.updated || null,
         fetchedAt:cached.fetchedAt, stale:true, source:'腾讯财经公开行情' });
+      return;
+    }
+    // The regular watchlist quote endpoint uses the same Tencent source and
+    // keeps a longer-lived per-symbol snapshot. Reuse it when the dedicated
+    // request is briefly blocked by DNS, rate limiting, or an upstream timeout.
+    const quoteFallback = quoteSnapshotCache.compose([symbol]).text;
+    const fallbackData = parseTencentOrderBook(symbol, quoteFallback);
+    if (fallbackData) {
+      sendJson(res, 200, { ...fallbackData, updatedAt:fallbackData.updated || null,
+        fetchedAt:Date.now(), stale:true, source:'腾讯财经公开行情（报价缓存回退）' });
       return;
     }
     sendJson(res, 502, { error:'盘口数据暂时不可用' });
@@ -1732,6 +1744,29 @@ function allowCapitalFlowRequest(req, res) {
   return false;
 }
 
+function allowOrderBookRequest(req, res) {
+  const now = Date.now();
+  if (orderBookRateLimitBuckets.size > 1000) {
+    for (const [key, value] of orderBookRateLimitBuckets) {
+      if (now - value.startedAt >= FUND_RATE_LIMIT_WINDOW_MS) orderBookRateLimitBuckets.delete(key);
+    }
+  }
+  const address = String(req.socket?.remoteAddress || 'unknown').slice(0, 100);
+  let bucket = orderBookRateLimitBuckets.get(address);
+  if (!bucket || now - bucket.startedAt >= FUND_RATE_LIMIT_WINDOW_MS) {
+    bucket = { startedAt:now, count:0 };
+    orderBookRateLimitBuckets.set(address, bucket);
+  }
+  bucket.count += 1;
+  if (bucket.count <= ORDER_BOOK_RATE_LIMIT_MAX) return true;
+  res.writeHead(429, {
+    'Content-Type':'application/json; charset=utf-8', 'Cache-Control':'no-store',
+    'Retry-After':String(Math.max(1, Math.ceil((bucket.startedAt + FUND_RATE_LIMIT_WINDOW_MS - now) / 1000))),
+  });
+  res.end(JSON.stringify({ error:'盘口请求过于频繁，请稍后再试' }));
+  return false;
+}
+
 function allowLimitPoolRequest(req, res) {
   const now = Date.now();
   if (limitPoolRateLimitBuckets.size > 1000) {
@@ -2046,7 +2081,7 @@ const server = http.createServer(async (req, res) => {
   // Level-5 style snapshot (five bid/ask levels) plus a lightweight
   // intraday signal derived from the current quote and book imbalance.
   if (pathname === '/api/order-book' || pathname === '/api/intraday-signals') {
-    if (!allowCapitalFlowRequest(req, res)) return;
+    if (!allowOrderBookRequest(req, res)) return;
     await proxyOrderBook(urlObj, res);
     return;
   }

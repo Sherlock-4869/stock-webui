@@ -3029,7 +3029,7 @@ async function loadOrderBook({ force = false } = {}) {
     if (!response.ok) throw new Error(payload.error || 'order book request failed');
     if (requestId !== orderBookRequestId || modalSym !== symbol || currentTab !== 'orderBook') return;
     renderOrderBook(payload);
-    if (status) status.textContent = `实时快照 · ${new Date(payload.fetchedAt || Date.now()).toLocaleTimeString('zh-CN', {hour:'2-digit',minute:'2-digit',second:'2-digit'})}`;
+    if (status) status.textContent = `${payload.stale ? '缓存快照（上游暂不可用）' : '实时快照'} · ${new Date(payload.fetchedAt || Date.now()).toLocaleTimeString('zh-CN', {hour:'2-digit',minute:'2-digit',second:'2-digit'})}`;
   } catch (error) {
     if (requestId !== orderBookRequestId || modalSym !== symbol) return;
     console.error('loadOrderBook error:', error);
