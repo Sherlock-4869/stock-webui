@@ -54,6 +54,7 @@ const {
   parseSinaStockNews,
 } = require('./stock-information');
 const { normalizeLimitPoolPayload } = require('./limit-pools');
+const { parseTencentOrderBook } = require('./order-book');
 
 const PORT = 3000;
 const PUBLIC_DIR = path.join(__dirname, 'public');
@@ -197,6 +198,8 @@ const CAPITAL_FLOW_RATE_LIMIT_MAX = 120;
 const LIMIT_POOL_RATE_LIMIT_MAX = 60;
 const DERIVATIVES_RATE_LIMIT_MAX = 120;
 const STOCK_INFORMATION_RATE_LIMIT_MAX = 60;
+const ORDER_BOOK_CACHE_MS = 2500;
+const orderBookCache = new Map();
 
 const CFFEX_NODES = { IF:'qz_qh', IH:'szgz_qh', IC:'zzgz_qh', IM:'im_qh' };
 const US_NEWS_KEYWORDS = [
@@ -283,6 +286,43 @@ async function proxyQuote(symbols, res) {
     'X-Stock-Fetched-At':String(Date.now()),
   });
   res.end(result.text);
+}
+
+async function proxyOrderBook(urlObj, res) {
+  const symbol = String(urlObj.searchParams.get('symbol') || urlObj.searchParams.get('sym') || '').trim().toLowerCase();
+  if (!/^s[hz]\d{6}$/.test(symbol) || !isAStockSymbol(symbol)) {
+    sendJson(res, 400, { error:'Invalid A-share symbol' });
+    return;
+  }
+  const force = urlObj.searchParams.get('refresh') === '1';
+  const now = Date.now();
+  const cached = orderBookCache.get(symbol);
+  if (!force && cached && now - cached.fetchedAt < ORDER_BOOK_CACHE_MS) {
+    sendJson(res, 200, { ...cached.data, fetchedAt:cached.fetchedAt, stale:false });
+    return;
+  }
+  try {
+    const buffer = await requestBuffer(`https://qt.gtimg.cn/q=${encodeURIComponent(symbol)}`, UPSTREAM_HEADERS, {
+      timeoutMs:8000, maxBytes:256 * 1024,
+    });
+    const data = parseTencentOrderBook(symbol, gbkDecode(buffer));
+    if (!data) throw new Error('Order book payload is empty');
+    const fetchedAt = Date.now();
+    if (orderBookCache.size >= 500 && !orderBookCache.has(symbol)) {
+      orderBookCache.delete(orderBookCache.keys().next().value);
+    }
+    orderBookCache.set(symbol, { data, fetchedAt });
+    sendJson(res, 200, { ...data, updatedAt:data.updated || null, fetchedAt, stale:false,
+      source:'腾讯财经公开行情' });
+  } catch (error) {
+    console.error('Order book upstream error:', error.message);
+    if (cached?.data) {
+      sendJson(res, 200, { ...cached.data, updatedAt:cached.data.updated || null,
+        fetchedAt:cached.fetchedAt, stale:true, source:'腾讯财经公开行情' });
+      return;
+    }
+    sendJson(res, 502, { error:'盘口数据暂时不可用' });
+  }
 }
 
 function proxyJson(url, res) {
@@ -2000,6 +2040,14 @@ const server = http.createServer(async (req, res) => {
     const symbols = normalizeQuoteSymbols(urlObj.searchParams.get('symbols'));
     if (!symbols) { res.writeHead(400); res.end('Invalid symbols or too many symbols'); return; }
     await proxyQuote(symbols, res);
+    return;
+  }
+
+  // Level-5 style snapshot (five bid/ask levels) plus a lightweight
+  // intraday signal derived from the current quote and book imbalance.
+  if (pathname === '/api/order-book' || pathname === '/api/intraday-signals') {
+    if (!allowCapitalFlowRequest(req, res)) return;
+    await proxyOrderBook(urlObj, res);
     return;
   }
 
