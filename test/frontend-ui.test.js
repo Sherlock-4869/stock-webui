@@ -433,6 +433,14 @@ test('global index cards open a quote detail with market-wide data for mainland 
   assert.match(html, /symbol:'usIXIC'/);
 });
 
+test('A-share detail exposes realtime order-book signals and refresh polling', () => {
+  assert.match(html, /data-tab="orderBook"[^>]*>盘口信号<\/div>/);
+  assert.match(html, /id="orderbook-panel"/);
+  assert.match(html, /fetch\(`\/api\/order-book\?symbol=/);
+  assert.match(html, /setInterval\(\(\) => \{ if \(!document\.hidden && currentTab === 'orderBook'\)/);
+  assert.match(html, /五档挂单/);
+});
+
 test('stock minute chart labels each market lunch break without separating the curve', () => {
   assert.match(html, /function findMinuteSessionBreak\(data\)/);
   assert.match(html, /function minuteTimeToMinutes\(value\)/);

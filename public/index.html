@@ -289,6 +289,7 @@ body.stock-sorting,body.stock-sorting *{cursor:grabbing!important;user-select:no
 .chart-area[hidden],.stats-grid[hidden],.stock-information-panel[hidden]{display:none!important}
 .stock-info-tabs{display:flex;gap:4px;margin:-2px 0 12px;overflow-x:auto;scrollbar-width:none}.stock-info-tabs::-webkit-scrollbar{display:none}.stock-info-tab{flex:none;border:1px solid #30363d;border-radius:5px;background:#161b22;color:#8b949e;padding:5px 10px;font-size:11px;cursor:pointer}.stock-info-tab:hover{border-color:#484f58;color:#c9d1d9}.stock-info-tab.active{border-color:#1f6feb;background:#1f3a5f;color:#79c0ff}
 .market-overview-panel{padding:14px 20px 20px}.market-overview-panel[hidden]{display:none!important}.market-detail-toolbar{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:12px}.market-detail-toolbar strong{display:block;font-size:14px}.market-detail-toolbar small{display:block;margin-top:4px;color:#8b949e;font-size:10px;line-height:1.5}.market-detail-loading,.market-detail-empty{display:grid;min-height:260px;place-content:center;color:#8b949e;text-align:center;font-size:12px;line-height:1.8}.market-detail-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1px;overflow:hidden;border:1px solid #30363d;border-radius:8px;background:#30363d}.market-detail-metric{min-width:0;padding:11px 12px;background:#161b22}.market-detail-metric label{display:block;color:#8b949e;font-size:9px}.market-detail-metric b{display:block;overflow:hidden;margin-top:5px;font-size:14px;text-overflow:ellipsis;white-space:nowrap}.market-detail-metric small{display:block;overflow:hidden;margin-top:4px;color:#6e7681;font-size:9px;text-overflow:ellipsis;white-space:nowrap}.market-detail-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:12px}.market-detail-section{overflow:hidden;border:1px solid #30363d;border-radius:8px;background:#161b22}.market-detail-section.wide{grid-column:span 2}.market-detail-section-head{display:flex;align-items:center;justify-content:space-between;gap:9px;padding:11px 13px;border-bottom:1px solid #30363d}.market-detail-section-head strong{font-size:12px}.market-detail-section-head span{color:#6e7681;font-size:9px}.market-fund-row,.market-sector-row{display:grid;grid-template-columns:minmax(80px,1fr) auto auto;align-items:center;gap:8px;padding:9px 12px;border-top:1px solid #21262d;font-size:10px}.market-fund-row:first-child,.market-sector-row:first-child{border-top:0}.market-fund-row label,.market-sector-row label{overflow:hidden;color:#c9d1d9;text-overflow:ellipsis;white-space:nowrap}.market-fund-row small,.market-sector-row small{color:#6e7681;font-size:9px;white-space:nowrap}.market-detail-notice{margin-top:12px;padding:10px 12px;border:1px dashed #30363d;border-radius:7px;color:#6e7681;font-size:9px;line-height:1.65}.market-detail-warning{margin-bottom:10px;padding:7px 10px;border:1px solid #d2992255;border-radius:6px;background:#d2992212;color:#e3b341;font-size:9px}
+.orderbook-panel{padding:14px 20px 20px}.orderbook-toolbar{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:12px}.orderbook-toolbar strong{display:block;font-size:14px}.orderbook-toolbar small{display:block;margin-top:4px;color:#8b949e;font-size:10px}.orderbook-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1px;margin-bottom:12px;overflow:hidden;border:1px solid #30363d;border-radius:8px;background:#30363d}.orderbook-metric{padding:10px 12px;background:#161b22}.orderbook-metric label{display:block;color:#8b949e;font-size:9px}.orderbook-metric b{display:block;margin-top:5px;font-size:13px}.orderbook-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.orderbook-side{overflow:hidden;border:1px solid #30363d;border-radius:8px;background:#161b22}.orderbook-side h3{display:flex;justify-content:space-between;margin:0;padding:10px 12px;border-bottom:1px solid #30363d;font-size:11px}.orderbook-side h3 span{color:#8b949e;font-size:9px;font-weight:400}.orderbook-table{width:100%;border-collapse:collapse;font-size:11px}.orderbook-table th,.orderbook-table td{padding:8px 10px;border-top:1px solid #21262d;text-align:right}.orderbook-table th{border-top:0;background:#1c2128;color:#8b949e;font-size:9px;font-weight:500}.orderbook-table th:first-child,.orderbook-table td:first-child{text-align:left}.orderbook-table .price{font-family:ui-monospace,SFMono-Regular,monospace}.orderbook-table .volume{color:#c9d1d9}.orderbook-empty{padding:38px 15px;color:#8b949e;text-align:center;font-size:11px}.orderbook-notice{margin-top:10px;color:#6e7681;font-size:9px;line-height:1.6}.orderbook-panel[hidden]{display:none!important}
 .theme-setting{display:flex;align-items:center;gap:6px;color:#8b949e;font-size:11px;white-space:nowrap}.theme-setting select{min-width:94px}
 html[data-theme="light"]{color-scheme:light}
 html[data-theme="light"] body{background:#f3f6fa;color:#172033}
@@ -373,7 +374,7 @@ html[data-theme="light"] .chat-image-preview{background:#ffffffee}html[data-them
   .chart-guide{display:none}
   .stats-grid{margin:0 12px 14px}
   .stat-item{padding:8px 10px}
-  .stock-information-panel,.market-overview-panel{padding:12px}.stock-info-toolbar,.market-detail-toolbar{align-items:stretch;flex-direction:column}.stock-info-summary,.stock-profile-grid,.stock-research-grid,.market-detail-summary{grid-template-columns:repeat(2,minmax(0,1fr))}.stock-info-columns,.market-detail-grid{grid-template-columns:1fr}.market-detail-section.wide{grid-column:auto}.chart-hover-tooltip{min-width:174px}
+  .stock-information-panel,.market-overview-panel,.orderbook-panel{padding:12px}.stock-info-toolbar,.market-detail-toolbar,.orderbook-toolbar{align-items:stretch;flex-direction:column}.stock-info-summary,.stock-profile-grid,.stock-research-grid,.market-detail-summary,.orderbook-summary{grid-template-columns:repeat(2,minmax(0,1fr))}.stock-info-columns,.market-detail-grid,.orderbook-grid{grid-template-columns:1fr}.market-detail-section.wide{grid-column:auto}.chart-hover-tooltip{min-width:174px}
   .metric-option-list{grid-template-columns:1fr}
 }
 /* ====== Notes styles ====== */
@@ -1179,6 +1180,7 @@ html[data-theme="light"] .mobile-app-bar{border-color:#dce3ec;background:#ffffff
       <div class="tab" data-tab="minuteK" onclick="switchTab(this)">分时K</div>
       <div class="tab" data-tab="kline" onclick="switchTab(this)">K线</div>
       <div class="tab" data-tab="technical" onclick="switchTab(this)">技术指标</div>
+      <div class="tab" data-tab="orderBook" onclick="switchTab(this)">盘口信号</div>
       <div class="tab" data-tab="fundFlow" onclick="switchTab(this)">主力资金</div>
       <div class="tab" data-tab="market" onclick="switchTab(this)">市场总览</div>
       <div class="tab" data-tab="information" onclick="switchTab(this)">简况 / F10</div>
@@ -1222,6 +1224,10 @@ html[data-theme="light"] .mobile-app-bar{border-color:#dce3ec;background:#ffffff
         </div>
       </div>
     </div>
+    <section class="orderbook-panel" id="orderbook-panel" hidden>
+      <div class="orderbook-toolbar"><div><strong>盘中实时信号 / 五档挂单</strong><small id="orderbook-status">打开后自动刷新</small></div><button class="refresh-btn" type="button" onclick="loadOrderBook({ force:true })">刷新盘口</button></div>
+      <div id="orderbook-content"><div class="orderbook-empty">选择“盘口信号”后加载</div></div>
+    </section>
     <div class="stats-grid" id="stats-grid"></div>
     <section class="market-overview-panel" id="market-overview-panel" hidden>
       <div class="market-detail-toolbar"><div><strong>大盘全景</strong><small id="market-overview-status">聚合市场宽度、资金、成交与行业强弱</small></div><button class="refresh-btn" type="button" onclick="loadMarketOverview({ force:true })">刷新总览</button></div>
@@ -2701,6 +2707,8 @@ let stockBoardRequestId = 0;
 let stockInformationRequestId = 0;
 let stockInformationSection = 'overview';
 let marketOverviewRequestId = 0;
+let orderBookRequestId = 0;
+let orderBookTimer = null;
 let visibleStockBoards = [];
 
 function renderStockBoardContext(boards, message = '', showBoardLink = true) {
@@ -2810,6 +2818,7 @@ function openModal(sym) {
   currentTab = mainlandMarket ? 'market' : isIndex ? 'kline' : 'minute';
   currentMinuteKPeriod = 'm5';
   currentTechnicalIndicator = 'volume';
+  stopOrderBookRefresh();
   document.getElementById('m-name').textContent = q ? q.name : sym;
   const isEtf = isEtfSymbol(sym, q);
   document.getElementById('m-sub').textContent = isIndex
@@ -2829,11 +2838,14 @@ function openModal(sym) {
     t.hidden = (t.dataset.tab === 'minuteK' && !supportsMinuteKline(sym)) ||
       (t.dataset.tab === 'fundFlow' && (isEtf || isIndex)) ||
       (t.dataset.tab === 'technical' && mainlandMarket) ||
+      (t.dataset.tab === 'orderBook' && (!isAStockSymbol(sym) || isEtf)) ||
       (t.dataset.tab === 'market' && !mainlandMarket) ||
       (t.dataset.tab === 'information' && !isAStockSymbol(sym));
     t.classList.toggle('active', t.dataset.tab === currentTab);
   });
   document.getElementById('quote-chart-panel').hidden = mainlandMarket;
+  document.getElementById('orderbook-panel').hidden = true;
+  document.getElementById('orderbook-content').innerHTML = '<div class="orderbook-empty">选择“盘口信号”后加载</div>';
   document.getElementById('stats-grid').hidden = mainlandMarket;
   document.getElementById('market-overview-panel').hidden = !mainlandMarket;
   document.getElementById('market-overview-content').innerHTML = '<div class="market-detail-loading">正在整理市场宽度、资金和行业强弱…</div>';
@@ -2855,6 +2867,7 @@ function openModal(sym) {
 function closeModal(e) {
   if (e && e.target !== document.getElementById('modal-mask')) return;
   document.getElementById('modal-mask').classList.remove('open');
+  stopOrderBookRefresh();
   modalSym = null;
   stockBoardRequestId++;
   stockInformationRequestId++;
@@ -2958,17 +2971,71 @@ function switchTab(el) {
   const information = currentTab === 'information';
   const marketOverview = currentTab === 'market';
   const technical = currentTab === 'technical';
-  document.getElementById('quote-chart-panel').hidden = information || marketOverview;
-  document.getElementById('stats-grid').hidden = information || marketOverview;
+  const orderBook = currentTab === 'orderBook';
+  document.getElementById('quote-chart-panel').hidden = information || marketOverview || orderBook;
+  document.getElementById('orderbook-panel').hidden = !orderBook;
+  document.getElementById('stats-grid').hidden = information || marketOverview || orderBook;
   document.getElementById('market-overview-panel').hidden = !marketOverview;
   document.getElementById('stock-information-panel').hidden = !information;
   document.getElementById('period-bar').classList.toggle('visible', !information && !marketOverview && currentTab === 'minuteK');
   document.getElementById('technical-indicator-bar').classList.toggle('visible', technical);
+  if (orderBook) { loadOrderBook(); startOrderBookRefresh(); return; }
+  stopOrderBookRefresh();
   hideChartHoverTooltip();
   if (information) { loadStockInformation(); return; }
   if (marketOverview) { loadMarketOverview(); return; }
   if (currentTab !== 'fundFlow' && lastQuoteData[modalSym]) renderStats(lastQuoteData[modalSym]);
   loadChart(currentTab);
+}
+
+function stopOrderBookRefresh() {
+  if (orderBookTimer) { clearInterval(orderBookTimer); orderBookTimer = null; }
+}
+
+function startOrderBookRefresh() {
+  stopOrderBookRefresh();
+  if (!modalSym || currentTab !== 'orderBook') return;
+  orderBookTimer = setInterval(() => { if (!document.hidden && currentTab === 'orderBook') loadOrderBook(); }, 5000);
+}
+
+function orderBookNumber(value) {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : null;
+}
+
+function renderOrderBook(payload) {
+  const bids = Array.isArray(payload.bids) ? payload.bids : [];
+  const asks = Array.isArray(payload.asks) ? payload.asks : [];
+  const signal = payload.signal || {};
+  const imbalance = orderBookNumber(signal.imbalance ?? payload.imbalance);
+  const ratio = orderBookNumber(signal.bidAskRatio ?? payload.bidAskRatio) ?? (imbalance != null ? (imbalance - 1) / (imbalance + 1) * 100 : null);
+  const spread = orderBookNumber(signal.spread ?? payload.spread);
+  const pressure = signal.pressure || (ratio == null ? '--' : ratio > 5 ? '买盘偏强' : ratio < -5 ? '卖盘偏强' : '买卖均衡');
+  const trend = signal.reason ? `${signal.label || '盘口信号'}：${signal.reason}` : (signal.trend || signal.message || '基于当前五档挂单的盘中快照');
+  const sideRows = rows => rows.slice(0, 5).map((row, i) => `<tr><td>${i + 1}</td><td class="price">${fmt(row.price, 3)}</td><td class="volume">${fmtVol(row.volume || row.vol || row.quantity)}</td></tr>`).join('') || `<tr><td colspan="3" class="orderbook-empty">暂无数据</td></tr>`;
+  const fetched = Number(payload.fetchedAt) ? new Date(payload.fetchedAt).toLocaleTimeString('zh-CN', {hour:'2-digit',minute:'2-digit',second:'2-digit'}) : '刚刚';
+  document.getElementById('orderbook-content').innerHTML = `<div class="orderbook-summary"><div class="orderbook-metric"><label>委比</label><b class="${cls(ratio)}">${ratio == null ? '--' : `${ratio > 0 ? '+' : ''}${ratio.toFixed(2)}%`}</b></div><div class="orderbook-metric"><label>买卖价差</label><b>${spread == null ? '--' : fmt(spread, 3)}</b></div><div class="orderbook-metric"><label>盘面判断</label><b>${escapeHtml(pressure)}</b></div><div class="orderbook-metric"><label>最新价</label><b>${fmt(payload.price ?? lastQuoteData[modalSym]?.price, 3)}</b></div></div><div class="orderbook-grid"><section class="orderbook-side"><h3>买盘 <span>价格 · 数量(手)</span></h3><table class="orderbook-table"><thead><tr><th>档位</th><th>价格</th><th>数量</th></tr></thead><tbody>${sideRows(bids)}</tbody></table></section><section class="orderbook-side"><h3>卖盘 <span>价格 · 数量(手)</span></h3><table class="orderbook-table"><thead><tr><th>档位</th><th>价格</th><th>数量</th></tr></thead><tbody>${sideRows(asks)}</tbody></table></section></div><div class="orderbook-notice">${escapeHtml(trend)} · 更新于 ${fetched}。盘口为公开行情快照，存在延迟，不代表真实可成交量。</div>`;
+}
+
+async function loadOrderBook({ force = false } = {}) {
+  const symbol = modalSym;
+  if (!symbol || !isAStockSymbol(symbol) || isEtfSymbol(symbol, lastQuoteData[symbol])) return;
+  const requestId = ++orderBookRequestId;
+  const status = document.getElementById('orderbook-status');
+  if (status) status.textContent = force ? '正在刷新盘口…' : '正在同步盘口…';
+  try {
+    const response = await fetch(`/api/order-book?symbol=${encodeURIComponent(symbol)}${force ? '&refresh=1' : ''}`);
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(payload.error || 'order book request failed');
+    if (requestId !== orderBookRequestId || modalSym !== symbol || currentTab !== 'orderBook') return;
+    renderOrderBook(payload);
+    if (status) status.textContent = `实时快照 · ${new Date(payload.fetchedAt || Date.now()).toLocaleTimeString('zh-CN', {hour:'2-digit',minute:'2-digit',second:'2-digit'})}`;
+  } catch (error) {
+    if (requestId !== orderBookRequestId || modalSym !== symbol) return;
+    console.error('loadOrderBook error:', error);
+    if (status) status.textContent = '盘口暂时不可用';
+    document.getElementById('orderbook-content').innerHTML = '<div class="orderbook-empty">暂时无法取得五档挂单，请稍后重试</div>';
+  }
 }
 
 function switchTechnicalIndicator(indicator) {
