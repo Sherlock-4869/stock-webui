@@ -318,21 +318,6 @@ async function proxyOrderBook(urlObj, res) {
       source:'腾讯财经公开行情' });
   } catch (error) {
     console.error('Order book upstream error:', error.message);
-    if (cached?.data) {
-      sendJson(res, 200, { ...cached.data, updatedAt:cached.data.updated || null,
-        fetchedAt:cached.fetchedAt, stale:true, source:'腾讯财经公开行情' });
-      return;
-    }
-    // The regular watchlist quote endpoint uses the same Tencent source and
-    // keeps a longer-lived per-symbol snapshot. Reuse it when the dedicated
-    // request is briefly blocked by DNS, rate limiting, or an upstream timeout.
-    const quoteFallback = quoteSnapshotCache.compose([symbol]).text;
-    const fallbackData = parseTencentOrderBook(symbol, quoteFallback);
-    if (fallbackData) {
-      sendJson(res, 200, { ...fallbackData, updatedAt:fallbackData.updated || null,
-        fetchedAt:Date.now(), stale:true, source:'腾讯财经公开行情（报价缓存回退）' });
-      return;
-    }
     sendJson(res, 502, { error:'盘口数据暂时不可用' });
   }
 }
