@@ -489,6 +489,19 @@ test('K line volume pane includes five and ten period volume moving averages', (
   assert.match(html, /const volumeBarsTop = volTop \+ volumeLegendH;/);
 });
 
+test('K line supports selectable 5/10/20/60/120/250 day moving averages', () => {
+  assert.match(html, /id="ma-indicator-bar" aria-label="日线均线"/);
+  [5, 10, 20, 60, 120, 250].forEach(period => {
+    assert.match(html, new RegExp(`data-ma-period="${period}"`));
+    assert.match(html, new RegExp(`toggleKlineMa\\(${period}, this.checked\\)`));
+    assert.match(html, new RegExp(`fullMa${period}`));
+    assert.match(html, new RegExp(`movingAverage\\(chartState\\.fullData, ${period}\\)`));
+  });
+  assert.match(html, /DEFAULT_KLINE_MA_VISIBILITY = \{ 5:true, 10:true, 20:true, 60:false, 120:false, 250:false \}/);
+  assert.match(html, /visibleMaPeriods = KLINE_MA_PERIODS\.filter\(period => chartState\.maVisibility\[period\]\)/);
+  assert.match(html, /ma-indicator-bar'\)\.classList\.toggle\('visible', currentTab === 'kline'\)/);
+});
+
 test('A-share detail exposes resilient, lazily loaded F10 profile, financials, events and linked news', () => {
   assert.match(html, /data-tab="information"[^>]*>简况 \/ F10</);
   assert.match(html, /id="stock-information-panel"/);
