@@ -3561,12 +3561,43 @@ async function loadChart(type, options = {}) {
       const r = await fetch(`/api/kline?sym=${modalSym}`);
       if (!r.ok) throw new Error('kline request failed');
       const d = await r.json();
+      console.log('[日K线] API响应:', { code: d.code, hasData: !!d.data, keys: d.data ? Object.keys(d.data) : [] });
       if (requestId !== chartRequestId || currentTab !== type) return;
-      const symKey = Object.keys(d.data || {})[0];
-      const key = Object.keys(d.data?.[symKey] || {}).find(k => /day$/i.test(k));
-      drawKline(chartCanvas, d.data?.[symKey]?.[key] || [], type === 'technical' ? 'technical' : 'kline');
+
+      if (!d.data || typeof d.data !== 'object') {
+        console.error('[日K线] 数据格式错误: data字段缺失或格式不正确');
+        throw new Error('API返回数据格式错误');
+      }
+
+      const symKey = Object.keys(d.data)[0];
+      if (!symKey) {
+        console.error('[日K线] 未找到股票代码key');
+        throw new Error('未找到股票数据');
+      }
+
+      const symbolData = d.data[symKey];
+      const availableKeys = Object.keys(symbolData || {});
+      console.log('[日K线] 股票代码:', symKey, '可用数据key:', availableKeys);
+
+      const key = availableKeys.find(k => /day$/i.test(k));
+      if (!key) {
+        console.error('[日K线] 未找到日K线数据key，可用的keys:', availableKeys);
+        throw new Error(`未找到日K线数据字段（可用: ${availableKeys.join(', ')}）`);
+      }
+
+      const klineData = symbolData[key];
+      if (!Array.isArray(klineData)) {
+        console.error('[日K线] K线数据不是数组:', typeof klineData);
+        throw new Error('K线数据格式错误');
+      }
+
+      console.log('[日K线] 使用key:', key, '数据条数:', klineData.length);
+      drawKline(chartCanvas, klineData, type === 'technical' ? 'technical' : 'kline');
     }
-    if (!chartState.data.length) throw new Error('empty chart data');
+    if (!chartState.data.length) {
+      console.error('[日K线] 图表数据为空, chartState.fullData长度:', chartState.fullData?.length || 0);
+      throw new Error('empty chart data');
+    }
     loading.style.display = 'none';
     chartCanvas.style.display = 'block';
   } catch(e) {
