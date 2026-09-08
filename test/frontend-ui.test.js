@@ -571,12 +571,18 @@ test('historical minute K lines can be opened from daily candles and stepped by 
   assert.match(html, /api\/minute-kline\?sym=\$\{modalSym\}&period=\$\{period\}\$\{dateQuery\}/);
   assert.match(html, /function stepMinuteKHistory\(offset\)/);
   assert.match(html, /minuteKTradingDates\(\)/);
+  assert.match(html, /rememberMinuteKAvailableDates\(d\.availableDates\)/);
+  assert.match(html, /minuteKAvailableDates/);
+  assert.match(html, /minuteCoverageMessage/);
   assert.match(serverSource, /pathname === '\/api\/minute-kline'/);
   assert.match(serverSource, /proxyHistoricalMinuteKline\(sym, period, date, res\)/);
+  assert.match(serverSource, /proxyLatestMinuteKline\(sym, period, res\)/);
   assert.match(serverSource, /api\/qt\/stock\/kline\/get/);
   assert.match(serverSource, /const targetDate = date\.replaceAll/);
   assert.match(serverSource, /beg:windowStart\.toISOString/);
   assert.match(serverSource, /stamp\.startsWith\(targetDate\)/);
+  assert.match(serverSource, /availableDates/);
+  assert.match(serverSource, /minuteKlineAvailableDates/);
 });
 
 test('fund center exposes rankings, search, curves, holdings and public information drill-down', () => {

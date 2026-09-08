@@ -2846,6 +2846,7 @@ function openModal(sym) {
   currentTechnicalIndicator = 'volume';
   chartState.maVisibility = { ...DEFAULT_KLINE_MA_VISIBILITY };
   chartState.minuteKDate = '';
+  chartState.minuteKAvailableDates = [];
   chartState.dailyKData = [];
   stopOrderBookRefresh();
   document.getElementById('m-name').textContent = q ? q.name : sym;
@@ -3084,6 +3085,7 @@ function switchMinuteKPeriod(period) {
   if (!/^m(?:1|5|15|30|60)$/.test(period) || period === currentMinuteKPeriod) return;
   currentMinuteKPeriod = period;
   document.querySelectorAll('.period-btn[data-period]').forEach(btn => btn.classList.toggle('active', btn.dataset.period === period));
+  chartState.minuteKAvailableDates = [];
   if (currentTab === 'minuteK') loadChart('minuteK');
 }
 
@@ -3356,7 +3358,7 @@ const chartState = {
   hoverIndex: null, layout: null,
   indicator: 'volume', technicalSeries: {}, fullTechnicalSeries: {},
   maVisibility: { ...DEFAULT_KLINE_MA_VISIBILITY },
-  minuteKDate: '', dailyKData: [],
+  minuteKDate: '', minuteKAvailableDates: [], dailyKData: [],
 };
 
 function syncKlineMaControls() {
@@ -3400,7 +3402,16 @@ function updateMinuteKHistoryControls() {
 }
 
 function minuteKTradingDates() {
-  return [...new Set((chartState.dailyKData || []).map(point => compactTradeDate(point.date)).filter(date => /^\d{8}$/.test(date)))];
+  const served = (chartState.minuteKAvailableDates || []).map(compactTradeDate).filter(date => /^\d{8}$/.test(date));
+  const daily = (chartState.dailyKData || []).map(point => compactTradeDate(point.date)).filter(date => /^\d{8}$/.test(date));
+  const dates = served.length ? served : daily;
+  return [...new Set(dates)].sort();
+}
+
+function rememberMinuteKAvailableDates(list) {
+  const served = (list || []).map(value => compactTradeDate(value)).filter(date => /^\d{8}$/.test(date));
+  if (!served.length) return;
+  chartState.minuteKAvailableDates = [...new Set([...chartState.minuteKAvailableDates, ...served])];
 }
 
 function latestMinuteKDate() {
@@ -3492,6 +3503,7 @@ async function loadChart(type, options = {}) {
         if (!r.ok) throw new Error('minute K line request failed');
         const d = await r.json();
         if (requestId !== chartRequestId || currentTab !== type || currentMinuteKPeriod !== period) return;
+        rememberMinuteKAvailableDates(d.availableDates);
         const symKey = Object.keys(d.data || {})[0];
         const rows = d.data?.[symKey]?.[period] || [];
         console.log('[分时K线] 返回数据条数:', rows.length, '请求日期:', requestedDate || '无（显示最新）');
@@ -3499,7 +3511,21 @@ async function loadChart(type, options = {}) {
         const filteredRows = requestedDate && explicitDate
           ? rows.filter(row => compactTradeDate(row?.[0]) === requestedDate)
           : rows;
-        if (requestedDate && explicitDate && !filteredRows.length) throw new Error('selected trading date has no minute data');
+        if (requestedDate && explicitDate && !filteredRows.length) {
+          const knownDates = minuteKTradingDates();
+          let coverageMessage = '该交易日暂无分时 K 数据';
+          if (knownDates.length) {
+            const oldest = knownDates[0];
+            const newest = knownDates[knownDates.length - 1];
+            if (requestedDate < oldest || requestedDate > newest) {
+              const fallbackDate = requestedDate < oldest ? oldest : newest;
+              chartState.minuteKDate = fallbackDate;
+              updateMinuteKHistoryControls();
+              coverageMessage = `行情源仅保留最近若干交易日，该日期暂无分时 K 数据，已回到 ${isoTradeDate(fallbackDate)}`;
+            }
+          }
+          throw Object.assign(new Error('selected trading date has no minute data'), { minuteCoverageMessage:coverageMessage });
+        }
         const lastMinuteRow = filteredRows[filteredRows.length - 1] || rows[rows.length - 1];
         const actualDate = compactTradeDate(lastMinuteRow?.[0]);
         chartState.minuteKDate = actualDate || requestedDate || compactTradeDate(new Date().toISOString().slice(0, 10));
@@ -3617,7 +3643,7 @@ async function loadChart(type, options = {}) {
         : type === 'minuteK' && /^(hk|us)/.test(modalSym || '')
           ? '当日分时 K 数据暂不可用'
         : type === 'minuteK' && /selected trading date/.test(e.message || '')
-          ? '该交易日暂无分时 K 数据'
+          ? (e.minuteCoverageMessage || '该交易日暂无分时 K 数据')
         : type === 'fundFlow' ? '主力资金数据暂时拿不到，请稍后重试' : '图表数据暂不可用';
     if (type === 'fundFlow' && !unsupportedFundFlow) {
       const retry = document.createElement('button');

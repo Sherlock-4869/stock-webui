@@ -376,35 +376,92 @@ function sendJson(res, statusCode, payload) {
   res.end(JSON.stringify(payload));
 }
 
+function normalizeMinuteKlineRows(lines, targetDate) {
+  return lines.map(line => {
+    const fields = String(line).split(',');
+    const stamp = String(fields[0] || '').replace(/\D/g, '').slice(0, 12);
+    if (!/^\d{12}$/.test(stamp)) return null;
+    if (targetDate && !stamp.startsWith(targetDate)) return null;
+    const values = fields.slice(1, 6).map(Number);
+    return values.every(Number.isFinite) ? [stamp, ...values] : null;
+  }).filter(Boolean);
+}
+
+function minuteKlineDateOf(row) {
+  return String((row && row[0]) || '').replace(/\D/g, '').slice(0, 8);
+}
+
+function minuteKlineAvailableDates(rows) {
+  return [...new Set(rows.map(minuteKlineDateOf))].filter(date => /^\d{8}$/.test(date)).sort();
+}
+
+async function fetchTencentMinuteKlines(sym, period) {
+  const raw = await requestBuffer(
+    `https://ifzq.gtimg.cn/appstock/app/kline/mkline?param=${sym},${period},,320`,
+    UPSTREAM_HEADERS,
+    { timeoutMs:8000 }
+  );
+  const payload = JSON.parse(raw.toString('utf-8'));
+  const lines = payload?.data?.[sym]?.[period];
+  return Array.isArray(lines) ? normalizeMinuteKlineRows(lines, '') : [];
+}
+
+async function fetchEastmoneyHistoricalMinuteRows(sym, period, date) {
+  const klt = String(period).slice(1);
+  const targetDate = date.replaceAll('-', '');
+  const windowStart = new Date(`${date}T00:00:00Z`);
+  const windowEnd = new Date(`${date}T00:00:00Z`);
+  windowStart.setUTCDate(windowStart.getUTCDate() - 3);
+  windowEnd.setUTCDate(windowEnd.getUTCDate() + 3);
+  const payload = await requestEastmoneyFlowJson('/api/qt/stock/kline/get', {
+    secid:eastmoneySecId(sym), klt, fqt:'1',
+    beg:windowStart.toISOString().slice(0, 10).replaceAll('-', ''),
+    end:windowEnd.toISOString().slice(0, 10).replaceAll('-', ''),
+    lmt:'3000', fields1:'f1,f2,f3,f4,f5,f6', fields2:'f51,f52,f53,f54,f55,f56,f57,f58,f59,f60,f61',
+  }, { historical:true });
+  return normalizeMinuteKlineRows(payload.data?.klines || [], targetDate);
+}
+
 async function proxyHistoricalMinuteKline(sym, period, date, res) {
   if (!isAStockSymbol(sym)) {
     sendJson(res, 400, { error:'历史分时 K 目前仅支持沪深 A 股' });
     return;
   }
+  const targetDate = date.replaceAll('-', '');
+  let rows = [];
+  let availableDates = [];
   try {
-    const klt = String(period).slice(1);
-    const targetDate = date.replaceAll('-', '');
-    const windowStart = new Date(`${date}T00:00:00Z`);
-    const windowEnd = new Date(`${date}T00:00:00Z`);
-    windowStart.setUTCDate(windowStart.getUTCDate() - 3);
-    windowEnd.setUTCDate(windowEnd.getUTCDate() + 3);
-    const payload = await requestEastmoneyFlowJson('/api/qt/stock/kline/get', {
-      secid:eastmoneySecId(sym), klt, fqt:'1',
-      beg:windowStart.toISOString().slice(0, 10).replaceAll('-', ''),
-      end:windowEnd.toISOString().slice(0, 10).replaceAll('-', ''),
-      lmt:'3000', fields1:'f1,f2,f3,f4,f5,f6', fields2:'f51,f52,f53,f54,f55,f56,f57,f58,f59,f60,f61',
-    }, { historical:true });
-    const rows = (payload.data?.klines || []).map(line => {
-      const fields = String(line).split(',');
-      const stamp = String(fields[0] || '').replace(/\D/g, '').slice(0, 12);
-      if (!/^\d{12}$/.test(stamp) || !stamp.startsWith(targetDate)) return null;
-      const values = fields.slice(1, 6).map(Number);
-      return values.every(Number.isFinite) ? [stamp, ...values] : null;
-    }).filter(Boolean);
-    sendJson(res, 200, { code:0, data:{ [sym]:{ [period]:rows } } });
+    // Tencent keeps only the most recent 320 minute bars (a few sessions for
+    // m5+), but it is far more reliable than Eastmoney's minute endpoint.
+    const tencentRows = await fetchTencentMinuteKlines(sym, period);
+    availableDates = minuteKlineAvailableDates(tencentRows);
+    rows = tencentRows.filter(row => minuteKlineDateOf(row) === targetDate);
   } catch (error) {
-    console.error('Historical minute K upstream error:', error.message);
-    sendJson(res, 502, { error:'历史分时 K 数据暂时不可用' });
+    console.warn('Tencent minute K fallback error:', error.message);
+  }
+  if (!rows.length) {
+    try {
+      // Older dates fall through to Eastmoney's deeper minute history.
+      rows = await fetchEastmoneyHistoricalMinuteRows(sym, period, date);
+      const emDates = minuteKlineAvailableDates(rows);
+      if (emDates.length) availableDates = [...new Set([...availableDates, ...emDates])].sort();
+    } catch (error) {
+      console.error('Historical minute K upstream error:', error.message);
+      sendJson(res, 502, { error:'历史分时 K 数据暂时不可用' });
+      return;
+    }
+  }
+  sendJson(res, 200, { code:0, data:{ [sym]:{ [period]:rows } }, availableDates });
+}
+
+async function proxyLatestMinuteKline(sym, period, res) {
+  try {
+    const rows = await fetchTencentMinuteKlines(sym, period);
+    const availableDates = minuteKlineAvailableDates(rows);
+    sendJson(res, 200, { code:0, data:{ [sym]:{ [period]:rows.slice(-80) } }, availableDates });
+  } catch (error) {
+    console.error('Latest minute K upstream error:', error.message);
+    sendJson(res, 502, { error:'分时 K 数据暂时不可用' });
   }
 }
 
@@ -2269,6 +2326,12 @@ const server = http.createServer(async (req, res) => {
     if (date && (!/^\d{4}-\d{2}-\d{2}$/.test(date) || Number.isNaN(parsedDate.getTime()) || parsedDate.toISOString().slice(0, 10) !== date)) { res.writeHead(400); res.end('Invalid date'); return; }
     if (date) {
       await proxyHistoricalMinuteKline(sym, period, date, res);
+      return;
+    }
+    if (isAStockSymbol(sym)) {
+      // Structured response also carries the dates Tencent can actually serve,
+      // so the client can bound the history picker to real coverage.
+      await proxyLatestMinuteKline(sym, period, res);
       return;
     }
     // Keep Tencent as the latest-session fallback for non-historical requests
