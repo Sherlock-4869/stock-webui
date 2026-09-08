@@ -263,6 +263,10 @@ body.stock-sorting,body.stock-sorting *{cursor:grabbing!important;user-select:no
 .ma-toggle:hover{color:#e6edf3;border-color:#484f58}
 .ma-toggle:has(input:checked){color:#58a6ff;border-color:#1f6feb;background:#1f3a5f}
 .ma-toggle input{margin:0;accent-color:#58a6ff}
+.minute-k-history-controls{align-items:center;gap:6px}
+.minute-k-history-controls .chart-window-btn{padding:3px 8px}
+.minute-k-history-date{width:132px;box-sizing:border-box;padding:3px 7px;border:1px solid #30363d;border-radius:4px;background:#21262d;color:#c9d1d9;font:11px inherit}
+.minute-k-history-date:focus{border-color:#58a6ff;outline:none}
 .chart-readout{min-height:38px;display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:6px}
 .chart-info{display:flex;flex-wrap:wrap;align-items:center;gap:4px 12px;min-width:0;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;color:#c9d1d9}
 .chart-info span{white-space:nowrap}
@@ -313,6 +317,7 @@ html[data-theme="light"].metrics-scroll #stock-table tbody td:first-child,html[d
 html[data-theme="light"].metrics-scroll #stock-table tbody tr:hover td:first-child,html[data-theme="light"].metrics-scroll #stock-table tbody tr:hover td:nth-child(2),html[data-theme="light"].metrics-scroll #stock-table tbody tr:hover td:last-child{background:#f4f8fc}
 html[data-theme="light"] .refresh-btn,html[data-theme="light"] .dialog-btn,html[data-theme="light"] .filter-chip,html[data-theme="light"] .period-btn,html[data-theme="light"] .chart-window-btn,html[data-theme="light"] .market-expand-btn{background:#f6f8fa;border-color:#d0d7de;color:#1f2328}
 html[data-theme="light"] .ma-toggle{background:#f6f8fa;border-color:#d0d7de;color:#1f2328}html[data-theme="light"] .ma-toggle:has(input:checked){background:#ddf4ff;border-color:#54aeff;color:#0969da}
+html[data-theme="light"] .minute-k-history-date{background:#fff;border-color:#d0d7de;color:#1f2328}
 html[data-theme="light"] .refresh-btn:hover,html[data-theme="light"] .dialog-btn:hover,html[data-theme="light"] .filter-chip:hover{background:#eaeef2}
 html[data-theme="light"] .dialog-btn.primary{background:#1f883d;border-color:#1f883d;color:#fff}html[data-theme="light"] .dialog-btn.danger{color:#cf222e}html[data-theme="light"] .filter-chip.active,html[data-theme="light"] .period-btn.active{background:#ddf4ff;border-color:#54aeff;color:#0969da}
 html[data-theme="light"] .account-trigger,html[data-theme="light"] .account-menu{background:#fff;border-color:#d0d7de;color:#1f2328}html[data-theme="light"] .account-trigger:hover,html[data-theme="light"] .account-menu-item:hover{background:#f6f8fa}html[data-theme="light"] .account-menu-head,html[data-theme="light"] .auth-hero,html[data-theme="light"] .auth-tabs,html[data-theme="light"] .settings-user,html[data-theme="light"] .config-choice-list{border-color:#d0d7de}html[data-theme="light"] .account-menu-item{color:#1f2328}html[data-theme="light"] .account-menu-item.danger{color:#cf222e}html[data-theme="light"] .auth-hero{background:linear-gradient(135deg,#ddf4ff,#fbefff)}html[data-theme="light"] .auth-divider::before,html[data-theme="light"] .auth-divider::after{background:#d0d7de}html[data-theme="light"] .config-choice-list{background:#f6f8fa;color:#1f2328}html[data-theme="light"] .toast{background:#fff;border-color:#d0d7de;color:#1f2328;box-shadow:0 10px 35px #1f232833}
@@ -1215,6 +1220,14 @@ html[data-theme="light"] .mobile-app-bar{border-color:#dce3ec;background:#ffffff
         <label class="ma-toggle"><input type="checkbox" data-ma-period="60" onchange="toggleKlineMa(60, this.checked)">MA60</label>
         <label class="ma-toggle"><input type="checkbox" data-ma-period="120" onchange="toggleKlineMa(120, this.checked)">MA120</label>
         <label class="ma-toggle"><input type="checkbox" data-ma-period="250" onchange="toggleKlineMa(250, this.checked)">MA250</label>
+      </div>
+      <div class="period-bar minute-k-history-controls" id="minute-k-history-controls" aria-label="分时 K 历史日期">
+        <button class="chart-window-btn" type="button" onclick="stepMinuteKHistory(-1)" aria-label="前一个交易日">‹ 前一日</button>
+        <input class="minute-k-history-date" id="minute-k-history-date" type="date" aria-label="选择分时 K 日期" onchange="selectMinuteKHistoryDate(this.value)">
+        <button class="chart-window-btn" type="button" onclick="stepMinuteKHistory(1)" aria-label="后一个交易日">后一日 ›</button>
+        <button class="chart-window-btn" type="button" onclick="jumpMinuteKToLatest()">最新</button>
+        <button class="chart-window-btn" type="button" onclick="returnToDailyK()">返回日K</button>
+        <span class="chart-range-label" id="minute-k-history-status">选择交易日查看历史分时 K</span>
       </div>
       <div class="chart-readout">
         <div class="chart-info" id="chart-info"></div>
@@ -2832,6 +2845,8 @@ function openModal(sym) {
   currentMinuteKPeriod = 'm5';
   currentTechnicalIndicator = 'volume';
   chartState.maVisibility = { ...DEFAULT_KLINE_MA_VISIBILITY };
+  chartState.minuteKDate = '';
+  chartState.dailyKData = [];
   stopOrderBookRefresh();
   document.getElementById('m-name').textContent = q ? q.name : sym;
   const isEtf = isEtfSymbol(sym, q);
@@ -2870,6 +2885,7 @@ function openModal(sym) {
   document.getElementById('period-bar').classList.remove('visible');
   document.getElementById('technical-indicator-bar').classList.remove('visible');
   document.getElementById('ma-indicator-bar').classList.toggle('visible', currentTab === 'kline');
+  document.getElementById('minute-k-history-controls').classList.toggle('visible', currentTab === 'minuteK' && isAStockSymbol(modalSym));
   syncKlineMaControls();
   document.querySelectorAll('[data-indicator]').forEach(btn => btn.classList.toggle('active', btn.dataset.indicator === currentTechnicalIndicator));
   document.querySelectorAll('.period-btn[data-period]').forEach(btn => btn.classList.toggle('active', btn.dataset.period === 'm5'));
@@ -2996,6 +3012,7 @@ function switchTab(el) {
   document.getElementById('period-bar').classList.toggle('visible', !information && !marketOverview && currentTab === 'minuteK');
   document.getElementById('technical-indicator-bar').classList.toggle('visible', technical);
   document.getElementById('ma-indicator-bar').classList.toggle('visible', currentTab === 'kline');
+  document.getElementById('minute-k-history-controls').classList.toggle('visible', currentTab === 'minuteK' && isAStockSymbol(modalSym));
   if (orderBook) { loadOrderBook(); startOrderBookRefresh(); return; }
   stopOrderBookRefresh();
   hideChartHoverTooltip();
@@ -3339,6 +3356,7 @@ const chartState = {
   hoverIndex: null, layout: null,
   indicator: 'volume', technicalSeries: {}, fullTechnicalSeries: {},
   maVisibility: { ...DEFAULT_KLINE_MA_VISIBILITY },
+  minuteKDate: '', dailyKData: [],
 };
 
 function syncKlineMaControls() {
@@ -3355,6 +3373,74 @@ function toggleKlineMa(period, visible) {
     renderChart();
     updateChartInfo(chartState.data.length - 1);
   }
+}
+
+function compactTradeDate(value) {
+  return String(value || '').replace(/\D/g, '').slice(0, 8);
+}
+
+function isoTradeDate(value) {
+  const compact = compactTradeDate(value);
+  return /^\d{8}$/.test(compact) ? `${compact.slice(0, 4)}-${compact.slice(4, 6)}-${compact.slice(6, 8)}` : '';
+}
+
+function updateMinuteKHistoryControls() {
+  const controls = document.getElementById('minute-k-history-controls');
+  const input = document.getElementById('minute-k-history-date');
+  const status = document.getElementById('minute-k-history-status');
+  const supported = currentTab === 'minuteK' && isAStockSymbol(modalSym);
+  controls?.classList.toggle('visible', supported);
+  const dates = minuteKTradingDates();
+  if (input) {
+    input.min = dates.length ? isoTradeDate(dates[0]) : '';
+    input.max = dates.length ? isoTradeDate(dates[dates.length - 1]) : '';
+    if (chartState.minuteKDate) input.value = isoTradeDate(chartState.minuteKDate);
+  }
+  if (status && chartState.minuteKDate) status.textContent = `${isoTradeDate(chartState.minuteKDate)} · 分时 K`;
+}
+
+function minuteKTradingDates() {
+  return [...new Set((chartState.dailyKData || []).map(point => compactTradeDate(point.date)).filter(date => /^\d{8}$/.test(date)))];
+}
+
+function latestMinuteKDate() {
+  const dates = minuteKTradingDates();
+  return dates[dates.length - 1] || compactTradeDate(new Date().toISOString().slice(0, 10));
+}
+
+function stepMinuteKHistory(offset) {
+  const dates = minuteKTradingDates();
+  if (!dates.length) return;
+  const current = compactTradeDate(chartState.minuteKDate) || latestMinuteKDate();
+  let index = dates.indexOf(current);
+  if (index < 0) index = offset < 0 ? dates.length : -1;
+  const next = dates[Math.max(0, Math.min(dates.length - 1, index + Number(offset || 0)))];
+  if (next && next !== current) selectMinuteKHistoryDate(isoTradeDate(next));
+}
+
+function jumpMinuteKToLatest() {
+  const latest = latestMinuteKDate();
+  if (latest) selectMinuteKHistoryDate(isoTradeDate(latest));
+}
+
+function selectMinuteKHistoryDate(value) {
+  const compact = compactTradeDate(value);
+  if (!/^\d{8}$/.test(compact) || !isAStockSymbol(modalSym)) return;
+  chartState.minuteKDate = compact;
+  updateMinuteKHistoryControls();
+  if (currentTab === 'minuteK') loadChart('minuteK', { date: compact });
+}
+
+function openMinuteKAtDate(date) {
+  const tab = document.querySelector('.tab[data-tab="minuteK"]');
+  if (!tab || tab.hidden) return;
+  chartState.minuteKDate = compactTradeDate(date);
+  switchTab(tab);
+}
+
+function returnToDailyK() {
+  const tab = document.querySelector('.tab[data-tab="kline"]');
+  if (tab && !tab.hidden) switchTab(tab);
 }
 
 async function loadChart(type, options = {}) {
@@ -3388,13 +3474,32 @@ async function loadChart(type, options = {}) {
     } else if (type === 'minuteK') {
       if (!supportsMinuteKline(modalSym)) throw new Error('minute K line is unavailable for this market');
       const period = currentMinuteKPeriod;
-      if (/^(sh|sz)/.test(modalSym)) {
-        const r = await fetch(`/api/minute-kline?sym=${modalSym}&period=${period}`);
+      if (isAStockSymbol(modalSym)) {
+        if (!chartState.dailyKData.length) {
+            const dailyResponse = await fetch(`/api/kline?sym=${modalSym}`);
+            if (dailyResponse.ok) {
+              const dailyPayload = await dailyResponse.json();
+              const dailySymbol = Object.keys(dailyPayload.data || {})[0];
+              const dailyKey = Object.keys(dailyPayload.data?.[dailySymbol] || {}).find(key => /day$/i.test(key));
+              chartState.dailyKData = parseKlineRows(dailyPayload.data?.[dailySymbol]?.[dailyKey] || []);
+            }
+        }
+        const requestedDate = compactTradeDate(options.date || chartState.minuteKDate || latestMinuteKDate());
+        const dateQuery = /^\d{8}$/.test(requestedDate) ? `&date=${isoTradeDate(requestedDate)}` : '';
+        const r = await fetch(`/api/minute-kline?sym=${modalSym}&period=${period}${dateQuery}`);
         if (!r.ok) throw new Error('minute K line request failed');
         const d = await r.json();
         if (requestId !== chartRequestId || currentTab !== type || currentMinuteKPeriod !== period) return;
         const symKey = Object.keys(d.data || {})[0];
-        drawKline(chartCanvas, d.data?.[symKey]?.[period] || [], 'minuteK', period);
+        const rows = d.data?.[symKey]?.[period] || [];
+        const filteredRows = requestedDate
+          ? rows.filter(row => compactTradeDate(row?.[0]) === requestedDate)
+          : rows;
+        if (requestedDate && !filteredRows.length) throw new Error('selected trading date has no minute data');
+        const lastMinuteRow = filteredRows[filteredRows.length - 1] || rows[rows.length - 1];
+        chartState.minuteKDate = compactTradeDate(lastMinuteRow?.[0] || requestedDate || '');
+        drawKline(chartCanvas, filteredRows, 'minuteK', period);
+        updateMinuteKHistoryControls();
       } else {
         const r = await fetch(`/api/minute?sym=${modalSym}`);
         if (!r.ok) throw new Error('minute request failed');
@@ -3403,6 +3508,7 @@ async function loadChart(type, options = {}) {
         const symKey = Object.keys(d.data || {})[0];
         const stockData = d.data?.[symKey] || {};
         const date = minuteKlineDateKey(stockData.data?.date, stockData.qt?.[symKey]?.[30], lastQuoteData[modalSym]?.updatedAt);
+        chartState.minuteKDate = compactTradeDate(date);
         drawKline(chartCanvas, aggregateMinuteKlineRows(stockData.data?.data || [], date, period), 'minuteK', period);
         if (dataNotice) {
           dataNotice.textContent = '基于当日分时行情生成，暂不提供跨日分钟历史';
@@ -3473,6 +3579,8 @@ async function loadChart(type, options = {}) {
         ? '该市场暂不支持分时 K 线'
         : type === 'minuteK' && /^(hk|us)/.test(modalSym || '')
           ? '当日分时 K 数据暂不可用'
+        : type === 'minuteK' && /selected trading date/.test(e.message || '')
+          ? '该交易日暂无分时 K 数据'
         : type === 'fundFlow' ? '主力资金数据暂时拿不到，请稍后重试' : '图表数据暂不可用';
     if (type === 'fundFlow' && !unsupportedFundFlow) {
       const retry = document.createElement('button');
@@ -3647,6 +3755,7 @@ function drawMinute(canvas, rows, prevClose, date = '') {
 function drawKline(canvas, rows, type = 'kline', period = '') {
   chartState.type = type;
   chartState.fullData = parseKlineRows(rows);
+  if (type === 'kline') chartState.dailyKData = chartState.fullData.slice();
   chartState.prevClose = 0;
   chartState.date = '';
   chartState.period = period;
@@ -4554,6 +4663,9 @@ function endChartPointer(event) {
     chartCanvas.classList.remove('panning');
   }
   if (wasTap) updateChartHover(event);
+  if (wasTap && chartState.type === 'kline' && currentTab === 'kline' && chartState.hoverIndex != null) {
+    openMinuteKAtDate(chartState.data[chartState.hoverIndex]?.date);
+  }
 }
 
 chartCanvas.addEventListener('pointerup', endChartPointer);

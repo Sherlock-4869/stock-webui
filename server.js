@@ -376,6 +376,38 @@ function sendJson(res, statusCode, payload) {
   res.end(JSON.stringify(payload));
 }
 
+async function proxyHistoricalMinuteKline(sym, period, date, res) {
+  if (!isAStockSymbol(sym)) {
+    sendJson(res, 400, { error:'历史分时 K 目前仅支持沪深 A 股' });
+    return;
+  }
+  try {
+    const klt = String(period).slice(1);
+    const targetDate = date.replaceAll('-', '');
+    const windowStart = new Date(`${date}T00:00:00Z`);
+    const windowEnd = new Date(`${date}T00:00:00Z`);
+    windowStart.setUTCDate(windowStart.getUTCDate() - 3);
+    windowEnd.setUTCDate(windowEnd.getUTCDate() + 3);
+    const payload = await requestEastmoneyFlowJson('/api/qt/stock/kline/get', {
+      secid:eastmoneySecId(sym), klt, fqt:'1',
+      beg:windowStart.toISOString().slice(0, 10).replaceAll('-', ''),
+      end:windowEnd.toISOString().slice(0, 10).replaceAll('-', ''),
+      lmt:'3000', fields1:'f1,f2,f3,f4,f5,f6', fields2:'f51,f52,f53,f54,f55,f56,f57,f58,f59,f60,f61',
+    }, { historical:true });
+    const rows = (payload.data?.klines || []).map(line => {
+      const fields = String(line).split(',');
+      const stamp = String(fields[0] || '').replace(/\D/g, '').slice(0, 12);
+      if (!/^\d{12}$/.test(stamp) || !stamp.startsWith(targetDate)) return null;
+      const values = fields.slice(1, 6).map(Number);
+      return values.every(Number.isFinite) ? [stamp, ...values] : null;
+    }).filter(Boolean);
+    sendJson(res, 200, { code:0, data:{ [sym]:{ [period]:rows } } });
+  } catch (error) {
+    console.error('Historical minute K upstream error:', error.message);
+    sendJson(res, 502, { error:'历史分时 K 数据暂时不可用' });
+  }
+}
+
 function numberOrNull(value) {
   if (value === '' || value == null) return null;
   const number = Number(value);
@@ -1115,7 +1147,7 @@ function capitalFlowSecId(kind, code) {
 
 async function requestEastmoneyFlowJson(pathname, params, { historical = false } = {}) {
   const hosts = historical
-    ? ['https://push2his.eastmoney.com', 'https://push2his.eastmoney.com']
+    ? ['https://push2his.eastmoney.com', 'https://push2.eastmoney.com', 'https://push2delay.eastmoney.com']
     : ['https://push2.eastmoney.com', 'https://push2delay.eastmoney.com'];
   let lastError;
   for (let hostIndex = 0; hostIndex < hosts.length; hostIndex += 1) {
@@ -2230,8 +2262,17 @@ const server = http.createServer(async (req, res) => {
   if (pathname === '/api/minute-kline') {
     const sym = urlObj.searchParams.get('sym') || '';
     const period = urlObj.searchParams.get('period') || 'm5';
+    const date = urlObj.searchParams.get('date') || '';
     if (!/^[a-zA-Z0-9._-]+$/.test(sym)) { res.writeHead(400); res.end('Invalid sym'); return; }
     if (!/^m(?:1|5|15|30|60)$/.test(period)) { res.writeHead(400); res.end('Invalid period'); return; }
+    const parsedDate = date ? new Date(`${date}T00:00:00Z`) : null;
+    if (date && (!/^\d{4}-\d{2}-\d{2}$/.test(date) || Number.isNaN(parsedDate.getTime()) || parsedDate.toISOString().slice(0, 10) !== date)) { res.writeHead(400); res.end('Invalid date'); return; }
+    if (date) {
+      await proxyHistoricalMinuteKline(sym, period, date, res);
+      return;
+    }
+    // Keep Tencent as the latest-session fallback for non-historical requests
+    // (for example, Hong Kong and US symbols).
     proxyJson(`https://ifzq.gtimg.cn/appstock/app/kline/mkline?param=${sym},${period},,80`, res);
     return;
   }

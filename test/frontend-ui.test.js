@@ -560,6 +560,25 @@ test('Hong Kong and US watchlist symbols generate intraday K lines from minute d
   ]);
 });
 
+test('historical minute K lines can be opened from daily candles and stepped by trading date', () => {
+  assert.match(html, /id="minute-k-history-controls"/);
+  assert.match(html, /onclick="stepMinuteKHistory\(-1\)"/);
+  assert.match(html, /onclick="stepMinuteKHistory\(1\)"/);
+  assert.match(html, /onchange="selectMinuteKHistoryDate\(this.value\)"/);
+  assert.match(html, /function openMinuteKAtDate\(date\)/);
+  assert.match(html, /openMinuteKAtDate\(chartState\.data\[chartState\.hoverIndex\]\?\.date\)/);
+  assert.match(html, /fetch\(`/);
+  assert.match(html, /api\/minute-kline\?sym=\$\{modalSym\}&period=\$\{period\}\$\{dateQuery\}/);
+  assert.match(html, /function stepMinuteKHistory\(offset\)/);
+  assert.match(html, /minuteKTradingDates\(\)/);
+  assert.match(serverSource, /pathname === '\/api\/minute-kline'/);
+  assert.match(serverSource, /proxyHistoricalMinuteKline\(sym, period, date, res\)/);
+  assert.match(serverSource, /api\/qt\/stock\/kline\/get/);
+  assert.match(serverSource, /const targetDate = date\.replaceAll/);
+  assert.match(serverSource, /beg:windowStart\.toISOString/);
+  assert.match(serverSource, /stamp\.startsWith\(targetDate\)/);
+});
+
 test('fund center exposes rankings, search, curves, holdings and public information drill-down', () => {
   assert.match(html, /data-market-hub-page="funds"[^>]*onclick="switchAppPage\('funds'\)"/);
   assert.match(html, /id="page-funds"/);
