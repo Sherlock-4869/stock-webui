@@ -3484,7 +3484,9 @@ async function loadChart(type, options = {}) {
               chartState.dailyKData = parseKlineRows(dailyPayload.data?.[dailySymbol]?.[dailyKey] || []);
             }
         }
-        const requestedDate = compactTradeDate(options.date || chartState.minuteKDate || latestMinuteKDate());
+        // 只有在明确指定日期时才发送日期参数和进行过滤
+        const explicitDate = options.date || (chartState.minuteKDate && options.date !== undefined);
+        const requestedDate = explicitDate ? compactTradeDate(options.date || chartState.minuteKDate) : '';
         const dateQuery = /^\d{8}$/.test(requestedDate) ? `&date=${isoTradeDate(requestedDate)}` : '';
         const r = await fetch(`/api/minute-kline?sym=${modalSym}&period=${period}${dateQuery}`);
         if (!r.ok) throw new Error('minute K line request failed');
@@ -3492,12 +3494,16 @@ async function loadChart(type, options = {}) {
         if (requestId !== chartRequestId || currentTab !== type || currentMinuteKPeriod !== period) return;
         const symKey = Object.keys(d.data || {})[0];
         const rows = d.data?.[symKey]?.[period] || [];
-        const filteredRows = requestedDate
+        console.log('[分时K线] 返回数据条数:', rows.length, '请求日期:', requestedDate || '无（显示最新）');
+        // 只有在明确请求了历史日期时才过滤
+        const filteredRows = requestedDate && explicitDate
           ? rows.filter(row => compactTradeDate(row?.[0]) === requestedDate)
           : rows;
-        if (requestedDate && !filteredRows.length) throw new Error('selected trading date has no minute data');
+        if (requestedDate && explicitDate && !filteredRows.length) throw new Error('selected trading date has no minute data');
         const lastMinuteRow = filteredRows[filteredRows.length - 1] || rows[rows.length - 1];
-        chartState.minuteKDate = compactTradeDate(lastMinuteRow?.[0] || requestedDate || '');
+        const actualDate = compactTradeDate(lastMinuteRow?.[0]);
+        chartState.minuteKDate = actualDate || requestedDate || compactTradeDate(new Date().toISOString().slice(0, 10));
+        console.log('[分时K线] 实际显示日期:', chartState.minuteKDate, '数据条数:', filteredRows.length);
         drawKline(chartCanvas, filteredRows, 'minuteK', period);
         updateMinuteKHistoryControls();
       } else {
