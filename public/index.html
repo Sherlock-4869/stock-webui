@@ -3484,8 +3484,8 @@ async function loadChart(type, options = {}) {
               chartState.dailyKData = parseKlineRows(dailyPayload.data?.[dailySymbol]?.[dailyKey] || []);
             }
         }
-        // 只有在明确指定日期时才发送日期参数和进行过滤
-        const explicitDate = options.date || (chartState.minuteKDate && options.date !== undefined);
+        // 判断是否需要过滤历史日期：明确传了 date 参数，或者当前已经在查看历史日期
+        const explicitDate = options.date !== undefined ? !!options.date : !!chartState.minuteKDate;
         const requestedDate = explicitDate ? compactTradeDate(options.date || chartState.minuteKDate) : '';
         const dateQuery = /^\d{8}$/.test(requestedDate) ? `&date=${isoTradeDate(requestedDate)}` : '';
         const r = await fetch(`/api/minute-kline?sym=${modalSym}&period=${period}${dateQuery}`);
