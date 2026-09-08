@@ -573,6 +573,7 @@ test('historical minute K lines can be opened from daily candles and stepped by 
   assert.match(html, /minuteKTradingDates\(\)/);
   assert.match(html, /rememberMinuteKAvailableDates\(d\.availableDates\)/);
   assert.match(html, /minuteKAvailableDates/);
+  assert.match(html, /minuteKCoverageNote\(\)/);
   assert.match(html, /minuteCoverageMessage/);
   assert.match(serverSource, /pathname === '\/api\/minute-kline'/);
   assert.match(serverSource, /proxyHistoricalMinuteKline\(sym, period, date, res\)/);

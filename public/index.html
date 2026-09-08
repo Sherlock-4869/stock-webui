@@ -3398,7 +3398,19 @@ function updateMinuteKHistoryControls() {
     input.max = dates.length ? isoTradeDate(dates[dates.length - 1]) : '';
     if (chartState.minuteKDate) input.value = isoTradeDate(chartState.minuteKDate);
   }
-  if (status && chartState.minuteKDate) status.textContent = `${isoTradeDate(chartState.minuteKDate)} · 分时 K`;
+  const note = minuteKCoverageNote();
+  if (status) {
+    status.textContent = chartState.minuteKDate
+      ? `${isoTradeDate(chartState.minuteKDate)} · 分时 K${note ? `（${note}）` : ''}`
+      : note ? `选择交易日查看历史分时 K（${note}）` : '选择交易日查看历史分时 K';
+  }
+}
+
+function minuteKCoverageNote() {
+  const served = [...new Set((chartState.minuteKAvailableDates || []).map(compactTradeDate).filter(date => /^\d{8}$/.test(date)))].sort();
+  if (!served.length) return '';
+  if (served.length === 1) return '行情源仅保留最近 1 个交易日';
+  return `行情源保留最近 ${served.length} 个交易日，最早可查 ${isoTradeDate(served[0])}`;
 }
 
 function minuteKTradingDates() {
