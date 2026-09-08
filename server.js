@@ -106,6 +106,10 @@ const BOARD_DETAIL_CACHE_MS = 8 * 1000;
 const STOCK_BOARD_CACHE_MS = 6 * 60 * 60 * 1000;
 const BOARD_LIST_PAGE_SIZE = 1000;
 const BOARD_COMPONENT_PAGE_SIZE = 1000;
+const BOARD_KLINE_LIMIT = 320;
+const BOARD_KLINE_INTRADAY_CACHE_MS = 60 * 1000;
+const BOARD_KLINE_DAILY_CACHE_MS = 10 * 60 * 1000;
+const BOARD_KLINE_PERIODS = new Set(['1','5','15','30','60','101','102','103']);
 const CAPITAL_FLOW_RANKING_CACHE_MS = 12 * 1000;
 const CAPITAL_FLOW_INTRADAY_CACHE_MS = 4500;
 const CAPITAL_FLOW_HISTORY_CACHE_MS = 15 * 60 * 1000;
@@ -130,6 +134,7 @@ const stockBoardCache = new Map();
 const boardListRefreshes = new Map();
 const boardDetailRefreshes = new Map();
 const stockBoardRefreshes = new Map();
+const boardKlineCache = new Map();
 const fundRankingCache = new Map();
 const fundDetailCache = new Map();
 const fundSearchCache = new Map();
@@ -1111,6 +1116,94 @@ async function loadBoardDetail(code) {
   try { return await refresh; } finally { boardDetailRefreshes.delete(code); }
 }
 
+// 板块 K 线：以板块指数 secid 90.BKxxxx 拉取东方财富日/周/月与分钟 K。
+// 与资金流向一致，push2his/push2 被风控断连时按序降级到 push2delay 镜像。
+const BOARD_KLINE_HOSTS = [
+  'https://push2his.eastmoney.com',
+  'https://push2.eastmoney.com',
+  'https://push2delay.eastmoney.com',
+];
+
+function boardKlineNumber(value) {
+  if (value == null || value === '' || value === '-') return null;
+  const number = Number(value);
+  return Number.isFinite(number) ? number : null;
+}
+
+function normalizeBoardKlineRows(lines) {
+  return lines.map(line => {
+    const fields = String(line).split(',');
+    const date = String(fields[0] || '').trim();
+    if (!/^\d{4}-\d{2}-\d{2}/.test(date)) return null;
+    const open = boardKlineNumber(fields[1]);
+    const close = boardKlineNumber(fields[2]);
+    const high = boardKlineNumber(fields[3]);
+    const low = boardKlineNumber(fields[4]);
+    if (![open, close, high, low].every(Number.isFinite)) return null;
+    return {
+      date, open, close, high, low,
+      volume:boardKlineNumber(fields[5]),
+      amount:boardKlineNumber(fields[6]),
+      amplitude:boardKlineNumber(fields[7]),
+      pct:boardKlineNumber(fields[8]),
+      change:boardKlineNumber(fields[9]),
+      turnover:boardKlineNumber(fields[10]),
+    };
+  }).filter(Boolean);
+}
+
+function eastmoneyBoardKlineUrl({ code, period, limit, host }) {
+  return `${host}/api/qt/stock/kline/get?` + new URLSearchParams({
+    secid:`90.${code}`,
+    klt:String(period),
+    fqt:'1',
+    beg:'0',
+    end:'20500101',
+    lmt:String(limit),
+    fields1:'f1,f2,f3,f4,f5,f6',
+    fields2:'f51,f52,f53,f54,f55,f56,f57,f58,f59,f60,f61',
+  });
+}
+
+async function fetchBoardKlineRows(code, period) {
+  const limit = period === '1' || period === '5' ? 1500
+    : period === '15' || period === '30' ? 1200
+      : period === '60' ? 800 : BOARD_KLINE_LIMIT;
+  let lastError = null;
+  for (const host of BOARD_KLINE_HOSTS) {
+    try {
+      const raw = await boardRequestQueue.run(() => requestBuffer(
+        eastmoneyBoardKlineUrl({ code, period, limit, host }),
+        { ...UPSTREAM_HEADERS, Referer:'https://quote.eastmoney.com/' },
+        { timeoutMs:9000 }
+      ));
+      const payload = JSON.parse(raw.toString('utf-8'));
+      if (Number(payload?.rc) !== 0 || !payload?.data) throw new Error('Invalid board kline payload');
+      const rows = normalizeBoardKlineRows(payload.data.klines || []);
+      if (!rows.length) throw new Error(`Empty board kline from ${host}`);
+      return {
+        code, name:String(payload.data.name || ''), period:String(period),
+        rows, fetchedAt:Date.now(),
+      };
+    } catch (error) {
+      lastError = error;
+    }
+  }
+  throw lastError || new Error('Board kline upstream is unavailable');
+}
+
+async function loadBoardKline(code, period, force = false) {
+  const key = `${code}:${period}`;
+  const ttl = Number(period) <= 60 ? BOARD_KLINE_INTRADAY_CACHE_MS : BOARD_KLINE_DAILY_CACHE_MS;
+  const payload = await loadCachedFundValue(
+    boardKlineCache, key, ttl,
+    () => fetchBoardKlineRows(code, period),
+    force
+  );
+  while (boardKlineCache.size > 200) boardKlineCache.delete(boardKlineCache.keys().next().value);
+  return payload;
+}
+
 function boardInfoValue(value) {
   const text = typeof value === 'string' ? value.trim() : '';
   return text && text !== '--' ? text : '';
@@ -1168,6 +1261,19 @@ async function proxyBoardDetail(urlObj, res) {
   } catch (error) {
     console.error(`Board detail error (${code}):`, error.message);
     sendJson(res, 502, { stocks:[], error:'板块成分股暂时不可用' });
+  }
+}
+
+async function proxyBoardKline(urlObj, res) {
+  const code = (urlObj.searchParams.get('code') || '').toUpperCase();
+  const period = urlObj.searchParams.get('period') || '101';
+  if (!/^BK\d{4,6}$/.test(code)) { sendJson(res, 400, { rows:[], error:'Invalid board code' }); return; }
+  if (!BOARD_KLINE_PERIODS.has(period)) { sendJson(res, 400, { rows:[], error:'Invalid board kline period' }); return; }
+  try {
+    sendJson(res, 200, await loadBoardKline(code, period, urlObj.searchParams.get('refresh') === '1'));
+  } catch (error) {
+    console.error(`Board kline error (${code} ${period}):`, error.message);
+    sendJson(res, 502, { rows:[], error:'板块 K 线数据暂时不可用' });
   }
 }
 
@@ -2205,6 +2311,11 @@ const server = http.createServer(async (req, res) => {
 
   if (pathname === '/api/board') {
     await proxyBoardDetail(urlObj, res);
+    return;
+  }
+
+  if (pathname === '/api/board-kline') {
+    await proxyBoardKline(urlObj, res);
     return;
   }
 

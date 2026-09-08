@@ -594,6 +594,15 @@ html[data-theme="light"] .quote-state-badge{border-color:#bf870055;background:#f
   .search-row .market-tool-btn{width:100%;min-width:0}.search-row{margin-bottom:14px}.search-wrap{width:100%;min-width:0;flex:0 0 auto}.sort-note>.drag-handle{display:none}.sort-note>span:nth-child(2){font-size:10px;line-height:1.5}
 }
 html[data-theme="light"] .mobile-app-bar{border-color:#dce3ec;background:#ffffffeb;box-shadow:0 7px 24px #1f3b5b14}html[data-theme="light"] .mobile-app-bar strong{color:#172033}
+/* Board K-line modal */
+.board-kline-modal{width:min(960px,calc(100vw - 28px))}.board-kline-modal .modal-header{border-bottom:1px solid #30363d}.board-kline-toolbar{display:flex;align-items:center;gap:8px;padding:10px 14px 6px;flex-wrap:wrap}.board-kline-periods{display:flex;align-items:center;gap:6px;flex-wrap:wrap}.board-kline-periods .period-btn.active{color:#58a6ff;border-color:#1f6feb;background:#1f3a5f}#board-kline-status{margin-left:auto;color:#6e7681;font-size:10px}.board-kline-chart-wrap{position:relative;padding:2px 14px 14px}#board-kline-canvas{display:block;width:100%;height:360px;border-radius:4px;cursor:crosshair;touch-action:none}#board-kline-canvas.panning{cursor:grabbing}.board-kline-modal .chart-loading{inset:8px 18px 18px}.board-kline-chart-wrap .chart-hover-tooltip{min-width:216px}
+/* Board list quick K-line entry */
+.board-list-row{grid-template-columns:minmax(0,1fr) auto auto}.board-list-kline{align-self:center;border:1px solid #1f6feb55;border-radius:8px;background:#1f6feb14;color:#79c0ff;padding:3px 7px;font:650 10px ui-monospace,SFMono-Regular,monospace;cursor:pointer;white-space:nowrap;transition:background .15s,border-color .15s,color .15s}.board-list-kline:hover{background:#1f3a5f;border-color:#58a6ff;color:#e6edf3}
+/* Board K-line overview (F10-style snapshot) */
+.board-kline-overview{margin:0 14px 16px;padding:12px 13px;border:1px solid #30363d;border-radius:9px;background:#12161c}.board-kline-overview-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px}.board-kline-overview-head strong{font-size:12px}.board-kline-overview-head small{color:#6e7681;font-size:9px}.board-kline-overview-head .refresh-btn{margin-left:auto}.board-kline-overview-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1px;background:#30363d;border-radius:7px;overflow:hidden}.board-kline-fact{min-width:0;padding:9px 10px;background:#0d1117}.board-kline-fact label{display:block;color:#8b949e;font-size:9px}.board-kline-fact b{display:block;overflow:hidden;margin-top:3px;font-size:12px;text-overflow:ellipsis;white-space:nowrap}.board-kline-fact small{display:block;overflow:hidden;margin-top:2px;color:#6e7681;font-size:9px;text-overflow:ellipsis;white-space:nowrap}
+html[data-theme="light"] .board-kline-modal .modal-header{border-color:#d7e0ea}
+html[data-theme="light"] .board-list-kline{border-color:#b6ddff;background:#e8f4ff;color:#0969da}html[data-theme="light"] .board-list-kline:hover{background:#d6ecff;border-color:#54aeff;color:#044289}html[data-theme="light"] .board-kline-overview{border-color:#d7e0ea;background:#f8fafc}html[data-theme="light"] .board-kline-overview-grid{background:#d7e0ea}html[data-theme="light"] .board-kline-fact{background:#fff}
+@media(max-width:620px){.board-kline-periods{max-width:100%}#board-kline-status{width:100%;margin-left:0}.board-kline-overview-grid{grid-template-columns:repeat(2,1fr)}.board-kline-overview-head .refresh-btn{margin-left:0}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
 </style>
 <style>
@@ -1263,6 +1272,53 @@ html[data-theme="light"] .mobile-app-bar{border-color:#dce3ec;background:#ffffff
       <div class="stock-info-toolbar"><div><strong>公司简况 / F10</strong><small id="stock-information-status">按标签加载公开资料，减少首次等待</small></div><button class="refresh-btn" type="button" onclick="loadStockInformation({ force:true })">刷新资料</button></div>
       <div class="stock-info-tabs" role="tablist" aria-label="F10 分类"><button class="stock-info-tab active" type="button" data-stock-info-section="overview" role="tab" onclick="switchStockInformationSection('overview')">概览</button><button class="stock-info-tab" type="button" data-stock-info-section="financials" role="tab" onclick="switchStockInformationSection('financials')">财务分析</button><button class="stock-info-tab" type="button" data-stock-info-section="events" role="tab" onclick="switchStockInformationSection('events')">公告与资本</button><button class="stock-info-tab" type="button" data-stock-info-section="news" role="tab" onclick="switchStockInformationSection('news')">资讯与研报</button></div>
       <div id="stock-information-content"><div class="stock-info-loading">选择“简况 / F10”后加载公开信息</div></div>
+    </section>
+  </div>
+</div>
+
+<div class="modal-mask" id="board-kline-mask" onclick="closeBoardKlineModal(event)">
+  <div class="modal board-kline-modal" role="dialog" aria-modal="true" aria-label="板块 K 线图">
+    <div class="modal-header">
+      <div class="modal-title">
+        <div class="modal-name" id="board-kline-name"></div>
+        <div class="modal-sub" id="board-kline-sub"></div>
+      </div>
+      <div class="modal-price">
+        <div class="price" id="board-kline-price"></div>
+        <div class="chg" id="board-kline-chg"></div>
+      </div>
+      <button class="modal-close" type="button" onclick="closeBoardKlineModal()" aria-label="关闭">✕</button>
+    </div>
+    <div class="board-kline-toolbar">
+      <div class="board-kline-periods" id="board-kline-periods" aria-label="K 线周期">
+        <button class="period-btn" type="button" data-board-kline-period="1" onclick="setBoardKlinePeriod(this)">1分</button>
+        <button class="period-btn" type="button" data-board-kline-period="5" onclick="setBoardKlinePeriod(this)">5分</button>
+        <button class="period-btn" type="button" data-board-kline-period="15" onclick="setBoardKlinePeriod(this)">15分</button>
+        <button class="period-btn" type="button" data-board-kline-period="30" onclick="setBoardKlinePeriod(this)">30分</button>
+        <button class="period-btn" type="button" data-board-kline-period="60" onclick="setBoardKlinePeriod(this)">60分</button>
+        <button class="period-btn" type="button" data-board-kline-period="101" onclick="setBoardKlinePeriod(this)">日K</button>
+        <button class="period-btn" type="button" data-board-kline-period="102" onclick="setBoardKlinePeriod(this)">周K</button>
+        <button class="period-btn" type="button" data-board-kline-period="103" onclick="setBoardKlinePeriod(this)">月K</button>
+      </div>
+      <button class="refresh-btn" type="button" onclick="refreshBoardKline()">刷新</button>
+      <span class="panel-status" id="board-kline-status">板块指数 K 线 · 东方财富</span>
+    </div>
+    <div class="board-kline-chart-wrap">
+      <div class="chart-readout">
+        <div class="chart-info" id="board-kline-info"></div>
+        <div class="chart-guide">滚轮缩放 · 拖动平移 · 双击重置 · 悬停查看明细</div>
+      </div>
+      <canvas id="board-kline-canvas" height="360"></canvas>
+      <div class="chart-loading" id="board-kline-loading" style="display:none">正在加载板块 K 线…</div>
+      <div class="chart-hover-tooltip" id="board-kline-tooltip" role="tooltip" aria-hidden="true"></div>
+    </div>
+    <section class="board-kline-overview" id="board-kline-overview" hidden>
+      <div class="board-kline-overview-head">
+        <strong>板块简况</strong>
+        <small id="board-kline-overview-sub"></small>
+        <button class="refresh-btn" type="button" onclick="openBoardKlineDetail()">成分股与资金详情</button>
+      </div>
+      <div class="board-kline-overview-grid" id="board-kline-overview-grid"></div>
     </section>
   </div>
 </div>
@@ -5091,8 +5147,17 @@ function renderBoardList() {
   list.innerHTML = rows.map(board => {
     const leader = board.leader?.name ? `${board.leader.name} ${boardPct(board.leader.pct)}` : '暂无领涨股';
     const flow = boardPeriodFlow(board);
-    return `<button class="board-list-row${activeBoard?.code === board.code ? ' active' : ''}" type="button" onclick="selectBoard('${board.code}')"><span><span class="board-list-name">${escapeHtml(board.name)}</span><span class="board-list-meta"><span>${Number(board.upCount) || 0} 涨</span><span>${Number(board.downCount) || 0} 跌</span></span></span><span><span class="board-list-leader ${boardTone(flow)}">${CAPITAL_PERIOD_LABELS?.[boardFlowPeriod] || '今日'} ${boardMoney(flow)}</span><span class="board-list-pct ${boardTone(board.pct)}">${boardPct(board.pct)}</span></span></button>`;
+    return `<button class="board-list-row${activeBoard?.code === board.code ? ' active' : ''}" type="button" onclick="handleBoardRowClick(event, '${board.code}')"><span><span class="board-list-name">${escapeHtml(board.name)}</span><span class="board-list-meta"><span>${Number(board.upCount) || 0} 涨</span><span>${Number(board.downCount) || 0} 跌</span></span></span><span><span class="board-list-leader ${boardTone(flow)}">${CAPITAL_PERIOD_LABELS?.[boardFlowPeriod] || '今日'} ${boardMoney(flow)}</span><span class="board-list-pct ${boardTone(board.pct)}">${boardPct(board.pct)}</span></span><span class="board-list-kline" title="查看 ${escapeHtml(board.name)} 的板块 K 线">K线</span></button>`;
   }).join('');
+}
+
+function handleBoardRowClick(event, code) {
+  if (event?.target?.closest?.('.board-list-kline')) {
+    event.preventDefault();
+    openBoardKline(code);
+    return;
+  }
+  selectBoard(code);
 }
 
 function filterBoardList() { renderBoardList(); }
@@ -5233,7 +5298,7 @@ function renderBoardDetail(board, payload) {
   const topFallers = [...stocks].filter(stock => Number.isFinite(Number(stock.pct))).sort((a, b) => Number(a.pct) - Number(b.pct)).slice(0, 10);
   const topInflows = [...stocks].filter(stock => Number.isFinite(Number(stock.mainNetInflow))).sort((a, b) => Number(b.mainNetInflow) - Number(a.mainNetInflow)).slice(0, 5);
   const detail = document.getElementById('board-detail');
-  detail.innerHTML = `<div class="board-detail-head"><div><div class="board-detail-title">${escapeHtml(board.name)}</div><div class="board-detail-code">${escapeHtml(board.code)} · ${BOARD_TYPE_LABELS[boardType]}</div></div><div class="board-detail-status"><button class="refresh-btn" type="button" onclick="openCapitalBoardHistory('${board.code}')">资金历史</button><br>${payload.truncated ? `已展示前 ${stocks.length} 只成分股<br>` : ''}更新于 ${new Date(payload.fetchedAt || Date.now()).toLocaleTimeString('zh-CN', { hour:'2-digit', minute:'2-digit' })}</div></div><div class="board-stat-strip"><div class="board-stat"><label>板块涨跌幅</label><b class="${boardTone(board.pct)}">${boardPct(board.pct)}</b><small>均值 ${boardPct(averagePct)}</small></div><div class="board-stat"><label>上涨 / 平 / 下跌</label><b><span class="board-up-count">${rising}</span> / <span class="board-neutral-count">${flat}</span> / <span class="board-down-count">${falling}</span></b><small>共 ${payload.total || stocks.length} 只成分股</small></div><div class="board-stat"><label>领涨股</label><b class="${boardTone(board.leader?.pct)}">${escapeHtml(board.leader?.name || '--')}</b><small>${boardPct(board.leader?.pct)}</small></div><div class="board-stat"><label>主力净流入</label><b class="${boardTone(board.mainNetInflow)}">${boardMoney(board.mainNetInflow)}</b><small>板块实时资金</small></div></div><div class="board-top-grid">${boardRankRows('涨幅前十', '按涨跌幅', topRisers, stock => boardPct(stock.pct))}${boardRankRows('跌幅前十', '按涨跌幅', topFallers, stock => boardPct(stock.pct))}${boardRankRows('资金流入前五', '主力净额', topInflows, stock => boardMoney(stock.mainNetInflow), 'up')}</div><section class="board-components"><div class="board-components-head"><span class="board-components-title">成分股</span><span class="board-components-note">点击股票可打开走势图</span></div><div class="board-components-scroll"><table class="board-component-table"><thead><tr><th>股票</th><th>最新价</th><th>涨跌幅</th><th>成交额</th><th>换手率</th><th>主力净额</th><th>所属行业</th></tr></thead><tbody>${boardComponentRows(stocks)}</tbody></table></div></section>`;
+  detail.innerHTML = `<div class="board-detail-head"><div><div class="board-detail-title">${escapeHtml(board.name)}</div><div class="board-detail-code">${escapeHtml(board.code)} · ${BOARD_TYPE_LABELS[boardType]}</div></div><div class="board-detail-status"><button class="refresh-btn" type="button" onclick="openBoardKline('${board.code}')">板块K线</button><button class="refresh-btn" type="button" onclick="openCapitalBoardHistory('${board.code}')">资金历史</button><br>${payload.truncated ? `已展示前 ${stocks.length} 只成分股<br>` : ''}更新于 ${new Date(payload.fetchedAt || Date.now()).toLocaleTimeString('zh-CN', { hour:'2-digit', minute:'2-digit' })}</div></div><div class="board-stat-strip"><div class="board-stat"><label>板块涨跌幅</label><b class="${boardTone(board.pct)}">${boardPct(board.pct)}</b><small>均值 ${boardPct(averagePct)}</small></div><div class="board-stat"><label>上涨 / 平 / 下跌</label><b><span class="board-up-count">${rising}</span> / <span class="board-neutral-count">${flat}</span> / <span class="board-down-count">${falling}</span></b><small>共 ${payload.total || stocks.length} 只成分股</small></div><div class="board-stat"><label>领涨股</label><b class="${boardTone(board.leader?.pct)}">${escapeHtml(board.leader?.name || '--')}</b><small>${boardPct(board.leader?.pct)}</small></div><div class="board-stat"><label>主力净流入</label><b class="${boardTone(board.mainNetInflow)}">${boardMoney(board.mainNetInflow)}</b><small>板块实时资金</small></div></div><div class="board-top-grid">${boardRankRows('涨幅前十', '按涨跌幅', topRisers, stock => boardPct(stock.pct))}${boardRankRows('跌幅前十', '按涨跌幅', topFallers, stock => boardPct(stock.pct))}${boardRankRows('资金流入前五', '主力净额', topInflows, stock => boardMoney(stock.mainNetInflow), 'up')}</div><section class="board-components"><div class="board-components-head"><span class="board-components-title">成分股</span><span class="board-components-note">点击股票可打开走势图</span></div><div class="board-components-scroll"><table class="board-component-table"><thead><tr><th>股票</th><th>最新价</th><th>涨跌幅</th><th>成交额</th><th>换手率</th><th>主力净额</th><th>所属行业</th></tr></thead><tbody>${boardComponentRows(stocks)}</tbody></table></div></section>`;
 }
 
 async function selectBoard(code) {
@@ -5574,6 +5639,603 @@ function loadCapitalFlow(force = false, { background = false } = {}) {
 }
 
 function refreshCapitalFlow() { loadCapitalFlow(true, { background:true }); if (capitalSelectedItem) loadCapitalDetail(true); }
+
+// --- Board K-line (板块行情详情内查看板块指数 K 线) ---
+const BOARD_KLINE_PERIOD_LABELS = { 1:'1 分', 5:'5 分', 15:'15 分', 30:'30 分', 60:'60 分', 101:'日 K', 102:'周 K', 103:'月 K' };
+const BOARD_KLINE_MA_COLORS = { 5:'#e3b341', 10:'#bc8cff', 20:'#58a6ff' };
+const BOARD_KLINE_INTRADAY_PERIODS = new Set(['1', '5', '15', '30', '60']);
+let boardKlineModal = null;
+let boardKlinePeriod = '101';
+let boardKlineRequestId = 0;
+const boardKlineChartState = { rows:[], ma5:[], ma10:[], ma20:[], viewStart:0, viewCount:0, viewEnd:0, hover:null, layout:null };
+const boardKlineCanvas = document.getElementById('board-kline-canvas');
+const boardKlinePointers = new Map();
+let boardKlineGesture = null;
+let boardKlineResizeTimer = null;
+
+function boardKlineAxisLabel(value) {
+  const text = String(value || '');
+  if (text.includes(' ') && text.includes(':')) return text.split(' ')[1].slice(0, 5);
+  return text.slice(5);
+}
+
+function boardKlineNumber(value) {
+  const number = Number(value);
+  return Number.isFinite(number) ? number : null;
+}
+
+function boardKlineParseRows(rows) {
+  return (Array.isArray(rows) ? rows : []).map(row => {
+    const open = boardKlineNumber(row?.open);
+    const close = boardKlineNumber(row?.close);
+    const high = boardKlineNumber(row?.high);
+    const low = boardKlineNumber(row?.low);
+    if (!String(row?.date || '').trim() || ![open, close, high, low].every(Number.isFinite)) return null;
+    return {
+      date:String(row.date).trim(), open, close, high, low,
+      volume:boardKlineNumber(row?.volume), amount:boardKlineNumber(row?.amount),
+      amplitude:boardKlineNumber(row?.amplitude), pct:boardKlineNumber(row?.pct),
+      change:boardKlineNumber(row?.change), turnover:boardKlineNumber(row?.turnover),
+    };
+  }).filter(Boolean);
+}
+
+function boardKlineMovingAverages(rows) {
+  const result = { ma5:[], ma10:[], ma20:[] };
+  [[5, 'ma5'], [10, 'ma10'], [20, 'ma20']].forEach(([period, key]) => {
+    rows.forEach((row, index) => {
+      if (index < period - 1) { result[key].push(null); return; }
+      let sum = 0;
+      for (let j = index - period + 1; j <= index; j++) sum += row.close;
+      result[key].push(sum / period);
+    });
+  });
+  return result;
+}
+
+function boardKlineDefaultViewCount() {
+  const total = boardKlineChartState.rows.length;
+  const want = BOARD_KLINE_INTRADAY_PERIODS.has(boardKlinePeriod) ? 160 : boardKlinePeriod === '101' ? 90 : 120;
+  return Math.min(total, want);
+}
+
+function boardKlineCompact(value) {
+  const number = Number(value);
+  if (!Number.isFinite(number)) return '--';
+  const absolute = Math.abs(number);
+  const sign = number < 0 ? '-' : '';
+  if (absolute >= 100000000) return `${sign}${(absolute / 100000000).toFixed(2)}亿`;
+  if (absolute >= 10000) return `${sign}${(absolute / 10000).toFixed(2)}万`;
+  return `${sign}${Math.round(absolute)}`;
+}
+
+function boardKlineRowChange(row, index) {
+  if (Number.isFinite(row.change) || Number.isFinite(row.pct)) {
+    return { change:Number.isFinite(row.change) ? row.change : null, pct:Number.isFinite(row.pct) ? row.pct : null };
+  }
+  const previous = index > 0 ? boardKlineChartState.rows[index - 1] : null;
+  if (!previous || !Number.isFinite(previous.close) || !previous.close) return { change:null, pct:null };
+  return { change:row.close - previous.close, pct:(row.close - previous.close) / previous.close * 100 };
+}
+
+function boardKlineTooltipHtml(row, index) {
+  const { change, pct } = boardKlineRowChange(row, index);
+  const tone = (Number.isFinite(change) ? cls(change) : 'flat');
+  const priceClass = row.close >= row.open ? 'up' : 'down';
+  const changeText = Number.isFinite(change) ? `${sign(change)}${Number(change).toFixed(2)}` : '--';
+  const pctText = Number.isFinite(pct) ? `${sign(pct)}${Number(pct).toFixed(2)}%` : '--';
+  const field = (label, value, toneClass = '') => `<div class="chart-tooltip-item"><b>${label}</b><strong class="${toneClass}">${value}</strong></div>`;
+  return `<div class="chart-tooltip-title">${escapeHtml(row.date)}</div><div class="chart-tooltip-grid">`
+    + field('开盘', row.open.toFixed(2), priceClass)
+    + field('最高', row.high.toFixed(2), 'up')
+    + field('最低', row.low.toFixed(2), 'down')
+    + field('收盘', row.close.toFixed(2), priceClass)
+    + field('涨跌', `${changeText}  ${pctText}`, tone)
+    + field('成交量', boardKlineCompact(row.volume))
+    + field('成交额', boardKlineCompact(row.amount))
+    + `</div>`;
+}
+
+function boardKlineTooltipHide() {
+  const tooltip = document.getElementById('board-kline-tooltip');
+  if (tooltip) tooltip.classList.remove('visible');
+}
+
+function boardKlineTooltipShow(row, index, event) {
+  const tooltip = document.getElementById('board-kline-tooltip');
+  if (!tooltip || !event || !boardKlineChartState.layout) return;
+  tooltip.innerHTML = boardKlineTooltipHtml(row, index);
+  tooltip.classList.add('visible');
+  const wrap = boardKlineCanvas.parentElement;
+  const canvasRect = boardKlineCanvas.getBoundingClientRect();
+  const wrapRect = wrap.getBoundingClientRect();
+  const layout = boardKlineChartState.layout;
+  const local = index - layout.viewStart;
+  let left = (canvasRect.left - wrapRect.left) + layout.xFor(local);
+  let top = (canvasRect.top - wrapRect.top) + layout.volTop + layout.volH + 6;
+  const maxLeft = Math.max(0, wrapRect.width - tooltip.offsetWidth - 4);
+  const maxTop = Math.max(0, wrapRect.height - tooltip.offsetHeight - 4);
+  if (left > maxLeft) left = maxLeft;
+  if (top > maxTop) top = maxTop;
+  tooltip.style.left = `${Math.max(0, left)}px`;
+  tooltip.style.top = `${Math.max(0, top)}px`;
+}
+
+function boardKlineInfoHtml(row, index) {
+  const parts = [5, 10, 20].map(period => `<span style="color:${BOARD_KLINE_MA_COLORS[period]}">MA${period}</span>`);
+  if (!row) return parts.join('');
+  const { change, pct } = boardKlineRowChange(row, index);
+  const summary = ` ${escapeHtml(boardKlineAxisLabel(row.date))} 收 ${Number(row.close).toFixed(2)}`
+    + (Number.isFinite(change) ? `  ${sign(change)}${Number(change).toFixed(2)}` : '')
+    + (Number.isFinite(pct) ? `  ${sign(pct)}${Number(pct).toFixed(2)}%` : '');
+  parts.push(`<span>${summary}</span>`);
+  return parts.join('');
+}
+
+function boardKlineUpdateInfo() {
+  const info = document.getElementById('board-kline-info');
+  if (!info) return;
+  const state = boardKlineChartState;
+  const point = state.hover != null ? state.rows[state.hover] : state.rows[state.rows.length - 1];
+  info.innerHTML = boardKlineInfoHtml(point, point ? state.hover != null ? state.hover : state.rows.length - 1 : -1);
+}
+
+function boardKlineCanvasMetrics() {
+  const canvas = boardKlineCanvas;
+  const dpr = window.devicePixelRatio || 1;
+  const cssWidth = Math.max(280, Math.floor(canvas.clientWidth || canvas.parentElement.clientWidth));
+  const cssHeight = 360;
+  const pixelWidth = Math.round(cssWidth * dpr);
+  const pixelHeight = Math.round(cssHeight * dpr);
+  if (canvas.width !== pixelWidth || canvas.height !== pixelHeight) {
+    canvas.width = pixelWidth;
+    canvas.height = pixelHeight;
+  }
+  const ctx = canvas.getContext('2d');
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, cssWidth, cssHeight);
+  return { ctx, W:cssWidth, H:cssHeight };
+}
+
+function boardKlineRender() {
+  const state = boardKlineChartState;
+  const total = state.rows.length;
+  const { ctx, W, H } = boardKlineCanvasMetrics();
+  ctx.fillStyle = chartThemeColor('bg');
+  ctx.fillRect(0, 0, W, H);
+  if (!total) {
+    state.layout = null;
+    ctx.fillStyle = chartThemeColor('muted');
+    ctx.font = '12px ui-monospace, monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText('暂无板块 K 线数据，请稍后刷新重试', W / 2, H / 2);
+    return;
+  }
+  const maxStart = Math.max(0, total - 5);
+  if (state.viewStart > maxStart) state.viewStart = maxStart;
+  let count = Math.min(total, Math.max(1, Math.round(state.viewCount || total)));
+  state.viewCount = count;
+  state.viewEnd = Math.min(total - 1, state.viewStart + count - 1);
+  const startIndex = state.viewStart;
+  const data = state.rows.slice(startIndex, state.viewEnd + 1);
+  const pad = { l:58, r:14 };
+  const plotLeft = pad.l;
+  const plotRight = W - pad.r;
+  const cw = plotRight - plotLeft;
+  const priceTop = 12;
+  const priceH = 246;
+  const volTop = 276;
+  const volH = 62;
+  const rawMin = Math.min(...data.map(point => point.low));
+  const rawMax = Math.max(...data.map(point => point.high));
+  const margin = Math.max((rawMax - rawMin) * .06, (rawMax || 1) * .002);
+  const priceMin = rawMin - margin;
+  const priceMax = rawMax + margin;
+  const range = priceMax - priceMin || 1;
+  const step = cw / data.length;
+  const xFor = index => plotLeft + (index + .5) * step;
+  const py = value => priceTop + (priceMax - value) / range * priceH;
+  ctx.font = '10px ui-monospace, monospace';
+  for (let i = 0; i <= 4; i++) {
+    const ratio = i / 4;
+    const y = priceTop + ratio * priceH;
+    const value = priceMax - ratio * range;
+    drawGridLine(ctx, plotLeft, y, plotRight, y);
+    ctx.fillStyle = chartThemeColor('muted');
+    ctx.textAlign = 'right';
+    ctx.fillText(value.toFixed(2), plotLeft - 5, y + 3);
+  }
+  const xIndexes = [...new Set([
+    0,
+    Math.round((data.length - 1) * .25),
+    Math.round((data.length - 1) * .5),
+    Math.round((data.length - 1) * .75),
+    data.length - 1,
+  ])];
+  xIndexes.forEach((index, tickIndex) => {
+    const x = xFor(index);
+    drawGridLine(ctx, x, priceTop, x, volTop + volH);
+    ctx.fillStyle = chartThemeColor('muted');
+    ctx.textAlign = tickIndex === 0 ? 'left' : tickIndex === xIndexes.length - 1 ? 'right' : 'center';
+    ctx.fillText(boardKlineAxisLabel(data[index].date), x, H - 8);
+  });
+  const barW = Math.max(2, Math.min(13, step * .62));
+  data.forEach((point, index) => {
+    const x = xFor(index);
+    const up = point.close >= point.open;
+    const color = up ? '#f85149' : '#3fb950';
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(x, py(point.high));
+    ctx.lineTo(x, py(point.low));
+    ctx.stroke();
+    const bodyTop = py(Math.max(point.open, point.close));
+    const bodyBottom = py(Math.min(point.open, point.close));
+    ctx.fillStyle = color;
+    ctx.fillRect(x - barW / 2, bodyTop, barW, Math.max(1, bodyBottom - bodyTop));
+  });
+  [[state.ma5, 5], [state.ma10, 10], [state.ma20, 20]].forEach(([values, period]) => {
+    drawAverageLine(ctx, values.slice(startIndex, state.viewEnd + 1), xFor, py, BOARD_KLINE_MA_COLORS[period]);
+  });
+  ctx.font = '10px ui-monospace, monospace';
+  ctx.textAlign = 'left';
+  let maLegendX = plotLeft;
+  [5, 10, 20].forEach(period => {
+    const label = `MA${period}`;
+    ctx.fillStyle = BOARD_KLINE_MA_COLORS[period];
+    ctx.fillText(label, maLegendX, 11);
+    maLegendX += ctx.measureText(label).width + 12;
+  });
+  const volumes = data.map(point => point.volume).filter(Number.isFinite);
+  const maxVolume = Math.max(...volumes, 1);
+  ctx.fillStyle = chartThemeColor('muted');
+  ctx.textAlign = 'right';
+  ctx.fillText('成交量', plotLeft - 5, volTop + 10);
+  const volumeLegendH = 16;
+  const volumeBarsTop = volTop + volumeLegendH;
+  const volumeBarsH = volH - volumeLegendH;
+  data.forEach((point, index) => {
+    const volume = Number.isFinite(point.volume) ? point.volume : 0;
+    const height = volume / maxVolume * volumeBarsH;
+    const x = xFor(index);
+    ctx.fillStyle = point.close >= point.open ? '#f8514966' : '#3fb95066';
+    ctx.fillRect(x - barW / 2, volumeBarsTop + volumeBarsH - height, barW, height);
+  });
+  drawGridLine(ctx, plotLeft, volTop, plotRight, volTop);
+  state.layout = { W, H, plotLeft, plotRight, cw, priceTop, priceH, volTop, volH, priceMin, priceMax, xFor, py, viewStart:startIndex, viewEnd:state.viewEnd };
+  boardKlineDrawCrosshair(ctx);
+  boardKlineUpdateInfo();
+}
+
+function boardKlineDrawCrosshair(ctx) {
+  const state = boardKlineChartState;
+  const layout = state.layout;
+  const index = state.hover;
+  if (!layout || index == null || index < layout.viewStart || index > layout.viewEnd) return;
+  const local = index - layout.viewStart;
+  const point = state.rows[index];
+  const x = layout.xFor(local);
+  const y = layout.py(point.close);
+  ctx.save();
+  ctx.strokeStyle = chartThemeColor('cross');
+  ctx.lineWidth = 1;
+  ctx.setLineDash([3, 3]);
+  ctx.beginPath();
+  ctx.moveTo(x, layout.priceTop);
+  ctx.lineTo(x, layout.volTop + layout.volH);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(layout.plotLeft, y);
+  ctx.lineTo(layout.plotRight, y);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle = chartThemeColor('badge');
+  const label = point.close.toFixed(2);
+  ctx.font = '10px ui-monospace, monospace';
+  const labelWidth = ctx.measureText(label).width + 10;
+  const labelLeft = Math.max(layout.plotLeft, Math.min(x - labelWidth / 2, layout.plotRight - labelWidth));
+  ctx.fillRect(labelLeft, y - 9, labelWidth, 16);
+  ctx.strokeStyle = chartThemeColor('grid');
+  ctx.strokeRect(labelLeft, y - 9, labelWidth, 16);
+  ctx.fillStyle = chartThemeColor('text');
+  ctx.textAlign = 'center';
+  ctx.fillText(label, labelLeft + labelWidth / 2, y + 3);
+  ctx.restore();
+}
+
+function boardKlineHoverIndexAt(event) {
+  const layout = boardKlineChartState.layout;
+  if (!layout || !boardKlineChartState.rows.length) return null;
+  const rect = boardKlineCanvas.getBoundingClientRect();
+  const x = (event.clientX - rect.left) * layout.W / rect.width;
+  if (x < layout.plotLeft || x > layout.plotRight) return null;
+  const ratio = Math.max(0, Math.min(1, (x - layout.plotLeft) / (layout.plotRight - layout.plotLeft)));
+  const visible = layout.viewEnd - layout.viewStart + 1;
+  return Math.min(layout.viewEnd, layout.viewStart + Math.floor(ratio * visible));
+}
+
+function boardKlineSetView(start, count) {
+  const total = boardKlineChartState.rows.length;
+  if (!total) return;
+  const safeCount = Math.min(total, Math.max(5, Math.min(total, Math.round(count))));
+  const maxStart = Math.max(0, total - safeCount);
+  const nextStart = Math.max(0, Math.min(maxStart, Math.round(start)));
+  boardKlineChartState.viewStart = nextStart;
+  boardKlineChartState.viewCount = safeCount;
+  boardKlineChartState.hover = null;
+  boardKlineTooltipHide();
+  boardKlineRender();
+}
+
+function boardKlineResetView() {
+  boardKlineSetView(0, boardKlineDefaultViewCount());
+}
+
+function boardKlineSyncPeriodButtons() {
+  document.querySelectorAll('#board-kline-periods .period-btn').forEach(button => {
+    button.classList.toggle('active', button.dataset.boardKlinePeriod === boardKlinePeriod);
+  });
+}
+
+function boardKlineSetStatus(text) {
+  const status = document.getElementById('board-kline-status');
+  if (status) status.textContent = text;
+}
+
+function boardKlineSetLoading(visible) {
+  const loading = document.getElementById('board-kline-loading');
+  if (!loading) return;
+  loading.style.display = visible ? 'flex' : 'none';
+}
+
+function boardKlineUpdateHeader(payload) {
+  const modal = boardKlineModal;
+  const rows = boardKlineChartState.rows;
+  if (!modal) return;
+  const nameEl = document.getElementById('board-kline-name');
+  const subEl = document.getElementById('board-kline-sub');
+  const priceEl = document.getElementById('board-kline-price');
+  const chgEl = document.getElementById('board-kline-chg');
+  if (nameEl) nameEl.textContent = payload?.name || modal.name;
+  if (subEl) subEl.textContent = `${modal.code} · ${modal.typeLabel} · 板块指数`;
+  const latest = rows[rows.length - 1];
+  if (priceEl && chgEl && latest) {
+    const { change, pct } = boardKlineRowChange(latest, rows.length - 1);
+    const changeValue = Number.isFinite(change) ? change : 0;
+    const pctValue = Number.isFinite(pct) ? pct : 0;
+    const tone = cls(changeValue);
+    priceEl.className = `price ${tone}`;
+    priceEl.textContent = latest.close.toFixed(2);
+    chgEl.className = `chg ${tone}`;
+    chgEl.textContent = `${sign(changeValue)}${changeValue.toFixed(2)}  ${sign(pctValue)}${pctValue.toFixed(2)}%`;
+  }
+}
+
+function renderBoardKlineOverview() {
+  const modal = boardKlineModal;
+  const section = document.getElementById('board-kline-overview');
+  const sub = document.getElementById('board-kline-overview-sub');
+  const grid = document.getElementById('board-kline-overview-grid');
+  if (!section || !grid || !modal) return;
+  section.hidden = false;
+  if (sub) sub.textContent = `${modal.typeLabel} · ${modal.code} · 与左侧板块行情同步`;
+  const fact = (label, value, tone = '', note = '') =>
+    `<div class="board-kline-fact"><label>${label}</label><b class="${tone}">${value}</b>${note ? `<small>${note}</small>` : ''}</div>`;
+  const leader = modal.leaderName
+    ? `${escapeHtml(modal.leaderName)}${modal.leaderPct != null && modal.leaderPct !== '' ? ` ${boardPct(modal.leaderPct)}` : ''}`
+    : '暂无领涨股';
+  grid.innerHTML = fact('板块涨跌幅', boardPct(modal.pct), boardTone(modal.pct))
+    + fact('涨 / 跌家数', `${Number(modal.upCount) || 0} / ${Number(modal.downCount) || 0}`, '', '平盘未在行情源列出')
+    + fact('领涨股', leader)
+    + fact('主力净流入', boardMoney(modal.mainNetInflow), boardTone(modal.mainNetInflow));
+}
+
+function openBoardKlineDetail() {
+  const modal = boardKlineModal;
+  if (!modal) return;
+  closeBoardKlineModal();
+  const board = boardRows.find(item => item.code === modal.code);
+  if (board) {
+    selectBoard(board.code);
+    document.getElementById('board-detail')?.scrollIntoView({ behavior:'smooth', block:'start' });
+  } else {
+    showToast('当前列表未找到该板块，请刷新后重试', true);
+  }
+}
+
+async function loadBoardKline(force = false) {
+  const modal = boardKlineModal;
+  if (!modal) return;
+  const requestId = ++boardKlineRequestId;
+  boardKlineSetLoading(true);
+  boardKlineSetStatus(`正在加载 ${modal.code} 的${BOARD_KLINE_PERIOD_LABELS[boardKlinePeriod] || ''}…`);
+  try {
+    const response = await fetch(`/api/board-kline?code=${encodeURIComponent(modal.code)}&period=${encodeURIComponent(boardKlinePeriod)}${force ? '&refresh=1' : ''}`);
+    const payload = await response.json().catch(() => ({}));
+    if (requestId !== boardKlineRequestId || !boardKlineModal) return;
+    if (!response.ok) throw new Error(payload.error || '板块 K 线请求失败');
+    const rows = boardKlineParseRows(payload.rows);
+    if (!rows.length) throw new Error('该板块暂无 K 线数据，请稍后重试');
+    const averages = boardKlineMovingAverages(rows);
+    boardKlineChartState.rows = rows;
+    boardKlineChartState.ma5 = averages.ma5;
+    boardKlineChartState.ma10 = averages.ma10;
+    boardKlineChartState.ma20 = averages.ma20;
+    boardKlineChartState.hover = null;
+    boardKlineChartState.viewStart = 0;
+    boardKlineChartState.viewCount = boardKlineDefaultViewCount();
+    boardKlineTooltipHide();
+    boardKlineUpdateHeader(payload);
+    boardKlineRender();
+    const first = rows[0];
+    const last = rows[rows.length - 1];
+    const fetched = Number(payload.fetchedAt) ? new Date(payload.fetchedAt).toLocaleTimeString('zh-CN', { hour:'2-digit', minute:'2-digit', second:'2-digit' }) : '';
+    boardKlineSetStatus(`板块指数 · ${BOARD_KLINE_PERIOD_LABELS[boardKlinePeriod] || boardKlinePeriod} · ${first.date.slice(0, 10)} ~ ${last.date.slice(0, 10)} · 共 ${rows.length} 根${fetched ? ` · ${fetched}` : ''}`);
+  } catch (error) {
+    if (requestId !== boardKlineRequestId || !boardKlineModal) return;
+    console.error('Board kline error:', error.message);
+    boardKlineChartState.rows = [];
+    boardKlineChartState.ma5 = [];
+    boardKlineChartState.ma10 = [];
+    boardKlineChartState.ma20 = [];
+    boardKlineChartState.hover = null;
+    boardKlineChartState.layout = null;
+    boardKlineTooltipHide();
+    boardKlineUpdateHeader(null);
+    boardKlineRender();
+    const info = document.getElementById('board-kline-info');
+    if (info) info.innerHTML = '';
+    boardKlineSetStatus(`K 线暂时不可用：${error.message}`);
+  } finally {
+    if (requestId === boardKlineRequestId) boardKlineSetLoading(false);
+  }
+}
+
+async function openBoardKline(code) {
+  const board = boardRows.find(item => item.code === code);
+  if (!board) return;
+  boardKlineModal = {
+    code:board.code, name:board.name,
+    typeLabel:BOARD_TYPE_LABELS[boardType] || '',
+    pct:board.pct, upCount:board.upCount, downCount:board.downCount,
+    mainNetInflow:board.mainNetInflow,
+    leaderName:board.leader?.name || '', leaderPct:board.leader?.pct,
+  };
+  boardKlinePeriod = '101';
+  boardKlineChartState.rows = [];
+  boardKlineChartState.ma5 = [];
+  boardKlineChartState.ma10 = [];
+  boardKlineChartState.ma20 = [];
+  boardKlineChartState.hover = null;
+  boardKlineChartState.layout = null;
+  boardKlineTooltipHide();
+  boardKlineSyncPeriodButtons();
+  boardKlineUpdateHeader(null);
+  document.getElementById('board-kline-mask').classList.add('open');
+  renderBoardKlineOverview();
+  await loadBoardKline();
+}
+
+function closeBoardKlineModal(event) {
+  const mask = document.getElementById('board-kline-mask');
+  if (event && event.target !== mask) return;
+  mask.classList.remove('open');
+  boardKlineRequestId++;
+  boardKlineModal = null;
+  boardKlineTooltipHide();
+}
+
+async function setBoardKlinePeriod(button) {
+  const period = button?.dataset?.boardKlinePeriod;
+  if (!period) return;
+  if (period === boardKlinePeriod && boardKlineChartState.rows.length) return;
+  boardKlinePeriod = period;
+  boardKlineSyncPeriodButtons();
+  await loadBoardKline();
+}
+
+function refreshBoardKline() {
+  loadBoardKline(true);
+}
+
+function boardKlineStartPan(pointer) {
+  boardKlineGesture = {
+    mode:'pan', pointerId:pointer.pointerId, startX:pointer.clientX,
+    start:boardKlineChartState.viewStart, count:boardKlineChartState.viewCount, moved:false,
+  };
+}
+
+function boardKlineEndPointer(event) {
+  if (!boardKlinePointers.has(event.pointerId)) return;
+  boardKlinePointers.delete(event.pointerId);
+  try { boardKlineCanvas.releasePointerCapture(event.pointerId); } catch (_) {}
+  if (!boardKlinePointers.size) {
+    boardKlineGesture = null;
+    boardKlineCanvas.classList.remove('panning');
+  }
+}
+
+boardKlineCanvas.addEventListener('pointerdown', event => {
+  if (!boardKlineChartState.layout || !boardKlineChartState.rows.length || event.button > 0) return;
+  if (boardKlinePointers.size) return;
+  event.preventDefault();
+  boardKlineTooltipHide();
+  boardKlinePointers.set(event.pointerId, { pointerId:event.pointerId, clientX:event.clientX, clientY:event.clientY });
+  try { boardKlineCanvas.setPointerCapture(event.pointerId); } catch (_) {}
+  boardKlineCanvas.classList.add('panning');
+  boardKlineStartPan(boardKlinePointers.get(event.pointerId));
+});
+
+boardKlineCanvas.addEventListener('pointermove', event => {
+  const state = boardKlineChartState;
+  if (!state.layout || !state.rows.length) return;
+  if (!boardKlinePointers.has(event.pointerId)) {
+    if (event.pointerType !== 'mouse') return;
+    const index = boardKlineHoverIndexAt(event);
+    if (index == null) {
+      if (state.hover != null) {
+        state.hover = null;
+        boardKlineTooltipHide();
+        boardKlineRender();
+      }
+      return;
+    }
+    if (state.hover !== index) {
+      state.hover = index;
+      boardKlineRender();
+    }
+    boardKlineTooltipShow(state.rows[index], index, event);
+    return;
+  }
+  event.preventDefault();
+  boardKlinePointers.set(event.pointerId, { pointerId:event.pointerId, clientX:event.clientX, clientY:event.clientY });
+  const gesture = boardKlineGesture;
+  if (gesture?.mode !== 'pan' || gesture.pointerId !== event.pointerId) return;
+  const rect = boardKlineCanvas.getBoundingClientRect();
+  const plotWidth = rect.width * (state.layout.plotRight - state.layout.plotLeft) / state.layout.W;
+  const delta = Math.round(-(event.clientX - gesture.startX) / Math.max(1, plotWidth) * gesture.count);
+  if (Math.abs(event.clientX - gesture.startX) > 3) gesture.moved = true;
+  boardKlineSetView(gesture.start + delta, gesture.count);
+});
+
+boardKlineCanvas.addEventListener('pointerleave', event => {
+  if (event.pointerType !== 'mouse' || boardKlinePointers.size) return;
+  if (boardKlineChartState.hover != null) {
+    boardKlineChartState.hover = null;
+    boardKlineTooltipHide();
+    boardKlineRender();
+  }
+});
+
+boardKlineCanvas.addEventListener('pointerup', boardKlineEndPointer);
+boardKlineCanvas.addEventListener('pointercancel', boardKlineEndPointer);
+
+boardKlineCanvas.addEventListener('wheel', event => {
+  const state = boardKlineChartState;
+  if (!state.layout || !state.rows.length) return;
+  event.preventDefault();
+  const current = state.viewCount;
+  const scale = Math.exp(event.deltaY * .0018);
+  const rect = boardKlineCanvas.getBoundingClientRect();
+  const ratio = Math.max(0, Math.min(1, ((event.clientX - rect.left) * state.layout.W / rect.width - state.layout.plotLeft) / (state.layout.plotRight - state.layout.plotLeft)));
+  const anchor = state.viewStart + ratio * current;
+  const next = Math.round(current * scale);
+  const start = Math.max(0, Math.min(state.rows.length - next, Math.round(anchor - ratio * next)));
+  boardKlineSetView(start, next);
+}, { passive:false });
+
+boardKlineCanvas.addEventListener('dblclick', () => {
+  if (boardKlineChartState.rows.length) boardKlineResetView();
+});
+
+window.addEventListener('resize', () => {
+  clearTimeout(boardKlineResizeTimer);
+  boardKlineResizeTimer = setTimeout(() => {
+    const mask = document.getElementById('board-kline-mask');
+    if (mask?.classList.contains('open') && boardKlineChartState.rows.length) boardKlineRender();
+  }, 120);
+});
 
 // --- Index futures and US overnight radar ---
 let derivativesLoaded = false;
