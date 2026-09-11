@@ -1481,13 +1481,16 @@ async function fetchMainlandMarketOverview(code, force = false, aggregate = true
   // 上证“大盘全景”统一覆盖沪市、深市、创业板和科创板。
   if (code === '000001' && aggregate) {
     // 深证成指已包含创业板，上海综合指数已包含科创板；另加北证50覆盖北交所，避免板块重复计算。
-    const parts = await Promise.all(['000001','399001','899050'].map(item => fetchMainlandMarketOverview(item, force, false)));
+    const [parts, pools] = await Promise.all([
+      Promise.all(['000001','399001'].map(item => fetchMainlandMarketOverview(item, force, false))),
+      loadLimitPools(force).catch(() => null),
+    ]);
     const sum = (path) => parts.reduce((total, item) => total + (Number(path(item)) || 0), 0);
     const flows = parts[0].funds?.markets || [];
     const combined = parts[0].funds?.combined || {};
     return {
       ...parts[0], code:'000001', name:'沪深京主要市场合计',
-      breadth:{ rising:sum(item => item.breadth.rising), falling:sum(item => item.breadth.falling), flat:sum(item => item.breadth.flat), limitUp:sum(item => item.breadth.limitUp), limitDown:sum(item => item.breadth.limitDown) },
+      breadth:{ rising:sum(item => item.breadth.rising), falling:sum(item => item.breadth.falling), flat:sum(item => item.breadth.flat), limitUp:pools?.limitUp?.total ?? sum(item => item.breadth.limitUp), limitDown:pools?.limitDown?.total ?? sum(item => item.breadth.limitDown) },
       trading:{ volume:sum(item => item.trading.volume), amount:sum(item => item.trading.amount), totalMarketCap:sum(item => item.trading.totalMarketCap), floatMarketCap:sum(item => item.trading.floatMarketCap) },
       funds:{ combined, markets:flows },
       unavailable:[...new Set(parts.flatMap(item => item.unavailable || []))], partial:parts.some(item => item.partial), fetchedAt:Date.now(), includedMarkets:['沪市（含科创板）','深市（含创业板）','北交所'],
