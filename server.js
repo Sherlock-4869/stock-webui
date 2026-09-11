@@ -1117,10 +1117,12 @@ async function loadBoardDetail(code) {
 }
 
 // 板块 K 线：以板块指数 secid 90.BKxxxx 拉取东方财富日/周/月与分钟 K。
-// 与资金流向一致，push2his/push2 被风控断连时按序降级到 push2delay 镜像。
+// push2his/push2 被风控断连时按序降级；push2delay 是延迟镜像、不带 K 线历史，
+// push2test 是官方图表库认可的备用域名，两者都放在最后作为兜底。
 const BOARD_KLINE_HOSTS = [
   'https://push2his.eastmoney.com',
   'https://push2.eastmoney.com',
+  'https://push2test.eastmoney.com',
   'https://push2delay.eastmoney.com',
 ];
 
@@ -1476,6 +1478,20 @@ function latestMarketFlowPoint(rows) {
 }
 
 async function fetchMainlandMarketOverview(code, force = false) {
+  // 上证“大盘全景”统一覆盖沪市、深市、创业板和科创板。
+  if (code === '000001') {
+    const parts = await Promise.all(['000001','399001','399006','000688'].map(item => fetchMainlandMarketOverview(item, force)));
+    const sum = (path) => parts.reduce((total, item) => total + (Number(path(item)) || 0), 0);
+    const flows = parts.flatMap(item => item.funds?.markets || []);
+    const combined = ['mainNet','smallNet','mediumNet','largeNet','superLargeNet'].reduce((out, key) => { out[key] = sum(item => item.funds?.combined?.[key]); return out; }, {});
+    return {
+      ...parts[0], code:'000001', name:'沪深京主要市场合计',
+      breadth:{ rising:sum(item => item.breadth.rising), falling:sum(item => item.breadth.falling), flat:sum(item => item.breadth.flat), limitUp:sum(item => item.breadth.limitUp), limitDown:sum(item => item.breadth.limitDown) },
+      trading:{ volume:sum(item => item.trading.volume), amount:sum(item => item.trading.amount), totalMarketCap:sum(item => item.trading.totalMarketCap), floatMarketCap:sum(item => item.trading.floatMarketCap) },
+      funds:{ combined, markets:flows },
+      unavailable:[...new Set(parts.flatMap(item => item.unavailable || []))], partial:parts.some(item => item.partial), fetchedAt:Date.now(), includedMarkets:['沪市','深市','创业板','科创板'],
+    };
+  }
   const definition = MAINLAND_MARKET_INDEXES[code];
   if (!definition) throw new Error('Unsupported mainland market index');
   const quote = await requestEastmoneyFlowJson('/api/qt/stock/get', {
