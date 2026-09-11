@@ -1480,7 +1480,8 @@ function latestMarketFlowPoint(rows) {
 async function fetchMainlandMarketOverview(code, force = false, aggregate = true) {
   // 上证“大盘全景”统一覆盖沪市、深市、创业板和科创板。
   if (code === '000001' && aggregate) {
-    const parts = await Promise.all(['000001','399001','399006','000688'].map(item => fetchMainlandMarketOverview(item, force, false)));
+    // 深证成指已包含创业板，上海综合指数已包含科创板；这里只合并沪市与深市，避免重复计算。
+    const parts = await Promise.all(['000001','399001'].map(item => fetchMainlandMarketOverview(item, force, false)));
     const sum = (path) => parts.reduce((total, item) => total + (Number(path(item)) || 0), 0);
     const flows = parts.flatMap(item => item.funds?.markets || []);
     const combined = ['mainNet','smallNet','mediumNet','largeNet','superLargeNet'].reduce((out, key) => { out[key] = sum(item => item.funds?.combined?.[key]); return out; }, {});
@@ -1489,7 +1490,7 @@ async function fetchMainlandMarketOverview(code, force = false, aggregate = true
       breadth:{ rising:sum(item => item.breadth.rising), falling:sum(item => item.breadth.falling), flat:sum(item => item.breadth.flat), limitUp:sum(item => item.breadth.limitUp), limitDown:sum(item => item.breadth.limitDown) },
       trading:{ volume:sum(item => item.trading.volume), amount:sum(item => item.trading.amount), totalMarketCap:sum(item => item.trading.totalMarketCap), floatMarketCap:sum(item => item.trading.floatMarketCap) },
       funds:{ combined, markets:flows },
-      unavailable:[...new Set(parts.flatMap(item => item.unavailable || []))], partial:parts.some(item => item.partial), fetchedAt:Date.now(), includedMarkets:['沪市','深市','创业板','科创板'],
+      unavailable:[...new Set(parts.flatMap(item => item.unavailable || []))], partial:parts.some(item => item.partial), fetchedAt:Date.now(), includedMarkets:['沪市（含科创板）','深市（含创业板）'],
     };
   }
   const definition = MAINLAND_MARKET_INDEXES[code];
