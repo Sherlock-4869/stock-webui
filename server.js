@@ -1477,10 +1477,10 @@ function latestMarketFlowPoint(rows) {
   return points.length ? points[points.length - 1] : null;
 }
 
-async function fetchMainlandMarketOverview(code, force = false) {
+async function fetchMainlandMarketOverview(code, force = false, aggregate = true) {
   // 上证“大盘全景”统一覆盖沪市、深市、创业板和科创板。
-  if (code === '000001') {
-    const parts = await Promise.all(['000001','399001','399006','000688'].map(item => fetchMainlandMarketOverview(item, force)));
+  if (code === '000001' && aggregate) {
+    const parts = await Promise.all(['000001','399001','399006','000688'].map(item => fetchMainlandMarketOverview(item, force, false)));
     const sum = (path) => parts.reduce((total, item) => total + (Number(path(item)) || 0), 0);
     const flows = parts.flatMap(item => item.funds?.markets || []);
     const combined = ['mainNet','smallNet','mediumNet','largeNet','superLargeNet'].reduce((out, key) => { out[key] = sum(item => item.funds?.combined?.[key]); return out; }, {});
