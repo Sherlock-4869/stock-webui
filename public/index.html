@@ -4205,9 +4205,10 @@ function drawMinuteChart(ctx, W, H) {
   ctx.setLineDash([4, 3]);
   ctx.stroke();
   ctx.setLineDash([]);
-  ctx.fillStyle = '#e3b341';
-  ctx.textAlign = 'left';
-  ctx.fillText('分时均价', plotLeft + 52, priceTop + 12);
+  ctx.fillStyle = '#e3b341aa';
+  ctx.font = '9px ui-monospace, monospace';
+  ctx.textAlign = 'right';
+  ctx.fillText('均价', plotRight - 4, priceTop + 12);
 
   const maxVolume = Math.max(...data.map(p => p.minuteVolume), 1);
   const barW = Math.max(1, Math.min(5, cw / data.length * .7));
