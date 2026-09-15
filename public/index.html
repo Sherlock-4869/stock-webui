@@ -1240,6 +1240,7 @@ html[data-theme="light"] .board-list-kline{border-color:#b6ddff;background:#e8f4
       </div>
       <div class="chart-readout">
         <div class="chart-info" id="chart-info"></div>
+        <button class="chart-window-btn" type="button" onclick="refreshModalChart()">刷新分时</button>
         <div class="chart-data-notice" id="chart-data-notice" role="status"></div><div class="chart-guide">滚轮缩放 · 拖动平移</div>
       </div>
       <div class="chart-loading" id="chart-loading">加载中...</div>
@@ -2947,15 +2948,60 @@ function openModal(sym) {
   document.querySelectorAll('[data-indicator]').forEach(btn => btn.classList.toggle('active', btn.dataset.indicator === currentTechnicalIndicator));
   document.querySelectorAll('.period-btn[data-period]').forEach(btn => btn.classList.toggle('active', btn.dataset.period === 'm5'));
   document.getElementById('modal-mask').classList.add('open');
+  startModalQuoteRefresh();
   updateModalWatchlistButton();
   loadStockBoards(sym);
   if (mainlandMarket) loadMarketOverview();
   else loadChart(currentTab);
 }
 
+function stopModalQuoteRefresh() {
+  clearInterval(modalQuoteTimer);
+  modalQuoteTimer = null;
+  modalQuoteRequestPending = false;
+}
+
+function startModalQuoteRefresh() {
+  stopModalQuoteRefresh();
+  refreshModalQuote();
+  modalQuoteTimer = setInterval(refreshModalQuote, 5000);
+}
+
+async function refreshModalQuote() {
+  if (!modalSym || modalQuoteRequestPending || document.hidden) return;
+  modalQuoteRequestPending = true;
+  const symbol = modalSym;
+  try {
+    const response = await fetch(`/api/quote?symbols=${encodeURIComponent(symbol)}`);
+    if (!response.ok) throw new Error('modal quote request failed');
+    const parsed = parseQuoteText(await response.text());
+    const quote = parsed[symbol];
+    if (quote && modalSym === symbol) {
+      lastQuoteData[symbol] = quote;
+      const c = cls(quote.chg);
+      const price = document.getElementById('m-price');
+      const change = document.getElementById('m-chg');
+      price.className = 'price ' + c;
+      price.textContent = fmt(quote.price);
+      change.className = 'chg ' + c;
+      change.textContent = `${sign(quote.chg)}${fmt(quote.chg)}  ${sign(quote.pct)}${fmt(quote.pct)}%`;
+      renderStats(quote);
+    }
+  } catch (error) {
+    console.warn('refreshModalQuote error:', error.message);
+  } finally {
+    modalQuoteRequestPending = false;
+  }
+}
+
+function refreshModalChart() {
+  if (modalSym && currentTab === 'minute') loadChart('minute');
+}
+
 function closeModal(e) {
   if (e && e.target !== document.getElementById('modal-mask')) return;
   document.getElementById('modal-mask').classList.remove('open');
+  stopModalQuoteRefresh();
   stopOrderBookRefresh();
   modalSym = null;
   stockBoardRequestId++;
@@ -3402,6 +3448,8 @@ const chartRangeLabel = document.getElementById('chart-range-label');
 const chartHoverTooltip = document.getElementById('chart-hover-tooltip');
 let chartRequestId = 0;
 let chartResizeTimer = null;
+let modalQuoteTimer = null;
+let modalQuoteRequestPending = false;
 const KLINE_MA_PERIODS = [5, 10, 20, 60, 120, 250];
 const KLINE_MA_COLORS = { 5:'#e3b341', 10:'#bc8cff', 20:'#58a6ff', 60:'#f0883e', 120:'#56d364', 250:'#ff7b72' };
 const DEFAULT_KLINE_MA_VISIBILITY = { 5:true, 10:true, 20:true, 60:false, 120:false, 250:false };
