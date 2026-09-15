@@ -2250,13 +2250,6 @@ async function fetchQuotes({ forceFunds = false } = {}) {
     });
     watchlist.filter(symbol => !freshData[symbol]).forEach(symbol => missing.add(symbol));
     const data = Object.assign({}, lastRawQuoteData, freshData);
-    // Keep an opened stock detail in sync with the same quote polling loop as
-    // the watchlist. Previously the table refreshed while the modal header
-    // stayed at the snapshot captured when it was opened.
-    if (modalSym && data[modalSym] && document.getElementById('modal-mask')?.classList.contains('open')) {
-      updateModalQuote(data[modalSym]);
-      if (currentTab === 'minute') loadChart('minute');
-    }
     staleQuoteSymbols = new Set([...missing].filter(symbol => data[symbol]));
     renderTable(data);
     fetchExtendedMetrics();
@@ -2958,20 +2951,6 @@ function openModal(sym) {
   loadStockBoards(sym);
   if (mainlandMarket) loadMarketOverview();
   else loadChart(currentTab);
-}
-
-function updateModalQuote(q) {
-  if (!q || !modalSym) return;
-  document.getElementById('m-name').textContent = q.name || modalSym;
-  const c = cls(q.chg);
-  const price = document.getElementById('m-price');
-  const change = document.getElementById('m-chg');
-  price.className = 'price ' + c;
-  price.textContent = fmt(q.price);
-  change.className = 'chg ' + c;
-  change.textContent = `${sign(q.chg)}${fmt(q.chg)}  ${sign(q.pct)}${fmt(q.pct)}%`;
-  lastQuoteData[modalSym] = q;
-  renderStats(q);
 }
 
 function closeModal(e) {
