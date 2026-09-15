@@ -579,7 +579,7 @@ html[data-theme="light"] .derivatives-panel-head{border-color:#d7e0ea}html[data-
 .refresh-btn,.dialog-btn,.filter-chip,.add-btn,.group-tab{transition:border-color .15s,background .15s,color .15s,transform .15s,box-shadow .15s}
 .refresh-btn:hover,.dialog-btn:hover,.filter-chip:hover,.add-btn.ready:hover,.group-tab:hover{transform:translateY(-1px)}
 .module-panel,.metric-card,.market-card,.site-directory,.ai-workspace{box-shadow:0 8px 28px #00000016, inset 0 1px #ffffff05}
- .chips-panel{padding:18px}.chips-content{color:#c9d1d9}.chips-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1px;background:#30363d;border:1px solid #30363d;border-radius:8px;overflow:hidden}.chips-grid>div{padding:16px;background:#161b22}.chips-grid span{display:block;color:#8b949e;font-size:11px}.chips-grid b{display:block;margin-top:7px;font-size:18px}.chips-note{margin:14px 0 0;color:#8b949e;font-size:11px;line-height:1.6}
+.chips-panel{padding:18px}.chips-content{color:#c9d1d9}.chips-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1px;background:#30363d;border:1px solid #30363d;border-radius:8px;overflow:hidden}.chips-grid>div{padding:16px;background:#161b22}.chips-grid span{display:block;color:#8b949e;font-size:11px}.chips-grid b{display:block;margin-top:7px;font-size:18px}.chips-chart{display:flex;align-items:flex-end;gap:2px;height:190px;margin-top:16px;padding:14px 10px 24px;border:1px solid #30363d;border-radius:8px;background:#0d1117}.chips-bar{flex:1;min-width:2px;background:#58a6ff99;border-radius:2px 2px 0 0}.chips-bar.current{background:#f0883e}.chips-axis{display:flex;justify-content:space-between;color:#8b949e;font-size:10px}.chips-note{margin:14px 0 0;color:#8b949e;font-size:11px;line-height:1.6}
  .quote-state-badge{display:inline-flex;align-items:center;margin-left:6px;padding:1px 5px;border:1px solid #d2992255;border-radius:8px;background:#d2992214;color:#e3b341;font-size:8px;font-weight:650;vertical-align:1px}
 .stock-row.quote-stale td{background-image:linear-gradient(90deg,#d2992209,transparent 38%)}
 .dot.warning{background:#d29922;box-shadow:0 0 0 3px #d2992222}.dot.offline{box-shadow:0 0 0 3px #f8514922}
@@ -3153,8 +3153,14 @@ async function loadChipDistribution() {
     const profitable = rows.filter(row => row.close <= close).reduce((sum, row) => sum + Math.max(0, row.volume), 0) / (total || 1);
     const prices = rows.map(row => row.close).sort((a,b) => a-b);
     const percentile = p => prices[Math.min(prices.length - 1, Math.floor((prices.length - 1) * p))];
+    const minPrice = prices[0], maxPrice = prices.at(-1), binCount = 36;
+    const step = (maxPrice - minPrice) / binCount || 1;
+    const bins = Array.from({ length:binCount }, () => 0);
+    rows.forEach(row => { bins[Math.min(binCount - 1, Math.floor((row.close - minPrice) / step))] += Math.max(0, row.volume); });
+    const maxBin = Math.max(...bins, 1);
+    const currentBin = Math.min(binCount - 1, Math.floor((close - minPrice) / step));
     panel.className = 'chips-content';
-    panel.innerHTML = `<div class="chips-grid"><div><span>估算获利比例</span><b>${(profitable * 100).toFixed(2)}%</b></div><div><span>估算平均成本</span><b>${weighted.toFixed(2)}</b></div><div><span>70%成本区间</span><b>${percentile(.15).toFixed(2)} – ${percentile(.85).toFixed(2)}</b></div><div><span>90%成本区间</span><b>${percentile(.05).toFixed(2)} – ${percentile(.95).toFixed(2)}</b></div></div><p class="chips-note">样本：最近 ${rows.length} 个交易日。当前版本按收盘价与成交量估算，未包含逐笔成交和真实持仓迁移数据。</p>`;
+    panel.innerHTML = `<div class="chips-grid"><div><span>估算获利比例</span><b>${(profitable * 100).toFixed(2)}%</b></div><div><span>估算平均成本</span><b>${weighted.toFixed(2)}</b></div><div><span>70%成本区间</span><b>${percentile(.15).toFixed(2)} – ${percentile(.85).toFixed(2)}</b></div><div><span>90%成本区间</span><b>${percentile(.05).toFixed(2)} – ${percentile(.95).toFixed(2)}</b></div></div><div class="chips-chart" title="按收盘价与成交量估算的价格分布">${bins.map((value, index) => `<span class="chips-bar${index === currentBin ? ' current' : ''}" style="height:${Math.max(3, value / maxBin * 100)}%" title="${(minPrice + (index + .5) * step).toFixed(2)}：${value.toLocaleString()}手"></span>`).join('')}</div><div class="chips-axis"><span>${minPrice.toFixed(2)}</span><span>价格区间（橙色为当前价附近）</span><span>${maxPrice.toFixed(2)}</span></div><p class="chips-note">样本：最近 ${rows.length} 个交易日。当前版本按收盘价与成交量估算，未包含逐笔成交和真实持仓迁移数据。</p>`;
   } catch (error) {
     panel.className = 'module-loading'; panel.textContent = '筹码分布暂时不可用';
   }
@@ -4182,6 +4188,26 @@ function drawMinuteChart(ctx, W, H) {
   ctx.strokeStyle = lineColor;
   ctx.lineWidth = 1.5;
   ctx.stroke();
+
+  // 分时均价：按每分钟增量成交量计算的成交量加权平均价（VWAP）。
+  let cumulativeVolume = 0, cumulativeValue = 0;
+  ctx.beginPath();
+  data.forEach((point, i) => {
+    const volume = Math.max(0, Number(point.minuteVolume) || 0);
+    cumulativeVolume += volume;
+    cumulativeValue += point.price * volume;
+    const average = cumulativeVolume > 0 ? cumulativeValue / cumulativeVolume : point.price;
+    const x = xFor(i), y = py(average);
+    i ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
+  });
+  ctx.strokeStyle = '#e3b341';
+  ctx.lineWidth = 1.2;
+  ctx.setLineDash([4, 3]);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle = '#e3b341';
+  ctx.textAlign = 'left';
+  ctx.fillText('分时均价', plotLeft + 52, priceTop + 12);
 
   const maxVolume = Math.max(...data.map(p => p.minuteVolume), 1);
   const barW = Math.max(1, Math.min(5, cw / data.length * .7));
