@@ -579,7 +579,8 @@ html[data-theme="light"] .derivatives-panel-head{border-color:#d7e0ea}html[data-
 .refresh-btn,.dialog-btn,.filter-chip,.add-btn,.group-tab{transition:border-color .15s,background .15s,color .15s,transform .15s,box-shadow .15s}
 .refresh-btn:hover,.dialog-btn:hover,.filter-chip:hover,.add-btn.ready:hover,.group-tab:hover{transform:translateY(-1px)}
 .module-panel,.metric-card,.market-card,.site-directory,.ai-workspace{box-shadow:0 8px 28px #00000016, inset 0 1px #ffffff05}
-.quote-state-badge{display:inline-flex;align-items:center;margin-left:6px;padding:1px 5px;border:1px solid #d2992255;border-radius:8px;background:#d2992214;color:#e3b341;font-size:8px;font-weight:650;vertical-align:1px}
+ .chips-panel{padding:18px}.chips-content{color:#c9d1d9}.chips-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1px;background:#30363d;border:1px solid #30363d;border-radius:8px;overflow:hidden}.chips-grid>div{padding:16px;background:#161b22}.chips-grid span{display:block;color:#8b949e;font-size:11px}.chips-grid b{display:block;margin-top:7px;font-size:18px}.chips-note{margin:14px 0 0;color:#8b949e;font-size:11px;line-height:1.6}
+ .quote-state-badge{display:inline-flex;align-items:center;margin-left:6px;padding:1px 5px;border:1px solid #d2992255;border-radius:8px;background:#d2992214;color:#e3b341;font-size:8px;font-weight:650;vertical-align:1px}
 .stock-row.quote-stale td{background-image:linear-gradient(90deg,#d2992209,transparent 38%)}
 .dot.warning{background:#d29922;box-shadow:0 0 0 3px #d2992222}.dot.offline{box-shadow:0 0 0 3px #f8514922}
 .watchlist-empty{display:flex;min-height:190px;flex-direction:column;align-items:center;justify-content:center;gap:8px}.watchlist-empty-icon{display:grid;place-items:center;width:44px;height:44px;border:1px solid #30363d;border-radius:13px;background:linear-gradient(135deg,#1f6feb24,#8957e51d);color:#79c0ff;font-size:22px}.watchlist-empty strong{color:#c9d1d9;font-size:15px}.watchlist-empty span{font-size:11px;line-height:1.6}.watchlist-empty .refresh-btn{margin-top:5px}
@@ -1201,6 +1202,7 @@ html[data-theme="light"] .board-list-kline{border-color:#b6ddff;background:#e8f4
       <div class="tab" data-tab="technical" onclick="switchTab(this)">技术指标</div>
       <div class="tab" data-tab="orderBook" onclick="switchTab(this)">盘口信号</div>
       <div class="tab" data-tab="fundFlow" onclick="switchTab(this)">主力资金</div>
+      <div class="tab" data-tab="chips" onclick="switchTab(this)">筹码分布</div>
       <div class="tab" data-tab="market" onclick="switchTab(this)">市场总览</div>
       <div class="tab" data-tab="information" onclick="switchTab(this)">简况 / F10</div>
     </div>
@@ -1259,6 +1261,10 @@ html[data-theme="light"] .board-list-kline{border-color:#b6ddff;background:#e8f4
           </div>
         </div>
       </div>
+    </div>
+    <div class="chips-panel" id="chips-panel" hidden>
+      <div class="data-notice visible">筹码分布为本系统根据历史日 K 线与成交量估算，仅供辅助分析，不代表交易所直接披露数据。</div>
+      <div id="chips-content" class="module-loading">正在计算筹码分布…</div>
     </div>
     <section class="orderbook-panel" id="orderbook-panel" hidden>
       <div class="orderbook-toolbar"><div><strong>盘中实时信号 / 五档挂单</strong><small id="orderbook-status">打开后自动刷新</small></div><button class="refresh-btn" type="button" onclick="loadOrderBook({ force:true })">刷新盘口</button></div>
@@ -2924,6 +2930,7 @@ function openModal(sym) {
   document.querySelectorAll('.tab').forEach(t => {
     t.hidden = (t.dataset.tab === 'minuteK' && !supportsMinuteKline(sym)) ||
       (t.dataset.tab === 'fundFlow' && (isEtf || isIndex)) ||
+      (t.dataset.tab === 'chips' && (!isAStockSymbol(sym) || isEtf || isIndex)) ||
       (t.dataset.tab === 'technical' && mainlandMarket) ||
       (t.dataset.tab === 'orderBook' && (!isAStockSymbol(sym) || isEtf)) ||
       (t.dataset.tab === 'market' && !mainlandMarket) ||
@@ -2931,6 +2938,7 @@ function openModal(sym) {
     t.classList.toggle('active', t.dataset.tab === currentTab);
   });
   document.getElementById('quote-chart-panel').hidden = mainlandMarket;
+  document.getElementById('chips-panel').hidden = true;
   document.getElementById('orderbook-panel').hidden = true;
   document.getElementById('orderbook-content').innerHTML = '<div class="orderbook-empty">选择“盘口信号”后加载</div>';
   document.getElementById('stats-grid').hidden = mainlandMarket;
@@ -3107,7 +3115,9 @@ function switchTab(el) {
   const marketOverview = currentTab === 'market';
   const technical = currentTab === 'technical';
   const orderBook = currentTab === 'orderBook';
+  const chips = currentTab === 'chips';
   document.getElementById('quote-chart-panel').hidden = information || marketOverview || orderBook;
+  document.getElementById('chips-panel').hidden = !chips;
   document.getElementById('orderbook-panel').hidden = !orderBook;
   document.getElementById('stats-grid').hidden = information || marketOverview || orderBook;
   document.getElementById('market-overview-panel').hidden = !marketOverview;
@@ -3121,8 +3131,33 @@ function switchTab(el) {
   hideChartHoverTooltip();
   if (information) { loadStockInformation(); return; }
   if (marketOverview) { loadMarketOverview(); return; }
+  if (chips) { loadChipDistribution(); return; }
   if (currentTab !== 'fundFlow' && lastQuoteData[modalSym]) renderStats(lastQuoteData[modalSym]);
   loadChart(currentTab);
+}
+
+async function loadChipDistribution() {
+  const panel = document.getElementById('chips-content');
+  if (!modalSym || !isAStockSymbol(modalSym)) return;
+  panel.className = 'module-loading'; panel.textContent = '正在计算筹码分布…';
+  try {
+    const response = await fetch(`/api/kline?sym=${encodeURIComponent(modalSym)}`);
+    if (!response.ok) throw new Error('chip kline request failed');
+    const payload = await response.json();
+    const key = Object.keys(payload.data?.[modalSym] || {}).find(k => /day$/i.test(k));
+    const rows = parseKlineRows(payload.data?.[modalSym]?.[key] || []).slice(-120);
+    if (!rows.length) throw new Error('no chip data');
+    const total = rows.reduce((sum, row) => sum + Math.max(0, row.volume), 0);
+    const weighted = rows.reduce((sum, row) => sum + row.close * Math.max(0, row.volume), 0) / (total || 1);
+    const close = rows.at(-1).close;
+    const profitable = rows.filter(row => row.close <= close).reduce((sum, row) => sum + Math.max(0, row.volume), 0) / (total || 1);
+    const prices = rows.map(row => row.close).sort((a,b) => a-b);
+    const percentile = p => prices[Math.min(prices.length - 1, Math.floor((prices.length - 1) * p))];
+    panel.className = 'chips-content';
+    panel.innerHTML = `<div class="chips-grid"><div><span>估算获利比例</span><b>${(profitable * 100).toFixed(2)}%</b></div><div><span>估算平均成本</span><b>${weighted.toFixed(2)}</b></div><div><span>70%成本区间</span><b>${percentile(.15).toFixed(2)} – ${percentile(.85).toFixed(2)}</b></div><div><span>90%成本区间</span><b>${percentile(.05).toFixed(2)} – ${percentile(.95).toFixed(2)}</b></div></div><p class="chips-note">样本：最近 ${rows.length} 个交易日。当前版本按收盘价与成交量估算，未包含逐笔成交和真实持仓迁移数据。</p>`;
+  } catch (error) {
+    panel.className = 'module-loading'; panel.textContent = '筹码分布暂时不可用';
+  }
 }
 
 function stopOrderBookRefresh() {
