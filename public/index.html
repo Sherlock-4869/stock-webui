@@ -2975,7 +2975,7 @@ async function refreshModalQuote() {
     const response = await fetch(`/api/quote?symbols=${encodeURIComponent(symbol)}`);
     if (!response.ok) throw new Error('modal quote request failed');
     const parsed = parseQuoteText(await response.text());
-    const quote = parsed[symbol];
+    const quote = parsed[symbol] ? extractQuote(symbol, parsed[symbol]) : null;
     if (quote && modalSym === symbol) {
       lastQuoteData[symbol] = quote;
       const c = cls(quote.chg);
