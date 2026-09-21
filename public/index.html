@@ -5787,7 +5787,7 @@ function boardKlineParseRows(rows) {
       amplitude:boardKlineNumber(row?.amplitude), pct:boardKlineNumber(row?.pct),
       change:boardKlineNumber(row?.change), turnover:boardKlineNumber(row?.turnover),
     };
-  }).filter(Boolean);
+  }).filter(Boolean).sort((left, right) => left.date.localeCompare(right.date));
 }
 
 function boardKlineMovingAverages(rows) {
@@ -5807,6 +5807,10 @@ function boardKlineDefaultViewCount() {
   const total = boardKlineChartState.rows.length;
   const want = BOARD_KLINE_INTRADAY_PERIODS.has(boardKlinePeriod) ? 160 : boardKlinePeriod === '101' ? 90 : 120;
   return Math.min(total, want);
+}
+
+function boardKlineDefaultViewStart() {
+  return Math.max(0, boardKlineChartState.rows.length - boardKlineDefaultViewCount());
 }
 
 function boardKlineCompact(value) {
@@ -5936,8 +5940,11 @@ function boardKlineRender() {
   const priceH = 246;
   const volTop = 276;
   const volH = 62;
-  const rawMin = Math.min(...data.map(point => point.low));
-  const rawMax = Math.max(...data.map(point => point.high));
+  const visibleAverages = [state.ma5, state.ma10, state.ma20]
+    .flatMap(values => values.slice(startIndex, state.viewEnd + 1))
+    .filter(Number.isFinite);
+  const rawMin = Math.min(...data.map(point => point.low), ...visibleAverages);
+  const rawMax = Math.max(...data.map(point => point.high), ...visibleAverages);
   const margin = Math.max((rawMax - rawMin) * .06, (rawMax || 1) * .002);
   const priceMin = rawMin - margin;
   const priceMax = rawMax + margin;
@@ -6079,7 +6086,7 @@ function boardKlineSetView(start, count) {
 }
 
 function boardKlineResetView() {
-  boardKlineSetView(0, boardKlineDefaultViewCount());
+  boardKlineSetView(boardKlineDefaultViewStart(), boardKlineDefaultViewCount());
 }
 
 function boardKlineSyncPeriodButtons() {
@@ -6173,7 +6180,7 @@ async function loadBoardKline(force = false) {
     boardKlineChartState.ma10 = averages.ma10;
     boardKlineChartState.ma20 = averages.ma20;
     boardKlineChartState.hover = null;
-    boardKlineChartState.viewStart = 0;
+    boardKlineChartState.viewStart = boardKlineDefaultViewStart();
     boardKlineChartState.viewCount = boardKlineDefaultViewCount();
     boardKlineTooltipHide();
     boardKlineUpdateHeader(payload);
