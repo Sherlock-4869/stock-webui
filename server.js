@@ -84,6 +84,9 @@ const UPSTREAM_HEADERS = {
   'Referer': 'https://finance.qq.com',
   'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
 };
+// Eastmoney's public quote endpoints drop connections when this web-client
+// token is omitted. It is a public request token, not an account credential.
+const EASTMONEY_PUBLIC_QUOTE_TOKEN = 'bd1d9ddb04089700cf9c27f6f7426281';
 
 const GLOBAL_TENCENT_INDEXES = [
   ['sh000001', '000001'], ['sz399001', '399001'], ['sz399006', '399006'],
@@ -1001,6 +1004,7 @@ const EASTMONEY_BOARD_HOSTS = ['https://push2.eastmoney.com', 'https://push2dela
 function eastmoneyBoardUrl({ fs, fields, pageSize, pageNumber = 1, host = EASTMONEY_BOARD_HOSTS[0] }) {
   return `${host}/api/qt/clist/get?` + new URLSearchParams({
     pn:String(pageNumber), pz:String(pageSize), po:'1', np:'1', fltt:'2', invt:'2', fid:'f3', fs, fields,
+    ut:EASTMONEY_PUBLIC_QUOTE_TOKEN,
   });
 }
 
@@ -1329,7 +1333,7 @@ async function requestEastmoneyFlowJson(pathname, params, { historical = false }
     const host = hosts[hostIndex];
     try {
       const raw = await boardRequestQueue.run(() => requestBuffer(
-        `${host}${pathname}?${new URLSearchParams(params)}`,
+        `${host}${pathname}?${new URLSearchParams({ ...params, ut:EASTMONEY_PUBLIC_QUOTE_TOKEN })}`,
         { ...UPSTREAM_HEADERS, Referer:historical ? 'https://quote.eastmoney.com/' : 'https://data.eastmoney.com/' },
         { timeoutMs:9000 }
       ));
