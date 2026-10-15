@@ -55,6 +55,11 @@ const {
 } = require('./stock-information');
 const { normalizeLimitPoolPayload } = require('./limit-pools');
 const { parseTencentOrderBook } = require('./order-book');
+const {
+  MAINLAND_MARKET_BREADTH_CODES,
+  MAINLAND_MARKET_BREADTH_FS,
+  summarizeMarketBreadth,
+} = require('./market-overview');
 
 const PORT = 3000;
 const PUBLIC_DIR = path.join(__dirname, 'public');
@@ -146,6 +151,7 @@ const capitalFlowRankingCache = new Map();
 const capitalFlowIntradayCache = new Map();
 const capitalFlowHistoryCache = new Map();
 const marketOverviewCache = new Map();
+const marketBreadthCache = new Map();
 const limitPoolCache = new Map();
 const derivativesQuoteCache = new Map();
 const derivativesNewsCache = new Map();
@@ -225,6 +231,10 @@ const STOCK_FLOW_MARKETS = {
 const MAINLAND_MARKET_INDEXES = {
   '000001':{ name:'上证指数', secid:'1.000001' },
   '399001':{ name:'深证成指', secid:'0.399001' },
+  // 399106 is the broad Shenzhen fallback leg for the mainland overview;
+  // 399001 is the Shenzhen Component Index and only represents its constituent
+  // basket, so its f113/f114 counts cannot stand in for the whole market.
+  '399106':{ name:'深证综指', secid:'0.399106' },
   '399006':{ name:'创业板指', secid:'0.399006' },
   '000688':{ name:'科创50', secid:'1.000688' },
   '899050':{ name:'北证50', secid:'0.899050' },
@@ -1477,23 +1487,50 @@ function latestMarketFlowPoint(rows) {
   return points.length ? points[points.length - 1] : null;
 }
 
+async function fetchMainlandMarketBreadth() {
+  const payload = await requestEastmoneyFlowJson('/api/qt/clist/get', {
+    pn:'1', pz:'10000', po:'1', np:'1', fltt:'2', invt:'2', fid:'f3',
+    fs:MAINLAND_MARKET_BREADTH_FS, fields:'f3,f5,f6,f20,f21',
+  });
+  const diff = payload.data?.diff;
+  const rows = Array.isArray(diff) ? diff : diff && typeof diff === 'object' ? Object.values(diff) : [];
+  if (!rows.length) throw new Error('Empty mainland market breadth payload');
+  return { ...summarizeMarketBreadth(rows), fetchedAt:Date.now() };
+}
+
+async function loadMainlandMarketBreadth(force = false) {
+  return loadCachedFundValue(
+    marketBreadthCache, 'mainland', MARKET_OVERVIEW_CACHE_MS,
+    fetchMainlandMarketBreadth, force,
+  );
+}
+
 async function fetchMainlandMarketOverview(code, force = false, aggregate = true) {
-  // 上证“大盘全景”统一覆盖沪市、深市、创业板和科创板。
+  // 上证“大盘全景”统一覆盖沪市、深市、创业板、科创板和北交所 A 股。
   if (code === '000001' && aggregate) {
-    // 深证成指已包含创业板，上海综合指数已包含科创板；另加北证50覆盖北交所，避免板块重复计算。
-    const [parts, pools] = await Promise.all([
-      Promise.all(['000001','399001'].map(item => fetchMainlandMarketOverview(item, force, false))),
+    // 上海综合指数覆盖沪市；深证综指覆盖深市主板和创业板。
+    // 不要使用深证成指（399001）：它只有成分股，f113/f114 会漏掉大部分深市股票。
+    const [parts, pools, marketBreadth] = await Promise.all([
+      Promise.all(MAINLAND_MARKET_BREADTH_CODES.map(item => fetchMainlandMarketOverview(item, force, false))),
       loadLimitPools(force).catch(() => null),
+      loadMainlandMarketBreadth(force).catch(error => {
+        console.error(`Mainland market breadth error (${error.message})`);
+        return null;
+      }),
     ]);
     const sum = (path) => parts.reduce((total, item) => total + (Number(path(item)) || 0), 0);
     const flows = parts[0].funds?.markets || [];
     const combined = parts[0].funds?.combined || {};
+    const fallbackBreadth = {
+      rising:sum(item => item.breadth.rising), falling:sum(item => item.breadth.falling),
+      flat:sum(item => item.breadth.flat),
+    };
     return {
       ...parts[0], code:'000001', name:'沪深京主要市场合计',
-      breadth:{ rising:sum(item => item.breadth.rising), falling:sum(item => item.breadth.falling), flat:sum(item => item.breadth.flat), limitUp:pools?.limitUp?.total ?? sum(item => item.breadth.limitUp), limitDown:pools?.limitDown?.total ?? sum(item => item.breadth.limitDown) },
-      trading:{ volume:sum(item => item.trading.volume), amount:sum(item => item.trading.amount), totalMarketCap:sum(item => item.trading.totalMarketCap), floatMarketCap:sum(item => item.trading.floatMarketCap) },
+      breadth:{ ...(marketBreadth || fallbackBreadth), limitUp:pools?.limitUp?.total ?? sum(item => item.breadth.limitUp), limitDown:pools?.limitDown?.total ?? sum(item => item.breadth.limitDown) },
+      trading:marketBreadth?.trading || { volume:sum(item => item.trading.volume), amount:sum(item => item.trading.amount), totalMarketCap:sum(item => item.trading.totalMarketCap), floatMarketCap:sum(item => item.trading.floatMarketCap) },
       funds:{ combined, markets:flows },
-      unavailable:[...new Set(parts.flatMap(item => item.unavailable || []))], partial:parts.some(item => item.partial), fetchedAt:Date.now(), includedMarkets:['沪市（含科创板）','深市（含创业板）','北交所'],
+      unavailable:[...new Set([...parts.flatMap(item => item.unavailable || []), marketBreadth ? '' : '沪深京涨跌家数'].filter(Boolean))], partial:parts.some(item => item.partial) || !marketBreadth, stale:parts.some(item => item.stale) || Boolean(marketBreadth?.stale), fetchedAt:Date.now(), includedMarkets:['沪市（含科创板）','深市（含创业板）','北交所'],
     };
   }
   const definition = MAINLAND_MARKET_INDEXES[code];
