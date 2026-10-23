@@ -10,16 +10,27 @@ const serverSource = fs.readFileSync(path.join(__dirname, '..', 'server.js'), 'u
 const html = fs.readFileSync(path.join(__dirname, '..', 'public', 'index.html'), 'utf8');
 
 function serverBoardKlineHelpers() {
-  const start = serverSource.indexOf('function boardKlineNumber(value) {');
+  const start = serverSource.indexOf('// 板块 K 线：以板块指数 secid 90.BKxxxx');
   const end = serverSource.indexOf('async function fetchBoardKlineRows', start);
   assert.ok(start >= 0 && end > start, 'board kline server helpers must exist in server.js');
   const context = { URLSearchParams };
   vm.createContext(context);
   return vm.runInContext(
-    `${serverSource.slice(start, end)}\n;({ boardKlineNumber, normalizeBoardKlineRows, eastmoneyBoardKlineUrl });`,
+    `${serverSource.slice(start, end)}\n;({ BOARD_KLINE_HOSTS, boardKlineNumber, normalizeBoardKlineRows, eastmoneyBoardKlineUrl });`,
     context
   );
 }
+
+test('board kline fallback keeps an official Eastmoney host that serves kline history', () => {
+  const { BOARD_KLINE_HOSTS } = serverBoardKlineHelpers();
+  assert.ok(BOARD_KLINE_HOSTS.includes('https://push2test.eastmoney.com'),
+    'push2test must be reachable when push2his/push2 are rate-limited');
+  assert.ok(
+    BOARD_KLINE_HOSTS.indexOf('https://push2test.eastmoney.com')
+      < BOARD_KLINE_HOSTS.indexOf('https://push2delay.eastmoney.com'),
+    'delay mirror (no kline history) must only be the last-resort host'
+  );
+});
 
 test('normalizeBoardKlineRows parses Eastmoney kline strings and drops invalid rows', () => {
   const { normalizeBoardKlineRows } = serverBoardKlineHelpers();
