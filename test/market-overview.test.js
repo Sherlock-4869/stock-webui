@@ -2,6 +2,7 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const fs = require('node:fs');
 const {
   MAINLAND_MARKET_BREADTH_CODES,
   MAINLAND_MARKET_BREADTH_FS,
@@ -25,4 +26,26 @@ test('market breadth follows the common沪深京 A-share scope and excludes susp
     rising:1, falling:1, flat:1, quoted:3,
     trading:{ volume:60, amount:600, totalMarketCap:6000, floatMarketCap:4800 },
   });
+});
+
+test('mainland breadth reads per-market index aggregate fields instead of crawling clist', () => {
+  // Crawling the whole universe needs ~60 push2 requests and trips the per-IP throttle,
+  // which silently yields understated counts. Index quotes already carry f113/f114/f115.
+  const source = fs.readFileSync(require.resolve('../server'), 'utf-8');
+  const breadthSection = source.slice(
+    source.indexOf('const MAINLAND_BREADTH_SOURCES'),
+    source.indexOf('async function fetchMainlandMarketBreadth('),
+  );
+  assert.match(breadthSection, /secid:'1\.000001'/, 'Shanghai composite aggregates Shanghai A');
+  assert.match(breadthSection, /secid:'0\.399106'/, 'Shenzhen composite aggregates Shenzhen A');
+  assert.equal(/secid:'0\.399001'/.test(breadthSection), false, '399001 is a component basket');
+
+  const fetchSection = source.slice(
+    source.indexOf('const MAINLAND_BREADTH_SOURCES'),
+    source.indexOf('async function loadMainlandMarketBreadth('),
+  );
+  assert.equal(/clist\/get/.test(fetchSection), false, 'breadth must not page through clist');
+  assert.match(fetchSection, /requestEastmoneyFlowJson\('\/api\/qt\/stock\/get'/);
+  assert.match(fetchSection, /f113,f114,f115/);
+  assert.match(fetchSection, /missing/, 'per-market gaps must be reported, not silently summed');
 });

@@ -60,6 +60,13 @@ const {
   MAINLAND_MARKET_BREADTH_FS,
   summarizeMarketBreadth,
 } = require('./market-overview');
+const {
+  SINA_BOARD_NODES,
+  SINA_FLOW_CATEGORIES,
+  sinaBoardList,
+  sinaBoardStocks,
+  sinaFlowRanking,
+} = require('./board-fallback');
 
 const PORT = 3000;
 const PUBLIC_DIR = path.join(__dirname, 'public');
@@ -1088,6 +1095,17 @@ function normalizedBoardStock(row) {
   };
 }
 
+// 新浪兜底：东方财富按 IP 限流大响应时会直接断连，这些接口响应小、格式稳定。
+async function requestSinaBoardJson(pathOrUrl) {
+  const url = pathOrUrl.startsWith('http') ? pathOrUrl : `https://vip.stock.finance.sina.com.cn${pathOrUrl}`;
+  const buffer = await boardRequestQueue.run(() => requestBuffer(url, {
+    ...UPSTREAM_HEADERS,
+    Referer:'https://finance.sina.com.cn/',
+    Accept:'*/*',
+  }, { timeoutMs:9000, maxBytes:2 * 1024 * 1024 }));
+  return gbkDecode(buffer).toString('utf-8');
+}
+
 async function loadBoardList(type, force = false) {
   const boardType = BOARD_TYPES[type];
   if (!boardType) throw new Error('Invalid board type');
@@ -1095,13 +1113,21 @@ async function loadBoardList(type, force = false) {
   if (!force && cached && Date.now() - cached.fetchedAt < BOARD_LIST_CACHE_MS) return cached;
   if (boardListRefreshes.has(type)) return boardListRefreshes.get(type);
   const refresh = (async () => {
-    const { rows, total } = await fetchEastmoneyBoardRows({
-      fs:boardType.fs,
-      fields:'f2,f3,f4,f8,f12,f14,f20,f62,f104,f105,f128,f136,f140,f141,f184,f267,f268,f164,f165,f174,f175',
-      pageSize:BOARD_LIST_PAGE_SIZE,
-    });
-    const data = rows.map(normalizedBoardRow).filter(item => item.code && item.name);
-    const payload = { type, label:boardType.label, data, total, fetchedAt:Date.now(), truncated:total > data.length };
+    let payload;
+    try {
+      const { rows, total } = await fetchEastmoneyBoardRows({
+        fs:boardType.fs,
+        fields:'f2,f3,f4,f8,f12,f14,f20,f62,f104,f105,f128,f136,f140,f141,f184,f267,f268,f164,f165,f174,f175',
+        pageSize:BOARD_LIST_PAGE_SIZE,
+      });
+      const data = rows.map(normalizedBoardRow).filter(item => item.code && item.name);
+      payload = { type, label:boardType.label, data, total, source:'eastmoney', fetchedAt:Date.now(), truncated:total > data.length };
+    } catch (error) {
+      const node = SINA_BOARD_NODES[type];
+      if (!node) throw error;
+      console.error(`Board list Eastmoney failed (${type}: ${error.message}), falling back to Sina`);
+      payload = sinaBoardList(await requestSinaBoardJson(node.url), node.varName, { type, label:boardType.label });
+    }
     saveBoundedCache(boardListCache, type, payload, Object.keys(BOARD_TYPES).length);
     return payload;
   })();
@@ -1109,20 +1135,63 @@ async function loadBoardList(type, force = false) {
   try { return await refresh; } finally { boardListRefreshes.delete(type); }
 }
 
+// 东方财富 BKxxxx 与新浪板块节点没有一一对应关系；兜底时只能按现有缓存里的
+// 板块名称反查新浪节点，查不到就维持东方财富的错误，不做猜测。
+const sinaNodeIndex = new Map();
+const SINA_NODE_CACHE_MS = 10 * 60 * 1000;
+let sinaNodeIndexBuiltAt = 0;
+
+function boardCodeToSinaNode(code) {
+  const hit = sinaNodeIndex.get(String(code).toUpperCase());
+  if (hit && Date.now() - sinaNodeIndexBuiltAt < SINA_NODE_CACHE_MS) return hit;
+  return '';
+}
+
+async function buildSinaNodeIndex() {
+  if (Date.now() - sinaNodeIndexBuiltAt < SINA_NODE_CACHE_MS && sinaNodeIndex.size) return;
+  for (const cached of boardListCache.values()) {
+    for (const board of cached?.data || []) {
+      if (!board?.code || !board?.name) continue;
+      const name = String(board.name);
+      for (const [type, node] of Object.entries(SINA_BOARD_NODES)) {
+        if (!Object.values(sinaNodeIndex).some(entry => entry.type === type && entry.name === name)) continue;
+        sinaNodeIndex.set(String(board.code).toUpperCase(), { url:node.url, varName:node.varName, type, name });
+      }
+    }
+  }
+  sinaNodeIndexBuiltAt = Date.now();
+}
+
+function requestSinaBoardNodePage(node, pageNumber) {
+  const num = 100;
+  return requestSinaBoardJson(
+    `/quotes_service/api/json_v2.php/Market_Center.getHQNodeData?page=${pageNumber}&num=${num}`
+    + `&sort=changepercent&asc=0&node=${encodeURIComponent(node)}`
+  );
+}
+
 async function loadBoardDetail(code) {
   const cached = boardDetailCache.get(code);
   if (cached && Date.now() - cached.fetchedAt < BOARD_DETAIL_CACHE_MS) return cached;
   if (boardDetailRefreshes.has(code)) return boardDetailRefreshes.get(code);
   const refresh = (async () => {
-    const { rows, total } = await fetchEastmoneyBoardRows({
-      fs:`b:${code}+f:!50`,
-      fields:'f2,f3,f4,f5,f6,f8,f12,f13,f14,f20,f21,f23,f62,f100',
-      pageSize:BOARD_COMPONENT_PAGE_SIZE,
-    });
-    const stocks = rows.map(normalizedBoardStock).filter(item => item.code && item.name);
-    const payload = {
-      code, total, stocks, fetchedAt:Date.now(), truncated:total > stocks.length,
-    };
+    let payload;
+    try {
+      const { rows, total } = await fetchEastmoneyBoardRows({
+        fs:`b:${code}+f:!50`,
+        fields:'f2,f3,f4,f5,f6,f8,f12,f13,f14,f20,f21,f23,f62,f100',
+        pageSize:BOARD_COMPONENT_PAGE_SIZE,
+      });
+      const stocks = rows.map(normalizedBoardStock).filter(item => item.code && item.name);
+      payload = { code, total, stocks, source:'eastmoney', fetchedAt:Date.now(), truncated:total > stocks.length };
+    } catch (error) {
+      // 东方财富板块代码是 BKxxxx，新浪用 hangye_/gn_/diyu_ 前缀，只有带映射时才兜底。
+      const node = boardCodeToSinaNode(code);
+      if (!node) throw error;
+      console.error(`Board detail Eastmoney failed (${code}: ${error.message}), falling back to Sina`);
+      const text = await requestSinaBoardNodePage(node, 1);
+      payload = sinaBoardStocks(text, { code });
+    }
     saveBoundedCache(boardDetailCache, code, payload, 36);
     return payload;
   })();
@@ -1389,16 +1458,30 @@ async function fetchCapitalFlowRankings({ scope, type, market, period, direction
   const definition = FLOW_PERIODS[period];
   const fs = scope === 'board' ? BOARD_TYPES[type]?.fs : STOCK_FLOW_MARKETS[market];
   if (!definition || !fs) throw new Error('Invalid capital flow ranking parameters');
-  const payload = await requestEastmoneyFlowJson('/api/qt/clist/get', {
-    pn:'1', pz:String(limit), po:direction === 'out' ? '0' : '1', np:'1', fltt:'2', invt:'2',
-    fid:definition.sortField, fs, fields:flowRankingFields(period),
-  });
-  const rows = payload.data.diff || [];
-  const data = rows.map(row => normalizeFlowRankingRow(row, { period, scope })).filter(item =>
-    item.code && item.name && (scope === 'board' || item.symbol)
-  );
-  return { scope, type:scope === 'board' ? type : undefined, market:scope === 'stock' ? market : undefined,
-    period, direction, data, total:numberOrNull(payload.data.total) || data.length, fetchedAt:Date.now() };
+  try {
+    const payload = await requestEastmoneyFlowJson('/api/qt/clist/get', {
+      pn:'1', pz:String(limit), po:direction === 'out' ? '0' : '1', np:'1', fltt:'2', invt:'2',
+      fid:definition.sortField, fs, fields:flowRankingFields(period),
+    });
+    const rows = payload.data.diff || [];
+    const data = rows.map(row => normalizeFlowRankingRow(row, { period, scope })).filter(item =>
+      item.code && item.name && (scope === 'board' || item.symbol)
+    );
+    if (!data.length) throw new Error('Empty capital flow ranking payload');
+    return { scope, type:scope === 'board' ? type : undefined, market:scope === 'stock' ? market : undefined,
+      period, direction, data, total:numberOrNull(payload.data.total) || data.length, source:'eastmoney', fetchedAt:Date.now() };
+  } catch (error) {
+    // 新浪只有板块级资金排行；个股资金排行没有对应接口，直接抛出原错误。
+    if (scope === 'stock') throw error;
+    const sinaType = SINA_FLOW_CATEGORIES[type];
+    if (!sinaType) throw error;
+    console.error(`Capital flow ranking Eastmoney failed (${type}: ${error.message}), falling back to Sina`);
+    const text = await requestSinaBoardJson(
+      '/quotes_service/api/json_v2.php/MoneyFlow.ssl_bkzj_bk?page=1&num=' + Math.min(limit, 100)
+      + `&sort=netamount&asc=${direction === 'out' ? '1' : '0'}&fenlei=${sinaType}`
+    );
+    return sinaFlowRanking(JSON.parse(text), { scope, type, market, period, direction });
+  }
 }
 
 async function proxyCapitalFlowRankings(urlObj, res) {
@@ -1491,15 +1574,60 @@ function latestMarketFlowPoint(rows) {
   return points.length ? points[points.length - 1] : null;
 }
 
-async function fetchMainlandMarketBreadth() {
-  const payload = await requestEastmoneyFlowJson('/api/qt/clist/get', {
-    pn:'1', pz:'10000', po:'1', np:'1', fltt:'2', invt:'2', fid:'f3',
-    fs:MAINLAND_MARKET_BREADTH_FS, fields:'f3,f5,f6,f20,f21',
+// 涨跌家数改用指数行情自带的聚合字段（f113 涨 / f114 跌 / f115 平）。
+// 之前按 clist 翻页统计全市场需要约 60 次请求，正好卡在 push2 的每 IP 限流阈值上，
+// 会被中途断开而给出偏低的数字；指数字段是上游算好的全市场聚合，只需每个市场 1 次请求。
+const MAINLAND_BREADTH_SOURCES = Object.freeze([
+  { key:'sh', name:'沪市', secid:'1.000001', label:'上证指数' },
+  // 深证综指覆盖深市主板和创业板；不要换成深证成指 399001（只有成分股）。
+  { key:'sz', name:'深市', secid:'0.399106', label:'深证综指' },
+  // 北交所不计入合计：口径以沪深两市为准，取不到时由调用方标注。
+  { key:'bj', name:'北交所', secid:'0.899050', label:'北证50' },
+]);
+
+async function fetchMarketIndexBreadth(source) {
+  const payload = await requestEastmoneyFlowJson('/api/qt/stock/get', {
+    secid:source.secid,
+    fields:'f57,f58,f47,f48,f113,f114,f115,f116,f117',
   });
-  const diff = payload.data?.diff;
-  const rows = Array.isArray(diff) ? diff : diff && typeof diff === 'object' ? Object.values(diff) : [];
-  if (!rows.length) throw new Error('Empty mainland market breadth payload');
-  return { ...summarizeMarketBreadth(rows), fetchedAt:Date.now() };
+  const raw = payload?.data || {};
+  const breadth = {
+    rising:numberOrNull(raw.f113), falling:numberOrNull(raw.f114), flat:numberOrNull(raw.f115),
+  };
+  // 指数字段有效时三家之和应接近该市场上市公司总数；全为 0 说明该条目不提供统计。
+  const total = (breadth.rising || 0) + (breadth.falling || 0) + (breadth.flat || 0);
+  return {
+    ...source, breadth, covered:total > 0,
+    trading:{
+      volume:numberOrNull(raw.f47), amount:numberOrNull(raw.f48),
+      totalMarketCap:numberOrNull(raw.f116), floatMarketCap:numberOrNull(raw.f117),
+    },
+  };
+}
+
+async function fetchMainlandMarketBreadth() {
+  const results = await Promise.all(MAINLAND_BREADTH_SOURCES.map(async source => {
+    try {
+      return await fetchMarketIndexBreadth(source);
+    } catch (error) {
+      console.error(`Market breadth error (${source.name}): ${error.message}`);
+      return { ...source, breadth:null, covered:false, trading:null, unavailable:true };
+    }
+  }));
+  const covered = results.filter(item => item.covered);
+  if (!covered.length) throw new Error('No market index exposes breadth fields');
+  const sumField = (key) => covered.reduce((total, item) => total + (Number(item.breadth[key]) || 0), 0);
+  const sumTrading = (key) => covered.reduce((total, item) => total + (Number(item.trading?.[key]) || 0), 0);
+  const missing = results.filter(item => !item.covered).map(item => item.name);
+  return {
+    rising:sumField('rising'), falling:sumField('falling'), flat:sumField('flat'),
+    markets:results.map(({ key, name, covered:hasData }) => ({ key, name, covered:hasData })),
+    missing, partial:missing.length > 0, fetchedAt:Date.now(),
+    trading:{
+      volume:sumTrading('volume'), amount:sumTrading('amount'),
+      totalMarketCap:sumTrading('totalMarketCap'), floatMarketCap:sumTrading('floatMarketCap'),
+    },
+  };
 }
 
 async function loadMainlandMarketBreadth(force = false) {
@@ -1529,12 +1657,23 @@ async function fetchMainlandMarketOverview(code, force = false, aggregate = true
       rising:sum(item => item.breadth.rising), falling:sum(item => item.breadth.falling),
       flat:sum(item => item.breadth.flat),
     };
+    // 北交所按约定不计入合计口径；沪市或深市缺失时把缺失市场直接写进提示。
+    const breadthMissing = marketBreadth
+      ? (marketBreadth.missing || []).filter(name => name === '沪市' || name === '深市')
+      : [];
     return {
-      ...parts[0], code:'000001', name:'沪深京主要市场合计',
+      ...parts[0], code:'000001', name:'沪深两市主要市场合计',
       breadth:{ ...(marketBreadth || fallbackBreadth), limitUp:pools?.limitUp?.total ?? sum(item => item.breadth.limitUp), limitDown:pools?.limitDown?.total ?? sum(item => item.breadth.limitDown) },
       trading:marketBreadth?.trading || { volume:sum(item => item.trading.volume), amount:sum(item => item.trading.amount), totalMarketCap:sum(item => item.trading.totalMarketCap), floatMarketCap:sum(item => item.trading.floatMarketCap) },
       funds:{ combined, markets:flows },
-      unavailable:[...new Set([...parts.flatMap(item => item.unavailable || []), marketBreadth ? '' : '沪深京涨跌家数'].filter(Boolean))], partial:parts.some(item => item.partial) || !marketBreadth, stale:parts.some(item => item.stale) || Boolean(marketBreadth?.stale), fetchedAt:Date.now(), includedMarkets:['沪市（含科创板）','深市（含创业板）','北交所'],
+      unavailable:[...new Set([
+        ...parts.flatMap(item => item.unavailable || []),
+        marketBreadth ? '' : '沪深涨跌家数',
+        ...breadthMissing.map(name => `${name}涨跌家数`),
+      ].filter(Boolean))],
+      partial:parts.some(item => item.partial) || !marketBreadth || Boolean(marketBreadth?.partial),
+      stale:parts.some(item => item.stale) || Boolean(marketBreadth?.stale), fetchedAt:Date.now(),
+      includedMarkets:['沪市（含科创板）','深市（含创业板）'],
     };
   }
   const definition = MAINLAND_MARKET_INDEXES[code];
