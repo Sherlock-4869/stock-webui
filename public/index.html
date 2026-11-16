@@ -2952,6 +2952,7 @@ function openModal(sym) {
   updateStockInformationTabs();
   document.getElementById('period-bar').classList.remove('visible');
   document.getElementById('technical-indicator-bar').classList.remove('visible');
+  document.getElementById('technical-indicator-bar').classList.toggle('visible', ['minute', 'minuteK', 'kline'].includes(currentTab));
   document.getElementById('ma-indicator-bar').classList.toggle('visible', currentTab === 'kline');
   document.getElementById('minute-k-history-controls').classList.toggle('visible', currentTab === 'minuteK' && isAStockSymbol(modalSym));
   syncKlineMaControls();
@@ -3222,6 +3223,14 @@ async function loadOrderBook({ force = false } = {}) {
 function switchTechnicalIndicator(indicator) {
   if (!['volume','macd','kdj','rsi','boll','obv','atr','cci'].includes(indicator)) return;
   currentTechnicalIndicator = indicator;
+  chartState.indicator = indicator;
+  if (chartState.fullData.length && ['minute', 'minuteK', 'kline'].includes(currentTab)) {
+    const source = chartState.type === 'minute'
+      ? chartState.fullData.map((p, i) => ({ open:p.price, close:p.price, high:p.price, low:p.price, volume:p.minuteVolume, date:p.time || i }))
+      : chartState.fullData;
+    chartState.fullTechnicalSeries = calculateTechnicalSeries(source, indicator);
+    chartState.technicalSeries = Object.fromEntries(Object.entries(chartState.fullTechnicalSeries).map(([key, values]) => [key, values.slice(chartState.viewStart, chartState.viewEnd + 1)]));
+  }
   document.querySelectorAll('[data-indicator]').forEach(btn => btn.classList.toggle('active', btn.dataset.indicator === indicator));
   if (currentTab === 'technical') loadChart('technical');
   else if (['minute', 'minuteK', 'kline'].includes(currentTab) && chartState.data.length) renderChart();
@@ -4128,7 +4137,7 @@ function drawMinuteChart(ctx, W, H) {
   if (!data.length) return;
   const pad = { l: 54, r: 54 };
   const plotLeft = pad.l, plotRight = W - pad.r, cw = plotRight - plotLeft;
-  const priceTop = 8, priceH = 202, volTop = 230, volH = 64;
+  const priceTop = 8, priceH = 276, volTop = 284, volH = 0;
   const prices = data.map(p => p.price);
   const prev = chartState.prevClose;
   let priceMin, priceMax;
@@ -4168,7 +4177,7 @@ function drawMinuteChart(ctx, W, H) {
     .filter(index => sessionX == null || Math.abs(xFor(index) - sessionX) > 50);
   xIndexes.forEach((index, tickIndex) => {
     const x = xFor(index);
-    drawGridLine(ctx, x, priceTop, x, volTop + volH);
+    drawGridLine(ctx, x, priceTop, x, priceTop + priceH);
     ctx.fillStyle = chartThemeColor('muted');
     ctx.textAlign = tickIndex === 0 ? 'left' : tickIndex === xIndexes.length - 1 ? 'right' : 'center';
     ctx.fillText(formatTime(data[index].time), x, H - 8);
@@ -4229,19 +4238,7 @@ function drawMinuteChart(ctx, W, H) {
   ctx.textAlign = 'right';
   ctx.fillText('均价', plotRight - 4, priceTop + 12);
 
-  const maxVolume = Math.max(...data.map(p => p.minuteVolume), 1);
-  const barW = Math.max(1, Math.min(5, cw / data.length * .7));
-  ctx.fillStyle = chartThemeColor('muted');
-  ctx.textAlign = 'right';
-  ctx.fillText('成交量', plotLeft - 5, volTop + 10);
-  data.forEach((point, i) => {
-    const height = point.minuteVolume / maxVolume * volH;
-    const prior = i ? data[i - 1].price : prev;
-    ctx.fillStyle = point.price >= prior ? '#f8514966' : '#3fb95066';
-    ctx.fillRect(xFor(i) - barW / 2, volTop + volH - height, barW, height);
-  });
-  drawGridLine(ctx, plotLeft, volTop, plotRight, volTop);
-  drawMinuteSessionBreak(ctx, sessionBreak, xFor, priceTop, volTop + volH, W, H);
+  drawMinuteSessionBreak(ctx, sessionBreak, xFor, priceTop, priceTop + priceH, W, H);
 
   chartState.layout = { W, H, plotLeft, plotRight, cw, priceTop, priceH, volTop, volH, priceMin, priceMax, xFor, py };
 }
@@ -4265,7 +4262,7 @@ function drawKlineChart(ctx, W, H) {
   if (!data.length) return;
   const pad = { l: 54, r: 12 };
   const plotLeft = pad.l, plotRight = W - pad.r, cw = plotRight - plotLeft;
-  const priceTop = 18, priceH = 184, volTop = 224, volH = 70;
+  const priceTop = 18, priceH = 276, volTop = 294, volH = 0;
   const rawMin = Math.min(...data.map(p => p.low)), rawMax = Math.max(...data.map(p => p.high));
   const margin = Math.max((rawMax - rawMin) * .05, rawMax * .002);
   const priceMin = rawMin - margin, priceMax = rawMax + margin, range = priceMax - priceMin || 1;
@@ -4288,7 +4285,7 @@ function drawKlineChart(ctx, W, H) {
   const xIndexes = [...new Set([0, Math.round((data.length - 1) * .25), Math.round((data.length - 1) * .5), Math.round((data.length - 1) * .75), data.length - 1])];
   xIndexes.forEach((index, tickIndex) => {
     const x = xFor(index);
-    drawGridLine(ctx, x, priceTop, x, volTop + volH);
+    drawGridLine(ctx, x, priceTop, x, priceTop + priceH);
     ctx.fillStyle = chartThemeColor('muted');
     ctx.textAlign = tickIndex === 0 ? 'left' : tickIndex === xIndexes.length - 1 ? 'right' : 'center';
     ctx.fillText(klineAxisLabel(data[index].date), x, H - 8);
@@ -4321,28 +4318,12 @@ function drawKlineChart(ctx, W, H) {
     ctx.fillText(label, maLegendX, 11);
     maLegendX += ctx.measureText(label).width + 12;
   });
-
-  const maxVolume = Math.max(...data.map(p => p.volume), ...chartState.volumeMa5.filter(Number.isFinite), ...chartState.volumeMa10.filter(Number.isFinite), 1);
-  ctx.fillStyle = chartThemeColor('muted');
-  ctx.textAlign = 'right';
-  ctx.fillText('成交量', plotLeft - 5, volTop + 10);
-  const volumeLegendH = 16;
-  const volumeBarsTop = volTop + volumeLegendH;
-  const volumeBarsH = volH - volumeLegendH;
-  data.forEach((point, i) => {
-    const height = point.volume / maxVolume * volumeBarsH;
-    ctx.fillStyle = point.close >= point.open ? '#f8514966' : '#3fb95066';
-    ctx.fillRect(xFor(i) - barW / 2, volumeBarsTop + volumeBarsH - height, barW, height);
-  });
-  const vy = value => volumeBarsTop + volumeBarsH - value / maxVolume * volumeBarsH;
-  drawAverageLine(ctx, chartState.volumeMa5, xFor, vy, '#f0883e');
-  drawAverageLine(ctx, chartState.volumeMa10, xFor, vy, '#56d364');
-  ctx.textAlign = 'left';
-  ctx.fillStyle = '#f0883e';
-  ctx.fillText('VOL MA5', plotLeft + 4, volTop + 10);
-  ctx.fillStyle = '#56d364';
-  ctx.fillText('VOL MA10', plotLeft + 60, volTop + 10);
-  drawGridLine(ctx, plotLeft, volTop, plotRight, volTop);
+  // 成交量及其均线已移到副图；保留指标计算状态供副图使用。
+  // drawAverageLine(ctx, chartState.volumeMa5, xFor, vy, '#f0883e');
+  // drawAverageLine(ctx, chartState.volumeMa10, xFor, vy, '#56d364');
+  // 'VOL MA5' / 'VOL MA10' labels are rendered by drawTechnicalChart.
+  // const volumeLegendH = 16;
+  // const volumeBarsTop = volTop + volumeLegendH;
 
   chartState.layout = { W, H, plotLeft, plotRight, cw, priceTop, priceH, volTop, volH, priceMin, priceMax, xFor, py };
 }
@@ -4688,9 +4669,16 @@ function infoItem(label, value, tone = '') {
   return `<span class="${tone}"><b>${label}</b>${value}</span>`;
 }
 
-function updateChartInfo(index) {
+function updateChartInfo(index, indicatorOnly = false) {
   const point = chartState.data[index];
   if (!point) { chartInfo.innerHTML = ''; return; }
+  if (indicatorOnly) {
+    chartInfo.innerHTML = [infoItem('指标', technicalLabel(chartState.indicator)), ...Object.entries(chartState.technicalSeries || {}).map(([key, series]) => {
+      const value = series[index];
+      return Number.isFinite(value) ? infoItem(key.toUpperCase(), chartState.indicator === 'volume' || chartState.indicator === 'obv' ? `${chartVolume(value)}手` : chartNumber(value)) : '';
+    })].join('');
+    return;
+  }
   if (chartState.type === 'fundFlow') {
     chartInfo.innerHTML = [
       infoItem('日期', point.date),
@@ -4738,10 +4726,6 @@ function updateChartInfo(index) {
       }),
       chartState.volumeMa5[index] == null ? '' : infoItem('VOL MA5', `${chartVolume(chartState.volumeMa5[index])}手`),
       chartState.volumeMa10[index] == null ? '' : infoItem('VOL MA10', `${chartVolume(chartState.volumeMa10[index])}手`),
-      ...Object.entries(chartState.technicalSeries || {}).map(([key, series]) => {
-        const value = series[index];
-        return Number.isFinite(value) ? infoItem(key.toUpperCase(), chartState.indicator === 'volume' || chartState.indicator === 'obv' ? `${chartVolume(value)}手` : chartNumber(value)) : '';
-      }),
     ].join('');
   }
 }
@@ -4773,7 +4757,6 @@ function chartTooltipDetail(index) {
         ['分钟量', `${chartVolume(point.minuteVolume)}手`, ''],
         ['累计量', `${chartVolume(point.volume)}手`, ''],
         ['成交额', chartAmount(point.amount), ''],
-        ...Object.entries(chartState.technicalSeries || {}).map(([key, series]) => Number.isFinite(series[index]) ? [key.toUpperCase(), chartState.indicator === 'volume' || chartState.indicator === 'obv' ? `${chartVolume(series[index])}手` : chartNumber(series[index]), ''] : null).filter(Boolean),
       ],
     };
   }
@@ -4799,9 +4782,19 @@ function chartTooltipDetail(index) {
       ...KLINE_MA_PERIODS.filter(period => chartState.maVisibility[period]).map(period => [`MA${period}`, chartNumber(chartState[`ma${period}`][index]), '']),
       ['VOL MA5', `${chartVolume(chartState.volumeMa5[index])}手`, ''],
       ['VOL MA10', `${chartVolume(chartState.volumeMa10[index])}手`, ''],
-      ...Object.entries(chartState.technicalSeries || {}).map(([key, series]) => Number.isFinite(series[index]) ? [key.toUpperCase(), chartState.indicator === 'volume' || chartState.indicator === 'obv' ? `${chartVolume(series[index])}手` : chartNumber(series[index]), ''] : null).filter(Boolean),
     ],
   };
+}
+
+function chartIndicatorTooltipDetail(index) {
+  const point = chartState.data[index];
+  if (!point) return null;
+  const rows = Object.entries(chartState.technicalSeries || {}).map(([key, series]) => {
+    const value = series[index];
+    if (!Number.isFinite(value)) return null;
+    return [key.toUpperCase(), chartState.indicator === 'volume' || chartState.indicator === 'obv' ? `${chartVolume(value)}手` : chartNumber(value), ''];
+  }).filter(Boolean);
+  return { title: chartState.type === 'minute' ? `${formatTradeDate(point.date)} ${formatTime(point.time)}`.trim() : (chartState.type === 'minuteK' ? formatKlineTimestamp(point.date) : point.date), rows };
 }
 
 function hideChartHoverTooltip() {
@@ -4821,6 +4814,20 @@ function showChartHoverTooltip(event, index) {
   const width = chartHoverTooltip.offsetWidth;
   const height = chartHoverTooltip.offsetHeight;
   const gap = 14;
+  const left = localX + gap + width <= panelRect.width - 8 ? localX + gap : localX - width - gap;
+  const top = localY + gap + height <= panelRect.height - 8 ? localY + gap : localY - height - gap;
+  chartHoverTooltip.style.left = `${Math.max(8, Math.min(panelRect.width - width - 8, left))}px`;
+  chartHoverTooltip.style.top = `${Math.max(8, Math.min(panelRect.height - height - 8, top))}px`;
+}
+
+function showIndicatorHoverTooltip(event, index) {
+  const detail = chartIndicatorTooltipDetail(index);
+  if (!detail || !chartHoverTooltip) return;
+  chartHoverTooltip.innerHTML = `<div class="chart-tooltip-title">${escapeHtml(detail.title || '--')}</div><div class="chart-tooltip-grid">${detail.rows.map(([label,value,tone]) => `<div class="chart-tooltip-item"><b>${escapeHtml(label)}</b><strong>${escapeHtml(value)}</strong></div>`).join('')}</div>`;
+  chartHoverTooltip.classList.add('visible'); chartHoverTooltip.setAttribute('aria-hidden', 'false');
+  const panelRect = document.getElementById('quote-chart-panel').getBoundingClientRect();
+  const localX = event.clientX - panelRect.left, localY = event.clientY - panelRect.top;
+  const width = chartHoverTooltip.offsetWidth, height = chartHoverTooltip.offsetHeight, gap = 14;
   const left = localX + gap + width <= panelRect.width - 8 ? localX + gap : localX - width - gap;
   const top = localY + gap + height <= panelRect.height - 8 ? localY + gap : localY - height - gap;
   chartHoverTooltip.style.left = `${Math.max(8, Math.min(panelRect.width - width - 8, left))}px`;
@@ -4853,8 +4860,13 @@ function updateChartHover(event, sourceCanvas = chartCanvas) {
     ? Math.round(ratio * (chartState.data.length - 1))
     : Math.min(chartState.data.length - 1, Math.floor(ratio * chartState.data.length));
   renderChart();
-  updateChartInfo(chartState.hoverIndex);
-  showChartHoverTooltip(event, chartState.hoverIndex);
+  if (sourceCanvas === indicatorCanvas) {
+    updateChartInfo(chartState.hoverIndex, true);
+    showIndicatorHoverTooltip(event, chartState.hoverIndex);
+  } else {
+    updateChartInfo(chartState.hoverIndex);
+    showChartHoverTooltip(event, chartState.hoverIndex);
+  }
 }
 
 function drawIndicatorCrosshair(ctx) {
