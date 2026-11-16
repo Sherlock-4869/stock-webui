@@ -1215,16 +1215,6 @@ html[data-theme="light"] .board-list-kline{border-color:#b6ddff;background:#e8f4
         <button class="period-btn" data-period="m30" onclick="switchMinuteKPeriod('m30')">30分</button>
         <button class="period-btn" data-period="m60" onclick="switchMinuteKPeriod('m60')">60分</button>
       </div>
-      <div class="period-bar technical-indicator-bar" id="technical-indicator-bar" aria-label="技术指标">
-        <button class="period-btn active" data-indicator="volume" onclick="switchTechnicalIndicator('volume')">成交量</button>
-        <button class="period-btn" data-indicator="macd" onclick="switchTechnicalIndicator('macd')">MACD</button>
-        <button class="period-btn" data-indicator="kdj" onclick="switchTechnicalIndicator('kdj')">KDJ</button>
-        <button class="period-btn" data-indicator="rsi" onclick="switchTechnicalIndicator('rsi')">RSI</button>
-        <button class="period-btn" data-indicator="boll" onclick="switchTechnicalIndicator('boll')">布林带</button>
-        <button class="period-btn" data-indicator="obv" onclick="switchTechnicalIndicator('obv')">OBV</button>
-        <button class="period-btn" data-indicator="atr" onclick="switchTechnicalIndicator('atr')">ATR</button>
-        <button class="period-btn" data-indicator="cci" onclick="switchTechnicalIndicator('cci')">CCI</button>
-      </div>
       <div class="period-bar" id="ma-indicator-bar" aria-label="日线均线">
         <label class="ma-toggle"><input type="checkbox" data-ma-period="5" checked onchange="toggleKlineMa(5, this.checked)">MA5</label>
         <label class="ma-toggle"><input type="checkbox" data-ma-period="10" checked onchange="toggleKlineMa(10, this.checked)">MA10</label>
@@ -1249,6 +1239,16 @@ html[data-theme="light"] .board-list-kline{border-color:#b6ddff;background:#e8f4
       <div class="chart-loading" id="chart-loading">加载中...</div>
       <canvas id="chart-canvas" height="340"></canvas>
       <canvas id="indicator-canvas" height="148" aria-label="技术指标副图"></canvas>
+      <div class="period-bar technical-indicator-bar" id="technical-indicator-bar" aria-label="技术指标">
+        <button class="period-btn active" data-indicator="volume" onclick="switchTechnicalIndicator('volume')">成交量</button>
+        <button class="period-btn" data-indicator="macd" onclick="switchTechnicalIndicator('macd')">MACD</button>
+        <button class="period-btn" data-indicator="kdj" onclick="switchTechnicalIndicator('kdj')">KDJ</button>
+        <button class="period-btn" data-indicator="rsi" onclick="switchTechnicalIndicator('rsi')">RSI</button>
+        <button class="period-btn" data-indicator="boll" onclick="switchTechnicalIndicator('boll')">布林带</button>
+        <button class="period-btn" data-indicator="obv" onclick="switchTechnicalIndicator('obv')">OBV</button>
+        <button class="period-btn" data-indicator="atr" onclick="switchTechnicalIndicator('atr')">ATR</button>
+        <button class="period-btn" data-indicator="cci" onclick="switchTechnicalIndicator('cci')">CCI</button>
+      </div>
       <div class="chart-hover-tooltip" id="chart-hover-tooltip" role="tooltip" aria-hidden="true"></div>
       <div class="chart-window" id="chart-window">
         <div class="chart-window-head">
@@ -4457,6 +4457,7 @@ function renderChart() {
     const savedLayout = chartState.layout;
     const secondary = prepareIndicatorCanvas();
     drawTechnicalChart(secondary.ctx, secondary.W, secondary.H);
+    drawIndicatorCrosshair(secondary.ctx);
     chartState.layout = savedLayout;
   }
   if (chartState.hoverIndex != null) drawCrosshair(ctx);
@@ -4737,6 +4738,10 @@ function updateChartInfo(index) {
       }),
       chartState.volumeMa5[index] == null ? '' : infoItem('VOL MA5', `${chartVolume(chartState.volumeMa5[index])}手`),
       chartState.volumeMa10[index] == null ? '' : infoItem('VOL MA10', `${chartVolume(chartState.volumeMa10[index])}手`),
+      ...Object.entries(chartState.technicalSeries || {}).map(([key, series]) => {
+        const value = series[index];
+        return Number.isFinite(value) ? infoItem(key.toUpperCase(), chartState.indicator === 'volume' || chartState.indicator === 'obv' ? `${chartVolume(value)}手` : chartNumber(value)) : '';
+      }),
     ].join('');
   }
 }
@@ -4768,6 +4773,7 @@ function chartTooltipDetail(index) {
         ['分钟量', `${chartVolume(point.minuteVolume)}手`, ''],
         ['累计量', `${chartVolume(point.volume)}手`, ''],
         ['成交额', chartAmount(point.amount), ''],
+        ...Object.entries(chartState.technicalSeries || {}).map(([key, series]) => Number.isFinite(series[index]) ? [key.toUpperCase(), chartState.indicator === 'volume' || chartState.indicator === 'obv' ? `${chartVolume(series[index])}手` : chartNumber(series[index]), ''] : null).filter(Boolean),
       ],
     };
   }
@@ -4793,6 +4799,7 @@ function chartTooltipDetail(index) {
       ...KLINE_MA_PERIODS.filter(period => chartState.maVisibility[period]).map(period => [`MA${period}`, chartNumber(chartState[`ma${period}`][index]), '']),
       ['VOL MA5', `${chartVolume(chartState.volumeMa5[index])}手`, ''],
       ['VOL MA10', `${chartVolume(chartState.volumeMa10[index])}手`, ''],
+      ...Object.entries(chartState.technicalSeries || {}).map(([key, series]) => Number.isFinite(series[index]) ? [key.toUpperCase(), chartState.indicator === 'volume' || chartState.indicator === 'obv' ? `${chartVolume(series[index])}手` : chartNumber(series[index]), ''] : null).filter(Boolean),
     ],
   };
 }
@@ -4827,9 +4834,9 @@ function chartRatioAtClientX(clientX, sourceCanvas = chartCanvas) {
   return Math.max(0, Math.min(1, (x - plotLeft) / (plotRight - plotLeft)));
 }
 
-function updateChartHover(event) {
+function updateChartHover(event, sourceCanvas = chartCanvas) {
   if (!chartState.layout || !chartState.data.length) return;
-  const rect = chartCanvas.getBoundingClientRect();
+  const rect = sourceCanvas.getBoundingClientRect();
   const x = (event.clientX - rect.left) * chartState.layout.W / rect.width;
   const { plotLeft, plotRight } = chartState.layout;
   if (x < plotLeft || x > plotRight) {
@@ -4841,13 +4848,24 @@ function updateChartHover(event) {
     updateChartInfo(chartState.data.length - 1);
     return;
   }
-  const ratio = chartRatioAtClientX(event.clientX);
+  const ratio = chartRatioAtClientX(event.clientX, sourceCanvas);
   chartState.hoverIndex = chartState.type === 'minute'
     ? Math.round(ratio * (chartState.data.length - 1))
     : Math.min(chartState.data.length - 1, Math.floor(ratio * chartState.data.length));
   renderChart();
   updateChartInfo(chartState.hoverIndex);
   showChartHoverTooltip(event, chartState.hoverIndex);
+}
+
+function drawIndicatorCrosshair(ctx) {
+  if (chartState.hoverIndex == null || !chartState.data.length) return;
+  const index = Math.max(0, Math.min(chartState.data.length - 1, chartState.hoverIndex));
+  const W = indicatorCanvas.width / (window.devicePixelRatio || 1);
+  const H = 148;
+  const left = 54, right = chartState.type === 'minute' ? W - 54 : W - 12;
+  const x = left + (chartState.data.length === 1 ? 0 : index / (chartState.data.length - 1)) * (right - left);
+  ctx.save(); ctx.strokeStyle = chartThemeColor('cross'); ctx.setLineDash([3, 3]);
+  ctx.beginPath(); ctx.moveTo(x, 18); ctx.lineTo(x, H - 30); ctx.stroke(); ctx.restore();
 }
 
 const chartPointers = new Map();
@@ -4914,6 +4932,17 @@ chartCanvas.addEventListener('pointermove', event => {
 
 chartCanvas.addEventListener('pointerleave', event => {
   if (event.pointerType !== 'mouse' || chartPointers.size) return;
+  chartState.hoverIndex = null;
+  hideChartHoverTooltip();
+  renderChart();
+  updateChartInfo(chartState.data.length - 1);
+});
+
+indicatorCanvas.addEventListener('pointermove', event => {
+  if (event.pointerType === 'mouse') updateChartHover(event, indicatorCanvas);
+});
+indicatorCanvas.addEventListener('pointerleave', event => {
+  if (event.pointerType !== 'mouse') return;
   chartState.hoverIndex = null;
   hideChartHoverTooltip();
   renderChart();
