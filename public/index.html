@@ -273,6 +273,7 @@ body.stock-sorting,body.stock-sorting *{cursor:grabbing!important;user-select:no
 .chart-info b{font-weight:500;color:#8b949e;margin-right:4px}
 .chart-guide{flex:none;color:#6e7681;font-size:11px;white-space:nowrap;padding-top:1px}.chart-data-notice{display:none;align-items:center;gap:6px;margin-left:auto;padding:3px 7px;border:1px solid #d2992255;border-radius:10px;background:#d2992214;color:#e3b341;font-size:10px;white-space:nowrap}.chart-data-notice.visible{display:flex}.chart-notice-retry{border:0;border-radius:4px;background:#d2992233;color:#f2cc60;padding:2px 6px;font:inherit;cursor:pointer}.chart-notice-retry:hover{background:#d2992255;color:#fff}
 #chart-canvas{display:block;width:100%;height:340px;border-radius:4px;cursor:crosshair;touch-action:none}
+#indicator-canvas{display:none;width:100%;height:148px;margin-top:8px;border-radius:4px;cursor:crosshair;touch-action:none}
 #chart-canvas.panning{cursor:grabbing}
 .chart-hover-tooltip{position:absolute;z-index:4;display:none;min-width:190px;max-width:min(310px,calc(100% - 24px));padding:9px 10px;border:1px solid #484f58;border-radius:7px;background:#0d1117ee;color:#c9d1d9;box-shadow:0 10px 28px #0009;font:10px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;pointer-events:none}.chart-hover-tooltip.visible{display:block}.chart-tooltip-title{margin-bottom:5px;color:#e6edf3;font-weight:700}.chart-tooltip-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:3px 12px}.chart-tooltip-item{display:flex;justify-content:space-between;gap:8px;white-space:nowrap}.chart-tooltip-item b{color:#8b949e;font-weight:500}.chart-tooltip-item strong{overflow:hidden;color:#e6edf3;font-weight:600;text-overflow:ellipsis}.chart-tooltip-item strong.up{color:#f85149}.chart-tooltip-item strong.down{color:#3fb950}
 .chart-window{display:none;margin-top:8px;user-select:none}
@@ -1247,6 +1248,7 @@ html[data-theme="light"] .board-list-kline{border-color:#b6ddff;background:#e8f4
       </div>
       <div class="chart-loading" id="chart-loading">加载中...</div>
       <canvas id="chart-canvas" height="340"></canvas>
+      <canvas id="indicator-canvas" height="148" aria-label="技术指标副图"></canvas>
       <div class="chart-hover-tooltip" id="chart-hover-tooltip" role="tooltip" aria-hidden="true"></div>
       <div class="chart-window" id="chart-window">
         <div class="chart-window-head">
@@ -3123,7 +3125,7 @@ function switchTab(el) {
   document.getElementById('market-overview-panel').hidden = !marketOverview;
   document.getElementById('stock-information-panel').hidden = !information;
   document.getElementById('period-bar').classList.toggle('visible', !information && !marketOverview && currentTab === 'minuteK');
-  document.getElementById('technical-indicator-bar').classList.toggle('visible', technical);
+  document.getElementById('technical-indicator-bar').classList.toggle('visible', technical || ['minute', 'minuteK', 'kline'].includes(currentTab));
   document.getElementById('ma-indicator-bar').classList.toggle('visible', currentTab === 'kline');
   document.getElementById('minute-k-history-controls').classList.toggle('visible', currentTab === 'minuteK' && isAStockSymbol(modalSym));
   if (orderBook) { loadOrderBook(); startOrderBookRefresh(); return; }
@@ -3222,6 +3224,7 @@ function switchTechnicalIndicator(indicator) {
   currentTechnicalIndicator = indicator;
   document.querySelectorAll('[data-indicator]').forEach(btn => btn.classList.toggle('active', btn.dataset.indicator === indicator));
   if (currentTab === 'technical') loadChart('technical');
+  else if (['minute', 'minuteK', 'kline'].includes(currentTab) && chartState.data.length) renderChart();
 }
 
 function switchMinuteKPeriod(period) {
@@ -3481,6 +3484,7 @@ function renderStats(q) {
 }
 
 const chartCanvas = document.getElementById('chart-canvas');
+const indicatorCanvas = document.getElementById('indicator-canvas');
 const chartInfo = document.getElementById('chart-info');
 const chartWindow = document.getElementById('chart-window');
 const chartRange = document.getElementById('chart-range');
@@ -3969,6 +3973,8 @@ function drawMinute(canvas, rows, prevClose, date = '') {
   chartState.fullMa250 = [];
   chartState.fullVolumeMa5 = [];
   chartState.fullVolumeMa10 = [];
+  chartState.indicator = currentTechnicalIndicator;
+  chartState.fullTechnicalSeries = calculateTechnicalSeries(chartState.fullData.map((p, i) => ({open:p.price, close:p.price, high:p.price, low:p.price, volume:p.minuteVolume, date:p.time || i})), chartState.indicator);
   initializeChartViewport(chartState.fullData.length);
 }
 
@@ -3988,7 +3994,7 @@ function drawKline(canvas, rows, type = 'kline', period = '') {
   chartState.fullVolumeMa5 = movingAverage(chartState.fullData, 5, 'volume');
   chartState.fullVolumeMa10 = movingAverage(chartState.fullData, 10, 'volume');
   chartState.indicator = currentTechnicalIndicator;
-  chartState.fullTechnicalSeries = type === 'technical' ? calculateTechnicalSeries(chartState.fullData, chartState.indicator) : {};
+  chartState.fullTechnicalSeries = calculateTechnicalSeries(chartState.fullData, chartState.indicator);
   initializeChartViewport(type === 'kline' ? 30 : type === 'technical' ? 90 : chartState.fullData.length);
 }
 
@@ -4059,6 +4065,19 @@ function prepareChartCanvas() {
   const ctx = chartCanvas.getContext('2d');
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   ctx.clearRect(0, 0, W, H);
+  return { ctx, W, H };
+}
+
+function prepareIndicatorCanvas() {
+  const dpr = window.devicePixelRatio || 1;
+  const areaStyle = getComputedStyle(chartCanvas.parentElement);
+  const horizontalPadding = parseFloat(areaStyle.paddingLeft) + parseFloat(areaStyle.paddingRight);
+  const W = Math.max(280, Math.floor(chartCanvas.parentElement.clientWidth - horizontalPadding));
+  const H = 148;
+  const pixelW = Math.round(W * dpr), pixelH = Math.round(H * dpr);
+  if (indicatorCanvas.width !== pixelW || indicatorCanvas.height !== pixelH) { indicatorCanvas.width = pixelW; indicatorCanvas.height = pixelH; }
+  indicatorCanvas.style.width = `${W}px`; indicatorCanvas.style.height = `${H}px`;
+  const ctx = indicatorCanvas.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, W, H);
   return { ctx, W, H };
 }
 
@@ -4409,7 +4428,7 @@ function technicalLabel(indicator) {
 function drawTechnicalChart(ctx, W, H) {
   const data=chartState.data, s=chartState.technicalSeries || {}, indicator=chartState.indicator;
   if (!data.length) return;
-  const plotLeft=58, plotRight=W-16, plotTop=24, plotBottom=H-30, cw=plotRight-plotLeft, ch=plotBottom-plotTop;
+  const plotLeft=54, plotRight=W-(chartState.type === 'minute' ? 54 : 12), plotTop=24, plotBottom=H-30, cw=plotRight-plotLeft, ch=plotBottom-plotTop;
   const keys=Object.keys(s), values=keys.flatMap(k=>s[k]).filter(Number.isFinite);
   if (!values.length) return;
   let min=Math.min(...values), max=Math.max(...values); if (indicator==='rsi'||indicator==='kdj'){min=0;max=100;} if(indicator==='macd') { const a=Math.max(Math.abs(min),Math.abs(max),.01); min=-a;max=a; }
@@ -4432,6 +4451,14 @@ function renderChart() {
   else if (chartState.type === 'fundFlow') drawFundFlowChart(ctx, W, H);
   else if (chartState.type === 'technical') drawTechnicalChart(ctx, W, H);
   else drawKlineChart(ctx, W, H);
+  const showIndicator = ['minute', 'minuteK', 'kline'].includes(currentTab) && chartState.data.length;
+  indicatorCanvas.style.display = showIndicator ? 'block' : 'none';
+  if (showIndicator) {
+    const savedLayout = chartState.layout;
+    const secondary = prepareIndicatorCanvas();
+    drawTechnicalChart(secondary.ctx, secondary.W, secondary.H);
+    chartState.layout = savedLayout;
+  }
   if (chartState.hoverIndex != null) drawCrosshair(ctx);
 }
 
