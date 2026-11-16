@@ -4820,8 +4820,8 @@ function showChartHoverTooltip(event, index) {
   chartHoverTooltip.style.top = `${Math.max(8, Math.min(panelRect.height - height - 8, top))}px`;
 }
 
-function chartRatioAtClientX(clientX) {
-  const rect = chartCanvas.getBoundingClientRect();
+function chartRatioAtClientX(clientX, sourceCanvas = chartCanvas) {
+  const rect = sourceCanvas.getBoundingClientRect();
   const x = (clientX - rect.left) * chartState.layout.W / rect.width;
   const { plotLeft, plotRight } = chartState.layout;
   return Math.max(0, Math.min(1, (x - plotLeft) / (plotRight - plotLeft)));
@@ -4945,6 +4945,15 @@ chartCanvas.addEventListener('wheel', event => {
   const currentCount = chartState.viewEnd - chartState.viewStart + 1;
   const scale = Math.exp(event.deltaY * .0018);
   zoomChartToCount(currentCount * scale, chartRatioAtClientX(event.clientX));
+}, { passive: false });
+
+// 副图与主图共享同一视口；在指标区域滚轮缩放时也保持时间轴同步。
+indicatorCanvas.addEventListener('wheel', event => {
+  if (!chartState.layout || !chartState.fullData.length) return;
+  event.preventDefault();
+  const currentCount = chartState.viewEnd - chartState.viewStart + 1;
+  const scale = Math.exp(event.deltaY * .0018);
+  zoomChartToCount(currentCount * scale, chartRatioAtClientX(event.clientX, indicatorCanvas));
 }, { passive: false });
 
 chartCanvas.addEventListener('dblclick', event => {
