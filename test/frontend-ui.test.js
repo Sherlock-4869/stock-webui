@@ -1215,3 +1215,21 @@ test('fund flow failures expose an in-place retry action', () => {
   assert.match(html, /retry\.addEventListener\('click', \(\) => loadChart\('fundFlow', \{ forceFundFlowRefresh:true \}\)\)/);
   assert.match(html, /主力资金数据暂时拿不到，请稍后重试/);
 });
+
+test('every InvestmentWorkbench method referenced by the UI is exported', () => {
+  const workbenchScript = fs.readFileSync(path.join(__dirname, '..', 'public', 'workbench.js'), 'utf8');
+  const exportMatch = workbenchScript.match(/window\.InvestmentWorkbench = \{([^}]*)\}/);
+  assert.ok(exportMatch, 'workbench.js must export window.InvestmentWorkbench');
+  const exported = new Set(exportMatch[1].split(',').map(entry => entry.trim().split(/\s*:/)[0]).filter(Boolean));
+  const referenced = new Set();
+  for (const source of [html, workbenchScript]) {
+    for (const match of source.matchAll(/InvestmentWorkbench\??\.(\w+)/g)) referenced.add(match[1]);
+  }
+  assert.ok(referenced.has('closeAlertDialog'), 'alert dialog must reference its close handler');
+  for (const name of referenced) assert.ok(exported.has(name), `InvestmentWorkbench.${name} is referenced but not exported`);
+});
+
+test('workbench alert and trade dialogs close with the Escape key', () => {
+  const workbenchScript = fs.readFileSync(path.join(__dirname, '..', 'public', 'workbench.js'), 'utf8');
+  assert.match(workbenchScript, /addEventListener\('keydown', event => \{ if \(event\.key !== 'Escape'\) return;[^\n]*closeAlertDialog\(\)[^\n]*closeTradeDialog\(\)/);
+});
