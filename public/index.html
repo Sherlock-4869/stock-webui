@@ -2973,7 +2973,7 @@ function openModal(sym) {
   document.getElementById('technical-indicator-bar').classList.remove('visible');
   document.getElementById('technical-indicator-bar').classList.toggle('visible', ['minute', 'minuteK', 'kline'].includes(currentTab));
   document.getElementById('ma-indicator-bar').classList.toggle('visible', currentTab === 'kline');
-  document.getElementById('minute-k-history-controls').classList.toggle('visible', currentTab === 'minuteK' && isAStockSymbol(modalSym));
+  document.getElementById('minute-k-history-controls').classList.toggle('visible', ['minute', 'minuteK'].includes(currentTab) && isAStockSymbol(modalSym));
   syncKlineMaControls();
   document.querySelectorAll('[data-indicator]').forEach(btn => btn.classList.toggle('active', btn.dataset.indicator === currentTechnicalIndicator));
   document.querySelectorAll('.period-btn[data-period]').forEach(btn => btn.classList.toggle('active', btn.dataset.period === 'm5'));
@@ -3147,7 +3147,7 @@ function switchTab(el) {
   document.getElementById('period-bar').classList.toggle('visible', !information && !marketOverview && currentTab === 'minuteK');
   document.getElementById('technical-indicator-bar').classList.toggle('visible', technical || ['minute', 'minuteK', 'kline'].includes(currentTab));
   document.getElementById('ma-indicator-bar').classList.toggle('visible', currentTab === 'kline');
-  document.getElementById('minute-k-history-controls').classList.toggle('visible', currentTab === 'minuteK' && isAStockSymbol(modalSym));
+  document.getElementById('minute-k-history-controls').classList.toggle('visible', ['minute', 'minuteK'].includes(currentTab) && isAStockSymbol(modalSym));
   if (orderBook) { loadOrderBook(); startOrderBookRefresh(); return; }
   stopOrderBookRefresh();
   hideChartHoverTooltip();
@@ -3567,7 +3567,7 @@ function updateMinuteKHistoryControls() {
   const controls = document.getElementById('minute-k-history-controls');
   const input = document.getElementById('minute-k-history-date');
   const status = document.getElementById('minute-k-history-status');
-  const supported = currentTab === 'minuteK' && isAStockSymbol(modalSym);
+  const supported = ['minute', 'minuteK'].includes(currentTab) && isAStockSymbol(modalSym);
   controls?.classList.toggle('visible', supported);
   const dates = minuteKTradingDates();
   if (input) {
@@ -3576,10 +3576,11 @@ function updateMinuteKHistoryControls() {
     if (chartState.minuteKDate) input.value = isoTradeDate(chartState.minuteKDate);
   }
   const note = minuteKCoverageNote();
+  const modeLabel = currentTab === 'minute' ? '分时' : '分时 K';
   if (status) {
     status.textContent = chartState.minuteKDate
-      ? `${isoTradeDate(chartState.minuteKDate)} · 分时 K${note ? `（${note}）` : ''}`
-      : note ? `选择交易日查看历史分时 K（${note}）` : '选择交易日查看历史分时 K';
+      ? `${isoTradeDate(chartState.minuteKDate)} · ${modeLabel}${note ? `（${note}）` : ''}`
+      : note ? `选择交易日查看历史${modeLabel}（${note}）` : `选择交易日查看历史${modeLabel}`;
   }
 }
 
@@ -3619,8 +3620,10 @@ function stepMinuteKHistory(offset) {
 }
 
 function jumpMinuteKToLatest() {
-  const latest = latestMinuteKDate();
-  if (latest) selectMinuteKHistoryDate(isoTradeDate(latest));
+  chartState.minuteKDate = '';
+  chartState.minuteKDateExplicit = false;
+  updateMinuteKHistoryControls();
+  if (currentTab === 'minute' || currentTab === 'minuteK') loadChart(currentTab);
 }
 
 function selectMinuteKHistoryDate(value) {
@@ -3629,7 +3632,7 @@ function selectMinuteKHistoryDate(value) {
   chartState.minuteKDate = compact;
   chartState.minuteKDateExplicit = true;
   updateMinuteKHistoryControls();
-  if (currentTab === 'minuteK') loadChart('minuteK', { date: compact });
+  if (currentTab === 'minute' || currentTab === 'minuteK') loadChart(currentTab, { date: compact });
 }
 
 function openMinuteKAtDate(date) {
@@ -3643,6 +3646,44 @@ function openMinuteKAtDate(date) {
 function returnToDailyK() {
   const tab = document.querySelector('.tab[data-tab="kline"]');
   if (tab && !tab.hidden) switchTab(tab);
+}
+
+async function ensureDailyKData(sym) {
+  if (chartState.dailyKData.length || !isAStockSymbol(sym)) return;
+  try {
+    const dailyResponse = await fetch(`/api/kline?sym=${sym}`);
+    if (!dailyResponse.ok) return;
+    const dailyPayload = await dailyResponse.json();
+    const dailySymbol = Object.keys(dailyPayload.data || {})[0];
+    const dailyKey = Object.keys(dailyPayload.data?.[dailySymbol] || {}).find(key => /day$/i.test(key));
+    chartState.dailyKData = parseKlineRows(dailyPayload.data?.[dailySymbol]?.[dailyKey] || []);
+  } catch (_) {}
+}
+
+function minutePrevCloseForDate(compactDate) {
+  const target = compactTradeDate(compactDate);
+  if (!/^\d{8}$/.test(target)) return 0;
+  let previousClose = 0;
+  for (const point of chartState.dailyKData || []) {
+    const pointDate = compactTradeDate(point.date);
+    if (pointDate && pointDate < target && Number.isFinite(point.close)) previousClose = point.close;
+  }
+  return previousClose;
+}
+
+function minuteRowsFromKline(rows) {
+  let cumulativeVolume = 0;
+  let cumulativeAmount = 0;
+  return (rows || []).flatMap(row => {
+    const digits = String(row?.[0] || '').replace(/\D/g, '');
+    const time = digits.slice(-4);
+    const price = Number(row?.[2]);
+    const minuteVolume = Math.max(0, Number(row?.[5]) || 0);
+    if (!/^\d{4}$/.test(time) || !Number.isFinite(price)) return [];
+    cumulativeVolume += minuteVolume;
+    cumulativeAmount += price * minuteVolume * 100;
+    return [`${time} ${price} ${cumulativeVolume} ${cumulativeAmount}`];
+  });
 }
 
 async function loadChart(type, options = {}) {
@@ -3663,29 +3704,57 @@ async function loadChart(type, options = {}) {
   if (dataNotice) { dataNotice.textContent = ''; dataNotice.classList.remove('visible'); }
   try {
     if (type === 'minute') {
-      const r = await fetch(`/api/minute?sym=${modalSym}`);
-      if (!r.ok) throw new Error('minute request failed');
-      const d = await r.json();
-      if (requestId !== chartRequestId || currentTab !== type) return;
-      const symKey = Object.keys(d.data || {})[0];
-      const stockData = d.data?.[symKey] || {};
-      const rows = stockData.data?.data || [];
-      const date = stockData.data?.date || '';
-      const prevClose = parseFloat(lastQuoteData[modalSym]?.prevClose || stockData.qt?.[symKey]?.[4] || 0);
-      drawMinute(chartCanvas, rows, prevClose, date);
+      const aStock = isAStockSymbol(modalSym);
+      if (aStock) await ensureDailyKData(modalSym);
+      const explicitDate = aStock && (options.date !== undefined ? !!options.date : chartState.minuteKDateExplicit);
+      if (aStock && options.date) chartState.minuteKDateExplicit = true;
+      const requestedDate = explicitDate ? compactTradeDate(options.date || chartState.minuteKDate) : '';
+      if (aStock && /^\d{8}$/.test(requestedDate)) {
+        const r = await fetch(`/api/minute-kline?sym=${modalSym}&period=m1&date=${isoTradeDate(requestedDate)}`);
+        if (!r.ok) throw new Error('historical minute request failed');
+        const d = await r.json();
+        if (requestId !== chartRequestId || currentTab !== type) return;
+        rememberMinuteKAvailableDates(d.availableDates);
+        const symKey = Object.keys(d.data || {})[0];
+        const rows = (d.data?.[symKey]?.m1 || []).filter(row => compactTradeDate(row?.[0]) === requestedDate);
+        if (!rows.length) {
+          const knownDates = minuteKTradingDates();
+          let coverageMessage = '该交易日暂无分时数据';
+          if (knownDates.length) {
+            const oldest = knownDates[0];
+            const newest = knownDates[knownDates.length - 1];
+            if (requestedDate < oldest || requestedDate > newest) {
+              const fallbackDate = requestedDate < oldest ? oldest : newest;
+              chartState.minuteKDate = fallbackDate;
+              updateMinuteKHistoryControls();
+              coverageMessage = `行情源仅保留最近若干交易日，该日期暂无分时数据，已回到 ${isoTradeDate(fallbackDate)}`;
+            }
+          }
+          throw Object.assign(new Error('selected trading date has no minute data'), { minuteCoverageMessage:coverageMessage });
+        }
+        const prevClose = minutePrevCloseForDate(requestedDate) || Number(rows[0]?.[1]) || 0;
+        chartState.minuteKDate = requestedDate;
+        drawMinute(chartCanvas, minuteRowsFromKline(rows), prevClose, requestedDate);
+        updateMinuteKHistoryControls();
+      } else {
+        const r = await fetch(`/api/minute?sym=${modalSym}`);
+        if (!r.ok) throw new Error('minute request failed');
+        const d = await r.json();
+        if (requestId !== chartRequestId || currentTab !== type) return;
+        const symKey = Object.keys(d.data || {})[0];
+        const stockData = d.data?.[symKey] || {};
+        const rows = stockData.data?.data || [];
+        const date = stockData.data?.date || '';
+        const prevClose = parseFloat(lastQuoteData[modalSym]?.prevClose || stockData.qt?.[symKey]?.[4] || 0);
+        if (aStock && date) chartState.minuteKDate = compactTradeDate(date);
+        drawMinute(chartCanvas, rows, prevClose, date);
+        if (aStock) updateMinuteKHistoryControls();
+      }
     } else if (type === 'minuteK') {
       if (!supportsMinuteKline(modalSym)) throw new Error('minute K line is unavailable for this market');
       const period = currentMinuteKPeriod;
       if (isAStockSymbol(modalSym)) {
-        if (!chartState.dailyKData.length) {
-            const dailyResponse = await fetch(`/api/kline?sym=${modalSym}`);
-            if (dailyResponse.ok) {
-              const dailyPayload = await dailyResponse.json();
-              const dailySymbol = Object.keys(dailyPayload.data || {})[0];
-              const dailyKey = Object.keys(dailyPayload.data?.[dailySymbol] || {}).find(key => /day$/i.test(key));
-              chartState.dailyKData = parseKlineRows(dailyPayload.data?.[dailySymbol]?.[dailyKey] || []);
-            }
-        }
+        await ensureDailyKData(modalSym);
         // 只有在用户显式选择历史日期时才聚焦到单日，否则保留多日 K 线以便 15/30/60 分指标有充足预热
         const explicitDate = options.date !== undefined ? !!options.date : chartState.minuteKDateExplicit;
         if (options.date) chartState.minuteKDateExplicit = true;

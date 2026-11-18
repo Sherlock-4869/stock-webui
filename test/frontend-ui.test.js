@@ -1363,3 +1363,25 @@ test('technical indicator panel shows an explicit notice when bars are insuffici
   assert.ok(layout, 'layout should still be returned when indicator data is insufficient');
   assert.ok(texts.some(text => text.includes('不足以计算')), 'canvas should display an insufficient-data notice');
 });
+
+test('minute chart supports historical trading date selection for A-shares', () => {
+  assert.match(html, /\['minute', 'minuteK'\]\.includes\(currentTab\) && isAStockSymbol\(modalSym\)/);
+  assert.match(html, /if \(currentTab === 'minute' \|\| currentTab === 'minuteK'\) loadChart\(currentTab, \{ date: compact \}\);/);
+  assert.match(html, /\/api\/minute-kline\?sym=\$\{modalSym\}&period=m1&date=\$\{isoTradeDate\(requestedDate\)\}/);
+
+  const start = html.indexOf('function minutePrevCloseForDate(');
+  const end = html.indexOf('\nasync function loadChart(', start);
+  assert.ok(start >= 0 && end > start, 'minute history helpers must exist');
+  const context = {
+    chartState:{ dailyKData:[{ date:'2026-11-16', close:99.5 }, { date:'2026-11-17', close:101.2 }, { date:'2026-11-18', close:102.0 }] },
+    compactTradeDate:value => String(value || '').replace(/\D/g, '').slice(0, 8),
+  };
+  vm.createContext(context);
+  vm.runInContext(html.slice(start, end), context);
+  assert.equal(context.minutePrevCloseForDate('20261118'), 101.2);
+  assert.equal(context.minutePrevCloseForDate('20261117'), 99.5);
+  assert.deepEqual(
+    context.minuteRowsFromKline([['202611170931', 100, 100.5, 101, 99.8, 10], ['202611170932', 100.5, 101, 101.2, 100.4, 20]]),
+    ['0931 100.5 10 100500', '0932 101 30 302500']
+  );
+});
