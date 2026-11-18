@@ -470,6 +470,7 @@ async function proxyHistoricalMinuteKline(sym, period, date, res) {
   }
   const targetDate = date.replaceAll('-', '');
   let rows = [];
+  let contextRows = [];
   let availableDates = [];
   try {
     // Tencent keeps only the most recent 320 minute bars (a few sessions for
@@ -477,6 +478,7 @@ async function proxyHistoricalMinuteKline(sym, period, date, res) {
     const tencentRows = await fetchTencentMinuteKlines(sym, period);
     availableDates = minuteKlineAvailableDates(tencentRows);
     rows = tencentRows.filter(row => minuteKlineDateOf(row) === targetDate);
+    if (rows.length) contextRows = tencentRows.filter(row => minuteKlineDateOf(row) <= targetDate).slice(-160);
   } catch (error) {
     console.warn('Tencent minute K fallback error:', error.message);
   }
@@ -492,14 +494,14 @@ async function proxyHistoricalMinuteKline(sym, period, date, res) {
       return;
     }
   }
-  sendJson(res, 200, { code:0, data:{ [sym]:{ [period]:rows } }, availableDates });
+  sendJson(res, 200, { code:0, data:{ [sym]:{ [period]:rows } }, contextRows, availableDates });
 }
 
 async function proxyLatestMinuteKline(sym, period, res) {
   try {
     const rows = await fetchTencentMinuteKlines(sym, period);
     const availableDates = minuteKlineAvailableDates(rows);
-    sendJson(res, 200, { code:0, data:{ [sym]:{ [period]:rows.slice(-80) } }, availableDates });
+    sendJson(res, 200, { code:0, data:{ [sym]:{ [period]:rows.slice(-160) } }, availableDates });
   } catch (error) {
     console.error('Latest minute K upstream error:', error.message);
     sendJson(res, 502, { error:'分时 K 数据暂时不可用' });

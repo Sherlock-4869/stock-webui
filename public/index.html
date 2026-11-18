@@ -2929,6 +2929,7 @@ function openModal(sym) {
   currentTechnicalIndicator = 'volume';
   chartState.maVisibility = { ...DEFAULT_KLINE_MA_VISIBILITY };
   chartState.minuteKDate = '';
+  chartState.minuteKDateExplicit = false;
   chartState.minuteKAvailableDates = [];
   chartState.dailyKData = [];
   stopOrderBookRefresh();
@@ -3534,7 +3535,7 @@ const chartState = {
   hoverIndex: null, layout: null,
   indicator: 'volume', technicalSeries: {}, fullTechnicalSeries: {},
   maVisibility: { ...DEFAULT_KLINE_MA_VISIBILITY },
-  minuteKDate: '', minuteKAvailableDates: [], dailyKData: [],
+  minuteKDate: '', minuteKDateExplicit: false, minuteKAvailableDates: [], dailyKData: [],
 };
 
 function syncKlineMaControls() {
@@ -3626,6 +3627,7 @@ function selectMinuteKHistoryDate(value) {
   const compact = compactTradeDate(value);
   if (!/^\d{8}$/.test(compact) || !isAStockSymbol(modalSym)) return;
   chartState.minuteKDate = compact;
+  chartState.minuteKDateExplicit = true;
   updateMinuteKHistoryControls();
   if (currentTab === 'minuteK') loadChart('minuteK', { date: compact });
 }
@@ -3634,6 +3636,7 @@ function openMinuteKAtDate(date) {
   const tab = document.querySelector('.tab[data-tab="minuteK"]');
   if (!tab || tab.hidden) return;
   chartState.minuteKDate = compactTradeDate(date);
+  chartState.minuteKDateExplicit = true;
   switchTab(tab);
 }
 
@@ -3683,8 +3686,9 @@ async function loadChart(type, options = {}) {
               chartState.dailyKData = parseKlineRows(dailyPayload.data?.[dailySymbol]?.[dailyKey] || []);
             }
         }
-        // 判断是否需要过滤历史日期：明确传了 date 参数，或者当前已经在查看历史日期
-        const explicitDate = options.date !== undefined ? !!options.date : !!chartState.minuteKDate;
+        // 只有在用户显式选择历史日期时才聚焦到单日，否则保留多日 K 线以便 15/30/60 分指标有充足预热
+        const explicitDate = options.date !== undefined ? !!options.date : chartState.minuteKDateExplicit;
+        if (options.date) chartState.minuteKDateExplicit = true;
         const requestedDate = explicitDate ? compactTradeDate(options.date || chartState.minuteKDate) : '';
         const dateQuery = /^\d{8}$/.test(requestedDate) ? `&date=${isoTradeDate(requestedDate)}` : '';
         const r = await fetch(`/api/minute-kline?sym=${modalSym}&period=${period}${dateQuery}`);
@@ -3695,7 +3699,6 @@ async function loadChart(type, options = {}) {
         const symKey = Object.keys(d.data || {})[0];
         const rows = d.data?.[symKey]?.[period] || [];
         console.log('[分时K线] 返回数据条数:', rows.length, '请求日期:', requestedDate || '无（显示最新）');
-        // 只有在明确请求了历史日期时才过滤
         const filteredRows = requestedDate && explicitDate
           ? rows.filter(row => compactTradeDate(row?.[0]) === requestedDate)
           : rows;
@@ -3718,7 +3721,22 @@ async function loadChart(type, options = {}) {
         const actualDate = compactTradeDate(lastMinuteRow?.[0]);
         chartState.minuteKDate = actualDate || requestedDate || compactTradeDate(new Date().toISOString().slice(0, 10));
         console.log('[分时K线] 实际显示日期:', chartState.minuteKDate, '数据条数:', filteredRows.length);
-        drawKline(chartCanvas, filteredRows, 'minuteK', period);
+        const seriesRows = requestedDate && explicitDate && Array.isArray(d.contextRows) && d.contextRows.length >= filteredRows.length
+          ? d.contextRows
+          : filteredRows;
+        drawKline(chartCanvas, seriesRows, 'minuteK', period);
+        if (requestedDate && explicitDate && seriesRows.length > filteredRows.length) {
+          const dayStart = chartState.fullData.findIndex(point => compactTradeDate(point.date) === requestedDate);
+          let dayEnd = -1;
+          for (let idx = chartState.fullData.length - 1; idx >= 0; idx -= 1) {
+            if (compactTradeDate(chartState.fullData[idx].date) === requestedDate) { dayEnd = idx; break; }
+          }
+          if (dayStart >= 0 && dayEnd >= dayStart) {
+            chartState.defaultStart = dayStart;
+            chartState.defaultEnd = dayEnd;
+            setChartViewport(dayStart, dayEnd);
+          }
+        }
         updateMinuteKHistoryControls();
       } else {
         const r = await fetch(`/api/minute?sym=${modalSym}`);
@@ -4022,7 +4040,7 @@ function drawKline(canvas, rows, type = 'kline', period = '') {
   chartState.fullVolumeMa10 = movingAverage(chartState.fullData, 10, 'volume');
   chartState.indicator = currentTechnicalIndicator;
   chartState.fullTechnicalSeries = calculateTechnicalSeries(chartState.fullData, chartState.indicator);
-  initializeChartViewport(type === 'kline' ? 30 : type === 'technical' ? 90 : chartState.fullData.length);
+  initializeChartViewport(type === 'kline' ? 30 : type === 'minuteK' ? 80 : type === 'technical' ? 90 : chartState.fullData.length);
 }
 
 function ema(values, period) {
@@ -4462,7 +4480,16 @@ function drawTechnicalChart(ctx, W, H) {
   const plotLeft = 54, plotRight = W - (minute ? 54 : 12), plotTop = 24, plotBottom = H - 30, cw = plotRight - plotLeft, ch = plotBottom - plotTop;
   const closes = data.map(technicalPointClose);
   const valueRange = technicalValueRange(indicator, s, closes);
-  if (!valueRange) return null;
+  if (!valueRange) {
+    ctx.fillStyle = chartThemeColor('bg'); ctx.fillRect(0, 0, W, H);
+    ctx.font = '10px ui-monospace,monospace';
+    ctx.fillStyle = chartThemeColor('text'); ctx.textAlign = 'left'; ctx.fillText(technicalLabel(indicator), plotLeft, 13);
+    ctx.fillStyle = chartThemeColor('muted'); ctx.textAlign = 'center';
+    ctx.fillText(`当前 K 线数量（${data.length} 根）不足以计算 ${technicalLabel(indicator)}`, (plotLeft + plotRight) / 2, (plotTop + plotBottom) / 2 + 4);
+    const layout = { W, H, plotLeft, plotRight, cw, plotTop, plotBottom, priceTop:plotTop, priceH:ch, volTop:plotTop, volH:ch, priceMin:0, priceMax:1, xFor:technicalXMapper(chartState.type, data.length, plotLeft, cw), py:() => (plotTop + plotBottom) / 2 };
+    chartState.layout = layout;
+    return layout;
+  }
   const { min, max } = valueRange, range = max - min || 1;
   const xFor = technicalXMapper(chartState.type, data.length, plotLeft, cw);
   const py = value => plotTop + (max - value) / range * ch;

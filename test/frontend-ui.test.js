@@ -1338,3 +1338,28 @@ test('precious metals page is part of the market hub and uses guarded APIs', () 
   const duplicates = declarations.filter((name, index) => declarations.indexOf(name) !== index);
   assert.deepEqual(duplicates.filter(name => /^(pm|preciousMetal|technical|renderPreciousMetal|loadPreciousMetal|selectPreciousMetal|switchPreciousMetal)/i.test(name)), []);
 });
+
+test('minute K-line preserves multi-day context across period switches and explicit date selection', () => {
+  assert.match(html, /minuteKDateExplicit:\s*false/);
+  assert.match(html, /const explicitDate = options\.date !== undefined \? !!options\.date : chartState\.minuteKDateExplicit;/);
+  assert.match(html, /const seriesRows = requestedDate && explicitDate && Array\.isArray\(d\.contextRows\)/);
+  assert.match(serverSource, /if \(rows\.length\) contextRows = tencentRows\.filter\(row => minuteKlineDateOf\(row\) <= targetDate\)\.slice\(-160\);/);
+  assert.match(serverSource, /sendJson\(res, 200, \{ code:0, data:\{ \[sym\]:\{ \[period\]:rows\.slice\(-160\) \} \}, availableDates \}\);/);
+});
+
+test('technical indicator panel shows an explicit notice when bars are insufficient', () => {
+  const data = Array.from({ length:8 }, (_, i) => ({ date:`2026-11-18 ${10 + i}:00`, open:10, high:10.5, low:9.5, close:10 + i * .1, volume:100 }));
+  const chartState = {
+    type:'minuteK', indicator:'macd', data, fullData:data, viewStart:0, prevClose:0,
+    technicalSeries:{ dif:data.map(() => null), dea:data.map(() => null), hist:data.map(() => null) },
+  };
+  const context = technicalChartHarness(chartState);
+  const texts = [];
+  const ctx = {
+    ...recordingContext(),
+    fillText(text) { texts.push(String(text)); },
+  };
+  const layout = context.drawTechnicalChart(ctx, 300, 148);
+  assert.ok(layout, 'layout should still be returned when indicator data is insufficient');
+  assert.ok(texts.some(text => text.includes('不足以计算')), 'canvas should display an insufficient-data notice');
+});
