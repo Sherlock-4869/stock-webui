@@ -45,6 +45,15 @@ const {
   parseSinaSpotIndexes,
 } = require('./derivatives-market');
 const {
+  computePreciousMetalAnalytics,
+  parsePreciousMetalDaily,
+  parsePreciousMetalMinute,
+  parsePreciousMetalQuotes,
+  PRECIOUS_METAL_INSTRUMENTS,
+  PRECIOUS_METAL_MACRO,
+  preciousMetalHistoryRequest,
+} = require('./precious-metals');
+const {
   normalizeAnnouncementPayload,
   normalizeBusinessAnalysisPayload,
   normalizeCompanySurvey,
@@ -132,6 +141,9 @@ const MARKET_OVERVIEW_CACHE_MS = 8 * 1000;
 const LIMIT_POOL_CACHE_MS = 10 * 1000;
 const DERIVATIVES_QUOTE_CACHE_MS = 5 * 1000;
 const DERIVATIVES_NEWS_CACHE_MS = 2 * 60 * 1000;
+const PRECIOUS_METAL_QUOTE_CACHE_MS = 5 * 1000;
+const PRECIOUS_METAL_INTRADAY_CACHE_MS = 30 * 1000;
+const PRECIOUS_METAL_DAILY_CACHE_MS = 10 * 60 * 1000;
 const STOCK_ANNOUNCEMENT_CACHE_MS = 15 * 60 * 1000;
 const STOCK_FINANCIAL_CACHE_MS = 6 * 60 * 60 * 1000;
 const STOCK_EARNINGS_FORECAST_CACHE_MS = 6 * 60 * 60 * 1000;
@@ -166,6 +178,9 @@ const limitPoolCache = new Map();
 const derivativesQuoteCache = new Map();
 const derivativesNewsCache = new Map();
 const derivativesRateLimitBuckets = new Map();
+const preciousMetalQuoteCache = new Map();
+const preciousMetalHistoryCache = new Map();
+const preciousMetalRateLimitBuckets = new Map();
 const stockAnnouncementCache = new Map();
 const stockFinancialCache = new Map();
 const stockEarningsForecastCache = new Map();
@@ -218,6 +233,7 @@ const FUND_RATE_LIMIT_MAX = 90;
 const CAPITAL_FLOW_RATE_LIMIT_MAX = 120;
 const LIMIT_POOL_RATE_LIMIT_MAX = 60;
 const DERIVATIVES_RATE_LIMIT_MAX = 120;
+const PRECIOUS_METAL_RATE_LIMIT_MAX = 120;
 const STOCK_INFORMATION_RATE_LIMIT_MAX = 60;
 const ORDER_BOOK_CACHE_MS = 2500;
 const orderBookCache = new Map();
@@ -1872,6 +1888,61 @@ async function loadDerivativesNews(force = false) {
   }, force);
 }
 
+async function loadPreciousMetalQuotes(force = false) {
+  return loadCachedFundValue(preciousMetalQuoteCache, 'overview', PRECIOUS_METAL_QUOTE_CACHE_MS, async () => {
+    const symbols = [...PRECIOUS_METAL_INSTRUMENTS, ...PRECIOUS_METAL_MACRO].map(item => item.symbol).join(',');
+    const { quotes, macro } = parsePreciousMetalQuotes(await requestSinaText(`https://hq.sinajs.cn/list=${symbols}`));
+    if (!quotes.length) throw new Error('Precious metal quotes are unavailable');
+    return {
+      quotes, macro, analytics:computePreciousMetalAnalytics(quotes, macro),
+      fetchedAt:Date.now(), partial:quotes.length < PRECIOUS_METAL_INSTRUMENTS.length || macro.length < PRECIOUS_METAL_MACRO.length,
+    };
+  }, force);
+}
+
+async function proxyPreciousMetals(urlObj, res) {
+  try {
+    const payload = await loadPreciousMetalQuotes(urlObj.searchParams.get('refresh') === '1');
+    sendJson(res, 200, { ...payload, sources:{ quotes:'新浪财经公开行情' } });
+  } catch (error) {
+    console.error('Precious metals error:', error.message);
+    sendJson(res, 502, { quotes:[], macro:[], error:'贵金属行情暂时不可用' });
+  }
+}
+
+async function proxyPreciousMetalHistory(urlObj, res) {
+  const request = preciousMetalHistoryRequest(urlObj.searchParams.get('id'), urlObj.searchParams.get('range'));
+  if (!request) { sendJson(res, 400, { points:[], error:'贵金属历史参数无效' }); return; }
+  const intraday = request.range === 'intraday';
+  const cacheKey = `${request.definition.id}:${intraday ? 'intraday' : 'daily'}`;
+  try {
+    const payload = await loadCachedFundValue(preciousMetalHistoryCache, cacheKey,
+      intraday ? PRECIOUS_METAL_INTRADAY_CACHE_MS : PRECIOUS_METAL_DAILY_CACHE_MS, async () => {
+        const buffer = await requestBuffer(request.url, {
+          ...UPSTREAM_HEADERS, Referer:'https://finance.sina.com.cn/', Accept:'text/plain,*/*;q=0.8',
+        }, { timeoutMs:10000 });
+        if (buffer.length > 4 * 1024 * 1024) throw new Error('Precious metal history payload is too large');
+        const text = buffer.toString('utf-8');
+        if (intraday) {
+          const minute = parsePreciousMetalMinute(text, request.definition.kind);
+          if (!minute.points.length) throw new Error('Precious metal intraday data is empty');
+          return { ...minute, fetchedAt:Date.now() };
+        }
+        const points = parsePreciousMetalDaily(text, 780);
+        if (!points.length) throw new Error('Precious metal daily data is empty');
+        return { points, fetchedAt:Date.now() };
+      });
+    const points = intraday ? payload.points : payload.points.slice(-request.limit);
+    sendJson(res, 200, {
+      id:request.definition.id, name:request.definition.name, unit:request.definition.unit, range:request.range,
+      points, prevClose:payload.prevClose ?? null, date:payload.date || '', fetchedAt:payload.fetchedAt, stale:Boolean(payload.stale),
+    });
+  } catch (error) {
+    console.error(`Precious metal history error (${request.definition.id}:${request.range}):`, error.message);
+    sendJson(res, 502, { points:[], error:'贵金属走势暂时不可用' });
+  }
+}
+
 async function proxyDerivativesOverview(urlObj, res) {
   const force = urlObj.searchParams.get('refresh') === '1';
   const [quotesResult, newsResult] = await Promise.allSettled([
@@ -2167,6 +2238,29 @@ function allowLimitPoolRequest(req, res) {
     'Retry-After':String(Math.max(1, Math.ceil((bucket.startedAt + FUND_RATE_LIMIT_WINDOW_MS - now) / 1000))),
   });
   res.end(JSON.stringify({ error:'涨跌停数据请求过于频繁，请稍后再试' }));
+  return false;
+}
+
+function allowPreciousMetalRequest(req, res) {
+  const now = Date.now();
+  if (preciousMetalRateLimitBuckets.size > 1000) {
+    for (const [key, value] of preciousMetalRateLimitBuckets) {
+      if (now - value.startedAt >= FUND_RATE_LIMIT_WINDOW_MS) preciousMetalRateLimitBuckets.delete(key);
+    }
+  }
+  const address = String(req.socket?.remoteAddress || 'unknown').slice(0, 100);
+  let bucket = preciousMetalRateLimitBuckets.get(address);
+  if (!bucket || now - bucket.startedAt >= FUND_RATE_LIMIT_WINDOW_MS) {
+    bucket = { startedAt:now, count:0 };
+    preciousMetalRateLimitBuckets.set(address, bucket);
+  }
+  bucket.count += 1;
+  if (bucket.count <= PRECIOUS_METAL_RATE_LIMIT_MAX) return true;
+  res.writeHead(429, {
+    'Content-Type':'application/json; charset=utf-8', 'Cache-Control':'no-store',
+    'Retry-After':String(Math.max(1, Math.ceil((bucket.startedAt + FUND_RATE_LIMIT_WINDOW_MS - now) / 1000))),
+  });
+  res.end(JSON.stringify({ error:'贵金属行情请求过于频繁，请稍后再试' }));
   return false;
 }
 
@@ -2557,6 +2651,18 @@ const server = http.createServer(async (req, res) => {
   if (pathname === '/api/capital-flow/intraday') {
     if (!allowCapitalFlowRequest(req, res)) return;
     await proxyCapitalFlowIntraday(urlObj, res);
+    return;
+  }
+
+  if (pathname === '/api/precious-metals') {
+    if (!allowPreciousMetalRequest(req, res)) return;
+    await proxyPreciousMetals(urlObj, res);
+    return;
+  }
+
+  if (pathname === '/api/precious-metals/history') {
+    if (!allowPreciousMetalRequest(req, res)) return;
+    await proxyPreciousMetalHistory(urlObj, res);
     return;
   }
 

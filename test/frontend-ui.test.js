@@ -316,7 +316,7 @@ test('market hub groups limit pools with the other market views and guards data 
   assert.match(html, /data-market-hub-page="limit-pools"[^>]*onclick="switchAppPage\('limit-pools'\)"/);
   assert.match(html, /data-market-hub-page="capital-flow"[^>]*onclick="switchAppPage\('capital-flow'\)"/);
   assert.match(html, /data-market-hub-page="funds"[^>]*onclick="switchAppPage\('funds'\)"/);
-  assert.match(html, /const MARKET_HUB_PAGES = new Set\(\['boards','limit-pools','capital-flow','funds'\]\)/);
+  assert.match(html, /const MARKET_HUB_PAGES = new Set\(\['boards','limit-pools','capital-flow','funds','precious-metals'\]\)/);
   assert.match(html, /marketHubNavigation\.hidden = !MARKET_HUB_PAGES\.has\(page\)/);
   assert.match(html, /id="page-limit-pools"/);
   assert.match(html, /id="limit-up-count"/);
@@ -1232,4 +1232,109 @@ test('every InvestmentWorkbench method referenced by the UI is exported', () => 
 test('workbench alert and trade dialogs close with the Escape key', () => {
   const workbenchScript = fs.readFileSync(path.join(__dirname, '..', 'public', 'workbench.js'), 'utf8');
   assert.match(workbenchScript, /addEventListener\('keydown', event => \{ if \(event\.key !== 'Escape'\) return;[^\n]*closeAlertDialog\(\)[^\n]*closeTradeDialog\(\)/);
+});
+
+function technicalChartHarness(chartState) {
+  const start = html.indexOf('function technicalLabel(indicator)');
+  const end = html.indexOf('\nfunction renderChart() {', start);
+  const emaStart = html.indexOf('function ema(values, period)');
+  const emaEnd = html.indexOf('function drawFundFlow(', emaStart);
+  assert.ok(start >= 0 && end > start && emaStart >= 0 && emaEnd > emaStart, 'technical chart functions must exist');
+  const lines = [];
+  const context = {
+    chartState,
+    lines,
+    chartThemeColor:name => `theme-${name}`,
+    drawGridLine() {},
+    drawAverageLine(ctx, values, xFor, py, color) { lines.push({ values, color }); },
+    findMinuteSessionBreak:() => null,
+    formatTime:value => String(value),
+    klineAxisLabel:value => String(value),
+    chartVolume:value => String(Math.round(value)),
+    movingAverage(data, period, field = 'close') {
+      return data.map((_, i) => i < period - 1 ? null : data.slice(i - period + 1, i + 1).reduce((sum, row) => sum + Number(row[field]), 0) / period);
+    },
+  };
+  vm.createContext(context);
+  vm.runInContext(`${html.slice(emaStart, emaEnd)}\n${html.slice(start, end)}`, context);
+  return context;
+}
+
+function recordingContext() {
+  const rects = [];
+  return {
+    rects,
+    fillStyle:'', strokeStyle:'', font:'', textAlign:'', lineWidth:1,
+    fillRect(x, y, w, h) { rects.push({ x, y, w, h, fillStyle:this.fillStyle }); },
+    fillText() {}, measureText:text => ({ width:String(text).length * 6 }),
+    beginPath() {}, moveTo() {}, lineTo() {}, stroke() {}, rect() {}, clip() {}, save() {}, restore() {}, setLineDash() {}, arc() {}, fill() {},
+  };
+}
+
+test('technical indicator MACD DEA warms up from valid DIF samples instead of zero', () => {
+  const context = technicalChartHarness({});
+  const data = Array.from({ length:45 }, (_, i) => ({ close:10 + i * .1, high:10 + i * .1, low:10 + i * .1, volume:1 }));
+  const macd = context.calculateTechnicalSeries(data, 'macd');
+  assert.equal(macd.dif.findIndex(value => value != null), 25);
+  assert.equal(macd.dea.findIndex(value => value != null), 33);
+  assert.ok(macd.dea[33] > 0, 'DEA must not be dragged toward zero by DIF warm-up nulls');
+});
+
+test('K-line indicator panel aligns bars with candle centres and keeps volume on a zero baseline', () => {
+  const data = [10, 11, 10.5, 12].map((close, i) => ({ date:`2026-11-1${i}`, open:10, high:close + .5, low:9.5, close, volume:(i + 1) * 100 }));
+  const chartState = {
+    type:'kline', indicator:'volume', data, fullData:data, viewStart:0, prevClose:0,
+    technicalSeries:{ volume:[100, 200, 300, 400], ma5:[null, null, null, null], ma10:[null, null, null, null] },
+  };
+  const context = technicalChartHarness(chartState);
+  const ctx = recordingContext();
+  const layout = context.drawTechnicalChart(ctx, 300, 148);
+  const bars = ctx.rects.filter(rect => rect.fillStyle === '#f8514966' || rect.fillStyle === '#3fb95066');
+  assert.equal(bars.length, 4);
+  const step = (300 - 12 - 54) / 4;
+  bars.forEach((bar, i) => {
+    assert.ok(Math.abs(bar.x + bar.w / 2 - (54 + (i + .5) * step)) < 1e-6, `bar ${i} must sit on the candle centre`);
+    assert.ok(Math.abs(bar.y + bar.h - layout.plotBottom) < 1e-6, `bar ${i} must start from the zero baseline`);
+  });
+  assert.ok(Math.abs(layout.xFor(2) - (54 + 2.5 * step)) < 1e-6);
+  assert.deepEqual(context.lines.map(line => line.values), [chartState.technicalSeries.ma5, chartState.technicalSeries.ma10], 'raw volume must not be redrawn as a line');
+});
+
+test('minute indicator panel colours volume by minute price moves and labels times', () => {
+  const data = [{ time:'0930', price:10 }, { time:'0931', price:9.9 }, { time:'0932', price:10.1 }];
+  const chartState = {
+    type:'minute', indicator:'volume', data, fullData:data, viewStart:0, prevClose:10.2,
+    technicalSeries:{ volume:[500, 300, 400], ma5:[null, null, null], ma10:[null, null, null] },
+  };
+  const context = technicalChartHarness(chartState);
+  const ctx = recordingContext();
+  const layout = context.drawTechnicalChart(ctx, 300, 148);
+  const bars = ctx.rects.filter(rect => rect.fillStyle === '#f8514966' || rect.fillStyle === '#3fb95066');
+  assert.deepEqual(bars.map(bar => bar.fillStyle), ['#3fb95066', '#3fb95066', '#f8514966']);
+  assert.equal(layout.xFor(0), 54);
+  assert.equal(layout.xFor(2), 300 - 54);
+  assert.equal(context.technicalAxisLabel(data[1]), '0931');
+});
+
+test('KDJ range keeps J values visible outside the 0-100 band', () => {
+  const context = technicalChartHarness({});
+  const range = context.technicalValueRange('kdj', { k:[60], d:[55], j:[130] }, []);
+  assert.ok(range.min <= 0 && range.max >= 130);
+  assert.deepEqual({ ...context.technicalValueRange('rsi', { rsi:[30, 70] }, []) }, { min:0, max:100 });
+  assert.equal(context.technicalValueRange('volume', { volume:[100, 300] }, []).min, 0);
+});
+
+test('precious metals page is part of the market hub and uses guarded APIs', () => {
+  assert.match(html, /data-market-hub-page="precious-metals"[^>]*onclick="switchAppPage\('precious-metals'\)"/);
+  assert.match(html, /id="page-precious-metals"/);
+  assert.match(html, /APP_PAGES\.push\([^)]*'precious-metals'/);
+  assert.match(html, /if \(page === 'precious-metals'\) loadPreciousMetals\(\);/);
+  assert.match(html, /if \(activeAppPage === 'precious-metals'\) loadPreciousMetals\(false, \{ background:true \}\);/);
+  assert.match(html, /fetch\(`\/api\/precious-metals\$\{force \? '\?refresh=1' : ''\}`\)/);
+  assert.match(html, /\/api\/precious-metals\/history\?id=\$\{encodeURIComponent\(id\)\}&range=\$\{encodeURIComponent\(range\)\}/);
+  assert.match(serverSource, /pathname === '\/api\/precious-metals'\) \{\s*if \(!allowPreciousMetalRequest\(req, res\)\) return;/);
+  assert.match(serverSource, /pathname === '\/api\/precious-metals\/history'\) \{\s*if \(!allowPreciousMetalRequest\(req, res\)\) return;/);
+  const declarations = [...html.matchAll(/^function (\w+)\(/gm)].map(match => match[1]);
+  const duplicates = declarations.filter((name, index) => declarations.indexOf(name) !== index);
+  assert.deepEqual(duplicates.filter(name => /^(pm|preciousMetal|technical|renderPreciousMetal|loadPreciousMetal|selectPreciousMetal|switchPreciousMetal)/i.test(name)), []);
 });
