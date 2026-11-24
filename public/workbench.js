@@ -246,6 +246,28 @@
     return true;
   }
   function getPositionSymbols() { return state.positions.map(item => item.symbol).filter(Boolean); }
+  function getPortfolioSnapshot() {
+    return {
+      positions: state.positions.map(item => ({ ...item })),
+      trades: state.trades.map(item => ({ ...item })),
+      quotes: { ...quotes },
+    };
+  }
+  function updateTradeMeta(index, meta = {}) {
+    if (!Number.isInteger(index) || index < 0 || index >= state.trades.length) return false;
+    const target = state.trades[index];
+    const note = String(meta.note ?? '').trim().slice(0, 200);
+    const tag = String(meta.tag ?? '').trim().slice(0, 24);
+    const stopLoss = normalizePrice(meta.stopLoss);
+    const takeProfit = normalizePrice(meta.takeProfit);
+    if (note) target.note = note; else delete target.note;
+    if (tag) target.tag = tag; else delete target.tag;
+    if (stopLoss > 0) target.stopLoss = stopLoss; else delete target.stopLoss;
+    if (takeProfit > 0) target.takeProfit = takeProfit; else delete target.takeProfit;
+    save();
+    render();
+    return true;
+  }
   function removeEvent(index) { state.events.splice(index, 1); save(); render(); }
   function evaluateAlerts() { return state.alerts.filter(a => { const q = quotes[a.symbol]; return q && ((a.type === 'above' && q.price >= a.target) || (a.type === 'below' && q.price <= a.target)); }); }
   let draggedPositionSymbol = '';
@@ -285,7 +307,7 @@
     const body = positionsBody; if (body) { body.innerHTML = rows.length ? rows.map(r => `<tr draggable="true" data-position-symbol="${esc(r.p.symbol)}"><td><span class="workbench-drag-handle" title="拖动调整顺序">⠿</span>${esc(r.p.symbol)}</td><td><strong>${esc(r.p.name)}</strong></td><td>${money(r.p.quantity)}</td><td>${r.p.cost.toFixed(3)}</td><td>${r.price.toFixed(3)}</td><td>${money(r.value)}</td><td class="${r.profit >= 0 ? 'workbench-positive' : 'workbench-negative'}">${r.profit >= 0 ? '+' : ''}${money(r.profit)}</td><td><button type="button" onclick="InvestmentWorkbench.removePosition(${r.i})">删除</button></td></tr>`).join('') : '<tr><td colspan="8" class="workbench-empty">还没有模拟持仓，先记录一笔买入</td></tr>'; bindPositionDrag(body); }
     const alertEl = document.getElementById('wb-alerts'); if (alertEl) alertEl.innerHTML = state.alerts.length ? state.alerts.map((a, i) => { const q = quotes[a.symbol]; const hit = evaluateAlerts().includes(a); return `<div class="workbench-item"><span><strong>${esc(ruleName(a))}</strong><small>${esc(a.symbol)} · ${a.type === 'above' ? '价格高于' : '价格低于'} ${money(a.target)} · 当前 ${q ? money(q.price) : '--'}</small></span><span class="${hit ? 'workbench-positive' : 'workbench-muted'}">${hit ? '已触发' : '等待'} <button type="button" onclick="InvestmentWorkbench.removeAlert(${i})">✕</button></span></div>`; }).join('') : '<div class="workbench-empty">添加价格条件后，刷新估值会自动检查</div>';
     const eventEl = document.getElementById('wb-events'); if (eventEl) eventEl.innerHTML = state.events.length ? state.events.map((e, i) => `<div class="workbench-item"><span><strong>${esc(e.title)}</strong><small>${esc(e.kind)} · ${esc(e.date)}</small></span><button type="button" onclick="InvestmentWorkbench.removeEvent(${i})">✕</button></div>`).join('') : '<div class="workbench-empty">暂无事件</div>';
-    const tradesEl = document.getElementById('wb-trades'); if (tradesEl) { const tradeRows = state.trades.map((trade, index) => ({ trade, index })).sort((a, b) => num(b.trade.at) - num(a.trade.at) || b.index - a.index); tradesEl.innerHTML = tradeRows.length ? tradeRows.map(({ trade: t, index }) => { const side = String(t.side || '').toLowerCase() === 'sell'; const timestamp = num(t.at); const time = timestamp > 0 ? new Date(timestamp).toLocaleString('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }) : '--'; return `<div class="workbench-item trade-record"><span><strong class="${side ? 'workbench-negative' : 'workbench-positive'}">${side ? '卖出' : '买入'} · ${esc(t.name || t.symbol)}</strong><small>${esc(t.symbol)} · ${time} · ${money(num(t.quantity))} 股 · ${num(t.price).toFixed(3)}</small></span><button type="button" title="删除后按剩余记录重算持仓" onclick="InvestmentWorkbench.removeTrade(${index})">删除</button></div>`; }).join('') : '<div class="workbench-empty">暂无买卖操作记录</div>'; }
+    const tradesEl = document.getElementById('wb-trades'); if (tradesEl) { const tradeRows = state.trades.map((trade, index) => ({ trade, index })).sort((a, b) => num(b.trade.at) - num(a.trade.at) || b.index - a.index); tradesEl.innerHTML = tradeRows.length ? tradeRows.map(({ trade: t, index }) => { const side = String(t.side || '').toLowerCase() === 'sell'; const timestamp = num(t.at); const time = timestamp > 0 ? new Date(timestamp).toLocaleString('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }) : '--'; const journalNote = [t.tag ? `[${esc(t.tag)}]` : '', t.note ? esc(t.note) : '', t.stopLoss ? `止损 ${num(t.stopLoss).toFixed(2)}` : ''].filter(Boolean).join(' · '); return `<div class="workbench-item trade-record"><span><strong class="${side ? 'workbench-negative' : 'workbench-positive'}">${side ? '卖出' : '买入'} · ${esc(t.name || t.symbol)}</strong><small>${esc(t.symbol)} · ${time} · ${money(num(t.quantity))} 股 · ${num(t.price).toFixed(3)}${journalNote ? ` · ${journalNote}` : ''}</small></span><button type="button" title="删除后按剩余记录重算持仓" onclick="InvestmentWorkbench.removeTrade(${index})">删除</button></div>`; }).join('') : '<div class="workbench-empty">暂无买卖操作记录</div>'; }
     const select = document.getElementById('wb-replay-symbol'); if (select) { const current = select.value; select.innerHTML = rows.length ? rows.map(r => `<option value="${esc(r.p.symbol)}">${esc(r.p.name)} · ${esc(r.p.symbol)}</option>`).join('') : '<option value="">先添加持仓</option>'; if (rows.some(r => r.p.symbol === current)) select.value = current; }
     replay();
     notifyTriggeredAlerts();
@@ -299,7 +321,7 @@
   function exportData() { const lines = [['symbol', 'name', 'quantity', 'cost', 'lastPrice', 'marketValue'], ...state.positions.map(p => [p.symbol, p.name, p.quantity, p.cost, p.lastPrice || '', (p.lastPrice || p.cost) * p.quantity]), [], ['alerts'], ['symbol', 'type', 'target'], ...state.alerts.map(a => [a.symbol, a.type, a.target]), [], ['events'], ['date', 'kind', 'title'], ...state.events.map(e => [e.date, e.kind, e.title])]; const csv = lines.map(row => row.map(v => `"${String(v ?? '').replace(/"/g, '""')}"`).join(',')).join('\n'); const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `investment-workbench-${new Date().toISOString().slice(0, 10)}.csv`; a.click(); URL.revokeObjectURL(a.href); }
   function openResearch() { const symbol = document.getElementById('wb-replay-symbol')?.value; if (symbol && typeof window.openModal === 'function') window.openModal(symbol); else show('请先添加并选择一个持仓'); }
   function aiSummary() { const p = state.positions.map(x => `${x.name}(${x.symbol}) ${x.quantity}股，成本${x.cost}`).join('；'); const input = document.getElementById('ai-message-input'); if (typeof window.switchAppPage === 'function' && window.hasAiMenuAccess?.()) { window.switchAppPage('ai'); setTimeout(() => { if (input) input.value = `请基于我的模拟持仓生成研究摘要，列出基本面、估值、催化剂和风险：${p || '目前没有持仓'}`; }, 50); } else show('请先开启 AI 问股权限'); }
-  window.InvestmentWorkbench = { render, refreshQuotes, addPosition, recordTrade, openTrade, submitTrade, fillRealtimePrice, closeTradeDialog, openAlert, submitAlert, closeAlertDialog, removePosition, removeTrade, addAlert, removeAlert, addEvent, addEventRecord, getPositionSymbols, removeEvent, replay, runBacktest, exportData, aiSummary, openResearch, activateAccount, flushSync:() => syncToAccount({ force:true }) };
+  window.InvestmentWorkbench = { render, refreshQuotes, addPosition, recordTrade, openTrade, submitTrade, fillRealtimePrice, closeTradeDialog, openAlert, submitAlert, closeAlertDialog, removePosition, removeTrade, addAlert, removeAlert, addEvent, addEventRecord, getPositionSymbols, getPortfolioSnapshot, updateTradeMeta, removeEvent, replay, runBacktest, exportData, aiSummary, openResearch, activateAccount, flushSync:() => syncToAccount({ force:true }) };
   document.addEventListener('keydown', event => { if (event.key !== 'Escape') return; if (document.getElementById('alert-mask')?.classList.contains('open')) closeAlertDialog(); else if (document.getElementById('trade-mask')?.classList.contains('open')) closeTradeDialog(); });
   window.addEventListener('resize', () => { if (document.getElementById('page-workbench')?.classList.contains('active')) draw(replayRows); });
   window.setInterval(() => { if (window.currentUser && state.positions.length) refreshQuotes(); }, 15000);

@@ -156,14 +156,25 @@ function sanitizeWorkbenchState(input) {
     cost: cleanNumber(item?.cost, { positive:true }),
     lastPrice: cleanNumber(item?.lastPrice, { positive:true }),
   })).filter(item => item.symbol && item.quantity !== null && item.cost !== null);
-  const trades = (Array.isArray(source.trades) ? source.trades : []).slice(-2000).map(item => ({
-    at: Math.max(0, Math.floor(Number(item?.at) || 0)),
-    symbol: cleanSymbol(item?.symbol),
-    name: String(item?.name || '').trim().slice(0, 80),
-    side: String(item?.side || '').toUpperCase() === 'SELL' ? 'SELL' : 'BUY',
-    quantity: cleanNumber(item?.quantity, { positive:true }),
-    price: cleanNumber(item?.price, { positive:true }),
-  })).filter(item => item.symbol && item.quantity !== null && item.price !== null);
+  const trades = (Array.isArray(source.trades) ? source.trades : []).slice(-2000).map(item => {
+    const trade = {
+      at: Math.max(0, Math.floor(Number(item?.at) || 0)),
+      symbol: cleanSymbol(item?.symbol),
+      name: String(item?.name || '').trim().slice(0, 80),
+      side: String(item?.side || '').toUpperCase() === 'SELL' ? 'SELL' : 'BUY',
+      quantity: cleanNumber(item?.quantity, { positive:true }),
+      price: cleanNumber(item?.price, { positive:true }),
+    };
+    const note = String(item?.note || '').trim().slice(0, 200);
+    const tag = String(item?.tag || '').trim().slice(0, 24);
+    const stopLoss = cleanNumber(item?.stopLoss, { positive:true });
+    const takeProfit = cleanNumber(item?.takeProfit, { positive:true });
+    if (note) trade.note = note;
+    if (tag) trade.tag = tag;
+    if (stopLoss !== null) trade.stopLoss = stopLoss;
+    if (takeProfit !== null) trade.takeProfit = takeProfit;
+    return trade;
+  }).filter(item => item.symbol && item.quantity !== null && item.price !== null);
   const alerts = (Array.isArray(source.alerts) ? source.alerts : []).slice(0, 500).map(item => ({
     symbol: cleanSymbol(item?.symbol),
     name: String(item?.name || '').trim().slice(0, 80),

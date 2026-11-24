@@ -443,6 +443,109 @@ class WeChatService {
       this.running = false;
     }
   }
+
+  async getAdminOverview() {
+    const statsRaw = this.ready && typeof this.database.subscriberStats === 'function'
+      ? await this.database.subscriberStats()
+      : null;
+    const recentJobsRaw = this.ready && typeof this.database.listRecentJobs === 'function'
+      ? await this.database.listRecentJobs(20)
+      : [];
+    return {
+      enabled: Boolean(this.config.enabled),
+      ready: Boolean(this.ready),
+      running: Boolean(this.running),
+      error: this.initializationError || null,
+      missingConfig: Array.isArray(this.config.missing) ? this.config.missing : [],
+      autoEnable: Boolean(this.config.autoEnable),
+      pageUrl: this.config.pageUrl || '',
+      schedule: {
+        timezone: this.config.timezone,
+        weekday: this.config.scheduleWeekday,
+        hour: this.config.scheduleHour,
+        minute: this.config.scheduleMinute,
+        catchup: Boolean(this.config.scheduleCatchup),
+        dailyIpo: {
+          enabled: Boolean(this.config.dailyIpoEnabled),
+          hour: this.config.dailyIpoHour,
+          minute: this.config.dailyIpoMinute,
+        },
+      },
+      defaultMenu: buildDefaultMenu(this.config.pageUrl),
+      subscribers: statsRaw ? {
+        total: Number(statsRaw.total || 0),
+        subscribed: Number(statsRaw.subscribed || 0),
+        enabled: Number(statsRaw.enabled || 0),
+      } : null,
+      recentJobs: recentJobsRaw.map(job => ({
+        id: String(job.id),
+        jobKey: String(job.job_key || ''),
+        kind: String(job.job_key || '').startsWith('daily-') ? 'daily' : 'weekly',
+        periodStart: job.week_start ? String(job.week_start).slice(0, 10) : '',
+        periodEnd: job.week_end ? String(job.week_end).slice(0, 10) : '',
+        ipoCount: Number(job.ipo_count || 0),
+        status: String(job.status || 'pending'),
+        recipientCount: Number(job.recipient_count || 0),
+        successCount: Number(job.success_count || 0),
+        failureCount: Number(job.failure_count || 0),
+        lastError: job.last_error || null,
+        scheduledFor: job.scheduled_for || null,
+        startedAt: job.started_at || null,
+        finishedAt: job.finished_at || null,
+        createdAt: job.created_at || null,
+      })),
+    };
+  }
+
+  async getAdminJobDetail(jobId, maskOpenidFn) {
+    if (!this.ready) throw Object.assign(new Error(this.initializationError || '微信公众号服务未启用或未就绪'), { statusCode: 503 });
+    const job = await this.database.getJobById(jobId);
+    if (!job) throw Object.assign(new Error('推送任务记录不存在'), { statusCode: 404 });
+    const deliveries = await this.database.listJobDeliveries(job.id, 60);
+    return {
+      job: {
+        id: String(job.id),
+        jobKey: String(job.job_key || ''),
+        kind: String(job.job_key || '').startsWith('daily-') ? 'daily' : 'weekly',
+        periodStart: job.week_start ? String(job.week_start).slice(0, 10) : '',
+        periodEnd: job.week_end ? String(job.week_end).slice(0, 10) : '',
+        ipoCount: Number(job.ipo_count || 0),
+        content: String(job.message_content || ''),
+        status: String(job.status || 'pending'),
+        recipientCount: Number(job.recipient_count || 0),
+        successCount: Number(job.success_count || 0),
+        failureCount: Number(job.failure_count || 0),
+        lastError: job.last_error || null,
+        scheduledFor: job.scheduled_for || null,
+        startedAt: job.started_at || null,
+        finishedAt: job.finished_at || null,
+      },
+      deliveries: deliveries.map(d => ({
+        id: String(d.id),
+        maskedOpenid: typeof maskOpenidFn === 'function' ? maskOpenidFn(d.openid) : '***',
+        status: String(d.status || 'pending'),
+        attemptCount: Number(d.attempt_count || 0),
+        errcode: d.wechat_errcode == null ? null : Number(d.wechat_errcode),
+        errmsg: d.wechat_errmsg || null,
+        sentAt: d.sent_at || null,
+        updatedAt: d.updated_at || null,
+      })),
+    };
+  }
+
+  async syncMenuForAdmin() {
+    if (!this.ready) throw Object.assign(new Error(this.initializationError || '微信公众号服务未启用或未就绪'), { statusCode: 503 });
+    const menu = buildDefaultMenu(this.config.pageUrl);
+    const wechat = await this.client.createMenu(menu);
+    return { created: true, menu, wechat };
+  }
+
+  async syncSubscribersForAdmin() {
+    if (!this.ready) throw Object.assign(new Error(this.initializationError || '微信公众号服务未启用或未就绪'), { statusCode: 503 });
+    const openids = await this.client.listFollowers();
+    const count = await this.database.syncFollowers(openids, this.config.autoEnable);
+    return { synchronized: count };
+  }
 }
 
 function createWechatService(options) {

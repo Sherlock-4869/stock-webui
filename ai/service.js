@@ -653,6 +653,69 @@ class AiService {
     });
     void userMessage;
   }
+
+  async getAdminRuntimeStatus() {
+    let safeAgentUrl = '';
+    if (this.config.agentUrl) {
+      try {
+        const parsed = new URL(this.config.agentUrl);
+        safeAgentUrl = `${parsed.origin}${parsed.pathname}`.replace(/\/$/, '');
+      } catch (_) {
+        safeAgentUrl = '';
+      }
+    }
+    return {
+      enabled: Boolean(this.config.enabled),
+      hasInternalToken: Boolean(this.config.internalToken),
+      hasEncryptionKey: Boolean(this.config.credentialKey),
+      agentUrl: safeAgentUrl,
+    };
+  }
+
+  async probeAgentHealth(timeoutMs = 4500) {
+    if (!this.config.enabled) {
+      return { ok: false, status: 'disabled', latencyMs: 0, message: 'STOCK_AI_ENABLED 未开启' };
+    }
+    const started = Date.now();
+    try {
+      const target = new URL(`${this.config.agentUrl}/health`);
+      const transport = target.protocol === 'https:' ? https : http;
+      const statusCode = await new Promise((resolve, reject) => {
+        const req = transport.request({
+          hostname: target.hostname,
+          port: target.port || undefined,
+          path: `${target.pathname}${target.search}`,
+          method: 'GET',
+          timeout: timeoutMs,
+        }, response => {
+          response.resume();
+          resolve(response.statusCode || 0);
+        });
+        req.on('timeout', () => req.destroy(new Error('Agent health probe timeout')));
+        req.on('error', reject);
+        req.end();
+      });
+      const latencyMs = Date.now() - started;
+      const reachable = statusCode >= 200 && statusCode < 500;
+      return {
+        ok: reachable,
+        status: reachable ? 'healthy' : 'error',
+        httpStatus: statusCode,
+        latencyMs,
+        message: reachable ? `连通正常（HTTP ${statusCode}）` : `服务返回 HTTP ${statusCode}`,
+      };
+    } catch (error) {
+      const cleanMessage = String(error?.message || '无法连接 AI Agent 服务')
+        .replace(/https?:\/\/[^\s)]+/gi, '[url]')
+        .slice(0, 140);
+      return {
+        ok: false,
+        status: 'down',
+        latencyMs: Date.now() - started,
+        message: cleanMessage,
+      };
+    }
+  }
 }
 
 function createAiService(options) { return new AiService(options); }

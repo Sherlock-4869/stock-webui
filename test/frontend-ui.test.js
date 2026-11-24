@@ -1428,3 +1428,57 @@ test('daily recap and smart money pages integrate cleanly into market hub with e
   assert.match(polishCss, /html\[data-theme-skin="forest"\]/);
   assert.match(polishCss, /html\[data-theme-skin="violet"\]/);
 });
+
+test('news calendar, portfolio tools, and admin-only WeChat/health consoles enforce permissions and export handlers', () => {
+  const newsScript = fs.readFileSync(path.join(__dirname, '..', 'public', 'news-calendar.js'), 'utf8');
+  const portfolioScript = fs.readFileSync(path.join(__dirname, '..', 'public', 'portfolio-tools.js'), 'utf8');
+  const calcScript = fs.readFileSync(path.join(__dirname, '..', 'public', 'portfolio-calculators.js'), 'utf8');
+  const adminConsoleScript = fs.readFileSync(path.join(__dirname, '..', 'public', 'admin-console.js'), 'utf8');
+
+  for (const script of [newsScript, portfolioScript, calcScript, adminConsoleScript]) {
+    assert.doesNotThrow(() => new Function(script));
+  }
+
+  // Public user pages
+  assert.match(html, /data-page="news-calendar"[^>]*onclick="switchAppPage\('news-calendar'\)"/);
+  assert.match(html, /data-page="portfolio-tools"[^>]*onclick="switchAppPage\('portfolio-tools'\)"/);
+  assert.match(html, /id="page-news-calendar"/);
+  assert.match(html, /id="page-portfolio-tools"/);
+
+  // Admin-only pages strictly inside hidden #admin-navigation and guarded in both UI and server
+  const adminNavStart = html.indexOf('id="admin-navigation" hidden');
+  const adminNavEnd = html.indexOf('<div class="sidebar-footer">', adminNavStart);
+  assert.ok(adminNavStart >= 0 && adminNavEnd > adminNavStart);
+  const adminNav = html.slice(adminNavStart, adminNavEnd);
+  assert.match(adminNav, /data-page="admin-wechat"/);
+  assert.match(adminNav, /data-page="admin-health"/);
+  assert.match(html, /id="page-admin-wechat"/);
+  assert.match(html, /id="page-admin-health"/);
+  assert.match(html, /page === 'admin-wechat' \|\| page === 'admin-health'/);
+  const systemHealthSource = fs.readFileSync(path.join(__dirname, '..', 'system-health.js'), 'utf8');
+  assert.match(serverSource, /createAdminConsoleHandlers\(\{/);
+  assert.match(serverSource, /await handleAdminWechatRoute\(req, res, urlObj\)/);
+  assert.match(serverSource, /await handleAdminSystemRoute\(req, res, urlObj\)/);
+  assert.match(systemHealthSource, /async function handleAdminWechatRoute[\s\S]*?await accountService\.requireAdmin\(req\)/);
+  assert.match(systemHealthSource, /async function handleAdminSystemRoute[\s\S]*?await accountService\.requireAdmin\(req\)/);
+  assert.match(systemHealthSource, /async function handleAdminWechatRoute[\s\S]*?assertSameOrigin\(req\)/);
+  assert.match(systemHealthSource, /async function handleAdminSystemRoute[\s\S]*?assertSameOrigin\(req\)/);
+  assert.match(serverSource, /pathname === '\/api\/news-flash'/);
+  assert.match(serverSource, /pathname === '\/api\/financial-calendar'/);
+
+  const verifyGlobalExports = (globalName, scriptSource) => {
+    const match = scriptSource.match(new RegExp(`window\\.${globalName} = \\{([\\s\\S]*?)\\};`));
+    assert.ok(match, `${globalName} must export its methods`);
+    const exported = new Set(match[1].split(',').map(entry => entry.trim().split(/\s*:/)[0]).filter(Boolean));
+    for (const source of [html, scriptSource]) {
+      for (const ref of source.matchAll(new RegExp(`${globalName}\\??\\.(\\w+)`, 'g'))) {
+        assert.ok(exported.has(ref[1]), `${globalName}.${ref[1]} is referenced but not exported`);
+      }
+    }
+  };
+
+  verifyGlobalExports('NewsCalendar', newsScript);
+  verifyGlobalExports('PortfolioTools', portfolioScript);
+  verifyGlobalExports('AdminWechat', adminConsoleScript);
+  verifyGlobalExports('AdminSystemHealth', adminConsoleScript);
+});

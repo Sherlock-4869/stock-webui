@@ -62,7 +62,7 @@ function createQuoteSnapshotCache({ maxEntries = 500, maxAgeMs = 15 * 60 * 1000,
     return { text:lines.join('\n'), stale, missing };
   }
 
-  return { compose, store, size:() => entries.size };
+  return { compose, store, size:() => entries.size, clear:() => entries.clear() };
 }
 
 module.exports = {

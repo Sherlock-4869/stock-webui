@@ -471,7 +471,7 @@ class AccountService {
     const pathname = urlObject.pathname;
     // AI administration has its own service, but keeps this account service as
     // the authentication and persistence authority.
-    if (pathname.startsWith('/api/admin/ai/')) return false;
+    if (pathname.startsWith('/api/admin/ai/') || pathname.startsWith('/api/admin/wechat/') || pathname.startsWith('/api/admin/system/')) return false;
     if (!pathname.startsWith('/api/auth/') && !pathname.startsWith('/api/notes') && !pathname.startsWith('/api/note-folders') && !pathname.startsWith('/api/admin/') && !pathname.startsWith('/api/inbox') && pathname !== '/api/site-recommendations' && pathname !== '/api/workbench') return false;
 
     try {

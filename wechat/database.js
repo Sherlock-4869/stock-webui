@@ -269,6 +269,45 @@ class WeChatDatabase {
     );
     return { status, success, failure, pending };
   }
+
+  async listRecentJobs(limit = 20) {
+    const safeLimit = Math.min(50, Math.max(1, Math.trunc(Number(limit) || 20)));
+    const [rows] = await this.requirePool().query(
+      `SELECT id, job_key, week_start, week_end, ipo_count, status,
+              recipient_count, success_count, failure_count, last_error,
+              scheduled_for, started_at, finished_at, created_at
+       FROM wechat_push_jobs
+       ORDER BY id DESC
+       LIMIT ?`,
+      [safeLimit]
+    );
+    return rows;
+  }
+
+  async getJobById(jobId) {
+    const [rows] = await this.requirePool().execute(
+      `SELECT id, job_key, week_start, week_end, ipo_count, message_content, status,
+              recipient_count, success_count, failure_count, last_error,
+              scheduled_for, started_at, finished_at, created_at
+       FROM wechat_push_jobs
+       WHERE id=?`,
+      [jobId]
+    );
+    return rows[0] || null;
+  }
+
+  async listJobDeliveries(jobId, limit = 50) {
+    const safeLimit = Math.min(100, Math.max(1, Math.trunc(Number(limit) || 50)));
+    const [rows] = await this.requirePool().query(
+      `SELECT id, openid, status, attempt_count, wechat_errcode, wechat_errmsg, started_at, sent_at, updated_at
+       FROM wechat_push_deliveries
+       WHERE job_id=?
+       ORDER BY FIELD(status, 'failed', 'sending', 'pending', 'sent'), id DESC
+       LIMIT ?`,
+      [jobId, safeLimit]
+    );
+    return rows;
+  }
 }
 
 module.exports = { WeChatDatabase, SCHEMA_STATEMENTS };

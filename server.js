@@ -3,7 +3,7 @@ const https = require('https');
 const fs = require('fs');
 const path = require('path');
 const { createWechatService } = require('./wechat/service');
-const { createAccountService } = require('./account/service');
+const { createAccountService, assertSameOrigin, readJson } = require('./account/service');
 const { createAiService } = require('./ai/service');
 const { createChatService } = require('./chat/chat');
 const {
@@ -78,6 +78,17 @@ const {
   normalizeMarginStocksPayload,
   normalizeUnlockPayload,
 } = require('./smart-money');
+const {
+  NEWS_CHANNELS,
+  buildUpcomingMacroSchedule,
+  normalizeDividendCalendarPayload,
+  normalizeEarningsCalendarPayload,
+  parseNewsFlashPayload,
+} = require('./news-calendar');
+const {
+  createAdminConsoleHandlers,
+  createUpstreamMonitor,
+} = require('./system-health');
 const { parseTencentOrderBook } = require('./order-book');
 const {
   MAINLAND_MARKET_BREADTH_CODES,
@@ -159,6 +170,8 @@ const SMART_MONEY_LHB_CACHE_MS = 5 * 60 * 1000;
 const SMART_MONEY_SEATS_CACHE_MS = 10 * 60 * 1000;
 const SMART_MONEY_MARGIN_CACHE_MS = 10 * 60 * 1000;
 const SMART_MONEY_UNLOCK_CACHE_MS = 30 * 60 * 1000;
+const NEWS_FLASH_CACHE_MS = 30 * 1000;
+const FINANCIAL_CALENDAR_CACHE_MS = 15 * 60 * 1000;
 const DERIVATIVES_QUOTE_CACHE_MS = 5 * 1000;
 const DERIVATIVES_NEWS_CACHE_MS = 2 * 60 * 1000;
 const PRECIOUS_METAL_QUOTE_CACHE_MS = 5 * 1000;
@@ -202,6 +215,10 @@ const smartMoneySeatsCache = new Map();
 const smartMoneyMarginCache = new Map();
 const smartMoneyUnlockCache = new Map();
 const smartMoneyRateLimitBuckets = new Map();
+const newsFlashCache = new Map();
+const financialCalendarCache = new Map();
+const newsCalendarRateLimitBuckets = new Map();
+const upstreamMonitor = createUpstreamMonitor();
 const derivativesQuoteCache = new Map();
 const derivativesNewsCache = new Map();
 const derivativesRateLimitBuckets = new Map();
@@ -261,6 +278,7 @@ const CAPITAL_FLOW_RATE_LIMIT_MAX = 120;
 const LIMIT_POOL_RATE_LIMIT_MAX = 60;
 const MARKET_RECAP_RATE_LIMIT_MAX = 60;
 const SMART_MONEY_RATE_LIMIT_MAX = 90;
+const NEWS_CALENDAR_RATE_LIMIT_MAX = 90;
 const DERIVATIVES_RATE_LIMIT_MAX = 120;
 const PRECIOUS_METAL_RATE_LIMIT_MAX = 120;
 const STOCK_INFORMATION_RATE_LIMIT_MAX = 60;
@@ -393,10 +411,12 @@ async function proxyOrderBook(urlObj, res) {
 }
 
 function proxyJson(url, res) {
+  const startedAt = Date.now();
   const req = https.get(url, { headers: UPSTREAM_HEADERS, timeout: 8000 }, (r) => {
     const chunks = [];
     r.on('data', c => chunks.push(c));
     r.on('end', () => {
+      upstreamMonitor.recordSuccess(url, Date.now() - startedAt);
       let text = Buffer.concat(chunks).toString('utf-8');
       text = text.replace(/^[^=]+=/, ''); // strip JSONP wrapper
       res.writeHead(200, {
@@ -407,16 +427,41 @@ function proxyJson(url, res) {
       res.end(text);
     });
   });
-  req.on('timeout', () => { req.destroy(); res.writeHead(504); res.end('{}'); });
-  req.on('error', (e) => { res.writeHead(502); res.end('{}'); });
+  req.on('timeout', () => {
+    upstreamMonitor.recordFailure(url, Date.now() - startedAt, new Error('Upstream timeout'));
+    req.destroy();
+    res.writeHead(504);
+    res.end('{}');
+  });
+  req.on('error', (e) => {
+    upstreamMonitor.recordFailure(url, Date.now() - startedAt, e);
+    res.writeHead(502);
+    res.end('{}');
+  });
 }
 
 function requestBuffer(url, headers, { timeoutMs = 8000, maxBytes = 4 * 1024 * 1024 } = {}) {
+  const startedAt = Date.now();
   return new Promise((resolve, reject) => {
+    let settled = false;
+    const fail = (error) => {
+      if (!settled) {
+        settled = true;
+        upstreamMonitor.recordFailure(url, Date.now() - startedAt, error);
+      }
+      reject(error);
+    };
+    const succeed = (buffer) => {
+      if (!settled) {
+        settled = true;
+        upstreamMonitor.recordSuccess(url, Date.now() - startedAt);
+      }
+      resolve(buffer);
+    };
     const req = https.get(url, { headers, timeout:timeoutMs }, (r) => {
       if (r.statusCode < 200 || r.statusCode >= 300) {
         r.resume();
-        reject(new Error(`Upstream HTTP ${r.statusCode}`));
+        fail(new Error(`Upstream HTTP ${r.statusCode}`));
         return;
       }
       const chunks = [];
@@ -424,16 +469,16 @@ function requestBuffer(url, headers, { timeoutMs = 8000, maxBytes = 4 * 1024 * 1
       r.on('data', chunk => {
         size += chunk.length;
         if (size > maxBytes) {
-          r.destroy(new Error('Upstream payload is too large'));
+          req.destroy(new Error('Upstream payload is too large'));
           return;
         }
         chunks.push(chunk);
       });
-      r.on('end', () => resolve(Buffer.concat(chunks)));
-      r.on('error', reject);
+      r.on('end', () => succeed(Buffer.concat(chunks)));
+      r.on('error', fail);
     });
-    req.on('timeout', () => { req.destroy(); reject(new Error('Upstream timeout')); });
-    req.on('error', reject);
+    req.on('timeout', () => { req.destroy(); fail(new Error('Upstream timeout')); });
+    req.on('error', fail);
   });
 }
 
@@ -1969,6 +2014,115 @@ async function proxySmartMoneyUnlock(urlObj, res) {
   }
 }
 
+async function loadNewsFlash(channel = 'all', force = false) {
+  const def = NEWS_CHANNELS[channel] || NEWS_CHANNELS.all;
+  const payload = await loadCachedFundValue(newsFlashCache, channel, NEWS_FLASH_CACHE_MS, async () => {
+    const raw = await requestBuffer(
+      `https://newsapi.eastmoney.com/kuaixun/v1/getlist_${def.code}_ajaxResult_80_1_.html`,
+      { ...UPSTREAM_HEADERS, Referer:'https://kuaixun.eastmoney.com/' },
+      { timeoutMs:9000, maxBytes:3 * 1024 * 1024 }
+    );
+    const items = parseNewsFlashPayload(raw.toString('utf-8'), { channel, limit:80 });
+    if (!items.length) throw new Error('Empty news flash payload');
+    return {
+      channel,
+      label:def.label,
+      total:items.length,
+      items,
+      fetchedAt:Date.now(),
+    };
+  }, force);
+  while (newsFlashCache.size > 10) newsFlashCache.delete(newsFlashCache.keys().next().value);
+  return payload;
+}
+
+async function proxyNewsFlash(urlObj, res) {
+  const channel = String(urlObj.searchParams.get('channel') || 'all').trim();
+  if (!NEWS_CHANNELS[channel]) {
+    sendJson(res, 400, { error:'快讯频道参数无效' }); return;
+  }
+  try {
+    sendJson(res, 200, await loadNewsFlash(channel, urlObj.searchParams.get('refresh') === '1'));
+  } catch (error) {
+    console.error(`News flash error (${channel}):`, error.message);
+    sendJson(res, 502, { items:[], error:'7×24 快讯暂时不可用，请稍后重试' });
+  }
+}
+
+const CALENDAR_DAYS_OPTIONS = new Set([7, 14, 30, 60]);
+
+async function loadFinancialCalendar(days = 30, force = false) {
+  const today = shanghaiDateKey();
+  const endDate = shiftIsoDate(today, days);
+  const key = `${today}:${days}`;
+  const payload = await loadCachedFundValue(financialCalendarCache, key, FINANCIAL_CALENDAR_CACHE_MS, async () => {
+    const macroEvents = buildUpcomingMacroSchedule(today, days);
+    const [earningsResult, dividendResult] = await Promise.allSettled([
+      requestEastmoneyDatacenterJson({
+        reportName:'RPT_PUBLIC_BS_APPOIN',
+        columns:'ALL',
+        filter:`(APPOINT_PUBLISH_DATE>='${today}')(APPOINT_PUBLISH_DATE<='${endDate}')`,
+        pageNumber:'1',
+        pageSize:'200',
+        sortColumns:'APPOINT_PUBLISH_DATE',
+        sortTypes:'1',
+      }),
+      requestEastmoneyDatacenterJson({
+        reportName:'RPT_SHAREBONUS_DET',
+        columns:'ALL',
+        filter:`(EX_DIVIDEND_DATE>='${today}')(EX_DIVIDEND_DATE<='${endDate}')`,
+        pageNumber:'1',
+        pageSize:'200',
+        sortColumns:'EX_DIVIDEND_DATE',
+        sortTypes:'1',
+      }),
+    ]);
+
+    const earnings = earningsResult.status === 'fulfilled'
+      ? normalizeEarningsCalendarPayload(earningsResult.value)
+      : [];
+    const dividends = dividendResult.status === 'fulfilled'
+      ? normalizeDividendCalendarPayload(dividendResult.value)
+      : [];
+    const unavailable = [
+      earningsResult.status === 'rejected' ? '财报预约披露日历' : '',
+      dividendResult.status === 'rejected' ? '分红除权除息日历' : '',
+    ].filter(Boolean);
+
+    return {
+      startDate:today,
+      endDate,
+      days,
+      macro:macroEvents,
+      earnings,
+      dividends,
+      summary:{
+        macroCount:macroEvents.length,
+        earningsCount:earnings.length,
+        dividendCount:dividends.length,
+      },
+      partial:unavailable.length > 0,
+      unavailable,
+      fetchedAt:Date.now(),
+    };
+  }, force);
+  while (financialCalendarCache.size > 10) financialCalendarCache.delete(financialCalendarCache.keys().next().value);
+  return payload;
+}
+
+async function proxyFinancialCalendar(urlObj, res) {
+  const days = Number(urlObj.searchParams.get('days') || 30);
+  if (!CALENDAR_DAYS_OPTIONS.has(days)) {
+    sendJson(res, 400, { error:'日历范围仅支持未来 7、14、30 或 60 天' }); return;
+  }
+  try {
+    sendJson(res, 200, await loadFinancialCalendar(days, urlObj.searchParams.get('refresh') === '1'));
+  } catch (error) {
+    console.error('Financial calendar error:', error.message);
+    sendJson(res, 502, { error:'财经日历暂时不可用，请稍后重试' });
+  }
+}
+
 async function fetchCapitalFlowRankings({ scope, type, market, period, direction, limit }) {
   const definition = FLOW_PERIODS[period];
   const fs = scope === 'board' ? BOARD_TYPES[type]?.fs : STOCK_FLOW_MARKETS[market];
@@ -2786,6 +2940,29 @@ function allowSmartMoneyRequest(req, res) {
   return false;
 }
 
+function allowNewsCalendarRequest(req, res) {
+  const now = Date.now();
+  if (newsCalendarRateLimitBuckets.size > 1000) {
+    for (const [key, value] of newsCalendarRateLimitBuckets) {
+      if (now - value.startedAt >= FUND_RATE_LIMIT_WINDOW_MS) newsCalendarRateLimitBuckets.delete(key);
+    }
+  }
+  const address = String(req.socket?.remoteAddress || 'unknown').slice(0, 100);
+  let bucket = newsCalendarRateLimitBuckets.get(address);
+  if (!bucket || now - bucket.startedAt >= FUND_RATE_LIMIT_WINDOW_MS) {
+    bucket = { startedAt:now, count:0 };
+    newsCalendarRateLimitBuckets.set(address, bucket);
+  }
+  bucket.count += 1;
+  if (bucket.count <= NEWS_CALENDAR_RATE_LIMIT_MAX) return true;
+  res.writeHead(429, {
+    'Content-Type':'application/json; charset=utf-8', 'Cache-Control':'no-store',
+    'Retry-After':String(Math.max(1, Math.ceil((bucket.startedAt + FUND_RATE_LIMIT_WINDOW_MS - now) / 1000))),
+  });
+  res.end(JSON.stringify({ error:'快讯与日历请求过于频繁，请稍后再试' }));
+  return false;
+}
+
 function allowPreciousMetalRequest(req, res) {
   const now = Date.now();
   if (preciousMetalRateLimitBuckets.size > 1000) {
@@ -3031,6 +3208,115 @@ const chatService = createChatService({
   listMessages:options => accountService.listChatMessages(options),
 });
 
+function buildSystemCacheSummary() {
+  const groups = [
+    { key:'quotes', label:'实时行情与五档盘口快照', entries:(quoteSnapshotCache.size ? quoteSnapshotCache.size() : 0) + orderBookCache.size + globalMarketCache.size },
+    { key:'boards', label:'板块列表、成分股与K线', entries:boardListCache.size + boardDetailCache.size + boardKlineCache.size + stockBoardCache.size },
+    { key:'capitalFlow', label:'大盘广度与主力资金排行', entries:capitalFlowRankingCache.size + capitalFlowIntradayCache.size + capitalFlowHistoryCache.size + marketOverviewCache.size + marketBreadthCache.size + realtimeFundFlowCache.size + realtimeValuationCache.size },
+    { key:'recap', label:'每日复盘与涨跌停股池', entries:marketRecapCache.size + limitPoolCache.size },
+    { key:'smartMoney', label:'龙虎榜、两融与限售解禁', entries:smartMoneyLhbCache.size + smartMoneySeatsCache.size + smartMoneyMarginCache.size + smartMoneyUnlockCache.size },
+    { key:'newsCalendar', label:'7×24 快讯与宏观财报日历', entries:newsFlashCache.size + financialCalendarCache.size },
+    { key:'funds', label:'公募基金榜单与详情', entries:fundRankingCache.size + fundDetailCache.size + fundSearchCache.size + fundQuoteCache.size },
+    { key:'stockInfo', label:'个股F10、财报、公告与资讯', entries:fundamentalCache.size + stockAnnouncementCache.size + stockFinancialCache.size + stockEarningsForecastCache.size + stockNewsCache.size + stockProfileCache.size + stockBusinessAnalysisCache.size + stockHolderNumberCache.size },
+    { key:'metalsDerivatives', label:'期指夜盘与贵金属走势', entries:derivativesQuoteCache.size + derivativesNewsCache.size + preciousMetalQuoteCache.size + preciousMetalHistoryCache.size },
+    { key:'ipos', label:'新股与可转债打新日历', entries:ipoCache ? 1 : 0 },
+  ];
+  return groups;
+}
+
+function clearSystemCaches(target = 'all') {
+  const actions = {
+    quotes: () => {
+      if (typeof quoteSnapshotCache.clear === 'function') quoteSnapshotCache.clear();
+      orderBookCache.clear();
+      globalMarketCache.clear();
+      globalMarketSnapshot = null;
+    },
+    boards: () => {
+      boardListCache.clear();
+      boardDetailCache.clear();
+      boardKlineCache.clear();
+      stockBoardCache.clear();
+    },
+    capitalFlow: () => {
+      capitalFlowRankingCache.clear();
+      capitalFlowIntradayCache.clear();
+      capitalFlowHistoryCache.clear();
+      marketOverviewCache.clear();
+      marketBreadthCache.clear();
+      realtimeFundFlowCache.clear();
+      realtimeValuationCache.clear();
+    },
+    recap: () => {
+      marketRecapCache.clear();
+      limitPoolCache.clear();
+    },
+    smartMoney: () => {
+      smartMoneyLhbCache.clear();
+      smartMoneySeatsCache.clear();
+      smartMoneyMarginCache.clear();
+      smartMoneyUnlockCache.clear();
+    },
+    newsCalendar: () => {
+      newsFlashCache.clear();
+      financialCalendarCache.clear();
+    },
+    funds: () => {
+      fundRankingCache.clear();
+      fundDetailCache.clear();
+      fundSearchCache.clear();
+      fundQuoteCache.clear();
+    },
+    stockInfo: () => {
+      fundamentalCache.clear();
+      stockAnnouncementCache.clear();
+      stockFinancialCache.clear();
+      stockEarningsForecastCache.clear();
+      stockNewsCache.clear();
+      stockProfileCache.clear();
+      stockBusinessAnalysisCache.clear();
+      stockHolderNumberCache.clear();
+    },
+    metalsDerivatives: () => {
+      derivativesQuoteCache.clear();
+      derivativesNewsCache.clear();
+      preciousMetalQuoteCache.clear();
+      preciousMetalHistoryCache.clear();
+    },
+    ipos: () => {
+      ipoCache = null;
+    },
+  };
+  if (target === 'all') {
+    Object.values(actions).forEach(fn => fn());
+    return Object.keys(actions);
+  }
+  if (!actions[target]) return null;
+  actions[target]();
+  return [target];
+}
+
+const {
+  handleAdminWechatRoute,
+  handleAdminSystemRoute,
+} = createAdminConsoleHandlers({
+  accountService,
+  wechatService,
+  aiService,
+  chatService,
+  upstreamMonitor,
+  buildSystemCacheSummary,
+  clearSystemCaches,
+  requestBuffer,
+  shanghaiDateKey,
+  sendJson,
+  probeSpecs: {
+    tencent: { url:'https://qt.gtimg.cn/q=sh000001', headers:UPSTREAM_HEADERS },
+    eastmoney: { url:`https://push2.eastmoney.com/api/qt/stock/get?secid=1.000001&fields=f43,f57,f58&ut=${EASTMONEY_PUBLIC_QUOTE_TOKEN}`, headers:{ ...UPSTREAM_HEADERS, Referer:'https://quote.eastmoney.com/' } },
+    sina: { url:'https://hq.sinajs.cn/list=s_sh000001', headers:{ ...UPSTREAM_HEADERS, Referer:'https://finance.sina.com.cn/' } },
+  },
+});
+
 const server = http.createServer(async (req, res) => {
   const urlObj = new URL(req.url, `http://localhost:${PORT}`);
   const pathname = urlObj.pathname;
@@ -3054,6 +3340,21 @@ const server = http.createServer(async (req, res) => {
       res.writeHead(error.statusCode || 500, { 'Content-Type':'application/json; charset=utf-8', 'Cache-Control':'no-store' });
     }
     if (!res.writableEnded) res.end(JSON.stringify({ error:'问股服务处理失败' }));
+    return;
+  }
+
+  try {
+    if (await handleAdminWechatRoute(req, res, urlObj)) return;
+    if (await handleAdminSystemRoute(req, res, urlObj)) return;
+  } catch (error) {
+    const status = error.statusCode || 500;
+    if (status >= 500) console.error('Admin console error:', error.message);
+    if (!res.headersSent) {
+      res.writeHead(status, { 'Content-Type':'application/json; charset=utf-8', 'Cache-Control':'no-store' });
+    }
+    if (!res.writableEnded) {
+      res.end(JSON.stringify({ error:status >= 500 ? '管理后台服务处理失败' : error.message }));
+    }
     return;
   }
 
@@ -3214,6 +3515,18 @@ const server = http.createServer(async (req, res) => {
   if (pathname === '/api/smart-money/unlock') {
     if (!allowSmartMoneyRequest(req, res)) return;
     await proxySmartMoneyUnlock(urlObj, res);
+    return;
+  }
+
+  if (pathname === '/api/news-flash') {
+    if (!allowNewsCalendarRequest(req, res)) return;
+    await proxyNewsFlash(urlObj, res);
+    return;
+  }
+
+  if (pathname === '/api/financial-calendar') {
+    if (!allowNewsCalendarRequest(req, res)) return;
+    await proxyFinancialCalendar(urlObj, res);
     return;
   }
 
