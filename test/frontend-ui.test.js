@@ -1385,3 +1385,46 @@ test('minute chart supports historical trading date selection for A-shares', () 
     ['0931 100.5 10 100500', '0932 101 30 302500']
   );
 });
+
+test('daily recap and smart money pages integrate cleanly into market hub with exported handlers', () => {
+  const recapScript = fs.readFileSync(path.join(__dirname, '..', 'public', 'market-recap.js'), 'utf8');
+  const smartMoneyScript = fs.readFileSync(path.join(__dirname, '..', 'public', 'smart-money.js'), 'utf8');
+  assert.doesNotThrow(() => new Function(recapScript));
+  assert.doesNotThrow(() => new Function(smartMoneyScript));
+
+  assert.match(html, /data-market-hub-page="daily-recap"[^>]*onclick="switchAppPage\('daily-recap'\)"/);
+  assert.match(html, /data-market-hub-page="smart-money"[^>]*onclick="switchAppPage\('smart-money'\)"/);
+  assert.match(html, /id="page-daily-recap"/);
+  assert.match(html, /id="page-smart-money"/);
+  assert.match(html, /<script src="\/market-recap\.js"><\/script>/);
+  assert.match(html, /<script src="\/smart-money\.js"><\/script>/);
+  assert.match(html, /MARKET_HUB_PAGES\.add\('daily-recap'\)/);
+  assert.match(html, /MARKET_HUB_PAGES\.add\('smart-money'\)/);
+  assert.match(serverSource, /pathname === '\/api\/market-recap'\) \{\s*if \(!allowMarketRecapRequest\(req, res\)\) return;/);
+  assert.match(serverSource, /pathname === '\/api\/smart-money\/lhb'\) \{\s*if \(!allowSmartMoneyRequest\(req, res\)\) return;/);
+  assert.match(serverSource, /pathname === '\/api\/smart-money\/lhb-seats'\) \{\s*if \(!allowSmartMoneyRequest\(req, res\)\) return;/);
+  assert.match(serverSource, /pathname === '\/api\/smart-money\/margin'\) \{\s*if \(!allowSmartMoneyRequest\(req, res\)\) return;/);
+  assert.match(serverSource, /pathname === '\/api\/smart-money\/unlock'\) \{\s*if \(!allowSmartMoneyRequest\(req, res\)\) return;/);
+
+  const checkExports = (globalName, scriptSource) => {
+    const match = scriptSource.match(new RegExp(`window\\.${globalName} = \\{([^}]*)\\}`));
+    assert.ok(match, `${globalName} must export its methods`);
+    const exported = new Set(match[1].split(',').map(entry => entry.trim().split(/\s*:/)[0]).filter(Boolean));
+    for (const source of [html, scriptSource]) {
+      for (const ref of source.matchAll(new RegExp(`${globalName}\\??\\.(\\w+)`, 'g'))) {
+        assert.ok(exported.has(ref[1]), `${globalName}.${ref[1]} is referenced but not exported`);
+      }
+    }
+  };
+  checkExports('MarketRecap', recapScript);
+  checkExports('SmartMoney', smartMoneyScript);
+
+  const polishCss = fs.readFileSync(path.join(__dirname, '..', 'public', 'theme-polish.css'), 'utf8');
+  assert.match(html, /<link rel="stylesheet" href="\/theme-polish\.css">/);
+  assert.match(polishCss, /font-variant-numeric:\s*tabular-nums/);
+  assert.match(polishCss, /html\[data-theme="light"\]/);
+  assert.match(polishCss, /html\[data-theme-skin="paper"\]/);
+  assert.match(polishCss, /html\[data-theme-skin="ocean"\]/);
+  assert.match(polishCss, /html\[data-theme-skin="forest"\]/);
+  assert.match(polishCss, /html\[data-theme-skin="violet"\]/);
+});

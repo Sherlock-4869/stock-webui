@@ -615,7 +615,80 @@ html[data-theme="light"] .board-list-kline{border-color:#b6ddff;background:#e8f4
 .admin-reference-editor-modal{display:flex;flex-direction:column;width:min(1100px,calc(100vw - 34px));height:min(820px,calc(100vh - 34px));max-width:none}.admin-reference-modal-toolbar{display:flex;align-items:center;gap:6px;margin:14px 0 8px;flex-wrap:wrap}.admin-reference-modal-editor{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px;min-height:0;flex:1}.admin-reference-modal-content{min-height:0;width:100%;resize:none;font:13px/1.7 ui-monospace,SFMono-Regular,Menlo,monospace}.admin-reference-modal-editor .admin-reference-preview{min-height:0;max-height:none}.admin-reference-modal-editor.mode-edit{grid-template-columns:minmax(0,1fr)}.admin-reference-modal-editor.mode-edit .admin-reference-preview{display:none}.admin-reference-modal-editor.mode-preview{grid-template-columns:minmax(0,1fr)}.admin-reference-modal-editor.mode-preview .admin-reference-modal-content{display:none}.admin-reference-editor-modal .dialog-actions{margin-top:12px;justify-content:flex-end}@media(max-width:780px){.admin-reference-modal-editor{grid-template-columns:minmax(0,1fr)}.admin-reference-modal-editor.mode-split .admin-reference-preview{display:none}.admin-reference-editor-modal{height:calc(100vh - 22px);width:calc(100vw - 22px)}}
 #page-admin-reference{max-width:1100px;margin:0 auto}
 .main #page-admin-reference{max-width:1100px;margin:0 auto}
+/* Daily market recap & smart money modules */
+.recap-summary-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin-bottom:14px}
+.recap-metric-card .metric-value{font-size:20px}
+.recap-meter{height:5px;margin-top:8px;border-radius:999px;background:#21262d;overflow:hidden}
+.recap-meter span{display:block;height:100%;border-radius:999px;background:linear-gradient(90deg,#3fb950,#d29922,#f85149)}
+.recap-breadth-panel{padding:14px 16px;margin-bottom:14px}
+.recap-breadth-head{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;font-size:12px;margin-bottom:8px}
+.recap-breadth-track{display:flex;height:10px;border-radius:999px;overflow:hidden;background:#21262d;gap:2px}
+.recap-seg-up{background:#f85149}.recap-seg-flat{background:#8b949e}.recap-seg-down{background:#3fb950}
+.recap-indexes-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin-bottom:14px}
+.recap-index-card{display:flex;flex-direction:column;align-items:flex-start;gap:4px;padding:12px 14px;border:1px solid #30363d;border-radius:10px;background:#161b22;color:inherit;text-align:left;cursor:pointer;transition:border-color .15s,transform .15s}
+.recap-index-card:hover{border-color:#58a6ff;transform:translateY(-1px)}
+.recap-index-name{font-size:11px;color:#8b949e}.recap-index-price{font-size:17px;font-weight:700}.recap-index-pct{font-size:12px;font-weight:650}
+.recap-section{padding:14px 16px;margin-bottom:14px}
+.recap-section-head{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+.recap-section-head strong{font-size:14px}.recap-section-head small{color:#8b949e;font-size:11px;margin-left:6px}
+.recap-themes-bar{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
+.recap-theme-chip{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border:1px solid #30363d;border-radius:999px;background:#0d1117;color:#c9d1d9;font-size:11px;cursor:pointer}
+.recap-theme-chip:hover{border-color:#58a6ff;color:#fff}.recap-theme-chip b{color:#ff7b72}
+.recap-ladder-list{display:flex;flex-direction:column;gap:8px}
+.recap-ladder-row{display:grid;grid-template-columns:96px minmax(0,1fr);gap:10px;align-items:start;padding:10px;border:1px solid #21262d;border-radius:8px;background:#0d1117}
+.recap-ladder-badge{padding:6px 8px;border-radius:7px;background:#161b22;border:1px solid #30363d;text-align:center}
+.recap-ladder-badge.hot{border-color:#f8514966;background:#f8514918}.recap-ladder-badge strong{display:block;font-size:12px}.recap-ladder-badge small{font-size:10px;color:#8b949e}
+.recap-ladder-stocks{display:flex;flex-wrap:wrap;gap:6px}
+.recap-stock-pill{display:inline-flex;align-items:center;gap:5px;padding:4px 9px;border:1px solid #30363d;border-radius:6px;background:#161b22;color:#e6edf3;font-size:11px;cursor:pointer}
+.recap-stock-pill:hover{border-color:#58a6ff;background:#1f3a5f}.recap-stock-pill small{color:#8b949e;font-size:10px}.recap-stock-pill.more{border-style:dashed;color:#79c0ff}
+.recap-sectors-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.recap-sector-box{padding:12px;border:1px solid #21262d;border-radius:8px;background:#0d1117}
+.recap-sector-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;font-size:12px}.recap-sector-head span{color:#8b949e;font-size:10px}
+.recap-sector-list{display:flex;flex-direction:column;gap:4px}
+.recap-sector-item{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:5px 7px;border:0;border-radius:6px;background:transparent;color:#c9d1d9;font-size:12px;cursor:pointer;text-align:left}
+.recap-sector-item:hover{background:#161b22}
+.recap-empty-inline{padding:18px 12px;text-align:center;color:#8b949e;font-size:12px}
+.sm-tabs{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap}
+.sm-tab{padding:8px 14px;border:1px solid #30363d;border-radius:8px;background:#161b22;color:#c9d1d9;font-size:12px;font-weight:600;cursor:pointer}
+.sm-tab.active{border-color:#1f6feb;background:#1f3a5f;color:#fff}
+.sm-summary-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:14px}
+.sm-summary-grid.three{grid-template-columns:repeat(3,minmax(0,1fr))}
+.sm-toolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.sm-date-input,.sm-search-input{padding:5px 9px;border:1px solid #30363d;border-radius:6px;background:#0d1117;color:#e6edf3;font-size:12px}
+.sm-search-input{min-width:170px}
+.sm-tag{display:inline-flex;align-items:center;margin-left:4px;padding:1px 5px;border-radius:4px;font-size:10px;font-weight:600;vertical-align:middle}
+.sm-tag-watch{background:#1f6feb26;color:#79c0ff;border:1px solid #1f6feb55}
+.sm-tag-pos{background:#f0883e26;color:#f0883e;border:1px solid #f0883e55}
+.sm-tag-inst{background:#a371f726;color:#d2a8ff;border:1px solid #a371f755}
+.sm-tag-north{background:#3fb95026;color:#56d364;border:1px solid #3fb95055}
+.sm-tag-warn{background:#f8514926;color:#ff7b72;border:1px solid #f8514955}
+.sm-reason-cell{max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#8b949e;font-size:11px}
+.sm-action-btn{padding:3px 8px;border:1px solid #30363d;border-radius:6px;background:#161b22;color:#79c0ff;font-size:11px;cursor:pointer;white-space:nowrap}
+.sm-action-btn:hover{border-color:#58a6ff;background:#1f3a5f;color:#fff}
+.sm-row-active td{background:#1f6feb18}
+.sm-seats-panel{margin-top:14px;padding:14px 16px}
+.sm-seats-head{margin-bottom:10px}.sm-seats-head strong{display:block;font-size:13px}.sm-seats-head small{color:#8b949e;font-size:11px}
+.sm-seats-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.sm-seats-col{padding:10px 12px;border:1px solid #21262d;border-radius:8px;background:#0d1117}
+.sm-seats-col h4{margin:0 0 8px;font-size:12px}
+.sm-seat-row{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:7px 0;border-top:1px solid #21262d;font-size:11px;flex-wrap:wrap}
+.sm-seat-row:first-of-type{border-top:0}
+.sm-seat-name{display:flex;align-items:center;gap:6px;min-width:0;flex:1}.sm-seat-rank{display:inline-grid;place-items:center;width:18px;height:18px;border-radius:4px;background:#21262d;color:#8b949e;font-size:10px;flex:none}
+.sm-seat-nums{display:flex;gap:8px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.sm-margin-chart-box{padding:14px 16px;margin-bottom:14px}
+.sm-margin-svg{width:100%;height:150px;display:block}
+.sm-margin-axis{display:flex;justify-content:space-between;color:#8b949e;font-size:11px;margin-top:6px}
+.sm-unlock-alert{margin-bottom:14px;padding:11px 14px;border:1px solid #f8514966;border-radius:9px;background:#f8514916;color:#ffa198;font-size:12px;line-height:1.6}
+html[data-theme="light"] .recap-index-card,html[data-theme="light"] .sm-tab,html[data-theme="light"] .sm-action-btn{background:#fff;border-color:#d7e0ea;color:#172033}
+html[data-theme="light"] .sm-tab.active{background:#0969da;border-color:#0969da;color:#fff}
+html[data-theme="light"] .recap-ladder-row,html[data-theme="light"] .recap-sector-box,html[data-theme="light"] .sm-seats-col,html[data-theme="light"] .sm-date-input,html[data-theme="light"] .sm-search-input,html[data-theme="light"] .recap-theme-chip{background:#f8fafc;border-color:#d7e0ea;color:#172033}
+html[data-theme="light"] .recap-stock-pill,html[data-theme="light"] .recap-ladder-badge{background:#fff;border-color:#d7e0ea;color:#172033}
+html[data-theme="light"] .recap-sector-item{color:#172033}html[data-theme="light"] .recap-sector-item:hover{background:#eef3f9}
+html[data-theme="light"] .sm-unlock-alert{background:#ffebe9;border-color:#ff8182;color:#a40e26}
+@media(max-width:1024px){.recap-summary-grid,.recap-indexes-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.recap-sectors-grid,.sm-summary-grid,.sm-summary-grid.three{grid-template-columns:repeat(2,minmax(0,1fr))}.sm-seats-grid{grid-template-columns:minmax(0,1fr)}}
+@media(max-width:640px){.recap-ladder-row{grid-template-columns:minmax(0,1fr)}.recap-sectors-grid,.sm-summary-grid,.sm-summary-grid.three{grid-template-columns:minmax(0,1fr)}}
 </style>
+<link rel="stylesheet" href="/theme-polish.css">
 </head>
 <body>
 <header class="mobile-app-bar" aria-label="移动端页面标题">
@@ -684,7 +757,7 @@ html[data-theme="light"] .board-list-kline{border-color:#b6ddff;background:#e8f4
   </div>
 </nav>
 <div class="main">
-  <div class="market-hub-navigation" id="market-hub-navigation" hidden><nav class="market-hub-tabs" aria-label="行情分类"><button class="market-hub-tab" type="button" data-market-hub-page="boards" onclick="switchAppPage('boards')">板块行情</button><button class="market-hub-tab" type="button" data-market-hub-page="limit-pools" onclick="switchAppPage('limit-pools')">涨跌停</button><button class="market-hub-tab" type="button" data-market-hub-page="capital-flow" onclick="switchAppPage('capital-flow')">资金流向</button><button class="market-hub-tab" type="button" data-market-hub-page="funds" onclick="switchAppPage('funds')">基金行情</button><button class="market-hub-tab" type="button" data-market-hub-page="precious-metals" onclick="switchAppPage('precious-metals')">贵金属</button></nav></div>
+  <div class="market-hub-navigation" id="market-hub-navigation" hidden><nav class="market-hub-tabs" aria-label="行情分类"><button class="market-hub-tab" type="button" data-market-hub-page="boards" onclick="switchAppPage('boards')">板块行情</button><button class="market-hub-tab" type="button" data-market-hub-page="daily-recap" onclick="switchAppPage('daily-recap')">每日复盘</button><button class="market-hub-tab" type="button" data-market-hub-page="limit-pools" onclick="switchAppPage('limit-pools')">涨跌停</button><button class="market-hub-tab" type="button" data-market-hub-page="capital-flow" onclick="switchAppPage('capital-flow')">资金流向</button><button class="market-hub-tab" type="button" data-market-hub-page="smart-money" onclick="switchAppPage('smart-money')">龙虎榜与聪明钱</button><button class="market-hub-tab" type="button" data-market-hub-page="funds" onclick="switchAppPage('funds')">基金行情</button><button class="market-hub-tab" type="button" data-market-hub-page="precious-metals" onclick="switchAppPage('precious-metals')">贵金属</button></nav></div>
   <section class="app-page active" id="page-market">
   <div class="market-page-note">全球指数每 5 秒同步 · 交易所行情按设定频率刷新 · 普通基金展示最新披露净值</div>
   <section class="market-overview" aria-labelledby="market-title">
@@ -866,6 +939,116 @@ html[data-theme="light"] .board-list-kline{border-color:#b6ddff;background:#e8f4
     <section class="module-panel pm-panel"><div class="derivatives-panel-head"><div><strong>比价与价差</strong><small>按 1 盎司 = 31.1035 克、实时在岸人民币汇率折算</small></div><span class="panel-status">实时计算</span></div><div class="pm-analytics" id="pm-analytics"><div class="module-loading">等待行情</div></div></section>
   </div>
   <div class="derivatives-resources"><span>权威资料：</span><a href="https://www.sge.com.cn/" target="_blank" rel="noopener noreferrer">上海黄金交易所</a><a href="https://www.shfe.com.cn/" target="_blank" rel="noopener noreferrer">上海期货交易所</a><a href="https://www.lbma.org.uk/prices-and-data" target="_blank" rel="noopener noreferrer">LBMA 价格</a><a href="https://www.cmegroup.com/markets/metals.html" target="_blank" rel="noopener noreferrer">CME 金属期货</a><span>国际与国内品种的交易时段、计价单位和交割规则不同；行情存在延迟，比价与溢价仅供研究，不构成投资建议。</span></div>
+</section>
+
+<section class="app-page" id="page-daily-recap">
+  <div class="module-head">
+    <div>
+      <div class="market-kicker">Daily Market Recap</div>
+      <h2 class="module-title">每日复盘</h2>
+      <p class="module-desc">一页纵览 A 股情绪温度、两市成交量能、连板梯队、封板率、昨日涨停溢价与主线板块，支持一键生成复盘笔记。</p>
+    </div>
+    <div class="module-actions">
+      <button class="refresh-btn" type="button" onclick="MarketRecap.saveToNote()">📝 生成复盘笔记</button>
+      <button class="refresh-btn" type="button" onclick="MarketRecap.copyMarkdown()">⎘ 复制 Markdown</button>
+      <button class="refresh-btn" type="button" onclick="MarketRecap.sendToAi()">✦ AI 复盘点评</button>
+      <button class="refresh-btn" type="button" onclick="MarketRecap.load(true)">↻ 刷新复盘</button>
+    </div>
+  </div>
+  <div class="panel-toolbar" style="margin-bottom:12px"><span class="panel-status" id="recap-status">进入页面后加载</span></div>
+  <div class="recap-summary-grid" id="recap-summary-grid"><div class="module-loading">正在汇总每日复盘数据</div></div>
+  <section class="module-panel recap-breadth-panel" id="recap-breadth-bar"><div class="recap-empty-inline">等待同步全市场涨跌分布</div></section>
+  <div class="recap-indexes-grid" id="recap-indexes"></div>
+  <section class="module-panel recap-section">
+    <div class="recap-section-head"><div><strong>连板梯队与主线题材</strong><small id="recap-ladder-status">等待同步</small></div><button class="refresh-btn" type="button" onclick="switchAppPage('limit-pools')">完整涨跌停池 →</button></div>
+    <div class="recap-themes-bar" id="recap-hot-themes"></div>
+    <div class="recap-ladder-list" id="recap-ladder"><div class="module-loading">正在整理连板梯队</div></div>
+  </section>
+  <section class="module-panel recap-section">
+    <div class="recap-section-head"><div><strong>行业与概念强弱</strong><small>点击任意板块跳转到板块行情查看成分股</small></div><button class="refresh-btn" type="button" onclick="switchAppPage('boards')">板块行情 →</button></div>
+    <div class="recap-sectors-grid" id="recap-sectors-grid"></div>
+  </section>
+  <section class="module-panel">
+    <div class="panel-toolbar sm-toolbar">
+      <button class="filter-chip active" type="button" data-recap-pool-tab="yesterday" onclick="MarketRecap.setPoolTab('yesterday')">昨日涨停今日表现</button>
+      <button class="filter-chip" type="button" data-recap-pool-tab="broken" onclick="MarketRecap.setPoolTab('broken')">当日炸板股池</button>
+      <button class="filter-chip" type="button" data-recap-pool-tab="down" onclick="MarketRecap.setPoolTab('down')">当日跌停股池</button>
+      <input class="sm-search-input" type="search" maxlength="30" placeholder="筛选代码、名称或行业…" oninput="MarketRecap.setPoolQuery(this.value)">
+    </div>
+    <div class="limit-pool-table-wrap" id="recap-pool-content"><div class="module-loading">正在同步复盘明细</div></div>
+  </section>
+  <div class="limit-pool-disclaimer">每日复盘聚合公开行情与涨跌停数据，情绪得分仅为客观统计参考，不构成任何投资建议。</div>
+</section>
+
+<section class="app-page" id="page-smart-money">
+  <div class="module-head">
+    <div>
+      <div class="market-kicker">LHB · Margin Trading · Share Unlocks</div>
+      <h2 class="module-title">龙虎榜与聪明钱</h2>
+      <p class="module-desc">跟踪交易所公开披露的龙虎榜与机构营业部席位、两市融资融券趋势及未来限售股解禁风险，并自动匹配您的自选与持仓。</p>
+    </div>
+    <div class="module-actions"><button class="refresh-btn" type="button" onclick="SmartMoney.refreshActive()">↻ 刷新当前视图</button></div>
+  </div>
+  <div class="sm-tabs" role="tablist" aria-label="聪明钱数据分类">
+    <button class="sm-tab active" type="button" role="tab" data-sm-tab="lhb" onclick="SmartMoney.setTab('lhb')">龙虎榜与机构席位</button>
+    <button class="sm-tab" type="button" role="tab" data-sm-tab="margin" onclick="SmartMoney.setTab('margin')">融资融券</button>
+    <button class="sm-tab" type="button" role="tab" data-sm-tab="unlock" onclick="SmartMoney.setTab('unlock')">限售解禁日历</button>
+  </div>
+
+  <div data-sm-panel="lhb">
+    <div class="sm-summary-grid three" id="sm-lhb-summary"></div>
+    <section class="module-panel">
+      <div class="panel-toolbar sm-toolbar">
+        <label style="font-size:11px;color:#8b949e">上榜日期 <input class="sm-date-input" id="sm-lhb-date" type="date" onchange="SmartMoney.setLhbDate(this.value)"></label>
+        <button class="filter-chip active" type="button" data-sm-lhb-filter="all" onclick="SmartMoney.setLhbFilter('all')">全部上榜</button>
+        <button class="filter-chip" type="button" data-sm-lhb-filter="institution" onclick="SmartMoney.setLhbFilter('institution')">机构净买卖</button>
+        <button class="filter-chip" type="button" data-sm-lhb-filter="tracked" onclick="SmartMoney.setLhbFilter('tracked')">仅看自选/持仓</button>
+        <input class="sm-search-input" type="search" maxlength="40" placeholder="搜索代码、名称或上榜原因…" oninput="SmartMoney.setLhbQuery(this.value)">
+        <span class="panel-status" id="sm-lhb-status">进入页面后加载</span>
+      </div>
+      <div class="limit-pool-table-wrap" id="sm-lhb-table"><div class="module-loading">正在同步龙虎榜数据</div></div>
+    </section>
+    <section class="module-panel sm-seats-panel" id="sm-seats-panel"><div class="recap-empty-inline">点击上方任意上榜个股的「席位」按钮，查看买卖前五营业部与机构专用席位明细。</div></section>
+  </div>
+
+  <div data-sm-panel="margin" hidden>
+    <div class="sm-summary-grid" id="sm-margin-summary"></div>
+    <section class="module-panel sm-margin-chart-box">
+      <div class="recap-section-head"><div><strong>近 30 个交易日两市两融余额趋势</strong><small id="sm-margin-status">切换后加载</small></div></div>
+      <div id="sm-margin-chart"><div class="recap-empty-inline">等待同步两融趋势</div></div>
+    </section>
+    <section class="module-panel">
+      <div class="panel-toolbar sm-toolbar">
+        <button class="filter-chip active" type="button" data-sm-margin-sort="netBuy" onclick="SmartMoney.setMarginSort('netBuy')">融资净买入榜</button>
+        <button class="filter-chip" type="button" data-sm-margin-sort="balance" onclick="SmartMoney.setMarginSort('balance')">融资余额榜</button>
+        <button class="filter-chip" type="button" data-sm-margin-sort="buy" onclick="SmartMoney.setMarginSort('buy')">融资买入额榜</button>
+        <button class="filter-chip" type="button" data-sm-margin-sort="shortBalance" onclick="SmartMoney.setMarginSort('shortBalance')">融券余额榜</button>
+        <label style="font-size:11px;display:inline-flex;align-items:center;gap:4px"><input type="checkbox" onchange="SmartMoney.setMarginOnlyTracked(this.checked)"> 仅看自选/持仓</label>
+        <input class="sm-search-input" type="search" maxlength="30" placeholder="搜索股票代码或名称…" oninput="SmartMoney.setMarginQuery(this.value)">
+      </div>
+      <div class="limit-pool-table-wrap" id="sm-margin-table"><div class="module-loading">切换后加载个股两融排行</div></div>
+    </section>
+  </div>
+
+  <div data-sm-panel="unlock" hidden>
+    <div class="sm-unlock-alert" id="sm-unlock-alert" hidden></div>
+    <div class="sm-summary-grid" id="sm-unlock-summary"></div>
+    <section class="module-panel">
+      <div class="panel-toolbar sm-toolbar">
+        <button class="filter-chip" type="button" data-sm-unlock-days="7" onclick="SmartMoney.setUnlockDays(7)">未来 7 天</button>
+        <button class="filter-chip active" type="button" data-sm-unlock-days="30" onclick="SmartMoney.setUnlockDays(30)">未来 30 天</button>
+        <button class="filter-chip" type="button" data-sm-unlock-days="60" onclick="SmartMoney.setUnlockDays(60)">未来 60 天</button>
+        <button class="filter-chip" type="button" data-sm-unlock-days="90" onclick="SmartMoney.setUnlockDays(90)">未来 90 天</button>
+        <button class="filter-chip active" type="button" data-sm-unlock-filter="all" onclick="SmartMoney.setUnlockFilter('all')">全部</button>
+        <button class="filter-chip" type="button" data-sm-unlock-filter="tracked" onclick="SmartMoney.setUnlockFilter('tracked')">仅看自选/持仓</button>
+        <button class="filter-chip" type="button" data-sm-unlock-filter="high" onclick="SmartMoney.setUnlockFilter('high')">仅看大额/高比例</button>
+        <input class="sm-search-input" type="search" maxlength="30" placeholder="搜索代码、名称或类型…" oninput="SmartMoney.setUnlockQuery(this.value)">
+        <span class="panel-status" id="sm-unlock-status">切换后加载</span>
+      </div>
+      <div class="limit-pool-table-wrap" id="sm-unlock-table"><div class="module-loading">切换后加载限售解禁计划</div></div>
+    </section>
+  </div>
+  <div class="limit-pool-disclaimer">龙虎榜、融资融券及限售解禁数据整理自东方财富公开数据中心，存在披露时滞（龙虎榜盘后公布、两融次晨更新），仅供研究参考，不构成投资建议。</div>
 </section>
 
 <section class="app-page" id="page-funds">
@@ -1352,6 +1535,8 @@ html[data-theme="light"] .board-list-kline{border-color:#b6ddff;background:#e8f4
 <script src="/reference-reader.js"></script>
 <script src="/inbox.js"></script>
 <script src="/workbench.js"></script>
+<script src="/market-recap.js"></script>
+<script src="/smart-money.js"></script>
 <script>
 const STORAGE_KEY = 'watchlist_v1';
 const GROUPS_STORAGE_KEY = 'watchlist_groups_v1';
@@ -2118,6 +2303,7 @@ function startAutoRefresh() {
     if (activeAppPage === 'capital-flow') loadCapitalFlow(false, { background:true });
     if (activeAppPage === 'derivatives') loadDerivativesOverview();
     if (activeAppPage === 'precious-metals') loadPreciousMetals(false, { background:true });
+    if (activeAppPage === 'daily-recap') window.MarketRecap?.load(false, { background:true });
   }, 15000);
 }
 
@@ -5191,8 +5377,10 @@ window.addEventListener('resize', () => {
 
 // --- App pages / IPO calendar ---
 const APP_PAGES = ['market','boards','limit-pools','capital-flow','derivatives','funds','ipo','alerts','notes','reference','sites','ai','user-ai-models','admin-users','admin-sites','admin-reference','admin-ai'];
-APP_PAGES.push('workbench','inbox','admin-inbox','precious-metals');
+APP_PAGES.push('workbench','inbox','admin-inbox','precious-metals','daily-recap','smart-money');
 const MARKET_HUB_PAGES = new Set(['boards','limit-pools','capital-flow','funds','precious-metals']);
+MARKET_HUB_PAGES.add('daily-recap');
+MARKET_HUB_PAGES.add('smart-money');
 const requestedAppPage = new URLSearchParams(location.search).get('page');
 let activeAppPage = APP_PAGES.includes(requestedAppPage)
   ? requestedAppPage
@@ -5289,6 +5477,8 @@ function switchAppPage(page, { historyMode = 'push', scroll = true } = {}) {
   if (page === 'derivatives') loadDerivativesOverview();
   if (page === 'funds' && !fundRows.length) loadFunds();
   if (page === 'precious-metals') loadPreciousMetals();
+  if (page === 'daily-recap') window.MarketRecap?.load();
+  if (page === 'smart-money') window.SmartMoney?.load();
   if (page === 'alerts') { renderAnomalyEvents(); fetchAnomalyQuotes(); }
   if (page === 'workbench') window.InvestmentWorkbench?.render();
   if (page === 'inbox') window.Inbox?.refresh();
@@ -5383,6 +5573,46 @@ function openLimitPoolStock(index) {
     volume:null, amount:row.amount,
   };
   openModal(row.symbol);
+}
+
+function isLoggedInUser() {
+  return Boolean(currentUser);
+}
+
+function openMarketStockPreview(stock) {
+  if (!stock?.symbol) return;
+  lastQuoteData[stock.symbol] = {
+    name:stock.name || stock.symbol,
+    price:stock.price ?? '',
+    prevClose:'',
+    open:'',
+    chg:null,
+    pct:stock.pct ?? null,
+    high:'',
+    low:'',
+    volume:null,
+    amount:stock.amount ?? null,
+  };
+  openModal(stock.symbol);
+}
+
+function getTrackedStockInfo() {
+  const extractCode = (sym) => {
+    const match = String(sym || '').match(/(\d{6})$/);
+    return match ? match[1] : '';
+  };
+  const watchlistCodes = new Set(allWatchlistSymbols().map(extractCode).filter(Boolean));
+  const positionSymbols = typeof window.InvestmentWorkbench?.getPositionSymbols === 'function'
+    ? window.InvestmentWorkbench.getPositionSymbols()
+    : [];
+  const positionCodes = new Set(positionSymbols.map(extractCode).filter(Boolean));
+  return { watchlistCodes, positionCodes };
+}
+
+function addWorkbenchEventQuick(entry) {
+  return typeof window.InvestmentWorkbench?.addEventRecord === 'function'
+    ? window.InvestmentWorkbench.addEventRecord(entry)
+    : false;
 }
 
 async function loadLimitPools(force = false) {

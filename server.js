@@ -63,6 +63,21 @@ const {
   parseSinaStockNews,
 } = require('./stock-information');
 const { normalizeLimitPoolPayload } = require('./limit-pools');
+const {
+  buildBoardLadder,
+  computeMarketSentiment,
+  normalizeBrokenLimitPoolPayload,
+  normalizeIndexTurnoverDelta,
+  normalizeYesterdayLimitPoolPayload,
+} = require('./market-recap');
+const {
+  normalizeLhbInstitutionPayload,
+  normalizeLhbListPayload,
+  normalizeLhbSeatsPayload,
+  normalizeMarginMarketPayload,
+  normalizeMarginStocksPayload,
+  normalizeUnlockPayload,
+} = require('./smart-money');
 const { parseTencentOrderBook } = require('./order-book');
 const {
   MAINLAND_MARKET_BREADTH_CODES,
@@ -139,6 +154,11 @@ const CAPITAL_FLOW_INTRADAY_CACHE_MS = 4500;
 const CAPITAL_FLOW_HISTORY_CACHE_MS = 15 * 60 * 1000;
 const MARKET_OVERVIEW_CACHE_MS = 8 * 1000;
 const LIMIT_POOL_CACHE_MS = 10 * 1000;
+const MARKET_RECAP_CACHE_MS = 15 * 1000;
+const SMART_MONEY_LHB_CACHE_MS = 5 * 60 * 1000;
+const SMART_MONEY_SEATS_CACHE_MS = 10 * 60 * 1000;
+const SMART_MONEY_MARGIN_CACHE_MS = 10 * 60 * 1000;
+const SMART_MONEY_UNLOCK_CACHE_MS = 30 * 60 * 1000;
 const DERIVATIVES_QUOTE_CACHE_MS = 5 * 1000;
 const DERIVATIVES_NEWS_CACHE_MS = 2 * 60 * 1000;
 const PRECIOUS_METAL_QUOTE_CACHE_MS = 5 * 1000;
@@ -175,6 +195,13 @@ const capitalFlowHistoryCache = new Map();
 const marketOverviewCache = new Map();
 const marketBreadthCache = new Map();
 const limitPoolCache = new Map();
+const marketRecapCache = new Map();
+const marketRecapRateLimitBuckets = new Map();
+const smartMoneyLhbCache = new Map();
+const smartMoneySeatsCache = new Map();
+const smartMoneyMarginCache = new Map();
+const smartMoneyUnlockCache = new Map();
+const smartMoneyRateLimitBuckets = new Map();
 const derivativesQuoteCache = new Map();
 const derivativesNewsCache = new Map();
 const derivativesRateLimitBuckets = new Map();
@@ -232,6 +259,8 @@ const FUND_RATE_LIMIT_WINDOW_MS = 60 * 1000;
 const FUND_RATE_LIMIT_MAX = 90;
 const CAPITAL_FLOW_RATE_LIMIT_MAX = 120;
 const LIMIT_POOL_RATE_LIMIT_MAX = 60;
+const MARKET_RECAP_RATE_LIMIT_MAX = 60;
+const SMART_MONEY_RATE_LIMIT_MAX = 90;
 const DERIVATIVES_RATE_LIMIT_MAX = 120;
 const PRECIOUS_METAL_RATE_LIMIT_MAX = 120;
 const STOCK_INFORMATION_RATE_LIMIT_MAX = 60;
@@ -1472,6 +1501,474 @@ async function proxyLimitPools(urlObj, res) {
   }
 }
 
+async function fetchBrokenLimitPool(date) {
+  const query = new URLSearchParams({
+    ut:'7eea3edcaed734bea9cbfc24409ed989', dpt:'wz.ztzt', Pageindex:'0', pagesize:'10000',
+    sort:'fbt:asc', date,
+  });
+  const raw = await boardRequestQueue.run(() => requestBuffer(
+    `https://push2ex.eastmoney.com/getTopicZBPool?${query}`,
+    { ...UPSTREAM_HEADERS, Referer:'https://quote.eastmoney.com/' },
+    { timeoutMs:9000, maxBytes:4 * 1024 * 1024 }
+  ));
+  const payload = JSON.parse(raw.toString('utf-8'));
+  if (Number(payload?.rc) !== 0) throw new Error('Invalid broken limit pool payload');
+  return normalizeBrokenLimitPoolPayload(payload, date);
+}
+
+async function fetchYesterdayLimitPool(date) {
+  const query = new URLSearchParams({
+    ut:'7eea3edcaed734bea9cbfc24409ed989', dpt:'wz.ztzt', Pageindex:'0', pagesize:'10000',
+    sort:'zs:desc', date,
+  });
+  const raw = await boardRequestQueue.run(() => requestBuffer(
+    `https://push2ex.eastmoney.com/getYesterdayZTPool?${query}`,
+    { ...UPSTREAM_HEADERS, Referer:'https://quote.eastmoney.com/' },
+    { timeoutMs:9000, maxBytes:4 * 1024 * 1024 }
+  ));
+  const payload = JSON.parse(raw.toString('utf-8'));
+  if (Number(payload?.rc) !== 0) throw new Error('Invalid yesterday limit pool payload');
+  return normalizeYesterdayLimitPoolPayload(payload, date);
+}
+
+async function fetchIndexDailyRows(sym) {
+  const raw = await requestBuffer(
+    `https://ifzq.gtimg.cn/appstock/app/fqkline/get?param=${sym},day,,,5,qfq`,
+    UPSTREAM_HEADERS,
+    { timeoutMs:8000, maxBytes:512 * 1024 }
+  );
+  const payload = JSON.parse(raw.toString('utf-8'));
+  const root = payload?.data?.[sym] || {};
+  return Array.isArray(root.day) ? root.day : Array.isArray(root.qfqday) ? root.qfqday : [];
+}
+
+async function fetchIndexTurnoverComparison() {
+  const [shRows, szRows] = await Promise.all([
+    fetchIndexDailyRows('sh000001'),
+    fetchIndexDailyRows('sz399001'),
+  ]);
+  return normalizeIndexTurnoverDelta(shRows, szRows);
+}
+
+const RECAP_MAINLAND_CODES = ['000001', '399001', '399006', '000688', '899050'];
+
+async function loadMarketRecap(force = false) {
+  const date = shanghaiDateKey().replace(/-/g, '');
+  const payload = await loadCachedFundValue(marketRecapCache, date, MARKET_RECAP_CACHE_MS, async () => {
+    const [
+      marketsResult,
+      overviewResult,
+      poolsResult,
+      brokenResult,
+      yesterdayResult,
+      industryResult,
+      conceptResult,
+      turnoverResult,
+    ] = await Promise.allSettled([
+      loadGlobalMarkets(),
+      fetchMainlandMarketOverview('000001', force),
+      loadLimitPools(force),
+      fetchBrokenLimitPool(date),
+      fetchYesterdayLimitPool(date),
+      loadBoardList('industry', force),
+      loadBoardList('concept', force),
+      fetchIndexTurnoverComparison(),
+    ]);
+
+    const unavailable = [];
+    const globalRows = marketsResult.status === 'fulfilled' && Array.isArray(marketsResult.value?.data)
+      ? marketsResult.value.data : [];
+    const indexes = RECAP_MAINLAND_CODES
+      .map(code => globalRows.find(item => item.code === code))
+      .filter(Boolean);
+    if (!indexes.length) unavailable.push('主要指数');
+
+    const overview = overviewResult.status === 'fulfilled' ? overviewResult.value : null;
+    if (!overview) unavailable.push('市场广度与资金');
+
+    const pools = poolsResult.status === 'fulfilled' ? poolsResult.value : null;
+    if (!pools) unavailable.push('涨跌停股票池');
+
+    const brokenPool = brokenResult.status === 'fulfilled' ? brokenResult.value : null;
+    if (!brokenPool) unavailable.push('炸板股池');
+
+    const yesterdayPool = yesterdayResult.status === 'fulfilled' ? yesterdayResult.value : null;
+    if (!yesterdayPool) unavailable.push('昨日涨停表现');
+
+    const industryRows = industryResult.status === 'fulfilled' && Array.isArray(industryResult.value?.data)
+      ? industryResult.value.data : [];
+    const conceptRows = conceptResult.status === 'fulfilled' && Array.isArray(conceptResult.value?.data)
+      ? conceptResult.value.data : [];
+    if (!industryRows.length) unavailable.push('行业板块');
+
+    const turnoverComparison = turnoverResult.status === 'fulfilled' ? turnoverResult.value : null;
+
+    if (!indexes.length && !overview && !pools && !industryRows.length) {
+      throw new Error('Daily market recap upstream is unavailable');
+    }
+
+    const limitUpRows = Array.isArray(pools?.limitUp?.data) ? pools.limitUp.data : [];
+    const limitDownRows = Array.isArray(pools?.limitDown?.data) ? pools.limitDown.data : [];
+    const limitUpTotal = Number.isFinite(Number(pools?.limitUp?.total)) ? Number(pools.limitUp.total) : limitUpRows.length;
+    const limitDownTotal = Number.isFinite(Number(pools?.limitDown?.total)) ? Number(pools.limitDown.total) : limitDownRows.length;
+    const brokenTotal = Number.isFinite(Number(brokenPool?.total)) ? Number(brokenPool.total) : 0;
+
+    const breadth = overview?.breadth || null;
+    const trading = overview?.trading || null;
+    const mainFlow = overview?.funds?.combined || null;
+    const ladder = buildBoardLadder(limitUpRows);
+    const sentiment = computeMarketSentiment({
+      breadth,
+      limitUpTotal,
+      limitDownTotal,
+      brokenTotal,
+      yesterdayAvgPct:yesterdayPool?.avgPct ?? null,
+      turnoverDiffRatio:turnoverComparison?.diffRatio ?? null,
+    });
+
+    const comparableIndustries = industryRows.filter(item => Number.isFinite(Number(item.pct)));
+    const flowIndustries = industryRows.filter(item => Number.isFinite(Number(item.mainNetInflow)));
+    const comparableConcepts = conceptRows.filter(item => Number.isFinite(Number(item.pct)));
+    const effectiveDate = pools?.limitUp?.date || brokenPool?.date || yesterdayPool?.date || date;
+
+    return {
+      date:effectiveDate,
+      indexes,
+      breadth,
+      trading,
+      turnoverComparison,
+      mainFlow,
+      sentiment,
+      ladder,
+      limits:{
+        upTotal:limitUpTotal,
+        downTotal:limitDownTotal,
+        brokenTotal,
+        upPreview:limitUpRows.slice(0, 20),
+        downPreview:limitDownRows.slice(0, 20),
+        brokenPreview:(brokenPool?.data || []).slice(0, 40),
+      },
+      yesterdayLimit:yesterdayPool ? {
+        date:yesterdayPool.date,
+        total:yesterdayPool.total,
+        avgPct:yesterdayPool.avgPct,
+        risingCount:yesterdayPool.risingCount,
+        fallingCount:yesterdayPool.fallingCount,
+        winRate:yesterdayPool.winRate,
+        data:yesterdayPool.data.slice(0, 40),
+      } : null,
+      sectors:{
+        rising:[...comparableIndustries].sort((a, b) => b.pct - a.pct).slice(0, 8),
+        falling:[...comparableIndustries].sort((a, b) => a.pct - b.pct).slice(0, 8),
+        inflow:[...flowIndustries].sort((a, b) => b.mainNetInflow - a.mainNetInflow).slice(0, 8),
+        outflow:[...flowIndustries].sort((a, b) => a.mainNetInflow - b.mainNetInflow).slice(0, 8),
+        hotConcepts:[...comparableConcepts].sort((a, b) => b.pct - a.pct).slice(0, 8),
+      },
+      partial:unavailable.length > 0,
+      unavailable,
+      fetchedAt:Date.now(),
+    };
+  }, force);
+  while (marketRecapCache.size > 6) marketRecapCache.delete(marketRecapCache.keys().next().value);
+  return payload;
+}
+
+async function proxyMarketRecap(urlObj, res) {
+  try {
+    sendJson(res, 200, await loadMarketRecap(urlObj.searchParams.get('refresh') === '1'));
+  } catch (error) {
+    console.error('Market recap error:', error.message);
+    sendJson(res, 502, { error:'每日复盘数据暂时不可用，请稍后重试' });
+  }
+}
+
+async function requestEastmoneyDatacenterJson(params) {
+  const query = new URLSearchParams({ source:'WEB', client:'WEB', ...params });
+  const raw = await boardRequestQueue.run(() => requestBuffer(
+    `https://datacenter-web.eastmoney.com/api/data/v1/get?${query}`,
+    { ...UPSTREAM_HEADERS, Referer:'https://data.eastmoney.com/' },
+    { timeoutMs:10000, maxBytes:4 * 1024 * 1024 }
+  ));
+  return JSON.parse(raw.toString('utf-8'));
+}
+
+function isIsoDate(value) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(String(value || ''))) return false;
+  const parsed = new Date(`${value}T00:00:00Z`);
+  return !Number.isNaN(parsed.getTime()) && parsed.toISOString().slice(0, 10) === value;
+}
+
+function shiftIsoDate(isoDate, deltaDays) {
+  const parsed = new Date(`${isoDate}T00:00:00Z`);
+  parsed.setUTCDate(parsed.getUTCDate() + deltaDays);
+  return parsed.toISOString().slice(0, 10);
+}
+
+async function loadSmartMoneyLhb(requestedDate = '', force = false) {
+  const key = requestedDate || 'latest';
+  const payload = await loadCachedFundValue(smartMoneyLhbCache, key, SMART_MONEY_LHB_CACHE_MS, async () => {
+    const today = shanghaiDateKey();
+    let targetDate = requestedDate;
+    if (!targetDate) {
+      const probe = await requestEastmoneyDatacenterJson({
+        reportName:'RPT_DAILYBILLBOARD_DETAILSNEW',
+        columns:'TRADE_DATE',
+        pageNumber:'1',
+        pageSize:'1',
+        sortColumns:'TRADE_DATE',
+        sortTypes:'-1',
+      });
+      targetDate = String(probe?.result?.data?.[0]?.TRADE_DATE || '').slice(0, 10) || today;
+    }
+
+    const [detailsResult, instResult] = await Promise.allSettled([
+      requestEastmoneyDatacenterJson({
+        reportName:'RPT_DAILYBILLBOARD_DETAILSNEW',
+        columns:'ALL',
+        filter:`(TRADE_DATE='${targetDate}')`,
+        pageNumber:'1',
+        pageSize:'200',
+        sortColumns:'BILLBOARD_NET_AMT',
+        sortTypes:'-1',
+      }),
+      requestEastmoneyDatacenterJson({
+        reportName:'RPT_ORGANIZATION_TRADE_DETAILS',
+        columns:'ALL',
+        filter:`(TRADE_DATE='${targetDate}')`,
+        pageNumber:'1',
+        pageSize:'100',
+        sortColumns:'NET_BUY_AMT',
+        sortTypes:'-1',
+      }),
+    ]);
+
+    const details = detailsResult.status === 'fulfilled'
+      ? normalizeLhbListPayload(detailsResult.value)
+      : { tradeDate:targetDate, total:0, summary:{ totalCount:0, totalNetBuy:0, netBuyCount:0, netSellCount:0 }, data:[] };
+    const institutions = instResult.status === 'fulfilled'
+      ? normalizeLhbInstitutionPayload(instResult.value)
+      : { tradeDate:targetDate, total:0, data:[] };
+
+    if (detailsResult.status === 'rejected' && instResult.status === 'rejected') {
+      throw new Error('LHB upstream is unavailable');
+    }
+
+    return {
+      tradeDate:details.tradeDate || institutions.tradeDate || targetDate,
+      requestedDate:requestedDate || '',
+      summary:details.summary,
+      stocks:details.data,
+      institutions:institutions.data,
+      partial:detailsResult.status === 'rejected' || instResult.status === 'rejected',
+      unavailable:[
+        detailsResult.status === 'rejected' ? '龙虎榜个股明细' : '',
+        instResult.status === 'rejected' ? '机构席位统计' : '',
+      ].filter(Boolean),
+      fetchedAt:Date.now(),
+    };
+  }, force);
+  while (smartMoneyLhbCache.size > 20) smartMoneyLhbCache.delete(smartMoneyLhbCache.keys().next().value);
+  return payload;
+}
+
+async function proxySmartMoneyLhb(urlObj, res) {
+  const date = String(urlObj.searchParams.get('date') || '').trim();
+  if (date && !isIsoDate(date)) {
+    sendJson(res, 400, { error:'日期格式无效，请使用 YYYY-MM-DD' }); return;
+  }
+  try {
+    sendJson(res, 200, await loadSmartMoneyLhb(date, urlObj.searchParams.get('refresh') === '1'));
+  } catch (error) {
+    console.error('Smart money LHB error:', error.message);
+    sendJson(res, 502, { error:'龙虎榜数据暂时不可用，请稍后重试' });
+  }
+}
+
+async function loadSmartMoneyLhbSeats(code, date, force = false) {
+  const key = `${date}:${code}`;
+  const payload = await loadCachedFundValue(smartMoneySeatsCache, key, SMART_MONEY_SEATS_CACHE_MS, async () => {
+    const filter = `(TRADE_DATE='${date}')(SECURITY_CODE="${code}")`;
+    const [buyResult, sellResult] = await Promise.allSettled([
+      requestEastmoneyDatacenterJson({
+        reportName:'RPT_BILLBOARD_DAILYDETAILSBUY',
+        columns:'ALL',
+        filter,
+        pageNumber:'1',
+        pageSize:'30',
+        sortColumns:'BUY',
+        sortTypes:'-1',
+      }),
+      requestEastmoneyDatacenterJson({
+        reportName:'RPT_BILLBOARD_DAILYDETAILSSELL',
+        columns:'ALL',
+        filter,
+        pageNumber:'1',
+        pageSize:'30',
+        sortColumns:'SELL',
+        sortTypes:'-1',
+      }),
+    ]);
+    if (buyResult.status === 'rejected' && sellResult.status === 'rejected') {
+      throw new Error('LHB seats upstream is unavailable');
+    }
+    const seats = normalizeLhbSeatsPayload(
+      buyResult.status === 'fulfilled' ? buyResult.value : null,
+      sellResult.status === 'fulfilled' ? sellResult.value : null
+    );
+    return {
+      code,
+      tradeDate:date,
+      ...seats,
+      partial:buyResult.status === 'rejected' || sellResult.status === 'rejected',
+      fetchedAt:Date.now(),
+    };
+  }, force);
+  while (smartMoneySeatsCache.size > 120) smartMoneySeatsCache.delete(smartMoneySeatsCache.keys().next().value);
+  return payload;
+}
+
+async function proxySmartMoneyLhbSeats(urlObj, res) {
+  const code = String(urlObj.searchParams.get('code') || '').trim();
+  const date = String(urlObj.searchParams.get('date') || '').trim();
+  if (!/^\d{6}$/.test(code) || !isIsoDate(date)) {
+    sendJson(res, 400, { error:'席位明细参数无效' }); return;
+  }
+  try {
+    sendJson(res, 200, await loadSmartMoneyLhbSeats(code, date, urlObj.searchParams.get('refresh') === '1'));
+  } catch (error) {
+    console.error(`Smart money LHB seats error (${code} ${date}):`, error.message);
+    sendJson(res, 502, { error:'营业部席位明细暂时不可用' });
+  }
+}
+
+const MARGIN_SORT_COLUMNS = {
+  netBuy:'RZJME',
+  balance:'RZYE',
+  buy:'RZMRE',
+  shortBalance:'RQYE',
+};
+
+async function loadSmartMoneyMargin(sort = 'netBuy', force = false) {
+  const sortColumn = MARGIN_SORT_COLUMNS[sort] || MARGIN_SORT_COLUMNS.netBuy;
+  const payload = await loadCachedFundValue(smartMoneyMarginCache, sort, SMART_MONEY_MARGIN_CACHE_MS, async () => {
+    const marketPromise = requestEastmoneyDatacenterJson({
+      reportName:'RPT_RZRQ_LSHJ',
+      columns:'ALL',
+      pageNumber:'1',
+      pageSize:'30',
+      sortColumns:'DIM_DATE',
+      sortTypes:'-1',
+    });
+    const probeDatePromise = requestEastmoneyDatacenterJson({
+      reportName:'RPTA_WEB_RZRQ_GGMX',
+      columns:'DATE',
+      pageNumber:'1',
+      pageSize:'1',
+      sortColumns:'DATE',
+      sortTypes:'-1',
+    });
+    const [marketResult, probeResult] = await Promise.allSettled([marketPromise, probeDatePromise]);
+    const market = marketResult.status === 'fulfilled'
+      ? normalizeMarginMarketPayload(marketResult.value)
+      : { latestDate:'', latest:null, series:[] };
+    const stockDate = (probeResult.status === 'fulfilled'
+      ? String(probeResult.value?.result?.data?.[0]?.DATE || '').slice(0, 10)
+      : '') || market.latestDate;
+
+    let stocks = { tradeDate:stockDate, total:0, data:[] };
+    let stocksFailed = false;
+    try {
+      const stockParams = {
+        reportName:'RPTA_WEB_RZRQ_GGMX',
+        columns:'ALL',
+        pageNumber:'1',
+        pageSize:'60',
+        sortColumns:sortColumn,
+        sortTypes:'-1',
+      };
+      if (isIsoDate(stockDate)) stockParams.filter = `(DATE='${stockDate}')`;
+      stocks = normalizeMarginStocksPayload(await requestEastmoneyDatacenterJson(stockParams));
+    } catch (error) {
+      stocksFailed = true;
+      console.error('Smart money margin stocks error:', error.message);
+    }
+
+    if (marketResult.status === 'rejected' && stocksFailed) {
+      throw new Error('Margin trading upstream is unavailable');
+    }
+
+    return {
+      sort,
+      tradeDate:stocks.tradeDate || market.latestDate || '',
+      market,
+      stocks:stocks.data,
+      partial:marketResult.status === 'rejected' || stocksFailed,
+      unavailable:[
+        marketResult.status === 'rejected' ? '两市两融趋势' : '',
+        stocksFailed ? '个股两融排行' : '',
+      ].filter(Boolean),
+      fetchedAt:Date.now(),
+    };
+  }, force);
+  while (smartMoneyMarginCache.size > 12) smartMoneyMarginCache.delete(smartMoneyMarginCache.keys().next().value);
+  return payload;
+}
+
+async function proxySmartMoneyMargin(urlObj, res) {
+  const sort = String(urlObj.searchParams.get('sort') || 'netBuy').trim();
+  if (!MARGIN_SORT_COLUMNS[sort]) {
+    sendJson(res, 400, { error:'两融排序参数无效' }); return;
+  }
+  try {
+    sendJson(res, 200, await loadSmartMoneyMargin(sort, urlObj.searchParams.get('refresh') === '1'));
+  } catch (error) {
+    console.error('Smart money margin error:', error.message);
+    sendJson(res, 502, { error:'融资融券数据暂时不可用，请稍后重试' });
+  }
+}
+
+const UNLOCK_DAYS_OPTIONS = new Set([7, 30, 60, 90]);
+
+async function loadSmartMoneyUnlock(days = 30, force = false) {
+  const today = shanghaiDateKey();
+  const endDate = shiftIsoDate(today, days);
+  const key = `${today}:${days}`;
+  const payload = await loadCachedFundValue(smartMoneyUnlockCache, key, SMART_MONEY_UNLOCK_CACHE_MS, async () => {
+    const raw = await requestEastmoneyDatacenterJson({
+      reportName:'RPT_LIFT_STAGE',
+      columns:'ALL',
+      filter:`(FREE_DATE>='${today}')(FREE_DATE<='${endDate}')`,
+      pageNumber:'1',
+      pageSize:'250',
+      sortColumns:'FREE_DATE,LIFT_MARKET_CAP',
+      sortTypes:'1,-1',
+    });
+    const normalized = normalizeUnlockPayload(raw, { todayKey:today });
+    return {
+      startDate:today,
+      endDate,
+      days,
+      ...normalized,
+      fetchedAt:Date.now(),
+    };
+  }, force);
+  while (smartMoneyUnlockCache.size > 16) smartMoneyUnlockCache.delete(smartMoneyUnlockCache.keys().next().value);
+  return payload;
+}
+
+async function proxySmartMoneyUnlock(urlObj, res) {
+  const days = Number(urlObj.searchParams.get('days') || 30);
+  if (!UNLOCK_DAYS_OPTIONS.has(days)) {
+    sendJson(res, 400, { error:'解禁查询天数仅支持 7、30、60 或 90 天' }); return;
+  }
+  try {
+    sendJson(res, 200, await loadSmartMoneyUnlock(days, urlObj.searchParams.get('refresh') === '1'));
+  } catch (error) {
+    console.error('Smart money unlock error:', error.message);
+    sendJson(res, 502, { error:'限售解禁数据暂时不可用，请稍后重试' });
+  }
+}
+
 async function fetchCapitalFlowRankings({ scope, type, market, period, direction, limit }) {
   const definition = FLOW_PERIODS[period];
   const fs = scope === 'board' ? BOARD_TYPES[type]?.fs : STOCK_FLOW_MARKETS[market];
@@ -2243,6 +2740,52 @@ function allowLimitPoolRequest(req, res) {
   return false;
 }
 
+function allowMarketRecapRequest(req, res) {
+  const now = Date.now();
+  if (marketRecapRateLimitBuckets.size > 1000) {
+    for (const [key, value] of marketRecapRateLimitBuckets) {
+      if (now - value.startedAt >= FUND_RATE_LIMIT_WINDOW_MS) marketRecapRateLimitBuckets.delete(key);
+    }
+  }
+  const address = String(req.socket?.remoteAddress || 'unknown').slice(0, 100);
+  let bucket = marketRecapRateLimitBuckets.get(address);
+  if (!bucket || now - bucket.startedAt >= FUND_RATE_LIMIT_WINDOW_MS) {
+    bucket = { startedAt:now, count:0 };
+    marketRecapRateLimitBuckets.set(address, bucket);
+  }
+  bucket.count += 1;
+  if (bucket.count <= MARKET_RECAP_RATE_LIMIT_MAX) return true;
+  res.writeHead(429, {
+    'Content-Type':'application/json; charset=utf-8', 'Cache-Control':'no-store',
+    'Retry-After':String(Math.max(1, Math.ceil((bucket.startedAt + FUND_RATE_LIMIT_WINDOW_MS - now) / 1000))),
+  });
+  res.end(JSON.stringify({ error:'每日复盘请求过于频繁，请稍后再试' }));
+  return false;
+}
+
+function allowSmartMoneyRequest(req, res) {
+  const now = Date.now();
+  if (smartMoneyRateLimitBuckets.size > 1000) {
+    for (const [key, value] of smartMoneyRateLimitBuckets) {
+      if (now - value.startedAt >= FUND_RATE_LIMIT_WINDOW_MS) smartMoneyRateLimitBuckets.delete(key);
+    }
+  }
+  const address = String(req.socket?.remoteAddress || 'unknown').slice(0, 100);
+  let bucket = smartMoneyRateLimitBuckets.get(address);
+  if (!bucket || now - bucket.startedAt >= FUND_RATE_LIMIT_WINDOW_MS) {
+    bucket = { startedAt:now, count:0 };
+    smartMoneyRateLimitBuckets.set(address, bucket);
+  }
+  bucket.count += 1;
+  if (bucket.count <= SMART_MONEY_RATE_LIMIT_MAX) return true;
+  res.writeHead(429, {
+    'Content-Type':'application/json; charset=utf-8', 'Cache-Control':'no-store',
+    'Retry-After':String(Math.max(1, Math.ceil((bucket.startedAt + FUND_RATE_LIMIT_WINDOW_MS - now) / 1000))),
+  });
+  res.end(JSON.stringify({ error:'龙虎榜与聪明钱请求过于频繁，请稍后再试' }));
+  return false;
+}
+
 function allowPreciousMetalRequest(req, res) {
   const now = Date.now();
   if (preciousMetalRateLimitBuckets.size > 1000) {
@@ -2641,6 +3184,36 @@ const server = http.createServer(async (req, res) => {
   if (pathname === '/api/limit-pools') {
     if (!allowLimitPoolRequest(req, res)) return;
     await proxyLimitPools(urlObj, res);
+    return;
+  }
+
+  if (pathname === '/api/market-recap') {
+    if (!allowMarketRecapRequest(req, res)) return;
+    await proxyMarketRecap(urlObj, res);
+    return;
+  }
+
+  if (pathname === '/api/smart-money/lhb') {
+    if (!allowSmartMoneyRequest(req, res)) return;
+    await proxySmartMoneyLhb(urlObj, res);
+    return;
+  }
+
+  if (pathname === '/api/smart-money/lhb-seats') {
+    if (!allowSmartMoneyRequest(req, res)) return;
+    await proxySmartMoneyLhbSeats(urlObj, res);
+    return;
+  }
+
+  if (pathname === '/api/smart-money/margin') {
+    if (!allowSmartMoneyRequest(req, res)) return;
+    await proxySmartMoneyMargin(urlObj, res);
+    return;
+  }
+
+  if (pathname === '/api/smart-money/unlock') {
+    if (!allowSmartMoneyRequest(req, res)) return;
+    await proxySmartMoneyUnlock(urlObj, res);
     return;
   }
 

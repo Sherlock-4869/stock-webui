@@ -233,6 +233,19 @@
   function addAlert(event) { event.preventDefault(); const f = new FormData(event.target); const symbol = normalizeSymbol(f.get('symbol')); state.alerts.push({ symbol, name: String(f.get('name') || quotes[symbol]?.name || ''), type: f.get('type'), target: normalizePrice(f.get('target')), active: true }); save(); event.target.reset(); render(); }
   function removeAlert(index) { state.alerts.splice(index, 1); save(); render(); }
   function addEvent(event) { event.preventDefault(); const f = new FormData(event.target); state.events.push({ date: f.get('date'), title: String(f.get('title') || '').trim(), kind: f.get('kind') }); state.events.sort((a, b) => a.date.localeCompare(b.date)); save(); event.target.reset(); render(); }
+  function addEventRecord({ date, title, kind = '事件' }) {
+    const cleanDate = String(date || '').trim();
+    const cleanTitle = String(title || '').trim().slice(0, 80);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(cleanDate) || !cleanTitle) return false;
+    if (!state.events.some(item => item.date === cleanDate && item.title === cleanTitle)) {
+      state.events.push({ date:cleanDate, title:cleanTitle, kind:String(kind || '事件').slice(0, 20) });
+      state.events.sort((a, b) => a.date.localeCompare(b.date));
+      save();
+      render();
+    }
+    return true;
+  }
+  function getPositionSymbols() { return state.positions.map(item => item.symbol).filter(Boolean); }
   function removeEvent(index) { state.events.splice(index, 1); save(); render(); }
   function evaluateAlerts() { return state.alerts.filter(a => { const q = quotes[a.symbol]; return q && ((a.type === 'above' && q.price >= a.target) || (a.type === 'below' && q.price <= a.target)); }); }
   let draggedPositionSymbol = '';
@@ -286,7 +299,7 @@
   function exportData() { const lines = [['symbol', 'name', 'quantity', 'cost', 'lastPrice', 'marketValue'], ...state.positions.map(p => [p.symbol, p.name, p.quantity, p.cost, p.lastPrice || '', (p.lastPrice || p.cost) * p.quantity]), [], ['alerts'], ['symbol', 'type', 'target'], ...state.alerts.map(a => [a.symbol, a.type, a.target]), [], ['events'], ['date', 'kind', 'title'], ...state.events.map(e => [e.date, e.kind, e.title])]; const csv = lines.map(row => row.map(v => `"${String(v ?? '').replace(/"/g, '""')}"`).join(',')).join('\n'); const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `investment-workbench-${new Date().toISOString().slice(0, 10)}.csv`; a.click(); URL.revokeObjectURL(a.href); }
   function openResearch() { const symbol = document.getElementById('wb-replay-symbol')?.value; if (symbol && typeof window.openModal === 'function') window.openModal(symbol); else show('请先添加并选择一个持仓'); }
   function aiSummary() { const p = state.positions.map(x => `${x.name}(${x.symbol}) ${x.quantity}股，成本${x.cost}`).join('；'); const input = document.getElementById('ai-message-input'); if (typeof window.switchAppPage === 'function' && window.hasAiMenuAccess?.()) { window.switchAppPage('ai'); setTimeout(() => { if (input) input.value = `请基于我的模拟持仓生成研究摘要，列出基本面、估值、催化剂和风险：${p || '目前没有持仓'}`; }, 50); } else show('请先开启 AI 问股权限'); }
-  window.InvestmentWorkbench = { render, refreshQuotes, addPosition, recordTrade, openTrade, submitTrade, fillRealtimePrice, closeTradeDialog, openAlert, submitAlert, closeAlertDialog, removePosition, removeTrade, addAlert, removeAlert, addEvent, removeEvent, replay, runBacktest, exportData, aiSummary, openResearch, activateAccount, flushSync:() => syncToAccount({ force:true }) };
+  window.InvestmentWorkbench = { render, refreshQuotes, addPosition, recordTrade, openTrade, submitTrade, fillRealtimePrice, closeTradeDialog, openAlert, submitAlert, closeAlertDialog, removePosition, removeTrade, addAlert, removeAlert, addEvent, addEventRecord, getPositionSymbols, removeEvent, replay, runBacktest, exportData, aiSummary, openResearch, activateAccount, flushSync:() => syncToAccount({ force:true }) };
   document.addEventListener('keydown', event => { if (event.key !== 'Escape') return; if (document.getElementById('alert-mask')?.classList.contains('open')) closeAlertDialog(); else if (document.getElementById('trade-mask')?.classList.contains('open')) closeTradeDialog(); });
   window.addEventListener('resize', () => { if (document.getElementById('page-workbench')?.classList.contains('active')) draw(replayRows); });
   window.setInterval(() => { if (window.currentUser && state.positions.length) refreshQuotes(); }, 15000);
