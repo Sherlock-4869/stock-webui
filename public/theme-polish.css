@@ -607,6 +607,9 @@ html[data-theme] .market-price {
 .market-card.up .market-pct { background: var(--ui-up-soft); color: var(--ui-up); }
 .market-card.down .market-pct { background: var(--ui-down-soft); color: var(--ui-down-bright); }
 #market-grid.market-colors-off .market-card .market-pct { background: var(--ui-surface-2); color: var(--ui-text); }
+#stock-table.market-colors-off tbody td.up,
+#stock-table.market-colors-off tbody td.down,
+#stock-table.market-colors-off tbody td.flat { color: var(--ui-text) !important; }
 
 /* Horizontal alignment across Watchlist search & tool buttons (Desktop only so mobile column layout stays intact) */
 .group-bar {
@@ -892,6 +895,13 @@ html[data-theme].metrics-scroll #stock-table tbody tr:hover td:last-child {
 .up, html[data-theme] .up, html[data-theme] .metric-value.up, .workbench-positive { color: var(--ui-up); }
 .down, html[data-theme] .down, html[data-theme] .metric-value.down, .workbench-negative { color: var(--ui-down-bright); }
 .flat, .workbench-muted { color: var(--ui-text-muted); }
+
+/* Administrative status colors use semantic health meaning, independent of
+   the market up/down palette. */
+.status-good, html[data-theme] .status-good { color: #3fb950; }
+.status-bad, html[data-theme] .status-bad { color: #f85149; }
+.status-neutral, html[data-theme] .status-neutral { color: var(--ui-text-muted); }
+.board-detail-source-note { color: var(--ui-text-muted); font-size: 11px; }
 
 .refresh-btn,
 html[data-theme] .refresh-btn,

@@ -1233,10 +1233,16 @@ const sinaNodeIndex = new Map();
 const SINA_NODE_CACHE_MS = 10 * 60 * 1000;
 let sinaNodeIndexBuiltAt = 0;
 
+function isSinaBoardCode(code) {
+  return /^(?:new|gn|hy|dy)_[a-z0-9_-]{1,32}$/i.test(String(code || ''));
+}
+
 function boardCodeToSinaNode(code) {
-  const hit = sinaNodeIndex.get(String(code).toUpperCase());
+  const rawCode = String(code || '').trim();
+  const hit = sinaNodeIndex.get(rawCode.toUpperCase());
   if (hit && Date.now() - sinaNodeIndexBuiltAt < SINA_NODE_CACHE_MS) return hit;
-  return '';
+  // 新浪板块清单首字段就是可直接用于成分股接口的 node，例如 new_kfq、gn_rzrq。
+  return isSinaBoardCode(rawCode) ? { node:rawCode, type:'sina', name:rawCode } : '';
 }
 
 async function buildSinaNodeIndex() {
@@ -1246,7 +1252,7 @@ async function buildSinaNodeIndex() {
       if (!board?.code || !board?.name) continue;
       const name = String(board.name);
       for (const [type, node] of Object.entries(SINA_BOARD_NODES)) {
-        if (!Object.values(sinaNodeIndex).some(entry => entry.type === type && entry.name === name)) continue;
+        if (cached.type !== type || !isSinaBoardCode(board.code)) continue;
         sinaNodeIndex.set(String(board.code).toUpperCase(), { url:node.url, varName:node.varName, type, name });
       }
     }
@@ -1258,7 +1264,7 @@ function requestSinaBoardNodePage(node, pageNumber) {
   const num = 100;
   return requestSinaBoardJson(
     `/quotes_service/api/json_v2.php/Market_Center.getHQNodeData?page=${pageNumber}&num=${num}`
-    + `&sort=changepercent&asc=0&node=${encodeURIComponent(node)}`
+    + `&sort=changepercent&asc=0&node=${encodeURIComponent(node?.node || node)}`
   );
 }
 
@@ -1431,8 +1437,9 @@ async function proxyBoardList(urlObj, res) {
 }
 
 async function proxyBoardDetail(urlObj, res) {
-  const code = (urlObj.searchParams.get('code') || '').toUpperCase();
-  if (!/^BK\d{4,6}$/.test(code)) { sendJson(res, 400, { stocks:[], error:'Invalid board code' }); return; }
+  const rawCode = String(urlObj.searchParams.get('code') || '').trim();
+  const code = /^BK\d{4,6}$/i.test(rawCode) ? rawCode.toUpperCase() : rawCode;
+  if (!/^BK\d{4,6}$/.test(code) && !isSinaBoardCode(code)) { sendJson(res, 400, { stocks:[], error:'Invalid board code' }); return; }
   try {
     sendJson(res, 200, await loadBoardDetail(code));
   } catch (error) {

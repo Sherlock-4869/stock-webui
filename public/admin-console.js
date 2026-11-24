@@ -69,10 +69,10 @@
     if (!data) return;
 
     const statusBadge = !data.enabled
-      ? '<span class="admin-user-state">未启用</span>'
+      ? '<span class="status-neutral">未启用</span>'
       : data.ready
-        ? '<span class="admin-user-state granted">运行就绪</span>'
-        : '<span class="sm-tag sm-tag-warn">初始化异常</span>';
+        ? '<span class="status-good">运行就绪</span>'
+        : '<span class="status-bad">初始化异常</span>';
 
     if (summaryEl) {
       const sub = data.subscribers || {};
@@ -118,14 +118,14 @@
       } else {
         jobsEl.innerHTML = `<table class="limit-pool-table"><thead><tr><th>ID</th><th>类型</th><th>统计周期</th><th>新股/新债数</th><th>状态</th><th>目标/成功/失败</th><th>完成时间</th><th>操作</th></tr></thead><tbody>${jobs.map(j => {
           const active = wechatState.selectedJobId === j.id ? ' class="sm-row-active"' : '';
-          const stateCls = j.status === 'completed' ? 'up' : j.status === 'failed' ? 'down' : '';
+          const stateCls = j.status === 'completed' ? 'status-good' : j.status === 'failed' ? 'status-bad' : 'status-neutral';
           return `<tr${active}>
             <td>#${esc(j.id)}</td>
             <td>${j.kind === 'daily' ? '每日提醒' : '每周汇总'}</td>
             <td>${esc(j.periodStart)}${j.periodEnd && j.periodEnd !== j.periodStart ? ` ~ ${esc(j.periodEnd)}` : ''}</td>
             <td>${j.ipoCount}</td>
             <td class="${stateCls}"><strong>${esc(j.status)}</strong></td>
-            <td>${j.recipientCount} / <span class="up">${j.successCount}</span> / <span class="${j.failureCount ? 'down' : ''}">${j.failureCount}</span></td>
+            <td>${j.recipientCount} / <span class="status-good">${j.successCount}</span> / <span class="${j.failureCount ? 'status-bad' : 'status-neutral'}">${j.failureCount}</span></td>
             <td>${esc(fmtTime(j.finishedAt || j.createdAt))}</td>
             <td><button class="sm-action-btn" type="button" onclick="AdminWechat.inspectJob('${esc(j.id)}')">投递明细</button></td>
           </tr>`;
@@ -149,7 +149,7 @@
               <table class="limit-pool-table" style="min-width:460px"><thead><tr><th>用户(脱敏)</th><th>状态</th><th>尝试</th><th>响应说明</th><th>发送时间</th></tr></thead>
               <tbody>${(deliveries || []).length ? deliveries.map(d => `<tr>
                 <td><code>${esc(d.maskedOpenid)}</code></td>
-                <td class="${d.status === 'sent' ? 'up' : d.status === 'failed' ? 'down' : ''}">${esc(d.status)}</td>
+                <td class="${d.status === 'sent' ? 'status-good' : d.status === 'failed' ? 'status-bad' : 'status-neutral'}">${esc(d.status)}</td>
                 <td>${d.attemptCount}</td>
                 <td>${esc(d.errcode ? `[${d.errcode}] ${d.errmsg || ''}` : (d.errmsg || 'ok'))}</td>
                 <td>${esc(fmtTime(d.sentAt || d.updatedAt))}</td>
@@ -249,10 +249,10 @@
   };
 
   function statusPill(status) {
-    if (status === 'healthy') return '<span class="admin-user-state granted">正常</span>';
-    if (status === 'degraded') return '<span class="admin-user-state admin">降级/偶发失败</span>';
-    if (status === 'down' || status === 'error') return '<span class="sm-tag sm-tag-warn">异常</span>';
-    return '<span class="admin-user-state">待命（尚无请求）</span>';
+    if (status === 'healthy') return '<span class="status-good">正常</span>';
+    if (status === 'degraded') return '<span class="status-bad">降级/偶发失败</span>';
+    if (status === 'down' || status === 'error') return '<span class="status-bad">异常</span>';
+    return '<span class="status-neutral">待命（尚无请求）</span>';
   }
 
   function renderHealth() {
@@ -290,7 +290,7 @@
               <button class="sm-action-btn" type="button" ${running ? 'disabled' : ''} onclick="AdminSystemHealth.probe('${t.key}')">${running ? '探测中…' : '立即自检'}</button>
             </div>
             <div class="adm-probe-meta">
-              ${res ? `${res.ok ? '<span class="up">● 连通</span>' : '<span class="down">● 失败</span>'} · ${res.latencyMs}ms · ${esc(res.message)}` : '点击「立即自检」主动测试端到端响应延迟'}
+              ${res ? `${res.ok ? '<span class="status-good">● 连通</span>' : '<span class="status-bad">● 失败</span>'} · ${res.latencyMs}ms · ${esc(res.message)}` : '点击「立即自检」主动测试端到端响应延迟'}
             </div>
           </div>
         `;
@@ -306,7 +306,7 @@
           <td style="color:var(--ui-text-muted);font-size:11.5px">${esc(p.role)}</td>
           <td>${statusPill(p.status)}</td>
           <td>${p.totalRequests}</td>
-          <td class="${p.successRate != null && p.successRate < 90 ? 'down' : ''}">${p.successRate != null ? `${p.successRate}%` : '--'}</td>
+          <td class="${p.successRate != null && p.successRate < 90 ? 'status-bad' : p.successRate != null ? 'status-good' : 'status-neutral'}">${p.successRate != null ? `${p.successRate}%` : '--'}</td>
           <td>${p.avgLatencyMs != null ? `${p.avgLatencyMs}ms / ${p.lastLatencyMs}ms` : '--'}</td>
           <td>${esc(fmtTime(p.lastSuccessAt))}</td>
           <td class="sm-reason-cell" title="${esc(p.lastError || '')}">${esc(p.lastError || '--')}</td>
