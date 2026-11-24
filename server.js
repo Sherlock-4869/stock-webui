@@ -430,13 +430,13 @@ function proxyJson(url, res) {
   req.on('timeout', () => {
     upstreamMonitor.recordFailure(url, Date.now() - startedAt, new Error('Upstream timeout'));
     req.destroy();
-    res.writeHead(504);
-    res.end('{}');
+    if (!res.headersSent) res.writeHead(504);
+    if (!res.writableEnded) res.end('{}');
   });
   req.on('error', (e) => {
     upstreamMonitor.recordFailure(url, Date.now() - startedAt, e);
-    res.writeHead(502);
-    res.end('{}');
+    if (!res.headersSent) res.writeHead(502);
+    if (!res.writableEnded) res.end('{}');
   });
 }
 

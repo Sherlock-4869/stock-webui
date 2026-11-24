@@ -1482,3 +1482,53 @@ test('news calendar, portfolio tools, and admin-only WeChat/health consoles enfo
   verifyGlobalExports('AdminWechat', adminConsoleScript);
   verifyGlobalExports('AdminSystemHealth', adminConsoleScript);
 });
+
+test('stock detail chart rendering pipeline keeps all core drawing helpers and preserves existing quotes on preview', () => {
+  const mainScript = html.slice(html.indexOf('<script>\nconst STORAGE_KEY') + '<script>'.length, html.lastIndexOf('</script>'));
+  const requiredChartFunctions = [
+    'prepareChartCanvas',
+    'prepareIndicatorCanvas',
+    'chartThemeColor',
+    'drawGridLine',
+    'drawMinuteSessionBreak',
+    'drawMinuteChart',
+    'drawAverageLine',
+    'drawKlineChart',
+    'drawFundFlow',
+    'drawFundFlowChart',
+    'fundAxisAmount',
+    'renderFundFlowStats',
+    'technicalLabel',
+    'technicalXMapper',
+    'technicalPointClose',
+    'technicalAxisLabel',
+    'technicalValueRange',
+    'drawTechnicalChart',
+    'renderChart',
+  ];
+  for (const fnName of requiredChartFunctions) {
+    assert.match(mainScript, new RegExp(`function\\s+${fnName}\\s*\\(`), `Missing chart function ${fnName}`);
+  }
+
+  const polishCss = fs.readFileSync(path.join(__dirname, '..', 'public', 'theme-polish.css'), 'utf8');
+  assert.match(polishCss, /\[hidden\]\s*\{\s*display:\s*none\s*!important;\s*\}/);
+
+  // Verify openMarketStockPreview does not wipe existing cached quote fields
+  const previewStart = mainScript.indexOf('function openMarketStockPreview');
+  const previewEnd = mainScript.indexOf('function getTrackedStockInfo', previewStart);
+  assert.ok(previewStart >= 0 && previewEnd > previewStart);
+  const ctx = {
+    lastQuoteData: {
+      sz002463: { name: '沪电股份', price: 84.13, prevClose: 82.70, open: 90.66, chg: 1.43, pct: 1.73, high: 90.70, low: 83.80, volume: 1020500, amount: 891200 },
+    },
+    opened: null,
+    openModal(sym) { ctx.opened = sym; },
+  };
+  vm.createContext(ctx);
+  vm.runInContext(mainScript.slice(previewStart, previewEnd), ctx);
+  ctx.openMarketStockPreview({ symbol: 'sz002463', name: '002463' });
+  assert.equal(ctx.opened, 'sz002463');
+  assert.equal(ctx.lastQuoteData.sz002463.name, '沪电股份');
+  assert.equal(ctx.lastQuoteData.sz002463.prevClose, 82.70);
+  assert.equal(ctx.lastQuoteData.sz002463.open, 90.66);
+});

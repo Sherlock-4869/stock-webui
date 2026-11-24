@@ -1,5 +1,5 @@
 /* ==========================================================================
-   Comprehensive Visual, Typography & Layout System v2
+   Comprehensive Visual, Typography & Layout System v2.1
    Institutional Financial Terminal Aesthetic — Seamless Across All 7 Skins:
    dark (石墨) · light (云白) · paper (暖纸) · ocean (深海) · forest (松林) · violet (暮紫) · system
    ========================================================================== */
@@ -12,7 +12,7 @@
   --ui-bg-ambient:
     radial-gradient(ellipse 85% 48% at 50% -16%, rgba(59, 130, 246, 0.15), transparent 65%),
     radial-gradient(ellipse 55% 38% at 94% 4%, rgba(139, 92, 246, 0.09), transparent 60%);
-  --ui-sidebar-bg: rgba(12, 17, 27, 0.9);
+  --ui-sidebar-bg: rgba(12, 17, 27, 0.92);
   --ui-surface: #111826;
   --ui-surface-2: #162032;
   --ui-surface-subtle: #0d1320;
@@ -47,7 +47,7 @@ html[data-theme="light"] {
   --ui-bg-ambient:
     radial-gradient(ellipse 85% 45% at 50% -16%, rgba(37, 99, 235, 0.09), transparent 65%),
     radial-gradient(ellipse 50% 35% at 92% 4%, rgba(99, 102, 241, 0.06), transparent 60%);
-  --ui-sidebar-bg: rgba(255, 255, 255, 0.92);
+  --ui-sidebar-bg: rgba(255, 255, 255, 0.94);
   --ui-surface: #ffffff;
   --ui-surface-2: #f8fafd;
   --ui-surface-subtle: #f1f5fa;
@@ -75,7 +75,7 @@ html[data-theme="light"] {
 html[data-theme-skin="paper"] {
   --ui-bg: #f6efe4;
   --ui-bg-ambient: radial-gradient(ellipse 80% 45% at 50% -16%, rgba(180, 102, 48, 0.11), transparent 65%);
-  --ui-sidebar-bg: rgba(252, 247, 239, 0.94);
+  --ui-sidebar-bg: rgba(252, 247, 239, 0.95);
   --ui-surface: #fffdf8;
   --ui-surface-2: #faf3e8;
   --ui-surface-subtle: #f3e9da;
@@ -94,7 +94,7 @@ html[data-theme-skin="paper"] {
 html[data-theme-skin="ocean"] {
   --ui-bg: #061523;
   --ui-bg-ambient: radial-gradient(ellipse 80% 50% at 55% -16%, rgba(53, 182, 222, 0.18), transparent 65%);
-  --ui-sidebar-bg: rgba(6, 23, 38, 0.91);
+  --ui-sidebar-bg: rgba(6, 23, 38, 0.93);
   --ui-surface: #0b2236;
   --ui-surface-2: #102d46;
   --ui-surface-subtle: #081b2c;
@@ -113,7 +113,7 @@ html[data-theme-skin="ocean"] {
 html[data-theme-skin="forest"] {
   --ui-bg: #0b1e18;
   --ui-bg-ambient: radial-gradient(ellipse 80% 50% at 55% -16%, rgba(90, 199, 146, 0.16), transparent 65%);
-  --ui-sidebar-bg: rgba(12, 32, 26, 0.91);
+  --ui-sidebar-bg: rgba(12, 32, 26, 0.93);
   --ui-surface: #122e25;
   --ui-surface-2: #193c31;
   --ui-surface-subtle: #0e241d;
@@ -132,7 +132,7 @@ html[data-theme-skin="forest"] {
 html[data-theme-skin="violet"] {
   --ui-bg: #171024;
   --ui-bg-ambient: radial-gradient(ellipse 80% 50% at 55% -16%, rgba(177, 140, 255, 0.18), transparent 65%);
-  --ui-sidebar-bg: rgba(26, 18, 41, 0.91);
+  --ui-sidebar-bg: rgba(26, 18, 41, 0.93);
   --ui-surface: #241a38;
   --ui-surface-2: #2e2247;
   --ui-surface-subtle: #1c142c;
@@ -146,6 +146,11 @@ html[data-theme-skin="violet"] {
   --ui-accent-bright: #b794ff;
   --ui-accent-soft: rgba(177, 140, 255, 0.16);
   --ui-accent-border: rgba(183, 148, 255, 0.44);
+}
+
+/* Guarantee HTML [hidden] attribute is never overridden by flex/grid classes */
+[hidden] {
+  display: none !important;
 }
 
 /* ==========================================================================
@@ -173,7 +178,7 @@ html[data-theme] body {
 table, .metric-value, .market-price, .market-pct, .market-change,
 .workbench-card b, .recap-index-price, .recap-index-pct,
 .board-list-pct, .board-ranking-value, .ipo-date, .sm-seat-nums,
-.pt-journal-nums, .nc-flash-time strong, code {
+.pt-journal-nums, .nc-flash-time strong, .stat-value, code {
   font-variant-numeric: tabular-nums;
 }
 
@@ -183,7 +188,7 @@ table, .metric-value, .market-price, .market-pct, .market-change,
   font-family: var(--ui-font-mono);
 }
 
-/* Raise overly tiny 9px-10px labels to legible 11.5px-12px with clean contrast */
+/* Raise overly tiny 9px-10px labels to legible 11.5px with clean contrast */
 .metric-note, .workbench-card label, .workbench-card small,
 .panel-status, .sort-note, .market-toolbar, .ipo-field label,
 .board-stat label, .board-stat small, .workbench-note,
@@ -202,11 +207,18 @@ table, .metric-value, .market-price, .market-pct, .market-change,
 ::-webkit-scrollbar-thumb:hover { background: var(--ui-text-muted); }
 
 /* ==========================================================================
-   2. Balanced Spacious Layout Grid
+   2. Balanced Spacious Layout Grid (Preserving Board Workspace & Mobile Bars)
    ========================================================================== */
 .main {
   max-width: calc(var(--ui-content-max) + var(--optional-metric-width, 0px));
   padding: 28px 34px 48px;
+}
+
+body.board-workspace-active .main {
+  max-width: 1420px;
+}
+body.board-workspace-active #page-boards {
+  max-width: 1380px;
 }
 
 #page-ipo, #page-precious-metals, #page-alerts, #page-boards,
@@ -223,7 +235,7 @@ table, .metric-value, .market-price, .market-pct, .market-change,
 }
 
 /* ==========================================================================
-   3. Sidebar Navigation Refinement
+   3. Sidebar Navigation Refinement (Expanded + Collapsed + Mobile Safe)
    ========================================================================== */
 .app-nav,
 html[data-theme] .app-nav {
@@ -248,7 +260,6 @@ html[data-theme] .sidebar-group {
 
 .app-brand,
 html[data-theme] .app-brand {
-  padding: 7px 10px;
   border-radius: 10px;
   font-size: 15.5px;
   font-weight: 760;
@@ -280,11 +291,6 @@ html[data-theme] .sidebar-collapse:hover {
   color: var(--ui-accent-bright);
 }
 
-.sidebar-scroll {
-  gap: 3px;
-  padding: 12px 2px;
-}
-
 .sidebar-section-title,
 html[data-theme] .sidebar-section-title {
   color: var(--ui-text-muted);
@@ -292,11 +298,10 @@ html[data-theme] .sidebar-section-title {
   font-weight: 750;
   letter-spacing: 0.11em;
   text-transform: uppercase;
-  padding: 8px 10px 5px;
 }
 
-.sidebar-group-toggle,
-html[data-theme] .sidebar-group-toggle {
+body:not(.sidebar-collapsed) .sidebar-group-toggle,
+html[data-theme] body:not(.sidebar-collapsed) .sidebar-group-toggle {
   border-radius: 9px;
   border-color: transparent;
   background: transparent;
@@ -307,8 +312,8 @@ html[data-theme] .sidebar-group-toggle {
   box-shadow: none;
   transition: all 0.15s ease;
 }
-.sidebar-group-toggle:hover,
-html[data-theme] .sidebar-group-toggle:hover {
+body:not(.sidebar-collapsed) .sidebar-group-toggle:hover,
+html[data-theme] body:not(.sidebar-collapsed) .sidebar-group-toggle:hover {
   background: var(--ui-surface-hover);
   border-color: var(--ui-border);
   color: var(--ui-text);
@@ -317,21 +322,24 @@ html[data-theme] .sidebar-group-toggle:hover {
 .sidebar-group-items,
 html[data-theme] .sidebar-group-items {
   border-left-color: var(--ui-border-strong);
-  gap: 2px;
 }
 
 .app-tab,
 html[data-theme] .app-tab {
   border-radius: 9px;
   color: var(--ui-text-secondary);
-  font-size: 12.5px;
   font-weight: 600;
-  padding: 9px 11px;
   transition: background 0.14s ease, color 0.14s ease, box-shadow 0.14s ease;
 }
-.sidebar-group-items .app-tab,
-html[data-theme] .sidebar-group-items .app-tab {
+body:not(.sidebar-collapsed) .app-tab,
+html[data-theme] body:not(.sidebar-collapsed) .app-tab {
+  font-size: 12.5px;
+  padding: 9px 11px;
+}
+body:not(.sidebar-collapsed) .sidebar-group-items .app-tab,
+html[data-theme] body:not(.sidebar-collapsed) .sidebar-group-items .app-tab {
   font-size: 12px;
+  padding: 8px 10px;
   color: var(--ui-text-secondary);
 }
 .app-tab:hover,
@@ -361,6 +369,47 @@ html[data-theme] .sidebar-group-items .app-tab.active {
   background: var(--ui-accent-bright);
 }
 body.sidebar-collapsed .app-tab.active::before { display: none; }
+
+/* Desktop collapsed sidebar skin support */
+@media (min-width: 861px) {
+  html[data-theme] body.sidebar-collapsed .sidebar-group {
+    border-color: var(--ui-border);
+  }
+  html[data-theme] body.sidebar-collapsed .sidebar-group-toggle {
+    border-color: var(--ui-border-strong);
+    background: var(--ui-surface);
+    color: var(--ui-accent-bright);
+    box-shadow: var(--ui-highlight), var(--ui-shadow-sm);
+  }
+  html[data-theme] body.sidebar-collapsed .sidebar-group-toggle:hover {
+    border-color: var(--ui-accent-border);
+    background: var(--ui-surface-hover);
+  }
+  html[data-theme] body.sidebar-collapsed .sidebar-group-items::before {
+    background: var(--ui-border-strong);
+  }
+  html[data-theme] body.sidebar-collapsed .sidebar-group-items .app-tab {
+    border-color: var(--ui-border);
+    background: var(--ui-surface-subtle);
+    color: var(--ui-text-muted);
+  }
+  html[data-theme] body.sidebar-collapsed .sidebar-group-items .app-tab:hover {
+    border-color: var(--ui-accent-border);
+    background: var(--ui-surface-hover);
+    color: var(--ui-text);
+  }
+  html[data-theme] body.sidebar-collapsed .sidebar-group-items .app-tab.active {
+    border-color: var(--ui-accent-border);
+    background: var(--ui-accent-soft);
+    color: var(--ui-accent-bright);
+  }
+  html[data-theme] body.sidebar-collapsed .account-trigger {
+    width: 48px;
+    height: 48px;
+    padding: 0;
+    justify-content: center;
+  }
+}
 
 .app-tab-badge,
 html[data-theme] .app-tab-badge {
@@ -422,7 +471,8 @@ html[data-theme] .account-trigger:hover {
   background: var(--ui-surface-hover);
   color: var(--ui-text);
 }
-.market-hub-tab.active {
+.market-hub-tab.active,
+html[data-theme] .market-hub-tab.active {
   border-color: transparent;
   background: linear-gradient(135deg, var(--ui-accent), var(--ui-accent-bright));
   color: #fff;
@@ -433,7 +483,6 @@ html[data-theme] .account-trigger:hover {
   padding-bottom: 16px;
   margin-bottom: 20px;
   border-bottom: 1px solid var(--ui-border);
-  align-items: flex-end;
 }
 .market-kicker,
 html[data-theme] .market-kicker {
@@ -477,6 +526,7 @@ html[data-theme] .module-desc {
 html[data-theme] .market-page-note {
   display: inline-flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 8px;
   margin: 0 0 14px;
   padding: 5px 12px;
@@ -490,6 +540,7 @@ html[data-theme] .market-page-note {
   content: "";
   width: 6px;
   height: 6px;
+  flex: none;
   border-radius: 50%;
   background: var(--ui-down-bright);
   box-shadow: 0 0 0 3px var(--ui-down-soft);
@@ -547,7 +598,6 @@ html[data-theme] .market-price {
   font-weight: 740;
   color: var(--ui-text);
 }
-/* Tinted pill badge for index percentage change */
 .market-pct {
   padding: 3px 6px;
   border-radius: 6px;
@@ -558,21 +608,22 @@ html[data-theme] .market-price {
 .market-card.down .market-pct { background: var(--ui-down-soft); color: var(--ui-down-bright); }
 #market-grid.market-colors-off .market-card .market-pct { background: var(--ui-surface-2); color: var(--ui-text); }
 
-/* Razor-sharp horizontal alignment across Watchlist search & tool buttons */
+/* Horizontal alignment across Watchlist search & tool buttons (Desktop only so mobile column layout stays intact) */
 .group-bar {
   margin-bottom: 12px;
   gap: 8px;
 }
-.search-row {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 12px;
-}
-.search-wrap {
-  flex: 1 1 280px;
-  max-width: 380px;
+@media (min-width: 769px) {
+  .search-row {
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+  .search-wrap {
+    flex: 1 1 280px;
+    max-width: 380px;
+  }
 }
 .search-wrap input,
 .add-btn,
@@ -593,11 +644,27 @@ html[data-theme] .market-price {
   font-weight: 660;
   border-radius: var(--ui-radius-sm);
 }
+.dropdown,
+html[data-theme] .dropdown {
+  z-index: 160;
+  border-color: var(--ui-border-strong);
+  border-radius: var(--ui-radius-sm);
+  background: var(--ui-surface);
+  box-shadow: var(--ui-shadow-lg);
+}
+.dd-item:hover,
+.dd-item.active,
+html[data-theme] .dd-item:hover,
+html[data-theme] .dd-item.active {
+  background: var(--ui-surface-hover);
+}
+.dd-item.selected,
+html[data-theme] .dd-item.selected {
+  background: var(--ui-accent-soft);
+}
 
 /* Turn .sort-note into a structured Table Status & Refresh Bar */
 .sort-note {
-  display: flex;
-  align-items: center;
   gap: 10px;
   padding: 9px 14px;
   margin: 0 0 10px;
@@ -611,16 +678,18 @@ html[data-theme] .market-price {
 }
 
 /* Watchlist Table Card Wrapper & Row Action Buttons */
-.table-wrapper {
+.table-wrapper,
+html[data-theme] .table-wrapper {
   border: 1px solid var(--ui-border);
   border-radius: var(--ui-radius-md);
   background: var(--ui-surface);
   box-shadow: var(--ui-highlight), var(--ui-shadow-md);
-  overflow-x: auto;
 }
-.table-wrapper > #stock-table {
+.table-wrapper > #stock-table,
+html[data-theme] .table-wrapper > #stock-table {
   border: 0;
   border-radius: 0;
+  background: transparent;
   box-shadow: none;
 }
 #stock-table tbody td:nth-child(2) {
@@ -649,7 +718,7 @@ html[data-theme] .market-price {
 }
 
 /* ==========================================================================
-   6. Universal Cards, Surfaces, Tables & Form Controls (All 7 Skins)
+   6. Universal Cards, Surfaces, Scoped Tables & Form Controls (All 7 Skins)
    ========================================================================== */
 .metric-card,
 html[data-theme] .metric-card,
@@ -658,7 +727,8 @@ html[data-theme] .metric-card:first-child,
 html[data-theme] .workbench-card,
 .recap-index-card,
 html[data-theme] .recap-index-card,
-.fund-overview-card {
+.fund-overview-card,
+html[data-theme] .fund-overview-card {
   position: relative;
   border: 1px solid var(--ui-border);
   border-radius: var(--ui-radius-md);
@@ -705,26 +775,11 @@ html[data-theme] .admin-ai-card,
 html[data-theme] .admin-users-card,
 .admin-inbox-form,
 html[data-theme] .modal,
-html[data-theme] .batch-bar,
-html[data-theme] table {
+html[data-theme] .batch-bar {
   border: 1px solid var(--ui-border);
   border-radius: var(--ui-radius-md);
   background: var(--ui-surface);
   box-shadow: var(--ui-highlight), var(--ui-shadow-md);
-}
-
-.module-panel table,
-html[data-theme] .module-panel table,
-.workbench-panel table,
-html[data-theme] .workbench-panel table,
-.limit-pool-table-wrap table,
-html[data-theme] .limit-pool-table-wrap table,
-.table-wrapper > table,
-html[data-theme] .table-wrapper > table {
-  background: transparent;
-  border: 0;
-  border-radius: 0;
-  box-shadow: none;
 }
 
 .panel-toolbar,
@@ -738,8 +793,9 @@ html[data-theme] .panel-toolbar,
   padding: 12px 16px;
 }
 
-thead,
-html[data-theme] thead,
+/* Primary data tables (#stock-table & .limit-pool-table) — without breaking compact nested tables */
+#stock-table thead,
+html[data-theme] #stock-table thead,
 .limit-pool-table th,
 html[data-theme] .limit-pool-table th,
 .workbench-table th,
@@ -752,47 +808,85 @@ html[data-theme].metrics-scroll #stock-table thead th:last-child {
   background: var(--ui-surface-2);
 }
 
-th,
-html[data-theme] th,
+@media (min-width: 769px) {
+  #stock-table th,
+  .limit-pool-table th {
+    padding: 11px 14px;
+    font-size: 11.5px;
+    font-weight: 660;
+    letter-spacing: 0.02em;
+  }
+  #stock-table td,
+  .limit-pool-table td {
+    padding: 12px 14px;
+    font-size: 13px;
+  }
+  /* Reset index.html light-theme opaque first/second column on non-sticky tables */
+  html[data-theme]:not(.metrics-scroll) tbody td:first-child,
+  html[data-theme]:not(.metrics-scroll) tbody td:nth-child(2) {
+    background: transparent;
+  }
+}
+
+#stock-table th,
+html[data-theme] #stock-table th,
 .limit-pool-table th,
-.workbench-table th {
-  padding: 11px 14px;
+html[data-theme] .limit-pool-table th,
+.workbench-table th,
+html[data-theme] .workbench-table th {
   color: var(--ui-text-muted);
-  font-size: 11.5px;
-  font-weight: 660;
-  letter-spacing: 0.02em;
   border-bottom: 1px solid var(--ui-border);
 }
 
-td,
-html[data-theme] td,
+#stock-table td,
+html[data-theme] #stock-table td,
 .limit-pool-table td,
-.workbench-table td {
-  padding: 12px 14px;
-  font-size: 13px;
+html[data-theme] .limit-pool-table td,
+.workbench-table td,
+html[data-theme] .workbench-table td {
   border-top: 1px solid var(--ui-border);
   color: var(--ui-text);
   transition: background 0.12s ease;
 }
 
-html[data-theme] tbody td:first-child,
-html[data-theme] tbody td:nth-child(2),
+/* Sticky columns on #stock-table only (metrics-scroll or mobile) */
 html[data-theme].metrics-scroll #stock-table tbody td:first-child,
 html[data-theme].metrics-scroll #stock-table tbody td:nth-child(2),
 html[data-theme].metrics-scroll #stock-table tbody td:last-child {
   background: var(--ui-surface);
 }
 
-tbody tr:hover td,
-html[data-theme] tbody tr:hover td,
+#stock-table tbody tr:hover td,
+html[data-theme] #stock-table tbody tr:hover td,
 .limit-pool-table tbody tr:hover td,
+html[data-theme] .limit-pool-table tbody tr:hover td,
 .workbench-table tbody tr:hover td,
-html[data-theme] tbody tr:hover td:first-child,
-html[data-theme] tbody tr:hover td:nth-child(2),
+html[data-theme] .workbench-table tbody tr:hover td,
 html[data-theme].metrics-scroll #stock-table tbody tr:hover td:first-child,
 html[data-theme].metrics-scroll #stock-table tbody tr:hover td:nth-child(2),
 html[data-theme].metrics-scroll #stock-table tbody tr:hover td:last-child {
   background: var(--ui-surface-hover);
+}
+
+@media (max-width: 768px) {
+  #stock-table thead th:first-child,
+  #stock-table thead th:nth-child(2),
+  html[data-theme] #stock-table thead th:first-child,
+  html[data-theme] #stock-table thead th:nth-child(2) {
+    background: var(--ui-surface-2);
+  }
+  #stock-table tbody td:first-child,
+  #stock-table tbody td:nth-child(2),
+  html[data-theme] #stock-table tbody td:first-child,
+  html[data-theme] #stock-table tbody td:nth-child(2) {
+    background: var(--ui-surface);
+  }
+  #stock-table tbody tr:hover td:first-child,
+  #stock-table tbody tr:hover td:nth-child(2),
+  html[data-theme] #stock-table tbody tr:hover td:first-child,
+  html[data-theme] #stock-table tbody tr:hover td:nth-child(2) {
+    background: var(--ui-surface-hover);
+  }
 }
 
 .up, html[data-theme] .up, html[data-theme] .metric-value.up, .workbench-positive { color: var(--ui-up); }
@@ -832,6 +926,13 @@ html[data-theme] .sm-action-btn:hover {
   box-shadow: var(--ui-shadow-sm);
 }
 
+.dialog-btn.active,
+html[data-theme] .dialog-btn.active {
+  border-color: var(--ui-accent-border);
+  background: var(--ui-accent-soft);
+  color: var(--ui-accent-bright);
+}
+
 html[data-theme] .refresh-btn.market-tool-btn.is-active,
 html[data-theme] .refresh-btn.market-tool-btn.has-selection {
   background: linear-gradient(135deg, var(--ui-accent), var(--ui-accent-bright));
@@ -853,6 +954,13 @@ html[data-theme] .dialog-btn.primary,
   color: #fff;
   font-weight: 650;
   box-shadow: 0 4px 12px rgba(22, 163, 74, 0.26);
+}
+.trade-dialog .dialog-btn.primary.sell-action,
+html[data-theme] .trade-dialog .dialog-btn.primary.sell-action {
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  border-color: transparent;
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.28);
 }
 .dialog-btn.danger,
 html[data-theme] .dialog-btn.danger {
@@ -1395,13 +1503,38 @@ html[data-theme] .recap-sector-item:hover {
 .adm-cache-card small { color: var(--ui-text-muted); font-size: 11.5px; }
 
 /* ==========================================================================
-   11. Modals, Floating Widgets & Responsive Polish
+   11. Modals, Chart Overlay Alignment, Floating Widgets & Responsive Breakpoints
    ========================================================================== */
 .modal-mask { backdrop-filter: blur(7px); }
 .modal {
   border-radius: var(--ui-radius-lg);
   box-shadow: var(--ui-highlight), var(--ui-shadow-lg);
 }
+
+/* Keep .chart-loading aligned below any visible period/history bars so .chart-readout stays clickable */
+html[data-theme] .chart-loading {
+  background: var(--ui-surface-subtle);
+  color: var(--ui-text-muted);
+  border-radius: 8px;
+}
+#quote-chart-panel .chart-loading {
+  top: 56px;
+}
+#quote-chart-panel:has(> .period-bar.visible) .chart-loading {
+  top: 90px;
+}
+#quote-chart-panel:has(#period-bar.visible):has(#minute-k-history-controls.visible) .chart-loading {
+  top: 122px;
+}
+
+html[data-theme] .stats-grid {
+  background: var(--ui-border);
+  border-radius: 10px;
+}
+html[data-theme] .stat-item {
+  background: var(--ui-surface-2);
+}
+
 .inbox-float {
   border-color: var(--ui-accent-border);
   border-radius: 13px;
@@ -1420,16 +1553,24 @@ html[data-theme] .recap-sector-item:hover {
   box-shadow: var(--ui-shadow-lg);
 }
 
+@media (max-width: 1060px) and (min-width: 861px) {
+  .main { padding: 22px 20px 36px; }
+}
+
 @media (max-width: 1060px) {
-  .main { padding: 22px 18px 36px; }
   .pt-analytics-grid, .adm-job-split { grid-template-columns: minmax(0, 1fr); }
   .adm-probes-grid, .adm-kv-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
+@media (max-width: 860px) {
+  .main { padding: 64px 14px 28px; }
+}
+
 @media (max-width: 768px) {
-  .main { padding: 72px 12px 28px; }
+  .main { padding: 74px 12px 28px; }
   .module-head { padding-bottom: 12px; margin-bottom: 14px; }
   .module-title, html[data-theme] .module-title { font-size: 20px; }
+  .market-page-note, html[data-theme] .market-page-note { border-radius: 10px; padding: 6px 10px; }
   .market-overview { padding: 14px 12px; }
   .market-hub-navigation { width: 100%; border-radius: 12px; margin-bottom: 14px; }
   .sm-tabs { display: flex; width: 100%; }

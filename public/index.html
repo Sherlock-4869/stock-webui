@@ -4550,6 +4550,454 @@ function ema(values, period) {
 function calculateTechnicalSeries(data, indicator) {
   const close = data.map(p => p.close), high = data.map(p => p.high), low = data.map(p => p.low), volume = data.map(p => p.volume);
   if (indicator === 'volume') return { volume, ma5:movingAverage(data, 5, 'volume'), ma10:movingAverage(data, 10, 'volume') };
+  if (indicator === 'macd') { const fast=ema(close,12), slow=ema(close,26); const dif=close.map((_,i)=>fast[i]!=null&&slow[i]!=null?fast[i]-slow[i]:null); const dea=ema(dif,9); return { dif, dea, hist:dif.map((v,i)=>v!=null&&dea[i]!=null?(v-dea[i])*2:null) }; }
+  if (indicator === 'kdj') { let k=50,d=50; const K=[],D=[],J=[]; data.forEach((p,i)=>{ const start=Math.max(0,i-8), hh=Math.max(...high.slice(start,i+1)), ll=Math.min(...low.slice(start,i+1)); const rsv=hh===ll?50:(p.close-ll)/(hh-ll)*100; k=k*2/3+rsv/3; d=d*2/3+k/3; K.push(i<8?null:k); D.push(i<8?null:d); J.push(i<8?null:3*k-2*d); }); return { k:K,d:D,j:J }; }
+  if (indicator === 'rsi') { const r=[]; for(let i=0;i<data.length;i++){ if(i<14){r.push(null);continue;} let gain=0,loss=0; for(let j=i-13;j<=i;j++){const diff=close[j]-close[j-1]; if(diff>0)gain+=diff; else loss-=diff;} r.push(loss===0?100:100-100/(1+gain/loss)); } return { rsi:r }; }
+  if (indicator === 'boll') { const mid=movingAverage(data,20), upper=[], lower=[]; data.forEach((_,i)=>{if(i<19){upper.push(null);lower.push(null);return;} const vals=close.slice(i-19,i+1), avg=mid[i], sd=Math.sqrt(vals.reduce((s,v)=>s+(v-avg)**2,0)/20); upper.push(avg+2*sd); lower.push(avg-2*sd);}); return { upper, mid, lower }; }
+  if (indicator === 'obv') { let value=0; return { obv:close.map((v,i)=>{if(i)value += v>close[i-1]?volume[i]:v<close[i-1]?-volume[i]:0; return i<1?null:value;}) }; }
+  if (indicator === 'atr') { const tr=data.map((p,i)=>i?Math.max(p.high-p.low,Math.abs(p.high-close[i-1]),Math.abs(p.low-close[i-1])):p.high-p.low); return { atr:movingAverage(tr.map(v=>({value:v})),14,'value') }; }
+  const cci=[]; for(let i=0;i<data.length;i++){if(i<19){cci.push(null);continue;} const tp=data.slice(i-19,i+1).map(p=>(p.high+p.low+p.close)/3), avg=tp.reduce((a,b)=>a+b,0)/20, md=tp.reduce((a,b)=>a+Math.abs(b-avg),0)/20; cci.push(md?((tp[19]-avg)/(.015*md)):0);} return { cci };
+}
+
+function drawFundFlow(rows, streak = null) {
+  chartState.type = 'fundFlow';
+  chartState.fullData = parseFundFlowRows(rows);
+  chartState.prevClose = 0;
+  chartState.date = '';
+  chartState.period = '';
+  chartState.fullMa5 = [];
+  chartState.fullMa10 = [];
+  chartState.fullMa20 = [];
+  chartState.fullMa60 = [];
+  chartState.fullMa120 = [];
+  chartState.fullMa250 = [];
+  chartState.fullVolumeMa5 = [];
+  chartState.fullVolumeMa10 = [];
+  renderFundFlowStats(chartState.fullData, streak);
+  initializeChartViewport(30);
+}
+
+function renderFundFlowStats(rows, streak = null) {
+  const latest = rows[rows.length - 1];
+  if (!latest) return;
+  const items = [
+    ['当日主力', fmtMetricMoney(latest.mainNet), cls(latest.mainNet)],
+    ['主力占比', Number.isFinite(latest.mainRatio) ? `${latest.mainRatio.toFixed(2)}%` : '--', cls(latest.mainRatio)],
+    ['近五日累计', fmtMetricMoney(latest.mainFiveDay), cls(latest.mainFiveDay)],
+    ['超大单净额', fmtMetricMoney(latest.superLargeNet), cls(latest.superLargeNet)],
+    ['大单净额', fmtMetricMoney(latest.largeNet), cls(latest.largeNet)],
+    ['资金连续性', streak?.days ? `连续${streak.direction === 'in' ? '流入' : '流出'} ${streak.days} 日` : '暂无连续方向', streak?.direction === 'in' ? 'up' : streak?.direction === 'out' ? 'down' : ''],
+  ];
+  document.getElementById('stats-grid').innerHTML = items.map(([label,value,tone]) =>
+    `<div class="stat-item"><div class="stat-label">${label}</div><div class="stat-value ${tone}">${value}</div></div>`
+  ).join('');
+}
+
+function prepareChartCanvas() {
+  const dpr = window.devicePixelRatio || 1;
+  const areaStyle = getComputedStyle(chartCanvas.parentElement);
+  const horizontalPadding = parseFloat(areaStyle.paddingLeft) + parseFloat(areaStyle.paddingRight);
+  const W = Math.max(280, Math.floor(chartCanvas.parentElement.clientWidth - horizontalPadding));
+  const H = 340;
+  const pixelW = Math.round(W * dpr), pixelH = Math.round(H * dpr);
+  if (chartCanvas.width !== pixelW || chartCanvas.height !== pixelH) {
+    chartCanvas.width = pixelW;
+    chartCanvas.height = pixelH;
+  }
+  chartCanvas.style.width = `${W}px`;
+  chartCanvas.style.height = `${H}px`;
+  const ctx = chartCanvas.getContext('2d');
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, W, H);
+  return { ctx, W, H };
+}
+
+function prepareIndicatorCanvas() {
+  const dpr = window.devicePixelRatio || 1;
+  const areaStyle = getComputedStyle(chartCanvas.parentElement);
+  const horizontalPadding = parseFloat(areaStyle.paddingLeft) + parseFloat(areaStyle.paddingRight);
+  const W = Math.max(280, Math.floor(chartCanvas.parentElement.clientWidth - horizontalPadding));
+  const H = 148;
+  const pixelW = Math.round(W * dpr), pixelH = Math.round(H * dpr);
+  if (indicatorCanvas.width !== pixelW || indicatorCanvas.height !== pixelH) { indicatorCanvas.width = pixelW; indicatorCanvas.height = pixelH; }
+  indicatorCanvas.style.width = `${W}px`; indicatorCanvas.style.height = `${H}px`;
+  const ctx = indicatorCanvas.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, W, H);
+  return { ctx, W, H };
+}
+
+function chartThemeColor(name) {
+  const light = document.documentElement.dataset.theme === 'light';
+  const colors = light
+    ? { bg:'#ffffff', grid:'#d8dee4', muted:'#57606a', subtle:'#6e7781', badge:'#eaeef2', text:'#1f2328', cross:'#57606aaa' }
+    : { bg:'#0d1117', grid:'#262c34', muted:'#8b949e', subtle:'#6e7681', badge:'#30363d', text:'#e6edf3', cross:'#c9d1d1aa' };
+  return colors[name];
+}
+
+function drawGridLine(ctx, x1, y1, x2, y2) {
+  ctx.strokeStyle = chartThemeColor('grid');
+  ctx.lineWidth = 1;
+  ctx.setLineDash([]);
+  ctx.beginPath();
+  ctx.moveTo(x1, y1);
+  ctx.lineTo(x2, y2);
+  ctx.stroke();
+}
+
+function drawMinuteSessionBreak(ctx, sessionBreak, xFor, priceTop, chartBottom, W, H) {
+  if (!sessionBreak) return;
+  const markerX = (xFor(sessionBreak.closeIndex) + xFor(sessionBreak.openIndex)) / 2;
+  const label = `${sessionBreak.closeTime} / ${sessionBreak.openTime}`;
+  ctx.save();
+  ctx.strokeStyle = '#d29922aa';
+  ctx.lineWidth = 1;
+  ctx.setLineDash([3, 3]);
+  ctx.beginPath();
+  ctx.moveTo(markerX, priceTop);
+  ctx.lineTo(markerX, chartBottom);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.font = '10px ui-monospace, monospace';
+  const labelWidth = ctx.measureText(label).width + 10;
+  const left = Math.max(1, Math.min(markerX - labelWidth / 2, W - labelWidth - 1));
+  ctx.fillStyle = chartThemeColor('bg');
+  ctx.fillRect(left, H - 20, labelWidth, 16);
+  ctx.fillStyle = '#d29922';
+  ctx.textAlign = 'center';
+  ctx.fillText(label, left + labelWidth / 2, H - 8);
+  ctx.restore();
+}
+
+function drawMinuteChart(ctx, W, H) {
+  const data = chartState.data;
+  if (!data.length) return;
+  const pad = { l: 54, r: 54 };
+  const plotLeft = pad.l, plotRight = W - pad.r, cw = plotRight - plotLeft;
+  const priceTop = 8, priceH = 276, volTop = 284, volH = 0;
+  const prices = data.map(p => p.price);
+  const prev = chartState.prevClose;
+  let priceMin, priceMax;
+  if (prev > 0) {
+    const maxDiff = Math.max(...prices.map(v => Math.abs(v - prev)), prev * .0015);
+    priceMin = prev - maxDiff * 1.08;
+    priceMax = prev + maxDiff * 1.08;
+  } else {
+    const rawMin = Math.min(...prices), rawMax = Math.max(...prices);
+    const margin = Math.max((rawMax - rawMin) * .08, rawMax * .001);
+    priceMin = rawMin - margin;
+    priceMax = rawMax + margin;
+  }
+  const range = priceMax - priceMin || 1;
+  const py = value => priceTop + (priceMax - value) / range * priceH;
+  const sessionBreak = findMinuteSessionBreak(data);
+  const xFor = index => plotLeft + (data.length === 1 ? 0 : index / (data.length - 1)) * cw;
+
+  ctx.fillStyle = chartThemeColor('bg');
+  ctx.fillRect(0, 0, W, H);
+  ctx.font = '10px ui-monospace, monospace';
+  for (let i = 0; i <= 4; i++) {
+    const ratio = i / 4, y = priceTop + ratio * priceH;
+    const value = priceMax - ratio * range;
+    drawGridLine(ctx, plotLeft, y, plotRight, y);
+    ctx.fillStyle = chartThemeColor('muted');
+    ctx.textAlign = 'right';
+    ctx.fillText(value.toFixed(2), plotLeft - 5, y + 3);
+    ctx.textAlign = 'left';
+    const pct = prev > 0 ? (value - prev) / prev * 100 : 0;
+    ctx.fillStyle = pct > 0 ? '#f85149' : pct < 0 ? '#3fb950' : chartThemeColor('muted');
+    ctx.fillText(`${pct > 0 ? '+' : ''}${pct.toFixed(2)}%`, plotRight + 5, y + 3);
+  }
+
+  const sessionX = sessionBreak ? (xFor(sessionBreak.closeIndex) + xFor(sessionBreak.openIndex)) / 2 : null;
+  const xIndexes = [...new Set([0, Math.round((data.length - 1) * .25), Math.round((data.length - 1) * .5), Math.round((data.length - 1) * .75), data.length - 1])]
+    .filter(index => sessionX == null || Math.abs(xFor(index) - sessionX) > 50);
+  xIndexes.forEach((index, tickIndex) => {
+    const x = xFor(index);
+    drawGridLine(ctx, x, priceTop, x, priceTop + priceH);
+    ctx.fillStyle = chartThemeColor('muted');
+    ctx.textAlign = tickIndex === 0 ? 'left' : tickIndex === xIndexes.length - 1 ? 'right' : 'center';
+    ctx.fillText(formatTime(data[index].time), x, H - 8);
+  });
+
+  if (prev > 0) {
+    ctx.strokeStyle = chartThemeColor('subtle');
+    ctx.setLineDash([4, 4]);
+    ctx.beginPath();
+    ctx.moveTo(plotLeft, py(prev));
+    ctx.lineTo(plotRight, py(prev));
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  const latestUp = data[data.length - 1].price >= (prev || data[0].price);
+  const lineColor = latestUp ? '#f85149' : '#3fb950';
+  const gradient = ctx.createLinearGradient(0, priceTop, 0, priceTop + priceH);
+  gradient.addColorStop(0, lineColor + '35');
+  gradient.addColorStop(1, lineColor + '03');
+  ctx.beginPath();
+  data.forEach((point, i) => {
+    const x = xFor(i), y = py(point.price);
+    i ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
+  });
+  ctx.lineTo(plotRight, priceTop + priceH);
+  ctx.lineTo(plotLeft, priceTop + priceH);
+  ctx.closePath();
+  ctx.fillStyle = gradient;
+  ctx.fill();
+  ctx.beginPath();
+  data.forEach((point, i) => {
+    const x = xFor(i), y = py(point.price);
+    i ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
+  });
+  ctx.strokeStyle = lineColor;
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+
+  // 分时均价：按每分钟增量成交量计算的成交量加权平均价（VWAP）。
+  let cumulativeVolume = 0, cumulativeValue = 0;
+  ctx.beginPath();
+  data.forEach((point, i) => {
+    const volume = Math.max(0, Number(point.minuteVolume) || 0);
+    cumulativeVolume += volume;
+    cumulativeValue += point.price * volume;
+    const average = cumulativeVolume > 0 ? cumulativeValue / cumulativeVolume : point.price;
+    const x = xFor(i), y = py(average);
+    i ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
+  });
+  ctx.strokeStyle = '#e3b341';
+  ctx.lineWidth = 1.2;
+  ctx.setLineDash([4, 3]);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle = '#e3b341aa';
+  ctx.font = '9px ui-monospace, monospace';
+  ctx.textAlign = 'right';
+  ctx.fillText('均价', plotRight - 4, priceTop + 12);
+
+  drawMinuteSessionBreak(ctx, sessionBreak, xFor, priceTop, priceTop + priceH, W, H);
+
+  chartState.layout = { W, H, plotLeft, plotRight, cw, priceTop, priceH, volTop, volH, priceMin, priceMax, xFor, py };
+}
+
+function drawAverageLine(ctx, values, xFor, py, color) {
+  ctx.beginPath();
+  let started = false;
+  values.forEach((value, i) => {
+    if (value == null) return;
+    const x = xFor(i), y = py(value);
+    if (!started) { ctx.moveTo(x, y); started = true; }
+    else ctx.lineTo(x, y);
+  });
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 1.2;
+  ctx.stroke();
+}
+
+function drawKlineChart(ctx, W, H) {
+  const data = chartState.data;
+  if (!data.length) return;
+  const pad = { l: 54, r: 12 };
+  const plotLeft = pad.l, plotRight = W - pad.r, cw = plotRight - plotLeft;
+  const priceTop = 18, priceH = 276, volTop = 294, volH = 0;
+  const rawMin = Math.min(...data.map(p => p.low)), rawMax = Math.max(...data.map(p => p.high));
+  const margin = Math.max((rawMax - rawMin) * .05, rawMax * .002);
+  const priceMin = rawMin - margin, priceMax = rawMax + margin, range = priceMax - priceMin || 1;
+  const step = cw / data.length;
+  const xFor = index => plotLeft + (index + .5) * step;
+  const py = value => priceTop + (priceMax - value) / range * priceH;
+
+  ctx.fillStyle = chartThemeColor('bg');
+  ctx.fillRect(0, 0, W, H);
+  ctx.font = '10px ui-monospace, monospace';
+  for (let i = 0; i <= 4; i++) {
+    const ratio = i / 4, y = priceTop + ratio * priceH;
+    const value = priceMax - ratio * range;
+    drawGridLine(ctx, plotLeft, y, plotRight, y);
+    ctx.fillStyle = chartThemeColor('muted');
+    ctx.textAlign = 'right';
+    ctx.fillText(value.toFixed(2), plotLeft - 5, y + 3);
+  }
+
+  const xIndexes = [...new Set([0, Math.round((data.length - 1) * .25), Math.round((data.length - 1) * .5), Math.round((data.length - 1) * .75), data.length - 1])];
+  xIndexes.forEach((index, tickIndex) => {
+    const x = xFor(index);
+    drawGridLine(ctx, x, priceTop, x, priceTop + priceH);
+    ctx.fillStyle = chartThemeColor('muted');
+    ctx.textAlign = tickIndex === 0 ? 'left' : tickIndex === xIndexes.length - 1 ? 'right' : 'center';
+    ctx.fillText(klineAxisLabel(data[index].date), x, H - 8);
+  });
+
+  const barW = Math.max(2, Math.min(13, step * .62));
+  data.forEach((point, i) => {
+    const x = xFor(i), up = point.close >= point.open;
+    const color = up ? '#f85149' : '#3fb950';
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(x, py(point.high));
+    ctx.lineTo(x, py(point.low));
+    ctx.stroke();
+    const bodyTop = py(Math.max(point.open, point.close));
+    const bodyBottom = py(Math.min(point.open, point.close));
+    ctx.fillStyle = color;
+    ctx.fillRect(x - barW / 2, bodyTop, barW, Math.max(1, bodyBottom - bodyTop));
+  });
+
+  const visibleMaPeriods = KLINE_MA_PERIODS.filter(period => chartState.maVisibility[period]);
+  visibleMaPeriods.forEach(period => drawAverageLine(ctx, chartState[`ma${period}`], xFor, py, KLINE_MA_COLORS[period]));
+  ctx.font = '10px ui-monospace, monospace';
+  ctx.textAlign = 'left';
+  let maLegendX = plotLeft;
+  visibleMaPeriods.forEach(period => {
+    const label = `MA${period}`;
+    ctx.fillStyle = KLINE_MA_COLORS[period];
+    ctx.fillText(label, maLegendX, 11);
+    maLegendX += ctx.measureText(label).width + 12;
+  });
+  // 成交量及其均线已移到副图；保留指标计算状态供副图使用。
+  // drawAverageLine(ctx, chartState.volumeMa5, xFor, vy, '#f0883e');
+  // drawAverageLine(ctx, chartState.volumeMa10, xFor, vy, '#56d364');
+  // 'VOL MA5' / 'VOL MA10' labels are rendered by drawTechnicalChart.
+  // const volumeLegendH = 16;
+  // const volumeBarsTop = volTop + volumeLegendH;
+
+  chartState.layout = { W, H, plotLeft, plotRight, cw, priceTop, priceH, volTop, volH, priceMin, priceMax, xFor, py };
+}
+
+function fundAxisAmount(value) {
+  if (!Number.isFinite(value)) return '--';
+  const absolute = Math.abs(value);
+  const sign = value < 0 ? '-' : '';
+  if (absolute >= 100000000) return `${sign}${(absolute / 100000000).toFixed(1)}亿`;
+  if (absolute >= 10000) return `${sign}${(absolute / 10000).toFixed(0)}万`;
+  return `${sign}${Math.round(absolute)}`;
+}
+
+function drawFundFlowChart(ctx, W, H) {
+  const data = chartState.data;
+  if (!data.length) return;
+  const pad = { l:64, r:12 };
+  const plotLeft = pad.l, plotRight = W - pad.r, cw = plotRight - plotLeft;
+  const priceTop = 24, priceH = 270, volTop = priceTop, volH = priceH;
+  const values = data.flatMap(point => [point.mainNet, point.mainFiveDay]).filter(Number.isFinite);
+  const maxAbs = Math.max(...values.map(Math.abs), 10000) * 1.08;
+  const priceMin = -maxAbs, priceMax = maxAbs, range = maxAbs * 2;
+  const step = cw / data.length;
+  const xFor = index => plotLeft + (index + .5) * step;
+  const py = value => priceTop + (priceMax - value) / range * priceH;
+  const zeroY = py(0);
+
+  ctx.fillStyle = chartThemeColor('bg');
+  ctx.fillRect(0, 0, W, H);
+  ctx.font = '10px ui-monospace, monospace';
+  for (let i = 0; i <= 4; i++) {
+    const ratio = i / 4, y = priceTop + ratio * priceH;
+    const value = priceMax - ratio * range;
+    drawGridLine(ctx, plotLeft, y, plotRight, y);
+    ctx.fillStyle = chartThemeColor('muted');
+    ctx.textAlign = 'right';
+    ctx.fillText(fundAxisAmount(value), plotLeft - 6, y + 3);
+  }
+  ctx.fillStyle = '#f85149';
+  ctx.textAlign = 'left';
+  ctx.fillText('■ 主力净流入', plotLeft, 12);
+  ctx.fillStyle = '#e3b341';
+  ctx.fillText('— 近五日累计', plotLeft + 82, 12);
+
+  const xIndexes = [...new Set([0, Math.round((data.length - 1) * .25), Math.round((data.length - 1) * .5), Math.round((data.length - 1) * .75), data.length - 1])];
+  xIndexes.forEach((index, tickIndex) => {
+    const x = xFor(index);
+    drawGridLine(ctx, x, priceTop, x, priceTop + priceH);
+    ctx.fillStyle = chartThemeColor('muted');
+    ctx.textAlign = tickIndex === 0 ? 'left' : tickIndex === xIndexes.length - 1 ? 'right' : 'center';
+    ctx.fillText(String(data[index].date || '').slice(5), x, H - 8);
+  });
+
+  ctx.strokeStyle = chartThemeColor('subtle');
+  ctx.lineWidth = 1.2;
+  ctx.beginPath();
+  ctx.moveTo(plotLeft, zeroY);
+  ctx.lineTo(plotRight, zeroY);
+  ctx.stroke();
+
+  const barW = Math.max(2, Math.min(14, step * .62));
+  data.forEach((point, index) => {
+    const y = py(point.mainNet);
+    ctx.fillStyle = point.mainNet >= 0 ? '#f85149aa' : '#3fb950aa';
+    ctx.fillRect(xFor(index) - barW / 2, Math.min(y, zeroY), barW, Math.max(1, Math.abs(zeroY - y)));
+  });
+
+  ctx.beginPath();
+  data.forEach((point, index) => {
+    const x = xFor(index), y = py(point.mainFiveDay);
+    index ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
+  });
+  ctx.strokeStyle = '#e3b341';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+
+  chartState.layout = { W, H, plotLeft, plotRight, cw, priceTop, priceH, volTop, volH, priceMin, priceMax, xFor, py };
+}
+
+function technicalLabel(indicator) {
+  return ({volume:'成交量（VOL）',macd:'MACD（12,26,9）',kdj:'KDJ（9,3,3）',rsi:'RSI（14）',boll:'布林带（20,2）',obv:'能量潮（OBV）',atr:'真实波幅均值（ATR14）',cci:'顺势指标（CCI20）'})[indicator] || '技术指标';
+}
+// The secondary panel must share the main chart's x mapping: the minute chart
+// spans edge-to-edge, while K-line style charts place each bar at its slot centre.
+function technicalXMapper(type, length, plotLeft, cw) {
+  const count = Math.max(1, length);
+  if (type === 'minute') return index => plotLeft + (count === 1 ? 0 : index / (count - 1)) * cw;
+  const step = cw / count;
+  return index => plotLeft + (index + .5) * step;
+}
+function technicalPointClose(point) {
+  return Number(chartState.type === 'minute' ? point?.price : point?.close);
+}
+function technicalAxisLabel(point) {
+  if (!point) return '';
+  return chartState.type === 'minute' ? formatTime(point.time) : klineAxisLabel(point.date);
+}
+function technicalValueRange(indicator, series, closes) {
+  const keys = Object.keys(series);
+  const values = keys.flatMap(key => series[key] || []).filter(Number.isFinite);
+  if (indicator === 'boll') values.push(...closes.filter(Number.isFinite));
+  if (!values.length) return null;
+  let min = Math.min(...values), max = Math.max(...values);
+  if (indicator === 'volume') return { min:0, max:Math.max(max * 1.08, 1) };
+  if (indicator === 'rsi') return { min:0, max:100 };
+  // J frequently leaves 0..100, so keep the reference band but never clip J.
+  if (indicator === 'kdj') { min = Math.min(0, min); max = Math.max(100, max); }
+  if (indicator === 'macd') { const absolute = Math.max(Math.abs(min), Math.abs(max), .01); min = -absolute; max = absolute; }
+  const margin = (max - min) * .08 || Math.max(Math.abs(max) * .01, 1);
+  return { min:min - margin, max:max + margin };
+}
+function drawTechnicalChart(ctx, W, H) {
+  const data = chartState.data, s = chartState.technicalSeries || {}, indicator = chartState.indicator;
+  if (!data.length) return null;
+  const minute = chartState.type === 'minute';
+  const plotLeft = 54, plotRight = W - (minute ? 54 : 12), plotTop = 24, plotBottom = H - 30, cw = plotRight - plotLeft, ch = plotBottom - plotTop;
+  const closes = data.map(technicalPointClose);
+  const valueRange = technicalValueRange(indicator, s, closes);
+  if (!valueRange) {
+    ctx.fillStyle = chartThemeColor('bg'); ctx.fillRect(0, 0, W, H);
+    ctx.font = '10px ui-monospace,monospace';
+    ctx.fillStyle = chartThemeColor('text'); ctx.textAlign = 'left'; ctx.fillText(technicalLabel(indicator), plotLeft, 13);
+    ctx.fillStyle = chartThemeColor('muted'); ctx.textAlign = 'center';
+    ctx.fillText(`当前 K 线数量（${data.length} 根）不足以计算 ${technicalLabel(indicator)}`, (plotLeft + plotRight) / 2, (plotTop + plotBottom) / 2 + 4);
+    const layout = { W, H, plotLeft, plotRight, cw, plotTop, plotBottom, priceTop:plotTop, priceH:ch, volTop:plotTop, volH:ch, priceMin:0, priceMax:1, xFor:technicalXMapper(chartState.type, data.length, plotLeft, cw), py:() => (plotTop + plotBottom) / 2 };
+    chartState.layout = layout;
+    return layout;
+  }
+  const { min, max } = valueRange, range = max - min || 1;
+  const xFor = technicalXMapper(chartState.type, data.length, plotLeft, cw);
+  const py = value => plotTop + (max - value) / range * ch;
+  const step = cw / data.length, barW = Math.max(1, Math.min(13, step * .62));
+  const axisText = value => indicator === 'volume' || indicator === 'obv' ? chartVolume(value) : Math.abs(value) >= 1000 ? value.toFixed(0) : value.toFixed(2);
+  ctx.fillStyle = chartThemeColor('bg'); ctx.fillRect(0, 0, W, H); ctx.font = '10px ui-monospace,monospace';
+  for (let i = 0; i <= 4; i++) { const y = plotTop + i * ch / 4; drawGridLine(ctx, plotLeft, y, plotRight, y); ctx.fillStyle = chartThemeColor('muted'); ctx.textAlign = 'right'; ctx.fillText(axisText(max - i * range / 4), plotLeft - 6, y + 3); }
+  const sessionBreak = minute ? findMinuteSessionBreak(data) : null;
+  const sessionX = sessionBreak ? (xFor(sessionBreak.closeIndex) + xFor(sessionBreak.openIndex)) / 2 : null;
+  const ticks = [...new Set([0, Math.round((data.length - 1) * .25), Math.round((data.length - 1) * .5), Math.round((data.length - 1) * .75), data.length - 1])]
+    .filter(index => sessionX == null || Math.abs(xFor(index) - sessionX) > 50);
   ticks.forEach((index, n) => { const x = xFor(index); drawGridLine(ctx, x, plotTop, x, plotBottom); ctx.fillStyle = chartThemeColor('muted'); ctx.textAlign = n === 0 ? 'left' : n === ticks.length - 1 ? 'right' : 'center'; ctx.fillText(technicalAxisLabel(data[index]), x, H - 8); });
   if (sessionX != null) { ctx.save(); ctx.strokeStyle = '#d29922aa'; ctx.setLineDash([3, 3]); ctx.beginPath(); ctx.moveTo(sessionX, plotTop); ctx.lineTo(sessionX, plotBottom); ctx.stroke(); ctx.restore(); }
   ctx.save(); ctx.beginPath(); ctx.rect(plotLeft - barW, plotTop, cw + barW * 2, ch); ctx.clip();
@@ -5379,18 +5827,26 @@ function isLoggedInUser() {
 
 function openMarketStockPreview(stock) {
   if (!stock?.symbol) return;
-  lastQuoteData[stock.symbol] = {
-    name:stock.name || stock.symbol,
-    price:stock.price ?? '',
-    prevClose:'',
-    open:'',
-    chg:null,
-    pct:stock.pct ?? null,
-    high:'',
-    low:'',
-    volume:null,
-    amount:stock.amount ?? null,
-  };
+  const existing = lastQuoteData[stock.symbol];
+  if (!existing) {
+    lastQuoteData[stock.symbol] = {
+      name:stock.name || stock.symbol,
+      price:stock.price ?? '',
+      prevClose:'',
+      open:'',
+      chg:null,
+      pct:stock.pct ?? null,
+      high:'',
+      low:'',
+      volume:null,
+      amount:stock.amount ?? null,
+    };
+  } else {
+    if (stock.name && (!existing.name || existing.name === stock.symbol)) existing.name = stock.name;
+    if (stock.price != null && stock.price !== '' && (existing.price === '' || existing.price == null)) existing.price = stock.price;
+    if (stock.pct != null && existing.pct == null) existing.pct = stock.pct;
+    if (stock.amount != null && existing.amount == null) existing.amount = stock.amount;
+  }
   openModal(stock.symbol);
 }
 
