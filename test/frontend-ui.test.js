@@ -1512,6 +1512,8 @@ test('stock detail chart rendering pipeline keeps all core drawing helpers and p
 
   const polishCss = fs.readFileSync(path.join(__dirname, '..', 'public', 'theme-polish.css'), 'utf8');
   assert.match(polishCss, /\[hidden\]\s*\{\s*display:\s*none\s*!important;\s*\}/);
+  assert.match(polishCss, /#stock-table:not\(\.market-colors-off\) tbody td\.up\s*\{[^}]*color:\s*var\(--ui-up\)\s*!important/);
+  assert.match(polishCss, /#stock-table:not\(\.market-colors-off\) tbody td\.down\s*\{[^}]*color:\s*var\(--ui-down-bright\)\s*!important/);
 
   // Verify openMarketStockPreview does not wipe existing cached quote fields
   const previewStart = mainScript.indexOf('function openMarketStockPreview');

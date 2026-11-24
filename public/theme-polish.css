@@ -610,6 +610,9 @@ html[data-theme] .market-price {
 #stock-table.market-colors-off tbody td.up,
 #stock-table.market-colors-off tbody td.down,
 #stock-table.market-colors-off tbody td.flat { color: var(--ui-text) !important; }
+#stock-table:not(.market-colors-off) tbody td.up { color: var(--ui-up) !important; }
+#stock-table:not(.market-colors-off) tbody td.down { color: var(--ui-down-bright) !important; }
+#stock-table:not(.market-colors-off) tbody td.flat { color: var(--ui-text-muted) !important; }
 
 /* Horizontal alignment across Watchlist search & tool buttons (Desktop only so mobile column layout stays intact) */
 .group-bar {
