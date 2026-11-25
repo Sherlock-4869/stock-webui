@@ -1144,6 +1144,10 @@ html[data-theme] table .flat { color: var(--ui-text-muted) !important; }
 .status-good, html[data-theme] .status-good { color: #3fb950; }
 .status-bad, html[data-theme] .status-bad { color: #f85149; }
 .status-neutral, html[data-theme] .status-neutral { color: var(--ui-text-muted); }
+html[data-theme] .limit-pool-table td.status-good { color: #3fb950 !important; }
+html[data-theme] .limit-pool-table td.status-bad { color: #f85149 !important; }
+html[data-theme] .limit-pool-table td.status-neutral { color: var(--ui-text-muted) !important; }
+.adm-wechat-error { color: var(--ui-down-bright) !important; }
 .board-detail-source-note { color: var(--ui-text-muted); font-size: 11px; }
 
 .refresh-btn,

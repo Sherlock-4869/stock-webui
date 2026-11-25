@@ -141,7 +141,7 @@
         detailEl.innerHTML = `
           <div class="sm-seats-head">
             <strong>任务 #${esc(job.id)}（${esc(job.jobKey)}）投递详情</strong>
-            <small>状态：${esc(job.status)} · 成功 ${job.successCount} / 失败 ${job.failureCount}${job.lastError ? ` · 错误：${esc(job.lastError)}` : ''}</small>
+            <small>状态：<span class="${job.status === 'completed' ? 'status-good' : job.status === 'failed' ? 'status-bad' : 'status-neutral'}">${esc(job.status)}</span> · 成功 <span class="status-good">${job.successCount}</span> / 失败 <span class="${job.failureCount ? 'status-bad' : 'status-neutral'}">${job.failureCount}</span>${job.lastError ? ` · <span class="adm-wechat-error">错误：${esc(job.lastError)}</span>` : ''}</small>
           </div>
           <div class="adm-job-split">
             <div class="adm-preview-box" style="margin:0"><div class="adm-preview-head"><strong>推送消息内容</strong></div><pre>${esc(job.content)}</pre></div>
