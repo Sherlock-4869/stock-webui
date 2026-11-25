@@ -1536,3 +1536,30 @@ test('stock detail chart rendering pipeline keeps all core drawing helpers and p
   assert.equal(ctx.lastQuoteData.sz002463.prevClose, 82.70);
   assert.equal(ctx.lastQuoteData.sz002463.open, 90.66);
 });
+
+test('home watchlist shell removes redundant drag-hint bars and stock detail modal promotes quote strip and sub-chart controls', () => {
+  const marketSection = html.slice(html.indexOf('<section class="app-page active" id="page-market">'), html.indexOf('<section class="app-page" id="page-ipo">'));
+  assert.doesNotMatch(marketSection, /class="sort-note"/);
+  assert.doesNotMatch(marketSection, /class="market-page-note"/);
+  assert.match(marketSection, /class="watchlist-shell"/);
+  assert.match(marketSection, /id="market-more-wrap"/);
+  assert.match(marketSection, /class="group-refresh-controls"/);
+
+  const modalMarkup = html.slice(html.indexOf('<div class="modal-mask" id="modal-mask"'), html.indexOf('<div class="modal-mask" id="board-kline-mask"'));
+  assert.match(modalMarkup, /class="modal stock-detail-modal"/);
+  assert.match(modalMarkup, /class="modal-top-deck"/);
+  assert.ok(modalMarkup.indexOf('id="stats-grid"') < modalMarkup.indexOf('class="tab-bar"'), 'stats-grid must appear in top deck above tab-bar');
+  assert.ok(modalMarkup.indexOf('id="technical-indicator-bar"') < modalMarkup.indexOf('id="indicator-canvas"'), 'technical-indicator-bar must appear directly above indicator-canvas');
+  assert.doesNotMatch(modalMarkup, /滚轮缩放 · 拖动平移/);
+
+  const themeStart = html.indexOf('function chartThemeColor(name)');
+  const themeEnd = html.indexOf('function drawGridLine(', themeStart);
+  assert.ok(themeStart >= 0 && themeEnd > themeStart);
+  for (const skin of ['light', 'paper', 'dark', 'ocean', 'forest', 'violet']) {
+    const skinCtx = { document: { documentElement: { dataset: { theme: ['light', 'paper'].includes(skin) ? 'light' : 'dark', themeSkin: skin } } } };
+    vm.createContext(skinCtx);
+    vm.runInContext(html.slice(themeStart, themeEnd), skinCtx);
+    assert.match(skinCtx.chartThemeColor('bg'), /^#[0-9a-f]{6}$/i);
+    assert.match(skinCtx.chartThemeColor('grid'), /^#[0-9a-f]{6}$/i);
+  }
+});
