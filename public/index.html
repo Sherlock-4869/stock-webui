@@ -1629,16 +1629,17 @@ html[data-theme="light"] .sm-unlock-alert{background:#ffebe9;border-color:#ff818
   <div class="modal stock-detail-modal" id="modal">
     <div class="modal-top-deck">
       <div class="modal-header">
-        <div class="modal-title">
-          <div class="modal-title-row">
-            <div class="modal-name" id="m-name"></div>
-            <div class="modal-sub" id="m-sub"></div>
+        <div class="modal-identity-group">
+          <div class="modal-title">
+            <div class="modal-title-row">
+              <div class="modal-name" id="m-name"></div>
+              <div class="modal-sub" id="m-sub"></div>
+            </div>
           </div>
-          <div class="stock-board-context is-placeholder" id="stock-board-context" aria-live="polite"></div>
-        </div>
-        <div class="modal-price">
-          <div class="price" id="m-price"></div>
-          <div class="chg" id="m-chg"></div>
+          <div class="modal-price">
+            <div class="price" id="m-price"></div>
+            <div class="chg" id="m-chg"></div>
+          </div>
         </div>
         <div class="modal-header-actions">
           <button class="modal-watchlist-btn" id="modal-fund-link" type="button" onclick="openEtfFundMarket()" hidden>查看基金行情</button>
@@ -1646,6 +1647,7 @@ html[data-theme="light"] .sm-unlock-alert{background:#ffebe9;border-color:#ff818
           <button class="modal-watchlist-btn" id="modal-watchlist-btn" type="button" onclick="openWatchlistAddDialog(modalSym)">＋ 加自选</button>
           <button class="modal-close" type="button" onclick="closeModal()" aria-label="关闭">✕</button>
         </div>
+        <div class="stock-board-context is-placeholder" id="stock-board-context" aria-live="polite"></div>
       </div>
       <div class="stats-grid" id="stats-grid"></div>
       <div class="tab-bar">
@@ -3321,6 +3323,9 @@ async function loadStockBoards(sym) {
     if (!response.ok) throw new Error(payload.error || 'stock board request failed');
     if (requestId !== stockBoardRequestId || modalSym !== sym) return;
     renderStockBoardContext(Array.isArray(payload.boards) ? payload.boards : []);
+    if (visibleStockBoards.length && !document.getElementById('quote-chart-panel')?.hidden && chartState.data.length) {
+      renderChart();
+    }
   } catch (error) {
     if (requestId !== stockBoardRequestId || modalSym !== sym) return;
     console.error('loadStockBoards error:', error);
@@ -4008,10 +4013,12 @@ function renderStats(q) {
   const updated = String(q.updatedAt || '').replace(/^(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2}).*$/, '$1-$2-$3 $4:$5');
   const extras = [];
   if (!isIndex) {
-    if (Number.isFinite(Number(q.turnover))) extras.push(['换手率', `${Number(q.turnover).toFixed(2)}%`, '']);
+    const hasTurnover = Number.isFinite(Number(q.turnover));
+    if (hasTurnover) extras.push(['换手率', `${Number(q.turnover).toFixed(2)}%`, '']);
     else if (Number.isFinite(amplitude)) extras.push(['振幅', `${amplitude.toFixed(2)}%`, '']);
     if (Number.isFinite(Number(q.totalMarketCap)) && Number(q.totalMarketCap) > 0) extras.push(['总市值', `${Number(q.totalMarketCap).toFixed(1)}亿`, '']);
     else if (Number.isFinite(Number(q.pe)) && Number(q.pe) > 0) extras.push(['市盈率', Number(q.pe).toFixed(2), '']);
+    else if (hasTurnover && Number.isFinite(amplitude)) extras.push(['振幅', `${amplitude.toFixed(2)}%`, '']);
   }
   const items = isIndex ? [
     ['今开', fmt(q.open), priceTone(q.open)], ['昨收', fmt(q.prevClose), ''],
@@ -4581,8 +4588,8 @@ function setChartViewport(start, end, options = {}) {
   hideChartHoverTooltip();
   updateChartWindow();
   if (options.render !== false) {
-    renderChart();
     updateChartInfo(chartState.data.length - 1);
+    renderChart();
   }
 }
 
@@ -4689,23 +4696,63 @@ function renderFundFlowStats(rows, streak = null) {
   ).join('');
 }
 
+function elementVerticalFootprint(el) {
+  if (!el || el.hidden) return 0;
+  const style = getComputedStyle(el);
+  if (style.display === 'none' || style.position === 'absolute') return 0;
+  return el.offsetHeight + (parseFloat(style.marginTop) || 0) + (parseFloat(style.marginBottom) || 0);
+}
+
+function resolveChartCanvasHeights(defaultMainH = 340, defaultSubH = 148) {
+  const showIndicator = ['minute', 'minuteK', 'kline'].includes(currentTab);
+  if (typeof window === 'undefined' || !chartCanvas?.parentElement) {
+    return { main: defaultMainH, sub: defaultSubH };
+  }
+  if (window.innerWidth <= 640) {
+    return { main: showIndicator ? 248 : 280, sub: 116 };
+  }
+  const modal = document.getElementById('modal');
+  const topDeck = modal?.querySelector('.modal-top-deck');
+  const panel = chartCanvas.parentElement;
+  const panelStyle = getComputedStyle(panel);
+  const panelPadV = (parseFloat(panelStyle.paddingTop) || 0) + (parseFloat(panelStyle.paddingBottom) || 0);
+  const modalMaxH = Math.min(Math.floor(window.innerHeight * 0.95), 960) - 2;
+  const topDeckH = topDeck ? topDeck.offsetHeight : 164;
+  let chromeH = 0;
+  for (const child of panel.children) {
+    if (child === chartCanvas || child === indicatorCanvas) continue;
+    chromeH += elementVerticalFootprint(child);
+  }
+  const available = modalMaxH - topDeckH - panelPadV - chromeH - 6;
+  if (!showIndicator) {
+    return { main: Math.max(240, Math.min(380, available)), sub: defaultSubH };
+  }
+  const nominalTotal = defaultMainH + defaultSubH;
+  if (available >= nominalTotal) return { main: defaultMainH, sub: defaultSubH };
+  const budget = Math.min(nominalTotal, Math.max(316, available));
+  const sub = Math.round(Math.max(106, Math.min(defaultSubH, budget * 0.30)));
+  const main = Math.max(210, Math.min(defaultMainH, budget - sub));
+  return { main, sub };
+}
+
 function prepareChartCanvas() {
   const dpr = window.devicePixelRatio || 1;
   const areaStyle = getComputedStyle(chartCanvas.parentElement);
   const horizontalPadding = parseFloat(areaStyle.paddingLeft) + parseFloat(areaStyle.paddingRight);
   const W = Math.max(280, Math.floor(chartCanvas.parentElement.clientWidth - horizontalPadding));
   const H = 340;
-  const pixelW = Math.round(W * dpr), pixelH = Math.round(H * dpr);
+  const targetH = resolveChartCanvasHeights(H, 148).main;
+  const pixelW = Math.round(W * dpr), pixelH = Math.round(targetH * dpr);
   if (chartCanvas.width !== pixelW || chartCanvas.height !== pixelH) {
     chartCanvas.width = pixelW;
     chartCanvas.height = pixelH;
   }
   chartCanvas.style.width = `${W}px`;
-  chartCanvas.style.height = `${H}px`;
+  chartCanvas.style.height = `${targetH}px`;
   const ctx = chartCanvas.getContext('2d');
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  ctx.clearRect(0, 0, W, H);
-  return { ctx, W, H };
+  ctx.clearRect(0, 0, W, targetH);
+  return { ctx, W, H: targetH };
 }
 
 function prepareIndicatorCanvas() {
@@ -4713,7 +4760,7 @@ function prepareIndicatorCanvas() {
   const areaStyle = getComputedStyle(chartCanvas.parentElement);
   const horizontalPadding = parseFloat(areaStyle.paddingLeft) + parseFloat(areaStyle.paddingRight);
   const W = Math.max(280, Math.floor(chartCanvas.parentElement.clientWidth - horizontalPadding));
-  const H = 148;
+  const H = resolveChartCanvasHeights(340, 148).sub;
   const pixelW = Math.round(W * dpr), pixelH = Math.round(H * dpr);
   if (indicatorCanvas.width !== pixelW || indicatorCanvas.height !== pixelH) { indicatorCanvas.width = pixelW; indicatorCanvas.height = pixelH; }
   indicatorCanvas.style.width = `${W}px`; indicatorCanvas.style.height = `${H}px`;
@@ -4775,7 +4822,7 @@ function drawMinuteChart(ctx, W, H) {
   if (!data.length) return;
   const pad = { l: 54, r: 54 };
   const plotLeft = pad.l, plotRight = W - pad.r, cw = plotRight - plotLeft;
-  const priceTop = 8, priceH = 276, volTop = 284, volH = 0;
+  const priceTop = 10, priceH = Math.max(140, H - priceTop - 24), volTop = priceTop + priceH, volH = 0;
   const prices = data.map(p => p.price);
   const prev = chartState.prevClose;
   let priceMin, priceMax;
@@ -4900,7 +4947,7 @@ function drawKlineChart(ctx, W, H) {
   if (!data.length) return;
   const pad = { l: 54, r: 12 };
   const plotLeft = pad.l, plotRight = W - pad.r, cw = plotRight - plotLeft;
-  const priceTop = 18, priceH = 276, volTop = 294, volH = 0;
+  const priceTop = 18, priceH = Math.max(140, H - priceTop - 24), volTop = priceTop + priceH, volH = 0;
   const rawMin = Math.min(...data.map(p => p.low)), rawMax = Math.max(...data.map(p => p.high));
   const margin = Math.max((rawMax - rawMin) * .05, rawMax * .002);
   const priceMin = rawMin - margin, priceMax = rawMax + margin, range = priceMax - priceMin || 1;
@@ -4980,7 +5027,7 @@ function drawFundFlowChart(ctx, W, H) {
   if (!data.length) return;
   const pad = { l:64, r:12 };
   const plotLeft = pad.l, plotRight = W - pad.r, cw = plotRight - plotLeft;
-  const priceTop = 24, priceH = 270, volTop = priceTop, volH = priceH;
+  const priceTop = 22, priceH = Math.max(140, H - priceTop - 24), volTop = priceTop, volH = priceH;
   const values = data.flatMap(point => [point.mainNet, point.mainFiveDay]).filter(Number.isFinite);
   const maxAbs = Math.max(...values.map(Math.abs), 10000) * 1.08;
   const priceMin = -maxAbs, priceMax = maxAbs, range = maxAbs * 2;

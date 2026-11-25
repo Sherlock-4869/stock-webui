@@ -1548,9 +1548,50 @@ test('home watchlist shell removes redundant drag-hint bars and stock detail mod
   const modalMarkup = html.slice(html.indexOf('<div class="modal-mask" id="modal-mask"'), html.indexOf('<div class="modal-mask" id="board-kline-mask"'));
   assert.match(modalMarkup, /class="modal stock-detail-modal"/);
   assert.match(modalMarkup, /class="modal-top-deck"/);
+  assert.match(modalMarkup, /class="modal-identity-group"/);
+  assert.ok(modalMarkup.indexOf('class="modal-header-actions"') < modalMarkup.indexOf('id="stock-board-context"'), 'stock-board-context must span full width below header row 1');
   assert.ok(modalMarkup.indexOf('id="stats-grid"') < modalMarkup.indexOf('class="tab-bar"'), 'stats-grid must appear in top deck above tab-bar');
   assert.ok(modalMarkup.indexOf('id="technical-indicator-bar"') < modalMarkup.indexOf('id="indicator-canvas"'), 'technical-indicator-bar must appear directly above indicator-canvas');
   assert.doesNotMatch(modalMarkup, /滚轮缩放 · 拖动平移/);
+
+  const polishCss = fs.readFileSync(path.join(__dirname, '..', 'public', 'theme-polish.css'), 'utf8');
+  assert.match(polishCss, /html\[data-theme\]\s*\.stats-grid\[data-cols="8"\]\s*\{\s*grid-template-columns:\s*repeat\(8,\s*minmax\(0,\s*1fr\)\)/);
+  assert.match(polishCss, /html\[data-theme\]\s*\.stats-grid\[data-cols="7"\]\s*\{\s*grid-template-columns:\s*repeat\(7,\s*minmax\(0,\s*1fr\)\)/);
+  assert.match(polishCss, /\.modal-body-scroll\s*\{[\s\S]*?scrollbar-width:\s*none;/);
+
+  const heightStart = html.indexOf('function elementVerticalFootprint(');
+  const heightEnd = html.indexOf('function prepareChartCanvas()', heightStart);
+  assert.ok(heightStart >= 0 && heightEnd > heightStart, 'adaptive chart height helpers must exist');
+  const makeHeightCtx = (innerHeight, tab = 'minute') => {
+    const fakePanel = {
+      children: [
+        { hidden: false, offsetHeight: 28 },
+        { hidden: false, offsetHeight: 31 },
+        { hidden: false, offsetHeight: 28 },
+      ],
+    };
+    const ctx = {
+      currentTab: tab,
+      chartCanvas: { parentElement: fakePanel },
+      indicatorCanvas: {},
+      window: { innerWidth: 1280, innerHeight },
+      document: {
+        getElementById: () => ({ querySelector: () => ({ offsetHeight: 162 }) }),
+      },
+      getComputedStyle: el => el === fakePanel
+        ? { paddingTop: '10px', paddingBottom: '12px', display: 'block', position: 'static', marginTop: '0px', marginBottom: '0px' }
+        : { display: 'block', position: 'static', marginTop: '0px', marginBottom: '6px' },
+    };
+    vm.createContext(ctx);
+    vm.runInContext(html.slice(heightStart, heightEnd), ctx);
+    return ctx.resolveChartCanvasHeights(340, 148);
+  };
+  const compactLaptop = makeHeightCtx(760, 'minute');
+  const modalMax760 = Math.floor(760 * 0.95) - 2;
+  assert.ok(162 + 22 + (34 + 37 + 34) + compactLaptop.main + compactLaptop.sub <= modalMax760, 'chart and sub-chart must fit compact laptop modal height without overflow');
+  assert.ok(compactLaptop.main >= 210 && compactLaptop.sub >= 106);
+  const desktopTall = makeHeightCtx(1040, 'minute');
+  assert.equal(desktopTall.main + desktopTall.sub, 340 + 148);
 
   const themeStart = html.indexOf('function chartThemeColor(name)');
   const themeEnd = html.indexOf('function drawGridLine(', themeStart);
