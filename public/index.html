@@ -5530,7 +5530,7 @@ function showChartHoverTooltip(event, index) {
 function showIndicatorHoverTooltip(event, index) {
   const detail = chartIndicatorTooltipDetail(index);
   if (!detail || !chartHoverTooltip) return;
-  chartHoverTooltip.innerHTML = `<div class="chart-tooltip-title">${escapeHtml(detail.title || '--')}</div><div class="chart-tooltip-grid">${detail.rows.map(([label,value,tone]) => `<div class="chart-tooltip-item"><b>${escapeHtml(label)}</b><strong>${escapeHtml(value)}</strong></div>`).join('')}</div>`;
+  chartHoverTooltip.innerHTML = `<div class="chart-tooltip-title">${escapeHtml(detail.title || '--')}</div><div class="chart-tooltip-grid">${detail.rows.map(([label,value,tone]) => `<div class="chart-tooltip-item"><b>${escapeHtml(label)}</b><strong class="${tone === 'up' || tone === 'down' ? tone : ''}">${escapeHtml(value)}</strong></div>`).join('')}</div>`;
   chartHoverTooltip.classList.add('visible'); chartHoverTooltip.setAttribute('aria-hidden', 'false');
   const panelRect = document.getElementById('quote-chart-panel').getBoundingClientRect();
   const localX = event.clientX - panelRect.left, localY = event.clientY - panelRect.top;

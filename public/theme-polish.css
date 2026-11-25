@@ -1993,6 +1993,22 @@ html[data-theme] .stat-item {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+.chart-tooltip-item strong.up,
+html[data-theme] .chart-tooltip-item strong.up { color: var(--ui-up) !important; }
+.chart-tooltip-item strong.down,
+html[data-theme] .chart-tooltip-item strong.down { color: var(--ui-down-bright) !important; }
+.chart-hover-tooltip,
+html[data-theme] .chart-hover-tooltip {
+  padding: 11px 12px;
+  border-color: var(--ui-border-strong);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--ui-surface) 94%, #000 6%);
+  box-shadow: 0 14px 34px rgba(0, 0, 0, .34), 0 0 0 1px rgba(255, 255, 255, .025);
+}
+.chart-tooltip-title,
+html[data-theme] .chart-tooltip-title { margin-bottom: 7px; color: var(--ui-text) !important; }
+.chart-tooltip-grid { gap: 5px 14px; }
+.chart-tooltip-item b { color: var(--ui-text-muted); }
 
 /* Modal Tab Navigation Bar */
 .tab-bar,
