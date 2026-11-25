@@ -899,6 +899,14 @@ html[data-theme].metrics-scroll #stock-table tbody tr:hover td:last-child {
 .down, html[data-theme] .down, html[data-theme] .metric-value.down, .workbench-negative { color: var(--ui-down-bright); }
 .flat, .workbench-muted { color: var(--ui-text-muted); }
 
+/* Table cell rules above intentionally set a surface text color. Restore the
+   semantic market color for every table-based ranking and flow view. The
+   watchlist's .market-colors-off selector has the stronger ID specificity and
+   therefore remains authoritative when the user disables colors. */
+html[data-theme] table .up { color: var(--ui-up) !important; }
+html[data-theme] table .down { color: var(--ui-down-bright) !important; }
+html[data-theme] table .flat { color: var(--ui-text-muted) !important; }
+
 /* Administrative status colors use semantic health meaning, independent of
    the market up/down palette. */
 .status-good, html[data-theme] .status-good { color: #3fb950; }
