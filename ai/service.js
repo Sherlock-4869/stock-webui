@@ -127,9 +127,8 @@ function validModelInput(body, { requireKey = true } = {}) {
   if (!name || !modelName || !baseUrl) throw Object.assign(new Error('模型名称、模型标识和 Base URL 均不能为空'), { statusCode:400 });
   let parsed;
   try { parsed = new URL(baseUrl); } catch (_) { throw Object.assign(new Error('Base URL 格式不正确'), { statusCode:400 }); }
-  const loopback = ['localhost', '127.0.0.1', '::1'].includes(parsed.hostname);
-  if (!['https:', 'http:'].includes(parsed.protocol) || (parsed.protocol === 'http:' && !loopback)) {
-    throw Object.assign(new Error('Base URL 必须使用 HTTPS；本机兼容服务可使用 HTTP'), { statusCode:400 });
+  if (!['https:', 'http:'].includes(parsed.protocol)) {
+    throw Object.assign(new Error('Base URL 仅支持 HTTP 或 HTTPS'), { statusCode:400 });
   }
   if (requireKey && !apiKey) throw Object.assign(new Error('API Key 不能为空'), { statusCode:400 });
   if (apiKey.length > 2000) throw Object.assign(new Error('API Key 长度不正确'), { statusCode:400 });
@@ -174,8 +173,8 @@ function validModelCatalogInput(body) {
   let parsed;
   try { parsed = new URL(baseUrl); } catch (_) { throw Object.assign(new Error('Base URL 格式不正确'), { statusCode:400 }); }
   if (parsed.username || parsed.password || parsed.hash) throw Object.assign(new Error('Base URL 不能包含账号信息或片段'), { statusCode:400 });
-  if (!['https:', 'http:'].includes(parsed.protocol) || (parsed.protocol === 'http:' && !isLoopbackHostname(parsed.hostname))) {
-    throw Object.assign(new Error('模型目录接口必须使用 HTTPS；本机兼容服务可使用 HTTP'), { statusCode:400 });
+  if (!['https:', 'http:'].includes(parsed.protocol)) {
+    throw Object.assign(new Error('模型目录接口仅支持 HTTP 或 HTTPS'), { statusCode:400 });
   }
   return { baseUrl, apiKey };
 }

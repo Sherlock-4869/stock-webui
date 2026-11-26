@@ -55,7 +55,7 @@ test('model catalog validation safely normalizes OpenAI-compatible choices', () 
     modelCatalogModels({ data:[{ id:'gpt-catalog' }, { id:'gpt-catalog' }, { model:'reasoning-model' }, { id:'bad\nmodel' }] }),
     ['gpt-catalog', 'reasoning-model'],
   );
-  assert.throws(() => validModelCatalogInput({ baseUrl:'http://example.test/v1', apiKey:'catalog-secret' }), /必须使用 HTTPS/);
+  assert.deepEqual(validModelCatalogInput({ baseUrl:'http://example.test/v1', apiKey:'catalog-secret' }), { baseUrl:'http://example.test/v1', apiKey:'catalog-secret' });
   assert.throws(() => validModelCatalogInput({ baseUrl:'https://user:pass@example.test/v1', apiKey:'catalog-secret' }), /不能包含账号信息/);
 });
 

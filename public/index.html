@@ -1143,10 +1143,10 @@ html[data-theme="light"] .sm-unlock-alert{background:#ffebe9;border-color:#ff818
       <h3 id="admin-ai-model-form-title">配置全局模型</h3><p class="admin-ai-copy">在此配置的模型将作为网站默认模型，供未配置个人模型且已获权限的用户使用。支持 OpenAI 兼容的 Chat Completions 协议。</p>
       <input id="admin-ai-model-id" type="hidden">
       <div class="form-row"><label for="admin-ai-model-name">配置名称</label><input class="form-input" id="admin-ai-model-name" maxlength="100" required placeholder="例如：生产模型"></div>
-      <div class="form-row"><label for="admin-ai-model-model">模型标识</label><input class="form-input" id="admin-ai-model-model" maxlength="160" required placeholder="例如：gpt-4.1-mini"></div>
-      <div class="form-row"><label for="admin-ai-model-url">Base URL</label><input class="form-input" id="admin-ai-model-url" type="url" maxlength="500" required placeholder="https://api.openai.com/v1"></div>
+      <div class="form-row"><label for="admin-ai-model-model">模型标识</label><input class="form-input" id="admin-ai-model-model" list="admin-ai-model-catalog" maxlength="160" required placeholder="先测试连接后选择，或手动输入"><datalist id="admin-ai-model-catalog"></datalist></div>
+      <div class="form-row"><label for="admin-ai-model-url">Base URL</label><input class="form-input" id="admin-ai-model-url" type="url" maxlength="500" required placeholder="https://api.openai.com/v1 或 http://127.0.0.1:11434/v1"></div>
       <div class="form-row"><label for="admin-ai-model-key">API Key</label><input class="form-input" id="admin-ai-model-key" type="password" maxlength="2000" placeholder="新增时必填；编辑时留空则保持不变"></div>
-      <div class="form-row model-connection-test"><div class="model-catalog-head"><label>连接测试</label><button class="dialog-btn model-catalog-load" id="admin-ai-model-test" type="button" onclick="testAiModelConnection('admin')">测试连接</button></div><p class="model-catalog-hint">填写 Base URL 和 API Key 后测试连接与权限；可用模型的获取和本次选择在 <strong>AI 问股</strong> 页完成。</p></div>
+      <div class="form-row model-connection-test"><div class="model-catalog-head"><label>连接测试</label><button class="dialog-btn model-catalog-load" id="admin-ai-model-test" type="button" onclick="testAiModelConnection('admin')">测试连接</button></div><p class="model-catalog-hint">填写 Base URL 和 API Key 后测试连接与权限，成功后可从返回的模型列表中选择。</p></div>
       <label class="admin-site-active"><input id="admin-ai-model-active" type="checkbox" checked> 设为可用模型</label>
       <div class="admin-site-status" id="admin-ai-model-status" aria-live="polite"></div>
       <div class="admin-site-form-actions"><button class="dialog-btn primary" id="admin-ai-model-save" type="submit">保存模型</button><button class="dialog-btn" type="button" onclick="resetAiModelForm()">清空</button></div>
@@ -1165,10 +1165,10 @@ html[data-theme="light"] .sm-unlock-alert{background:#ffebe9;border-color:#ff818
       <h3 id="user-ai-model-form-title">配置我的模型</h3><p class="admin-ai-copy">支持 OpenAI 兼容的 Chat Completions 协议。您的 API 密钥将加密存储，仅您可见。</p>
       <input id="user-ai-model-id" type="hidden">
       <div class="form-row"><label for="user-ai-model-name">配置名称</label><input class="form-input" id="user-ai-model-name" maxlength="100" required placeholder="例如：我的 GPT-4"></div>
-      <div class="form-row"><label for="user-ai-model-model-name">模型名称</label><input class="form-input" id="user-ai-model-model-name" maxlength="160" required placeholder="例如：gpt-4"></div>
-      <div class="form-row"><label for="user-ai-model-base-url">Base URL</label><input class="form-input" id="user-ai-model-base-url" type="url" maxlength="500" required placeholder="例如：https://api.openai.com/v1"></div>
+      <div class="form-row"><label for="user-ai-model-model-name">模型名称</label><input class="form-input" id="user-ai-model-model-name" list="user-ai-model-catalog" maxlength="160" required placeholder="先测试连接后选择，或手动输入"><datalist id="user-ai-model-catalog"></datalist></div>
+      <div class="form-row"><label for="user-ai-model-base-url">Base URL</label><input class="form-input" id="user-ai-model-base-url" type="url" maxlength="500" required placeholder="例如：https://api.openai.com/v1 或 http://127.0.0.1:11434/v1"></div>
       <div class="form-row"><label for="user-ai-model-api-key">API Key</label><input class="form-input" id="user-ai-model-api-key" type="password" maxlength="2000" required placeholder="sk-..."></div>
-      <div class="form-row model-connection-test"><div class="model-catalog-head"><label>连接测试</label><button class="dialog-btn model-catalog-load" id="user-ai-model-test" type="button" onclick="testAiModelConnection('user')">测试连接</button></div><p class="model-catalog-hint">填写 Base URL 和 API Key 后测试连接与权限；可用模型的获取和本次选择在 <strong>AI 问股</strong> 页完成。</p></div>
+      <div class="form-row model-connection-test"><div class="model-catalog-head"><label>连接测试</label><button class="dialog-btn model-catalog-load" id="user-ai-model-test" type="button" onclick="testAiModelConnection('user')">测试连接</button></div><p class="model-catalog-hint">填写 Base URL 和 API Key 后测试连接与权限，成功后可从返回的模型列表中选择。</p></div>
       <div class="form-row"><label class="admin-site-active"><input id="user-ai-model-active" type="checkbox" checked> 启用此模型</label></div>
       <div class="admin-site-status" id="user-ai-model-status" aria-live="polite"></div>
       <div class="admin-site-form-actions"><button class="dialog-btn primary" id="user-ai-model-save" type="submit">保存模型</button><button class="dialog-btn" type="button" onclick="resetUserAiModelForm()">清空</button></div>
@@ -9985,8 +9985,8 @@ function setAdminAiStatus(message = '', error = false) {
 
 function aiModelConnectionControls(scope) {
   return {
-    admin:{ baseUrl:'admin-ai-model-url', apiKey:'admin-ai-model-key', button:'admin-ai-model-test', endpoint:'/api/admin/ai/model-catalog', setStatus:setAdminAiStatus },
-    user:{ baseUrl:'user-ai-model-base-url', apiKey:'user-ai-model-api-key', button:'user-ai-model-test', endpoint:'/api/ai/model-catalog', setStatus:setUserAiStatus },
+    admin:{ baseUrl:'admin-ai-model-url', apiKey:'admin-ai-model-key', modelInput:'admin-ai-model-model', catalog:'admin-ai-model-catalog', button:'admin-ai-model-test', endpoint:'/api/admin/ai/model-catalog', setStatus:setAdminAiStatus },
+    user:{ baseUrl:'user-ai-model-base-url', apiKey:'user-ai-model-api-key', modelInput:'user-ai-model-model-name', catalog:'user-ai-model-catalog', button:'user-ai-model-test', endpoint:'/api/ai/model-catalog', setStatus:setUserAiStatus },
   }[scope] || null;
 }
 
@@ -10001,6 +10001,10 @@ async function testAiModelConnection(scope) {
     const payload = await apiRequest(controls.endpoint, { method:'POST', body:JSON.stringify({ baseUrl, apiKey }) });
     const models = Array.isArray(payload.models) ? payload.models.filter(model => typeof model === 'string' && model) : [];
     if (!models.length) throw new Error('接口没有返回可用模型');
+    const catalog = document.getElementById(controls.catalog);
+    if (catalog) { catalog.replaceChildren(...models.map(model => { const option = document.createElement('option'); option.value = model; return option; })); }
+    const modelInput = document.getElementById(controls.modelInput);
+    if (modelInput && !modelInput.value) modelInput.value = models[0];
     controls.setStatus(`连接成功，可获取 ${models.length} 个模型`);
   } catch (error) { controls.setStatus(error.message, true); }
   finally { setButtonBusy(controls.button, false, ''); }
