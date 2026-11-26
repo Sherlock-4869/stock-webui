@@ -1143,7 +1143,7 @@ html[data-theme="light"] .sm-unlock-alert{background:#ffebe9;border-color:#ff818
       <h3 id="admin-ai-model-form-title">配置全局模型</h3><p class="admin-ai-copy">在此配置的模型将作为网站默认模型，供未配置个人模型且已获权限的用户使用。支持 OpenAI 兼容的 Chat Completions 协议。</p>
       <input id="admin-ai-model-id" type="hidden">
       <div class="form-row"><label for="admin-ai-model-name">配置名称</label><input class="form-input" id="admin-ai-model-name" maxlength="100" required placeholder="例如：生产模型"></div>
-      <div class="form-row"><label for="admin-ai-model-model">模型标识</label><input class="form-input" id="admin-ai-model-model" list="admin-ai-model-catalog" maxlength="160" required placeholder="先测试连接后选择，或手动输入"><datalist id="admin-ai-model-catalog"></datalist></div>
+      <div class="form-row"><label for="admin-ai-model-model">模型标识</label><select class="form-input" id="admin-ai-model-model" required><option value="">请先测试连接并选择模型</option></select></div>
       <div class="form-row"><label for="admin-ai-model-url">Base URL</label><input class="form-input" id="admin-ai-model-url" type="url" maxlength="500" required placeholder="https://api.openai.com/v1 或 http://127.0.0.1:11434/v1"></div>
       <div class="form-row"><label for="admin-ai-model-key">API Key</label><input class="form-input" id="admin-ai-model-key" type="password" maxlength="2000" placeholder="新增时必填；编辑时留空则保持不变"></div>
       <div class="form-row model-connection-test"><div class="model-catalog-head"><label>连接测试</label><button class="dialog-btn model-catalog-load" id="admin-ai-model-test" type="button" onclick="testAiModelConnection('admin')">测试连接</button></div><p class="model-catalog-hint">填写 Base URL 和 API Key 后测试连接与权限，成功后可从返回的模型列表中选择。</p></div>
@@ -1165,7 +1165,7 @@ html[data-theme="light"] .sm-unlock-alert{background:#ffebe9;border-color:#ff818
       <h3 id="user-ai-model-form-title">配置我的模型</h3><p class="admin-ai-copy">支持 OpenAI 兼容的 Chat Completions 协议。您的 API 密钥将加密存储，仅您可见。</p>
       <input id="user-ai-model-id" type="hidden">
       <div class="form-row"><label for="user-ai-model-name">配置名称</label><input class="form-input" id="user-ai-model-name" maxlength="100" required placeholder="例如：我的 GPT-4"></div>
-      <div class="form-row"><label for="user-ai-model-model-name">模型名称</label><input class="form-input" id="user-ai-model-model-name" list="user-ai-model-catalog" maxlength="160" required placeholder="先测试连接后选择，或手动输入"><datalist id="user-ai-model-catalog"></datalist></div>
+      <div class="form-row"><label for="user-ai-model-model-name">模型名称</label><select class="form-input" id="user-ai-model-model-name" required><option value="">请先测试连接并选择模型</option></select></div>
       <div class="form-row"><label for="user-ai-model-base-url">Base URL</label><input class="form-input" id="user-ai-model-base-url" type="url" maxlength="500" required placeholder="例如：https://api.openai.com/v1 或 http://127.0.0.1:11434/v1"></div>
       <div class="form-row"><label for="user-ai-model-api-key">API Key</label><input class="form-input" id="user-ai-model-api-key" type="password" maxlength="2000" required placeholder="sk-..."></div>
       <div class="form-row model-connection-test"><div class="model-catalog-head"><label>连接测试</label><button class="dialog-btn model-catalog-load" id="user-ai-model-test" type="button" onclick="testAiModelConnection('user')">测试连接</button></div><p class="model-catalog-hint">填写 Base URL 和 API Key 后测试连接与权限，成功后可从返回的模型列表中选择。</p></div>
@@ -10001,8 +10001,11 @@ async function testAiModelConnection(scope) {
     const payload = await apiRequest(controls.endpoint, { method:'POST', body:JSON.stringify({ baseUrl, apiKey }) });
     const models = Array.isArray(payload.models) ? payload.models.filter(model => typeof model === 'string' && model) : [];
     if (!models.length) throw new Error('接口没有返回可用模型');
-    const catalog = document.getElementById(controls.catalog);
-    if (catalog) { catalog.replaceChildren(...models.map(model => { const option = document.createElement('option'); option.value = model; return option; })); }
+    const catalog = document.getElementById(controls.modelInput);
+    if (catalog) {
+      catalog.replaceChildren(new Option('请选择模型', ''), ...models.map(model => new Option(model, model)));
+      catalog.value = models[0];
+    }
     const modelInput = document.getElementById(controls.modelInput);
     if (modelInput && !modelInput.value) modelInput.value = models[0];
     controls.setStatus(`连接成功，可获取 ${models.length} 个模型`);
@@ -10034,11 +10037,21 @@ function renderAdminAiModels() {
   });
 }
 
+function setAiModelFormSelection(id, value) {
+  const select = document.getElementById(id);
+  if (!select) return;
+  const modelValue = String(value || '');
+  if (modelValue && !Array.from(select.options).some(option => option.value === modelValue)) {
+    select.add(new Option(modelValue, modelValue));
+  }
+  select.value = modelValue;
+}
+
 function editAiModel(id) {
   const model = adminAiModels.find(item => String(item.id) === String(id)); if (!model) return;
   document.getElementById('admin-ai-model-id').value = model.id;
   document.getElementById('admin-ai-model-name').value = model.name || '';
-  document.getElementById('admin-ai-model-model').value = model.modelName || '';
+  setAiModelFormSelection('admin-ai-model-model', model.modelName);
   document.getElementById('admin-ai-model-url').value = model.baseUrl || '';
   document.getElementById('admin-ai-model-key').value = ''; document.getElementById('admin-ai-model-key').required = false;
   document.getElementById('admin-ai-model-active').checked = model.isActive === true;
@@ -10144,7 +10157,7 @@ function editUserAiModel(id) {
   const model = userAiModels.find(item => String(item.id) === String(id)); if (!model) return;
   document.getElementById('user-ai-model-id').value = model.id;
   document.getElementById('user-ai-model-name').value = model.name || '';
-  document.getElementById('user-ai-model-model-name').value = model.modelName || '';
+  setAiModelFormSelection('user-ai-model-model-name', model.modelName);
   document.getElementById('user-ai-model-base-url').value = model.baseUrl || '';
   document.getElementById('user-ai-model-api-key').value = ''; document.getElementById('user-ai-model-api-key').required = false;
   document.getElementById('user-ai-model-active').checked = model.isActive === true;
