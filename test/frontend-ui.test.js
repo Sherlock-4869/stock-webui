@@ -1604,3 +1604,22 @@ test('home watchlist shell removes redundant drag-hint bars and stock detail mod
     assert.match(skinCtx.chartThemeColor('grid'), /^#[0-9a-f]{6}$/i);
   }
 });
+
+test('minimalist obsidian and gallery palettes keep matte flat backgrounds synchronized across all pages', () => {
+  const polishCss = fs.readFileSync(path.join(__dirname, '..', 'public', 'theme-polish.css'), 'utf8');
+  assert.doesNotMatch(polishCss, /radial-gradient\(/);
+  assert.match(polishCss, /:root\s*\{[\s\S]*?--ui-bg:\s*#090a0d;[\s\S]*?--ui-bg-ambient:\s*none;/);
+  assert.match(polishCss, /html\[data-theme="light"\]\s*\{[\s\S]*?--ui-bg:\s*#f5f6f8;[\s\S]*?--ui-bg-ambient:\s*none;/);
+  assert.match(polishCss, /html\[data-theme-skin\]\s*body\s*\{[\s\S]*?background:\s*var\(--ui-bg\);[\s\S]*?background-image:\s*none;/);
+
+  assert.match(html, /<meta name="theme-color" content="#090a0d">/);
+  assert.match(html, /THEME_META_COLORS\s*=\s*\{\s*light:'#f5f6f8',\s*paper:'#f4efe6',\s*dark:'#090a0d',\s*ocean:'#060d14',\s*forest:'#070f0c',\s*violet:'#0b0911'\s*\}/);
+
+  for (const page of ['float.html', 'note.html', 'reference.html', 'pip.html']) {
+    const pageHtml = fs.readFileSync(path.join(__dirname, '..', 'public', page), 'utf8');
+    assert.match(pageHtml, /<meta name="theme-color" content="#090a0d">/, `${page} meta theme-color must match obsidian dark base`);
+    assert.match(pageHtml, /dataset\.themeSkin\s*=/, `${page} must synchronize data-theme-skin`);
+    assert.match(pageHtml, /#090a0d/, `${page} must define obsidian dark background`);
+    assert.match(pageHtml, /#f5f6f8/, `${page} must define gallery light background`);
+  }
+});
