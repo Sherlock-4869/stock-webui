@@ -49,3 +49,13 @@ test('mainland breadth reads per-market index aggregate fields instead of crawli
   assert.match(fetchSection, /f113,f114,f115/);
   assert.match(fetchSection, /missing/, 'per-market gaps must be reported, not silently summed');
 });
+
+test('market overview exposes minute turnover and main-flow curve sources', () => {
+  const source = fs.readFileSync(require.resolve('../server'), 'utf-8');
+  assert.match(source, /fetchMarketTurnover/);
+  assert.match(source, /fields2:'f51,f52,f53,f54,f55,f56,f57'/);
+  assert.match(source, /curves:\{ turnover, mainNet \}/);
+  const html = fs.readFileSync(require.resolve('../public/index.html'), 'utf-8');
+  assert.match(html, /market-overview-curves/);
+  assert.match(html, /marketCurveSvg/);
+});

@@ -2250,6 +2250,51 @@ function latestMarketFlowPoint(rows) {
   return points.length ? points[points.length - 1] : null;
 }
 
+function parseMarketTurnoverPayload(payload) {
+  const rows = (payload?.data?.klines || []).map(line => {
+    const fields = String(line).split(',');
+    const time = String(fields[0] || '').trim();
+    // f56 is volume and f57 is the bar turnover amount. The line starts at f51.
+    const amount = numberOrNull(fields[6]);
+    return time && amount != null ? { time, amount } : null;
+  }).filter(Boolean);
+  if (!rows.length) throw new Error('Market turnover intraday is empty');
+  return rows;
+}
+
+async function fetchMarketTurnover(secid) {
+  const payload = await requestEastmoneyFlowJson('/api/qt/stock/kline/get', {
+    secid, klt:'1', fqt:'1', beg:'0', end:'20500101', lmt:'240',
+    fields1:'f1,f2,f3,f4,f5,f6', fields2:'f51,f52,f53,f54,f55,f56,f57',
+  });
+  return parseMarketTurnoverPayload(payload);
+}
+
+async function loadMarketOverviewCurves(force = false, turnoverSecids = ['1.000001', '0.399106'], flowSecids = ['1.000001', '0.399001']) {
+  const [turnoverResult, flowResult] = await Promise.allSettled([
+    Promise.all(turnoverSecids.map(secid => fetchMarketTurnover(secid))),
+    Promise.all(flowSecids.map(secid => loadCapitalFlowIntraday(secid, force).then(value => value.data))),
+  ]);
+  const unavailable = [];
+  let turnover = [];
+  if (turnoverResult.status === 'fulfilled') {
+    const byTime = new Map();
+    turnoverResult.value.flat().forEach(point => byTime.set(point.time, (byTime.get(point.time) || 0) + point.amount));
+    let running = 0;
+    turnover = [...byTime.entries()].sort(([left], [right]) => left.localeCompare(right)).map(([time, amount]) => {
+      running += amount;
+      return { time, value:running };
+    });
+  } else unavailable.push('成交额曲线');
+  let mainNet = [];
+  if (flowResult.status === 'fulfilled') {
+    mainNet = mergeFlowSeries(flowResult.value, 'time')
+      .filter(point => Number.isFinite(Number(point.mainNet)))
+      .map(point => ({ time:point.time, value:Number(point.mainNet) }));
+  } else unavailable.push('主力流入曲线');
+  return { curves:{ turnover, mainNet }, unavailable };
+}
+
 // 涨跌家数改用指数行情自带的聚合字段（f113 涨 / f114 跌 / f115 平）。
 // 之前按 clist 翻页统计全市场需要约 60 次请求，正好卡在 push2 的每 IP 限流阈值上，
 // 会被中途断开而给出偏低的数字；指数字段是上游算好的全市场聚合，只需每个市场 1 次请求。
@@ -2318,12 +2363,16 @@ async function fetchMainlandMarketOverview(code, force = false, aggregate = true
   if (code === '000001' && aggregate) {
     // 上海综合指数覆盖沪市；深证综指覆盖深市主板和创业板。
     // 不要使用深证成指（399001）：它只有成分股，f113/f114 会漏掉大部分深市股票。
-    const [parts, pools, marketBreadth] = await Promise.all([
+    const [parts, pools, marketBreadth, curvesResult] = await Promise.all([
       Promise.all(MAINLAND_MARKET_BREADTH_CODES.map(item => fetchMainlandMarketOverview(item, force, false))),
       loadLimitPools(force).catch(() => null),
       loadMainlandMarketBreadth(force).catch(error => {
         console.error(`Mainland market breadth error (${error.message})`);
         return null;
+      }),
+      loadMarketOverviewCurves(force).catch(error => {
+        console.error(`Mainland market curves error (${error.message})`);
+        return { curves:{ turnover:[], mainNet:[] }, unavailable:['成交额曲线','主力流入曲线'] };
       }),
     ]);
     const sum = (path) => parts.reduce((total, item) => total + (Number(path(item)) || 0), 0);
@@ -2342,12 +2391,14 @@ async function fetchMainlandMarketOverview(code, force = false, aggregate = true
       breadth:{ ...(marketBreadth || fallbackBreadth), limitUp:pools?.limitUp?.total ?? sum(item => item.breadth.limitUp), limitDown:pools?.limitDown?.total ?? sum(item => item.breadth.limitDown) },
       trading:marketBreadth?.trading || { volume:sum(item => item.trading.volume), amount:sum(item => item.trading.amount), totalMarketCap:sum(item => item.trading.totalMarketCap), floatMarketCap:sum(item => item.trading.floatMarketCap) },
       funds:{ combined, markets:flows },
+      curves:curvesResult.curves,
       unavailable:[...new Set([
         ...parts.flatMap(item => item.unavailable || []),
         marketBreadth ? '' : '沪深涨跌家数',
         ...breadthMissing.map(name => `${name}涨跌家数`),
+        ...(curvesResult.unavailable || []),
       ].filter(Boolean))],
-      partial:parts.some(item => item.partial) || !marketBreadth || Boolean(marketBreadth?.partial),
+      partial:parts.some(item => item.partial) || !marketBreadth || Boolean(marketBreadth?.partial) || Boolean(curvesResult.unavailable?.length),
       stale:parts.some(item => item.stale) || Boolean(marketBreadth?.stale), fetchedAt:Date.now(),
       includedMarkets:['沪市（含科创板）','深市（含创业板）'],
     };
@@ -2382,6 +2433,10 @@ async function fetchMainlandMarketOverview(code, force = false, aggregate = true
   const boardRows = boardResult.status === 'fulfilled' ? boardResult.value.data : [];
   const comparableBoards = boardRows.filter(item => Number.isFinite(item.pct));
   const flowBoards = boardRows.filter(item => Number.isFinite(item.mainNetInflow));
+  const curvesResult = await loadMarketOverviewCurves(force, [definition.secid], [definition.secid]).catch(error => {
+    console.error(`Market curves error (${code}):`, error.message);
+    return { curves:{ turnover:[], mainNet:[] }, unavailable:['成交额曲线','主力流入曲线'] };
+  });
   return {
     code, name:String(raw.f58 || definition.name),
     breadth:{
@@ -2396,6 +2451,7 @@ async function fetchMainlandMarketOverview(code, force = false, aggregate = true
       combined:Object.keys(combinedFlow).length ? combinedFlow : null,
       markets:flows.map(market => ({ key:market.key, name:market.name, ...(market.flow || {}) })),
     },
+    curves:curvesResult.curves,
     sectors:{
       rising:[...comparableBoards].sort((left, right) => right.pct - left.pct).slice(0, 3),
       falling:[...comparableBoards].sort((left, right) => left.pct - right.pct).slice(0, 3),
@@ -2405,8 +2461,9 @@ async function fetchMainlandMarketOverview(code, force = false, aggregate = true
     unavailable:[
       flowResult.status === 'rejected' ? '沪深资金流向' : '',
       boardResult.status === 'rejected' ? '行业强弱与行业资金' : '',
+      ...(curvesResult.unavailable || []),
     ].filter(Boolean),
-    partial:flowResult.status === 'rejected' || boardResult.status === 'rejected',
+    partial:flowResult.status === 'rejected' || boardResult.status === 'rejected' || Boolean(curvesResult.unavailable?.length),
     fetchedAt:Date.now(),
   };
 }
