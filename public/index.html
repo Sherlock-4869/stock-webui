@@ -1666,7 +1666,7 @@ html[data-theme="light"] .sm-unlock-alert{background:#ffebe9;border-color:#ff818
     <div class="modal-body-scroll">
       <div class="chart-area" id="quote-chart-panel">
         <div class="chart-controls-bar">
-          <div class="period-bar" id="period-bar" aria-label="分时 K 线周期">
+          <div class="period-bar" id="period-bar" aria-label="分时与分时 K 线周期">
             <button class="period-btn" data-period="m1" onclick="switchMinuteKPeriod('m1')">1分</button>
             <button class="period-btn active" data-period="m5" onclick="switchMinuteKPeriod('m5')">5分</button>
             <button class="period-btn" data-period="m15" onclick="switchMinuteKPeriod('m15')">15分</button>
@@ -1686,6 +1686,7 @@ html[data-theme="light"] .sm-unlock-alert{background:#ffebe9;border-color:#ff818
             <input class="minute-k-history-date" id="minute-k-history-date" type="date" aria-label="选择分时 K 日期" onchange="selectMinuteKHistoryDate(this.value)">
             <button class="chart-window-btn" type="button" onclick="stepMinuteKHistory(1)" aria-label="后一个交易日" title="后一个交易日">›</button>
             <button class="chart-window-btn" type="button" onclick="jumpMinuteKToLatest()">最新</button>
+            <button class="chart-window-btn" type="button" onclick="focusMinuteKDate()" title="将图表区间定位到当前选中日期">定位当日</button>
             <button class="chart-window-btn" id="minute-k-return-daily" type="button" onclick="returnToDailyK()" hidden>返回日K</button>
             <span class="chart-range-label" id="minute-k-history-status">当日实时</span>
           </div>
@@ -3307,6 +3308,7 @@ async function doSearch(q) {
 // ---- Modal ----
 let modalSym = null;
 let currentTab = 'minute';
+let currentMinutePeriod = 'm1';
 let currentMinuteKPeriod = 'm5';
 let currentTechnicalIndicator = 'volume';
 let lastQuoteData = {};
@@ -3444,6 +3446,7 @@ function openModal(sym) {
   const isIndex = isGlobalIndexSymbol(sym);
   const mainlandMarket = isMainlandMarketIndex(sym);
   currentTab = mainlandMarket ? 'market' : isIndex ? 'kline' : 'minute';
+  currentMinutePeriod = 'm1';
   currentMinuteKPeriod = 'm5';
   currentTechnicalIndicator = 'volume';
   chartState.maVisibility = { ...DEFAULT_KLINE_MA_VISIBILITY };
@@ -3490,14 +3493,14 @@ function openModal(sym) {
   document.getElementById('stock-information-content').innerHTML = '<div class="stock-info-loading">正在准备公开资讯…</div>';
   stockInformationSection = 'overview';
   updateStockInformationTabs();
-  document.getElementById('period-bar').classList.remove('visible');
+  document.getElementById('period-bar').classList.toggle('visible', ['minute', 'minuteK'].includes(currentTab));
   document.getElementById('technical-indicator-bar').classList.remove('visible');
   document.getElementById('technical-indicator-bar').classList.toggle('visible', ['minute', 'minuteK', 'kline'].includes(currentTab));
   document.getElementById('ma-indicator-bar').classList.toggle('visible', currentTab === 'kline');
   document.getElementById('minute-k-history-controls').classList.toggle('visible', ['minute', 'minuteK'].includes(currentTab) && isAStockSymbol(modalSym));
   syncKlineMaControls();
   document.querySelectorAll('[data-indicator]').forEach(btn => btn.classList.toggle('active', btn.dataset.indicator === currentTechnicalIndicator));
-  document.querySelectorAll('.period-btn[data-period]').forEach(btn => btn.classList.toggle('active', btn.dataset.period === 'm5'));
+  syncMinutePeriodControls();
   document.getElementById('modal-mask').classList.add('open');
   startModalQuoteRefresh();
   updateModalWatchlistButton();
@@ -3668,10 +3671,11 @@ function switchTab(el) {
   document.getElementById('stats-grid').hidden = information || marketOverview || orderBook || chips;
   document.getElementById('market-overview-panel').hidden = !marketOverview;
   document.getElementById('stock-information-panel').hidden = !information;
-  document.getElementById('period-bar').classList.toggle('visible', !information && !marketOverview && currentTab === 'minuteK');
+  document.getElementById('period-bar').classList.toggle('visible', !information && !marketOverview && ['minute', 'minuteK'].includes(currentTab));
   document.getElementById('technical-indicator-bar').classList.toggle('visible', technical || ['minute', 'minuteK', 'kline'].includes(currentTab));
   document.getElementById('ma-indicator-bar').classList.toggle('visible', currentTab === 'kline');
   document.getElementById('minute-k-history-controls').classList.toggle('visible', ['minute', 'minuteK'].includes(currentTab) && isAStockSymbol(modalSym));
+  syncMinutePeriodControls();
   updateMinuteKHistoryControls();
   if (orderBook) { loadOrderBook(); startOrderBookRefresh(); return; }
   stopOrderBookRefresh();
@@ -3790,10 +3794,24 @@ function switchTechnicalIndicator(indicator) {
   else if (['minute', 'minuteK', 'kline'].includes(currentTab) && chartState.data.length) renderChart();
 }
 
-function switchMinuteKPeriod(period) {
-  if (!/^m(?:1|5|15|30|60)$/.test(period) || period === currentMinuteKPeriod) return;
-  currentMinuteKPeriod = period;
+function syncMinutePeriodControls() {
+  const period = currentTab === 'minute' ? currentMinutePeriod : currentMinuteKPeriod;
   document.querySelectorAll('.period-btn[data-period]').forEach(btn => btn.classList.toggle('active', btn.dataset.period === period));
+}
+
+function switchMinuteKPeriod(period) {
+  if (!/^m(?:1|5|15|30|60)$/.test(period)) return;
+  if (currentTab === 'minute') {
+    if (period === currentMinutePeriod) return;
+    currentMinutePeriod = period;
+    syncMinutePeriodControls();
+    chartState.minuteKAvailableDates = [];
+    loadChart('minute');
+    return;
+  }
+  if (period === currentMinuteKPeriod) return;
+  currentMinuteKPeriod = period;
+  syncMinutePeriodControls();
   chartState.minuteKAvailableDates = [];
   if (currentTab === 'minuteK') loadChart('minuteK');
 }
@@ -4175,6 +4193,19 @@ function stepMinuteKHistory(offset) {
   if (next && next !== current) selectMinuteKHistoryDate(isoTradeDate(next));
 }
 
+function focusMinuteKDate() {
+  const target = compactTradeDate(chartState.minuteKDate);
+  const data = chartState.fullData || [];
+  if (!target || !data.length) return;
+  const start = data.findIndex(point => compactTradeDate(point.date) === target);
+  if (start < 0) return;
+  let end = start;
+  while (end + 1 < data.length && compactTradeDate(data[end + 1].date) === target) end += 1;
+  chartState.defaultStart = start;
+  chartState.defaultEnd = end;
+  setChartViewport(start, end, { allowShort:true });
+}
+
 function jumpMinuteKToLatest() {
   chartState.minuteKDate = '';
   chartState.minuteKDateExplicit = false;
@@ -4261,11 +4292,12 @@ async function loadChart(type, options = {}) {
   try {
     if (type === 'minute') {
       const aStock = isAStockSymbol(modalSym);
+      const period = currentMinutePeriod;
       if (aStock) await ensureDailyKData(modalSym);
       const explicitDate = aStock && (options.date !== undefined ? !!options.date : chartState.minuteKDateExplicit);
       if (aStock && options.date) chartState.minuteKDateExplicit = true;
       const requestedDate = explicitDate ? compactTradeDate(options.date || chartState.minuteKDate) : '';
-      if (aStock && /^\d{8}$/.test(requestedDate)) {
+      if (aStock && period === 'm1' && /^\d{8}$/.test(requestedDate)) {
         const r = await fetch(`/api/minute-kline?sym=${modalSym}&period=m1&date=${isoTradeDate(requestedDate)}`);
         if (!r.ok) throw new Error('historical minute request failed');
         const d = await r.json();
@@ -4292,6 +4324,45 @@ async function loadChart(type, options = {}) {
         chartState.minuteKDate = requestedDate;
         drawMinute(chartCanvas, minuteRowsFromKline(rows), prevClose, requestedDate);
         updateMinuteKHistoryControls();
+      } else if (aStock && /^\d{8}$/.test(requestedDate)) {
+        const r = await fetch(`/api/minute-kline?sym=${modalSym}&period=${period}&date=${isoTradeDate(requestedDate)}`);
+        if (!r.ok) throw new Error('historical minute request failed');
+        const d = await r.json();
+        if (requestId !== chartRequestId || currentTab !== type || currentMinutePeriod !== period) return;
+        rememberMinuteKAvailableDates(d.availableDates);
+        const symKey = Object.keys(d.data || {})[0];
+        const rows = (d.data?.[symKey]?.[period] || []).filter(row => compactTradeDate(row?.[0]) === requestedDate);
+        if (!rows.length) throw Object.assign(new Error('selected trading date has no minute data'), { minuteCoverageMessage:'该交易日暂无分时数据' });
+        const prevClose = minutePrevCloseForDate(requestedDate) || Number(rows[0]?.[1]) || 0;
+        chartState.minuteKDate = requestedDate;
+        drawMinute(chartCanvas, minuteRowsFromKline(rows), prevClose, requestedDate, period);
+        if (dataNotice) {
+          dataNotice.textContent = `分时曲线取 ${period.slice(1)} 分钟 K 线收盘价`;
+          dataNotice.classList.add('visible');
+        }
+        updateMinuteKHistoryControls();
+      } else if (period !== 'm1') {
+        const r = await fetch(`/api/minute-kline?sym=${modalSym}&period=${period}`);
+        if (!r.ok) throw new Error('minute request failed');
+        const d = await r.json();
+        if (requestId !== chartRequestId || currentTab !== type || currentMinutePeriod !== period) return;
+        rememberMinuteKAvailableDates(d.availableDates);
+        const symKey = Object.keys(d.data || {})[0];
+        const rows = d.data?.[symKey]?.[period] || [];
+        const dates = [...new Set(rows.map(row => compactTradeDate(row?.[0])).filter(date => /^\d{8}$/.test(date)))].sort();
+        const date = dates.at(-1) || '';
+        const latestRows = date ? rows.filter(row => compactTradeDate(row?.[0]) === date) : rows;
+        if (!latestRows.length) throw new Error('minute request returned no data');
+        chartState.minuteKDate = date;
+        const prevClose = aStock
+          ? (minutePrevCloseForDate(date) || Number(lastQuoteData[modalSym]?.prevClose || 0))
+          : Number(lastQuoteData[modalSym]?.prevClose || 0);
+        drawMinute(chartCanvas, minuteRowsFromKline(latestRows), prevClose, date, period);
+        if (dataNotice) {
+          dataNotice.textContent = `分时曲线取 ${period.slice(1)} 分钟 K 线收盘价`;
+          dataNotice.classList.add('visible');
+        }
+        if (aStock) updateMinuteKHistoryControls();
       } else {
         const r = await fetch(`/api/minute?sym=${modalSym}`);
         if (!r.ok) throw new Error('minute request failed');
@@ -4592,7 +4663,7 @@ function initializeChartViewport(defaultSize) {
 function setChartViewport(start, end, options = {}) {
   const total = chartState.fullData.length;
   if (!total) return;
-  const minPoints = Math.min(chartMinimumPoints(), total);
+  const minPoints = options.allowShort ? 1 : Math.min(chartMinimumPoints(), total);
   let nextStart = Math.max(0, Math.min(total - 1, Math.round(start)));
   let nextEnd = Math.max(nextStart, Math.min(total - 1, Math.round(end)));
   if (nextEnd - nextStart + 1 < minPoints) {
@@ -4629,12 +4700,12 @@ function showAllChartData() {
   setChartViewport(0, chartState.fullData.length - 1);
 }
 
-function drawMinute(canvas, rows, prevClose, date = '') {
+function drawMinute(canvas, rows, prevClose, date = '', period = 'm1') {
   chartState.type = 'minute';
   chartState.fullData = parseMinuteRows(rows, date);
   chartState.prevClose = prevClose;
   chartState.date = date;
-  chartState.period = '';
+  chartState.period = period;
   chartState.fullMa5 = [];
   chartState.fullMa10 = [];
   chartState.fullMa20 = [];

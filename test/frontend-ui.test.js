@@ -1386,6 +1386,16 @@ test('minute chart supports historical trading date selection for A-shares', () 
   );
 });
 
+test('minute chart period switches use direct minute K closes', () => {
+  assert.match(html, /let currentMinutePeriod = 'm1';/);
+  assert.match(html, /onclick="focusMinuteKDate\(\)"/);
+  assert.match(html, /setChartViewport\(start, end, \{ allowShort:true \}\)/);
+  assert.match(html, /document\.getElementById\('period-bar'\)\.classList\.toggle\('visible',[\s\S]*\['minute', 'minuteK'\]\.includes\(currentTab\)/);
+  assert.match(html, /fetch\(`\/api\/minute-kline\?sym=\$\{modalSym\}&period=\$\{period\}`\)/);
+  assert.match(html, /minuteRowsFromKline\(latestRows\)/);
+  assert.match(html, /分时曲线取 \$\{period\.slice\(1\)\} 分钟 K 线收盘价/);
+});
+
 test('daily recap and smart money pages integrate cleanly into market hub with exported handlers', () => {
   const recapScript = fs.readFileSync(path.join(__dirname, '..', 'public', 'market-recap.js'), 'utf8');
   const smartMoneyScript = fs.readFileSync(path.join(__dirname, '..', 'public', 'smart-money.js'), 'utf8');
